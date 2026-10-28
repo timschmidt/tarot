@@ -31,6 +31,7 @@ impl KeyboardUi {
     }
 
     pub fn show_in_ui(&mut self, ui: &mut egui::Ui, numeric: bool, secure: bool) -> Vec<Action> {
+        crate::theme::install(ui.ctx());
         let frame = ui.ctx().cumulative_frame_nr();
         if let Some((previous, shift, symbols, symbols_more)) = self
             .frame_start

@@ -1,0 +1,133 @@
+{
+  "source": "docs/Tarot_Design_Packet",
+  "originals_modified": false,
+  "assets": {
+    "crates/tarot-ui/assets/icons/calendar.png": {
+      "source": "docs/Tarot_Design_Packet/icons/calendar.svg",
+      "source_sha256": "c30e186c0f714200358e6a17f17e2b5b049794bf68b38590e746b39ceb1f0a8f",
+      "sha256": "c0a379f4c9286c4d94b21d2ac5b864f249005627a15bc43d36df5e22f3dfbb22"
+    },
+    "crates/tarot-ui/assets/icons/camera.png": {
+      "source": "docs/Tarot_Design_Packet/icons/camera.svg",
+      "source_sha256": "7bff77b7c28a5cbb762ddfa020948494bb4651e07913acce3015c1de71ffbaa6",
+      "sha256": "1b833cadf07a7a51b59b53e06c1f61193835001a86068c3735dfc7c631c2d728"
+    },
+    "crates/tarot-ui/assets/icons/clock.png": {
+      "source": "docs/Tarot_Design_Packet/icons/clock.svg",
+      "source_sha256": "c2d782344b36883d3c19f7a23313579ca83664fe7b8829be3ae7974d34691390",
+      "sha256": "91f9251ce1b4a2c52585b1573ec9c2e89478906479635afb5eca991ddb0d42a8"
+    },
+    "crates/tarot-ui/assets/icons/contacts.png": {
+      "source": "docs/Tarot_Design_Packet/icons/contacts.svg",
+      "source_sha256": "622462eac4da77cf4be73390f1844f91234ce0e5c6a4b20f8d963aecb3550e28",
+      "sha256": "e40ee0ce8264be1b210f31bba4a1b69be9164cbde93f72fae29d93247ee74056"
+    },
+    "crates/tarot-ui/assets/icons/files.png": {
+      "source": "docs/Tarot_Design_Packet/icons/files.svg",
+      "source_sha256": "a13aa3f244d5ae911c7cdcb23c50bdec4b7a8e53da6747c11a8515bf1c788449",
+      "sha256": "bc2bdcf3dec4d69447f34e7d0f64fc1d302e20ad6cd89298dacb6ef6832a39d6"
+    },
+    "crates/tarot-ui/assets/icons/launcher.png": {
+      "source": "docs/Tarot_Design_Packet/icons/launcher.svg",
+      "source_sha256": "535357c3e3d13b197b5d7283a42da2fca673c86b406ff9356f436e1bf5eac5f7",
+      "sha256": "3279af8d445cca611f8cc8874474c56944f0c7400e7046a1d3b3205bec977dc3"
+    },
+    "crates/tarot-ui/assets/icons/mail.png": {
+      "source": "docs/Tarot_Design_Packet/icons/mail.svg",
+      "source_sha256": "820719c48ce82b336438d5d817731acb59f82138cd393c7048acd2a6dbfc6fb4",
+      "sha256": "8e4268d9098f9432bcfe56a0ebc26ba0218f8163dc836b779734c64a8c411de6"
+    },
+    "crates/tarot-ui/assets/icons/messages.png": {
+      "source": "docs/Tarot_Design_Packet/icons/messages.svg",
+      "source_sha256": "c9b12f8956abaacf645829e69fb616392a3313ea501e1714357d8d6aaaf95fc4",
+      "sha256": "d71e9f99bc2d06bbb04387e5f6831697de07b222bf4919a6d111a5a84bba755f"
+    },
+    "crates/tarot-ui/assets/icons/music.png": {
+      "source": "docs/Tarot_Design_Packet/icons/music.svg",
+      "source_sha256": "1d6899caaa8071c646776634e699426b229a38ff131760bcd790e513d8a791d0",
+      "sha256": "66dc7d886d666e66ed8e8cd5e3e9107705514e61968309fe54e0bc7741058c2f"
+    },
+    "crates/tarot-ui/assets/icons/notes.png": {
+      "source": "docs/Tarot_Design_Packet/icons/notes.svg",
+      "source_sha256": "26d4dbe2770dd77f7e8edac934db629e65dd114d9b9ace7b35c21d2f7016d7a5",
+      "sha256": "289f2227effcbfa4bf0f66e5f765147929acca56bde2bca19b6e2eea0c735c15"
+    },
+    "crates/tarot-ui/assets/icons/phone.png": {
+      "source": "docs/Tarot_Design_Packet/icons/phone.svg",
+      "source_sha256": "59f8c5fb0207e84e71e27fb917cd4eefa65078222c48caa188ae97ea729f7980",
+      "sha256": "5a05e3e4ee2923d330c9297e3bd6b85d82d4a85028fa9f7a67eaa46d03fa2ca2"
+    },
+    "crates/tarot-ui/assets/icons/photos.png": {
+      "source": "docs/Tarot_Design_Packet/icons/photos.svg",
+      "source_sha256": "c2d6dcc371579ad288c12bfa8498342bdaca7caeb7a611fa3e239ded848ecfe1",
+      "sha256": "0982ff043cbde0396e98c18e656cc76532ccf5143ab12684d08e31e2674ebcdd"
+    },
+    "crates/tarot-ui/assets/icons/settings.png": {
+      "source": "docs/Tarot_Design_Packet/icons/settings.svg",
+      "source_sha256": "7401966d360483a1f43b891ecb8067ee33d55ec5f9103aede2cd7b7c5b52dbf0",
+      "sha256": "a1dc03b412d5b1fc60cc04e417df0448dec3d28bc809524cbddcf21c24d03fb0"
+    },
+    "crates/tarot-ui/assets/icons/store.png": {
+      "source": "docs/Tarot_Design_Packet/icons/store.svg",
+      "source_sha256": "7a8295214a46fb45b7c0347c30f2223ef048400c062fc4d59f6b18204f7859d3",
+      "sha256": "9449aa5860a8538cc40f8a3100e65305248c5dc328aae762c66118b3e18d216e"
+    },
+    "crates/tarot-ui/assets/icons/terminal.png": {
+      "source": "docs/Tarot_Design_Packet/icons/terminal.svg",
+      "source_sha256": "b64d5ef941c0a3288e23a0992b8b468edae7d3439161b0addfef5d4790cae746",
+      "sha256": "1ac4fd86623b017b77e4c68547c1b17288b95b03ed51c567d791aaa327b9e5da"
+    },
+    "crates/tarot-ui/assets/icons/web.png": {
+      "source": "docs/Tarot_Design_Packet/icons/web.svg",
+      "source_sha256": "d2d7626968672cea65b9c1ce78af82c3bb353a5ce841c8f0dafda84ad3ec4cf2",
+      "sha256": "64a3f9b471c3501361d6a3839e8ac5ddbbe42809f22082d345dad3e847715f79"
+    },
+    "crates/tarot-ui/assets/nocturne.png": {
+      "source": "docs/Tarot_Design_Packet/wallpapers/nocturne.png",
+      "source_sha256": "de40022f0dcdbedfad066841ef375b510599059eb068328576966feb949c03b7",
+      "sha256": "de40022f0dcdbedfad066841ef375b510599059eb068328576966feb949c03b7"
+    },
+    "crates/tarot-core/assets/tarot.tokens.json": {
+      "source": "docs/Tarot_Design_Packet/tokens/tarot.tokens.json",
+      "source_sha256": "6c692866c7b2fae0609f153cb5434568d97ddd860523ff26355056e651cc16ad",
+      "sha256": "6c692866c7b2fae0609f153cb5434568d97ddd860523ff26355056e651cc16ad"
+    },
+    "crates/tarot-ui/assets/fonts/InstrumentSerif-OFL.txt": {
+      "source": "docs/Tarot_Design_Packet/fonts/InstrumentSerif-OFL.txt",
+      "source_sha256": "129ed7618959716959f2941fdd5b49e0ad6e6c1d78726761786a00253d865521",
+      "sha256": "129ed7618959716959f2941fdd5b49e0ad6e6c1d78726761786a00253d865521"
+    },
+    "crates/tarot-ui/assets/fonts/InstrumentSerif-Regular.ttf": {
+      "source": "docs/Tarot_Design_Packet/fonts/InstrumentSerif-Regular.ttf",
+      "source_sha256": "498efd461f6ddfcb7a111bf9a565709d2085d48201d501ead960d93e84ffbb88",
+      "sha256": "498efd461f6ddfcb7a111bf9a565709d2085d48201d501ead960d93e84ffbb88"
+    },
+    "crates/tarot-ui/assets/fonts/Lato-Bold.ttf": {
+      "source": "docs/Tarot_Design_Packet/fonts/Lato-Bold.ttf",
+      "source_sha256": "8a0aace75d33794eece4b28187bfc1df0bbd2888b5d8a56e01788c8d65d16be1",
+      "sha256": "8a0aace75d33794eece4b28187bfc1df0bbd2888b5d8a56e01788c8d65d16be1"
+    },
+    "crates/tarot-ui/assets/fonts/Lato-Italic.ttf": {
+      "source": "docs/Tarot_Design_Packet/fonts/Lato-Italic.ttf",
+      "source_sha256": "e399c44efe1387100531d26c7e4800c5d12251b890d6654a3098c7c679cb1786",
+      "sha256": "e399c44efe1387100531d26c7e4800c5d12251b890d6654a3098c7c679cb1786"
+    },
+    "crates/tarot-ui/assets/fonts/Lato-OFL.txt": {
+      "source": "docs/Tarot_Design_Packet/fonts/Lato-OFL.txt",
+      "source_sha256": "74ba064d03f1f1c4a952da936c3eb71866c34404916734de3cae73b34357e59e",
+      "sha256": "74ba064d03f1f1c4a952da936c3eb71866c34404916734de3cae73b34357e59e"
+    },
+    "crates/tarot-ui/assets/fonts/Lato-Regular.ttf": {
+      "source": "docs/Tarot_Design_Packet/fonts/Lato-Regular.ttf",
+      "source_sha256": "d636e4683231f931eda222d588e944d082bfd3bdba02f928bee461c0f185b251",
+      "sha256": "d636e4683231f931eda222d588e944d082bfd3bdba02f928bee461c0f185b251"
+    }
+  },
+  "renderer": "CairoSVG 2.9.0",
+  "tray": {
+    "material_source": "docs/Tarot_Design_Packet/icons/phone.svg#tray",
+    "source_sha256": "59f8c5fb0207e84e71e27fb917cd4eefa65078222c48caa188ae97ea729f7980",
+    "svg_sha256": "c88d927b5fc844ade931f1c5f54bb43c2df774db19c71bdafd5aba0ee1ca2365",
+    "png_sha256": "93553dd5de2c8bf981176bc39f64f371e01ebfee8c7b21f68ed206032c547a2a"
+  }
+}

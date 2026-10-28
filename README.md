@@ -4,6 +4,8 @@ Tarot is a Rust phone shell in development for Nura on the PinePhone Pro, recrea
 
 The intended result is a complete Wayland session that runs native Linux applications: cards and stacks, a launcher and quick-launch dock, gestures, notifications, system controls, and eventually Rust phone applications. Tarot-owned application code will be Rust; standard Linux services, drivers, and native libraries are part of the platform.
 
+The original [Nocturne design packet](docs/Tarot_Design_Packet/README.txt) now guides the shell’s appearance and Pre 2-era interaction model. Its wallpaper, original icons, Lato typography and shared geometry now run in installed revision 12 on the phone. [Design coverage and remaining work](docs/DESIGN_APPLICATION.md) distinguish implemented foundations from the full design.
+
 ## Project status
 
 Implementation is underway. The workspace contains a Smithay compositor with shared egui/GLES rendering, a platform-independent window/gesture model, a nested desktop backend, and an experimental direct DRM/libseat/libinput backend. The optimized AArch64 build runs on the phone's Panfrost GPU with a real GTK client. Basic touchscreen navigation and VT release/reacquisition have been exercised on hardware.
@@ -12,7 +14,9 @@ M0 remains in progress. The phone has been upgraded through supported releases t
 
 Tarot is now the default login session on the development phone, with the normal installed entry running and diagnostics disabled. The retained revision 8 → 5 → 8 package round trip passes real PAM, native app/audio and cleanup checks on both revisions.
 
-Installed revision 9 adds [hardware power and volume buttons](docs/BUILDING.md#hardware-buttons), with native protected panel off/wake and real PAM-worker cancellation tests. The owner confirms the physical buttons and volume indicator work. Revision 8's longer login/suspend results remain scoped to that earlier package.
+Revision 12 passes native touch/PAM, favorite persistence, protected rotation and power/volume checks. Visual conformance remains open, including a known scale-2 status-text rendering defect. The phone remains in normal Tarot with diagnostics disabled.
+
+Revision 9 introduced [hardware power and volume buttons](docs/BUILDING.md#hardware-buttons), with native protected panel off/wake and real PAM-worker cancellation tests. The owner confirms the physical buttons and volume indicator work. Revision 8's longer login/suspend results remain scoped to that earlier package.
 
 ## Build and run
 

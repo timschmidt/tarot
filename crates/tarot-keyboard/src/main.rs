@@ -229,6 +229,7 @@ impl Keyboard {
         let numeric = matches!(self.purpose, 2 | 3 | 4 | 9);
         let secure = self.secure();
         let mut actions = Vec::new();
+        tarot_ui::theme::install(&self.context);
         let output = self.context.run(input, |ctx| {
             actions = self.ui.show(ctx, numeric, secure);
         });

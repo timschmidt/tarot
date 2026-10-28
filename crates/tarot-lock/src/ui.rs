@@ -29,6 +29,7 @@ impl View {
         self.keys.reset();
     }
     pub fn show(&mut self, ctx: &egui::Context, frame: Frame<'_>) -> Vec<Action> {
+        tarot_ui::theme::install(ctx);
         let mut actions = Vec::new();
         let ready =
             frame.acknowledged && frame.status != Status::Checking && frame.retry_seconds == 0;

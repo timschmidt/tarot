@@ -4,13 +4,15 @@ Planning baseline: October 26, 2026. Tarot will recreate the classic WebOS/LuneO
 
 Implementation is underway; [implementation status](IMPLEMENTATION_STATUS.md) records current evidence. Milestone completion below means demonstrated behavior with recorded evidence, not merely merged code or a convincing mockup. The complete product scope remains the objective.
 
+October 28 design update: the owner supplied the original [Tarot design packet](Tarot_Design_Packet/README.txt) and requested that it be committed, consumed and applied. **Nocturne, based on the Pre 2-era webOS 2.x phone interaction model, is now the visual authority.** Its proposed tokens supersede the earlier scaffold values. The exact historical firmware build is still unpinned. [Application map and ordered remaining work](DESIGN_APPLICATION.md) connect all 25 studies to implementation and acceptance evidence.
+
 ## Confirmed direction
 
 | Topic | Owner decision |
 | --- | --- |
 | Product scope | Full phone shell/compositor with native Linux application support |
 | Rust boundary | Tarot-owned application code in Rust; standard Linux services, native libraries, and drivers are allowed |
-| UI direction | As faithful as practical in visual appearance and behavior, preserving WebOS's design while modernizing its foundations |
+| UI direction | Original Nocturne packet; Pre 2-era webOS 2.x behavior, faithful where practical and explicitly adapted for Linux/PinePhone Pro |
 | Platform | Nura on PinePhone Pro; use Nura terminology in project documentation |
 | Hardware | A spare development phone is available; the owner authorizes development control and updating its OS |
 | Device baseline | The connected phone was upgraded from 24.12 through supported releases to stable 26.06; retain the verified baseline and recovery procedure |

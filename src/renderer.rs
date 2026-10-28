@@ -177,7 +177,7 @@ impl ShellRenderer {
                     egui::Pos2::ZERO,
                     egui::vec2(layout.width, layout.height),
                 ),
-                shape: tarot_ui::wallpaper(layout),
+                shape: tarot_ui::wallpaper(&self.context, layout),
             }];
             let primitives = self.context.tessellate(shapes, output.pixels_per_point);
             paint_layer(

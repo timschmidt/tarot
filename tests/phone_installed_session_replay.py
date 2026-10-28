@@ -312,7 +312,7 @@ def run(args, password):
         assert not remaining and Path('/sys/class/tty/tty0/active').read_text().strip() == 'tty7'
         assert not socket.exists(), 'Supervisor must remove its diagnostic socket before ending the login session'
         records['validation'] = {'passed': True, 'packaged_greetd_session': True, 'root_seatd_used': False, 'protected_startup_and_actual_pam': True, 'native_app_in_same_login_session': True, 'actual_kernel_suspend_cycles': args.cycles, 'audio_ready_checked':args.require_audio, 'compositor_killed': args.crash, 'returned_to_phrog': True, 'login_cgroup_empty': True, 'diagnostic_socket_removed': True, 'native_panel_off_sensor_release_reclaim':getattr(args,'panel_off',False), 'manual_sensor_tested': False, 'password_logged': False}
-        print('PASS: installed unprivileged login/session, native app, real PAM/suspend and greeter recovery', flush=True)
+        print('PASS: installed unprivileged login/session, native app, real PAM and greeter recovery; actual suspend cycles:', len(records['cycles']), flush=True)
     except BaseException as error:
         records['validation'] = {'passed': False, 'exception_type': type(error).__name__}
         # Preserve evidence before cleanup destroys a stalled process. Never

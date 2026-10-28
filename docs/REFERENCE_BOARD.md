@@ -1,10 +1,12 @@
 # Tarot phone interaction reference board
 
-Reviewed October 27, 2026. Use the classic Palm phone composition as the baseline, adding later WebOS/LuneOS stacks. This is an observation and adaptation record, not an asset bundle or a claim of finished visual fidelity.
+Updated October 28, 2026. The owner’s [original Nocturne/Pre 2 design packet](Tarot_Design_Packet/README.txt) is now authoritative for Tarot styling and proposed interaction values. The historical research below is supporting context; the earlier 2009 Pre and Pre 3 references must not silently override the chosen Pre 2/webOS 2.x baseline. The precise firmware build remains uncaptured. See the [application and deviation register](DESIGN_APPLICATION.md).
+
+Previously reviewed October 27, 2026. Use the classic Palm phone composition as the baseline, adding later WebOS/LuneOS stacks. This is an observation and adaptation record, not an asset bundle or a claim of finished visual fidelity.
 
 October 28 follow-up: the local revision 10 source now implements the five-position dock, upward-hold selection wave and persistent favorites. Its native-client/keyboard desktop captures were inspected; phone acceptance and final historical styling remain open. [Exact checkpoint](IMPLEMENTATION_STATUS.md#quick-launch-development-checkpoint)
 
-The primary visual reference is Palm's 2009 *Pre User Guide*, hosted by its carrier [Bell](https://support.bell.ca/_web/guides/User-Guides/Mobile/PalmOne/Palm-EN/palm_pre_userguide_en%28en%29.pdf). Page numbers below are the printed page numbers. Selected pages were rendered locally and inspected; the original copyrighted illustrations remain external references. Tarot does not ship them.
+The earlier research reference was Palm's 2009 *Pre User Guide*, hosted by its carrier [Bell](https://support.bell.ca/_web/guides/User-Guides/Mobile/PalmOne/Palm-EN/palm_pre_userguide_en%28en%29.pdf). Page numbers below are the printed page numbers. Selected pages were rendered locally and inspected; the original copyrighted illustrations remain external references. Tarot does not ship them.
 
 | State | Reference | Composition or behavior to preserve | Tarot adaptation / remaining evidence |
 | --- | --- | --- | --- |
@@ -19,9 +21,9 @@ The primary visual reference is Palm's 2009 *Pre User Guide*, hosted by its carr
 
 The LuneOS [gesture area](https://github.com/webOS-ports/luna-next-cardshell/blob/101cb7dbe2e22eb2c9508758165dd634b01b41a2/qml/WindowManager/LunaGestureArea.qml) and [swipeable card](https://github.com/webOS-ports/luna-next-cardshell/blob/101cb7dbe2e22eb2c9508758165dd634b01b41a2/qml/CardView/SwipeableCard.qml) provide additional behavioral references. No QML or reference artwork was copied into Tarot. The inspected archive is pinned to the linked commit; runtime code is an independent Rust implementation.
 
-## Initial tokens and deliberate departures
+## Superseded scaffold tokens and deliberate departures
 
-These are Tarot's initial evaluation values, not measurements of the historical system:
+These October 27 scaffold values are retained as history, **not current implementation targets**. The owner’s packet supplies the replacement values; neither set represents measured historical firmware:
 
 | Token | Initial value | Reason / review |
 | --- | --- | --- |

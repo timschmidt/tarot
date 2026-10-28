@@ -21,7 +21,9 @@ def replay(socket, screen, state, tap, capture, before, out):
                'physical_finger_tested': False}
 
     def same_app(label):
-        value = state(label, lambda s:s['view']==before['view'] and s['presentation']['quick_launch'] is None)
+        value = state(label, lambda s:s['view']==before['view'] and s['presentation']['quick_launch'] is None
+                      and s['presentation']['overview']==0.0 and s['presentation']['dock']==0.0
+                      and s['presentation']['windows'][0]['rect']==s['app_area'])
         assert value['cards']==before['cards']
         return value
 
@@ -51,6 +53,16 @@ def replay(socket, screen, state, tap, capture, before, out):
                       and s['presentation']['windows'][0]['opacity']==1.0)
         assert ready['output']['orientation']=='normal' and ready['output']['scale']==2
         assert ready['cards'][0]['app_id']=='org.gnome.Calculator'
+        request(socket,'overview')
+        state('quick-packet-card-view',lambda s:s['view']=='Overview' and s['presentation']['overview']==1.0)
+        capture('quick-packet-card-view')
+        request(socket,'activate',id=before['cards'][0]['id'])
+        # Opacity stays one during maximization; it cannot prove the card has
+        # reached the app area. Calculator also reactivates native text input.
+        ready=state('quick-app-before-wave',lambda s:s['view']==before['view']
+                    and s['keyboard_visible'] and s['presentation']['overview']==0.0
+                    and s['presentation']['dock']==0.0
+                    and s['presentation']['windows'][0]['rect']==s['app_area'])
         shown=wave(42,0)
         assert shown['view']==ready['view'] and shown['cards']==ready['cards']
         assert shown['presentation']['windows']==ready['presentation']['windows']
@@ -60,17 +72,19 @@ def replay(socket, screen, state, tap, capture, before, out):
         assert request(socket,'status')['launch_feedback'] is None
         wave(2,None);screen.up();same_app('quick-outside-release-canceled')
         wave(320,4);screen.up()
-        state('quick-launcher',lambda s:s['view']=='Launcher')
+        state('quick-launcher',lambda s:s['view']=='Launcher' and s['presentation']['overview']==0.0
+              and all(w['opacity']==0.0 for w in s['presentation']['windows']))
+        capture('quick-launcher-without-tray')
         editor('quick-editor')
         capture('quick-editor-before')
         apps=request(socket,'applications')['applications']
         available=[a['id'] for a in apps if a['id']!=CALCULATOR]
         index=available.index(FAILURE)
-        y=226+51*index
+        y=259+51*index
         assert y<580,'Temporary test entry is outside the verified visible list'
         tap(165,y)
         favorite('quick-added-favorite',[CALCULATOR,FAILURE])
-        tap(208,196)
+        tap(208,225)
         favorite('quick-reordered-favorite',[FAILURE,CALCULATOR])
         done('quick-done-before-failure')
         request(socket,'activate',id=before['cards'][0]['id'])
@@ -81,17 +95,17 @@ def replay(socket, screen, state, tap, capture, before, out):
                      and not s['launch_feedback']['pending'])
         assert failed['view']==before['view'] and failed['cards']==before['cards']
         capture('quick-failed-start-message')
-        feedback_y=max(28,failed['keyboard_rect']['y']-152)
+        feedback_y=max(32,failed['keyboard_rect']['y']-145)
         tap(324,feedback_y+32)
         state('quick-failed-message-dismissed',lambda s:s['launch_feedback'] is None)
         wave(320,4);screen.up()
         state('quick-return-to-launcher',lambda s:s['view']=='Launcher')
         editor('quick-editor-again')
-        tap(320,145)
+        tap(320,174)
         favorite('quick-removed-favorite',[CALCULATOR])
         done('quick-editor-done')
-        tap(42,650)
-        same_app('quick-dock-tap-restores-app')
+        wave(42,0);screen.up()
+        same_app('quick-favorite-restores-app')
         capture('quick-native-final')
         settings=tomllib.loads(Path('/home/user/.config/tarot/settings.toml').read_text())
         assert settings['version']==3 and settings['quick_launch']['applications']==[CALCULATOR]

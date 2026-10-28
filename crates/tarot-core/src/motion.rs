@@ -6,7 +6,7 @@ use std::time::Duration;
 
 use crate::{CardDrop, Layout, Rect, ShellModel, View, WindowId, gesture::Preview};
 
-pub const SETTLE: Duration = Duration::from_millis(220);
+pub const SETTLE: Duration = Duration::from_millis(crate::design::MINIMIZE_MS);
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize)]
 pub struct WindowVisual {
@@ -147,6 +147,7 @@ pub struct Animator {
     from: Presentation,
     to: Presentation,
     started: Duration,
+    duration: Duration,
     drag_origin: Option<Presentation>,
     reduced_motion: bool,
 }
@@ -158,6 +159,7 @@ impl Animator {
         self.from = frame.clone();
         self.to = frame;
         self.started = now.saturating_sub(SETTLE);
+        self.duration = SETTLE;
         self.drag_origin = None;
     }
 
@@ -177,7 +179,9 @@ impl Animator {
         let progress = if self.reduced_motion {
             1.0
         } else {
-            (now.saturating_sub(self.started).as_secs_f32() / SETTLE.as_secs_f32()).min(1.0)
+            (now.saturating_sub(self.started).as_secs_f32()
+                / self.duration.max(Duration::from_millis(1)).as_secs_f32())
+            .min(1.0)
         };
         if progress >= 1.0 {
             return self.to.clone();
@@ -244,12 +248,24 @@ impl Animator {
         let target = Presentation::settled(model, layout);
         if self.to != target {
             self.from = self.sample(now);
+            self.duration =
+                Duration::from_millis(if target.windows.len() > self.to.windows.len() {
+                    crate::design::LAUNCH_MS
+                } else if target.windows.len() < self.to.windows.len() {
+                    crate::design::DISMISS_MS
+                } else if matches!(model.view, View::App(_)) {
+                    crate::design::MAXIMIZE_MS
+                } else if model.view == View::Overview {
+                    crate::design::MINIMIZE_MS
+                } else {
+                    crate::design::LAUNCHER_MS
+                });
             self.to = target;
             self.started = now;
         }
         let moving = !self.reduced_motion
             && self.from != self.to
-            && now.saturating_sub(self.started) < SETTLE;
+            && now.saturating_sub(self.started) < self.duration;
         (self.sample(now), moving)
     }
 }

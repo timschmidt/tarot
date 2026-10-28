@@ -97,8 +97,8 @@ pub struct Wave {
 
 /// A fixed launcher position remains available even with four favorites.
 pub fn slot(layout: Layout, index: usize, wave: Option<Wave>) -> Rect {
-    let width = ((layout.width - 16.0) / 5.0).max(1.0);
-    let x = 8.0 + index as f32 * width;
+    let width = ((layout.width - 6.0) / 5.0).max(1.0);
+    let x = 3.0 + index as f32 * width;
     let y = if let Some(wave) = wave {
         let distance = ((x + width / 2.0 - wave.finger.0) / width).abs().min(4.0);
         (wave.finger.1 - 42.0 + distance * 7.0).clamp(
@@ -106,23 +106,23 @@ pub fn slot(layout: Layout, index: usize, wave: Option<Wave>) -> Rect {
             (layout.gesture().y - 64.0).max(Layout::STATUS + 28.0),
         )
     } else {
-        layout.gesture().y - 68.0
+        layout.gesture().y - crate::design::DOCK - 4.0
     };
     Rect {
         x,
         y,
         width,
-        height: 64.0,
+        height: crate::design::DOCK,
     }
 }
 
 pub fn wave(layout: Layout, finger: (f32, f32)) -> Wave {
-    let selected = if finger.0 >= 8.0
-        && finger.0 < layout.width - 8.0
+    let selected = if finger.0 >= 3.0
+        && finger.0 < layout.width - 3.0
         && finger.1 >= Layout::STATUS + 28.0
         && finger.1 < layout.gesture().y - 16.0
     {
-        Some(((finger.0 - 8.0) / ((layout.width - 16.0) / 5.0).max(1.0)).floor() as usize)
+        Some(((finger.0 - 3.0) / ((layout.width - 6.0) / 5.0).max(1.0)).floor() as usize)
             .filter(|i| *i <= CAPACITY)
     } else {
         None

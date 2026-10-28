@@ -22,6 +22,7 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output',type=Path,required=True)
     parser.add_argument('--xvfb',default='Xvfb')
+    parser.add_argument('--scale',type=int,choices=[1,2],default=1)
     args=parser.parse_args();out=args.output.resolve();out.mkdir(mode=0o700,parents=True,exist_ok=False)
     root=Path.cwd();temporary=tempfile.TemporaryDirectory(prefix='tarot-quick-launch-');work=Path(temporary.name)
     control=work/'control.sock';config=work/'settings.toml';catalog=work/'data/applications';catalog.mkdir(parents=True)
@@ -32,7 +33,10 @@ def main():
     for identifier,name in [(app_id,'Alpha Probe'),('test.beta.desktop','Beta'),('test.gamma.desktop','Gamma'),('test.delta.desktop','Delta')]:
         executable=(str(root/'target/debug/examples/input-probe')+' --exit-after-seconds 180 --report "'+str(report)+'"') if identifier==app_id else '/bin/false'
         (catalog/identifier).write_text('[Desktop Entry]\nType=Application\nName='+name+'\nExec='+executable+'\n')
-    records={'validation':{'passed':False}};children=[];logs=[];mouse=session=None
+    records={'validation':{'passed':False},'scale':args.scale};children=[];logs=[];mouse=session=None
+    class ScaledInput(PrivateInput):
+        def move(self,x,y):
+            super().move(x*args.scale,y*args.scale)
     def log(name):
         f=(out/name).open('w');logs.append(f);return f
     def state(label,condition=lambda s:True):
@@ -52,7 +56,7 @@ def main():
     try:
         read,write=os.pipe()
         try:
-            xvfb=subprocess.Popen([args.xvfb,'-displayfd',str(write),'-nolisten','tcp','-noreset','-ac','-screen','0','1000x1000x24'],pass_fds=(write,),stdout=log('xvfb.log'),stderr=subprocess.STDOUT)
+            xvfb=subprocess.Popen([args.xvfb,'-displayfd',str(write),'-nolisten','tcp','-noreset','-ac','-screen','0','1000x1600x24'],pass_fds=(write,),stdout=log('xvfb.log'),stderr=subprocess.STDOUT)
             children.append(xvfb);os.close(write);write=None
             assert select.select([read],[],[],8)[0]
             number=os.read(read,32).decode().strip();assert number.isdigit() and xvfb.poll() is None
@@ -63,11 +67,11 @@ def main():
         env.pop('WAYLAND_DISPLAY',None);env.pop('WAYLAND_SOCKET',None)
         def launch(label):
             nonlocal session,mouse
-            session=subprocess.Popen([str(root/'target/debug/tarot'),'--config-file',str(config),'--control-socket',str(control),'--input-method',str(root/'target/debug/tarot-keyboard'),'--exit-after-ms','120000'],env=env,stdout=log(label+'.log'),stderr=subprocess.STDOUT)
+            session=subprocess.Popen([str(root/'target/debug/tarot'),'--width',str(360*args.scale),'--height',str(720*args.scale),'--scale',str(args.scale),'--config-file',str(config),'--control-socket',str(control),'--input-method',str(root/'target/debug/tarot-keyboard'),'--exit-after-ms','120000'],env=env,stdout=log(label+'.log'),stderr=subprocess.STDOUT)
             children.append(session)
             await_value(lambda:control.exists() or session.poll() is not None,bool);assert session.poll() is None
             initial=state(label+'-ready',lambda s:s.get('favorites',{}).get('applications')==[app_id] and s['application_count']==4)
-            mouse=PrivateInput(session.pid,xvfb,env['DISPLAY']);await_value(mouse.find,bool)
+            mouse=ScaledInput(session.pid,xvfb,env['DISPLAY']);await_value(mouse.find,bool)
             mouse.move(180,350);time.sleep(.2)
             return initial
         launch('first');capture('home-five-positions')
@@ -95,8 +99,8 @@ def main():
         # Editor uses real UI presses; reordered identities, not labels, persist.
         click(285,67);state('editor-open',lambda s:s['editing_favorites'])
         capture('editor-before')
-        click(165,226);state('second-favorite-added',lambda s:s['favorites']['applications']==[app_id,'test.beta.desktop'])
-        click(208,196);state('favorite-reordered',lambda s:s['favorites']['applications']==['test.beta.desktop',app_id])
+        click(165,259);state('second-favorite-added',lambda s:s['favorites']['applications']==[app_id,'test.beta.desktop'])
+        click(208,225);state('favorite-reordered',lambda s:s['favorites']['applications']==['test.beta.desktop',app_id])
         click(285,67);state('editor-done-before-failure',lambda s:not s['editing_favorites'])
         request(control,'activate',id=app['cards'][0]['id'])
         state('app-before-failed-favorite',lambda s:s['view']==app['view'] and s['presentation']['windows'][0]['opacity']==1.0)
@@ -104,12 +108,12 @@ def main():
         failed=state('failed-favorite-keeps-app',lambda s:s['launch_feedback'] is not None and not s['launch_feedback']['pending'])
         assert failed['view']==app['view'] and failed['cards']==app['cards']
         capture('failed-favorite-message')
-        buttons=count();click(324,572)
+        buttons=count();click(324,failed['keyboard_rect']['y']-120)
         state('launch-message-dismissed',lambda s:s['launch_feedback'] is None)
         assert count()==buttons
         wave(320,610);mouse.button(False);state('launcher-after-failure',lambda s:s['view']=='Launcher')
         click(285,67);state('editor-again',lambda s:s['editing_favorites'])
-        click(320,145);state('favorite-removed',lambda s:s['favorites']['applications']==[app_id])
+        click(320,174);state('favorite-removed',lambda s:s['favorites']['applications']==[app_id])
         click(285,67);state('editor-done',lambda s:not s['editing_favorites'])
         saved=await_value(config.read_text,lambda text:'org.tarot.InputProbe.desktop' in text and 'test.beta.desktop' not in text)
         assert 'dnd = true' in saved

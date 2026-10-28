@@ -7,6 +7,7 @@ pub mod native_text;
 pub mod notifications;
 pub mod quick_launch;
 pub mod system;
+pub mod theme;
 pub mod wifi;
 
 use egui::{Align2, Color32, FontId, Pos2, Rect, Sense, Stroke, StrokeKind, Vec2};
@@ -16,6 +17,7 @@ use tarot_core::{CardDrop, Command, Layout, ShellModel, View};
 /// egui 0.33 counts multi-clicks by time alone. A distant new press starts
 /// a separate click sequence so tapping a key cannot select text elsewhere.
 pub fn prepare_pointer_input(ctx: &egui::Context, events: &[egui::Event]) {
+    theme::install(ctx);
     let id = egui::Id::new("shell_pointer_press");
     let mut previous = ctx.data_mut(|data| data.get_temp::<Pos2>(id));
     for event in events {
@@ -58,22 +60,16 @@ pub fn cancel_pointer_input(events: &mut Vec<egui::Event>) {
 }
 
 pub fn show(ctx: &egui::Context, model: &ShellModel, layout: Layout) -> Vec<Command> {
+    theme::install(ctx);
+    theme::prepare_art(ctx);
     ctx.layer_painter(egui::LayerId::background())
-        .add(wallpaper(layout));
+        .add(wallpaper(ctx, layout));
     show_with_presentation(ctx, model, layout, &Presentation::settled(model, layout))
 }
 
-/// Original vector wallpaper; the compositor caches it below native clients.
-pub fn wallpaper(layout: Layout) -> egui::Shape {
-    let full = Rect::from_min_size(Pos2::ZERO, Vec2::new(layout.width, layout.height));
-    let mut mesh = egui::Mesh::default();
-    mesh.colored_vertex(full.left_top(), Color32::from_rgb(60, 79, 87));
-    mesh.colored_vertex(full.right_top(), Color32::from_rgb(60, 79, 87));
-    mesh.colored_vertex(full.right_bottom(), Color32::from_rgb(17, 26, 30));
-    mesh.colored_vertex(full.left_bottom(), Color32::from_rgb(17, 26, 30));
-    mesh.add_triangle(0, 1, 2);
-    mesh.add_triangle(0, 2, 3);
-    egui::Shape::mesh(mesh)
+/// Original Nocturne artwork; the compositor caches it below native clients.
+pub fn wallpaper(ctx: &egui::Context, layout: Layout) -> egui::Shape {
+    theme::wallpaper(ctx, layout)
 }
 
 pub fn show_with_presentation(
@@ -82,6 +78,8 @@ pub fn show_with_presentation(
     layout: Layout,
     presentation: &Presentation,
 ) -> Vec<Command> {
+    theme::install(ctx);
+    theme::prepare_art(ctx);
     let mut commands = Vec::new();
     let mut search_focused = false;
     let search_id = egui::Id::new("launcher_search");
@@ -118,7 +116,7 @@ pub fn show_with_presentation(
             ui.set_min_size(full.size());
             let painter = ui.painter().clone();
             let status = Rect::from_min_size(Pos2::ZERO, Vec2::new(layout.width, Layout::STATUS));
-            painter.rect_filled(status, 0.0, Color32::from_black_alpha(235));
+            painter.rect_filled(status, 0.0, theme::STATUS);
             let title = match model.view {
                 View::App(id) => model
                     .cards
@@ -126,22 +124,34 @@ pub fn show_with_presentation(
                     .find(|card| card.id == id)
                     .map(|card| card.title.as_str())
                     .unwrap_or("Tarot"),
+                View::Launcher => "Launcher",
                 _ => "Tarot",
             };
             painter
                 .with_clip_rect(Rect::from_min_max(
                     Pos2::ZERO,
-                    Pos2::new(layout.width - 108.0, Layout::STATUS),
+                    Pos2::new(layout.width / 2.0 - 36.0, Layout::STATUS),
                 ))
                 .text(
-                    Pos2::new(12.0, 14.0),
+                    Pos2::new(10.0, Layout::STATUS / 2.0),
                     Align2::LEFT_CENTER,
                     title,
-                    FontId::proportional(14.0),
+                    theme::bold(ctx, 15.0),
                     Color32::WHITE,
                 );
             painter.text(
-                Pos2::new(layout.width - 10.0, 14.0),
+                Pos2::new(layout.width / 2.0, Layout::STATUS / 2.0),
+                Align2::CENTER_CENTER,
+                if model.clock_label.is_empty() {
+                    "—:—"
+                } else {
+                    &model.clock_label
+                },
+                theme::bold(ctx, 16.0),
+                theme::TEXT,
+            );
+            painter.text(
+                Pos2::new(layout.width - 10.0, Layout::STATUS / 2.0),
                 Align2::RIGHT_CENTER,
                 system::status_label(model),
                 FontId::proportional(11.0),
@@ -180,7 +190,7 @@ pub fn show_with_presentation(
             }
 
             if presentation.dock > 0.001
-                && !(model.view == View::Launcher && model.shell_text_focus)
+                && (model.view != View::Launcher || model.editing_favorites)
             {
                 ui.scope(|ui| {
                     ui.set_opacity(presentation.dock);
@@ -195,11 +205,11 @@ pub fn show_with_presentation(
                 Pos2::new(gesture.x, gesture.y),
                 Vec2::new(gesture.width, gesture.height),
             );
-            painter.rect_filled(strip, 0.0, Color32::BLACK);
+            painter.rect_filled(strip, 0.0, theme::GESTURE);
             painter.rect_filled(
-                Rect::from_center_size(strip.center(), Vec2::new(72.0, 3.0)),
-                2.0,
-                Color32::from_gray(155),
+                Rect::from_center_size(strip.center(), Vec2::new(38.0, 2.0)),
+                1.0,
+                Color32::from_rgb(83, 108, 112),
             );
             let overview = if matches!(model.view, View::App(_)) {
                 let toggle =
@@ -590,17 +600,6 @@ fn show_cards(
                 }
             }
         }
-    } else if model.view == View::Overview {
-        painter.text(
-            Pos2::new(
-                layout.width / 2.0,
-                layout.height - Layout::GESTURE - Layout::DOCK - 24.0,
-            ),
-            Align2::CENTER_CENTER,
-            "Hold a card to arrange",
-            FontId::proportional(12.0),
-            Color32::LIGHT_GRAY,
-        );
     }
 }
 
@@ -672,7 +671,7 @@ fn show_launcher(
     let bottom = if model.shell_text_focus {
         layout.keyboard().y - 12.0
     } else {
-        layout.height - Layout::GESTURE - Layout::DOCK - 12.0
+        layout.gesture().y - 12.0
     };
     let feedback_height = if model.launch_feedback.is_some() {
         60.0
@@ -734,24 +733,40 @@ fn show_launcher(
                             } else {
                                 Color32::from_rgb(55 + hue % 80, 100 + hue % 90, 110 + hue % 75)
                             };
-                            ui.painter().circle_filled(center, 24.0, color);
-                            let initial = app
-                                .name
-                                .chars()
-                                .next()
-                                .unwrap_or('?')
-                                .to_uppercase()
-                                .to_string();
-                            ui.painter().text(
-                                center,
-                                Align2::CENTER_CENTER,
-                                initial,
-                                FontId::proportional(25.0),
-                                Color32::WHITE,
-                            );
+                            if let Some(texture) = theme::icon(ui.ctx(), &app.id, false) {
+                                ui.painter().image(
+                                    texture,
+                                    Rect::from_center_size(
+                                        center,
+                                        Vec2::splat(tarot_core::design::LAUNCHER_ICON),
+                                    ),
+                                    Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0)),
+                                    if app.unavailable.is_some() {
+                                        Color32::from_gray(110)
+                                    } else {
+                                        Color32::WHITE
+                                    },
+                                );
+                            } else {
+                                ui.painter().circle_filled(center, 24.0, color);
+                                let initial = app
+                                    .name
+                                    .chars()
+                                    .next()
+                                    .unwrap_or('?')
+                                    .to_uppercase()
+                                    .to_string();
+                                ui.painter().text(
+                                    center,
+                                    Align2::CENTER_CENTER,
+                                    initial,
+                                    FontId::proportional(25.0),
+                                    Color32::WHITE,
+                                );
+                            }
                             let label = ui.painter().layout(
                                 app.name.clone(),
-                                FontId::proportional(13.0),
+                                FontId::proportional(14.0),
                                 Color32::WHITE,
                                 width - 4.0,
                             );
@@ -817,7 +832,7 @@ mod tests {
             model.apply(c);
         }
         assert_eq!(model.view, View::Launcher);
-        for c in click(&ctx, &model, Pos2::new(42.0, 650.0)) {
+        for c in click(&ctx, &model, Pos2::new(285.0, 67.0)) {
             model.apply(c);
         }
         assert!(model.editing_favorites);
@@ -890,6 +905,47 @@ mod tests {
             );
         });
         commands
+    }
+
+    // Locate visible text after fonts and layout have settled. The control's
+    // actual painted position must remain tappable with the packet typography.
+    fn text_position(ctx: &egui::Context, model: &ShellModel, label: &str) -> Pos2 {
+        fn find(shape: &egui::epaint::Shape, label: &str) -> Option<Pos2> {
+            match shape {
+                egui::epaint::Shape::Text(text) if text.galley.job.text == label => {
+                    Some(text.pos + text.galley.size() * 0.5)
+                }
+                egui::epaint::Shape::Vec(shapes) => shapes.iter().find_map(|s| find(s, label)),
+                _ => None,
+            }
+        }
+        let mut target = None;
+        for _ in 0..3 {
+            prepare_pointer_input(ctx, &[]);
+            let output = ctx.run(
+                egui::RawInput {
+                    screen_rect: Some(Rect::from_min_size(Pos2::ZERO, Vec2::new(360.0, 720.0))),
+                    ..Default::default()
+                },
+                |ctx| {
+                    let _ = show(
+                        ctx,
+                        model,
+                        Layout {
+                            width: 360.0,
+                            height: 720.0,
+                            keyboard_height: 0.0,
+                        },
+                    );
+                },
+            );
+            target = output.shapes.iter().find_map(|s| find(&s.shape, label));
+        }
+        target.unwrap_or_else(|| panic!("control text {label:?} must be visible"))
+    }
+
+    fn click_text(ctx: &egui::Context, model: &ShellModel, label: &str) -> Vec<Command> {
+        click(ctx, model, text_position(ctx, model, label))
     }
 
     #[test]
@@ -1178,10 +1234,10 @@ mod tests {
             }],
             password_kind: Some(tarot_core::network::PasswordKind::Psk),
         });
-        assert!(click(&ctx, &model, Pos2::new(180.0, 356.0)).is_empty());
+        assert!(click_text(&ctx, &model, "Connect saved network").is_empty());
         model.network.control_permission = Permission::Yes;
         assert_eq!(
-            click(&ctx, &model, Pos2::new(180.0, 356.0)),
+            click_text(&ctx, &model, "Connect saved network"),
             vec![Command::Network(UiAction::Connect {
                 network: 7,
                 profile: 8
@@ -1190,10 +1246,10 @@ mod tests {
         model.network.radio_permission = Permission::Yes;
         model.network.radio = false;
         model.network.hardware = false;
-        assert!(click(&ctx, &model, Pos2::new(50.0, 174.0)).is_empty());
+        assert!(click_text(&ctx, &model, "Wi-Fi enabled").is_empty());
         model.network.radio = true;
         assert_eq!(
-            click(&ctx, &model, Pos2::new(50.0, 174.0)),
+            click_text(&ctx, &model, "Wi-Fi enabled"),
             vec![Command::Network(UiAction::Radio { enabled: false })]
         );
     }
@@ -1274,21 +1330,21 @@ mod tests {
             default: true,
         });
         assert_eq!(
-            click(&ctx, &model, Pos2::new(59.0, 258.0)),
+            click_text(&ctx, &model, "−"),
             vec![Command::Audio(UiAction::Volume {
                 output: 9,
                 percent: 30
             })]
         );
         assert_eq!(
-            click(&ctx, &model, Pos2::new(131.0, 258.0)),
+            click_text(&ctx, &model, "+"),
             vec![Command::Audio(UiAction::Volume {
                 output: 9,
                 percent: 50
             })]
         );
         assert_eq!(
-            click(&ctx, &model, Pos2::new(225.0, 258.0)),
+            click_text(&ctx, &model, "Mute"),
             vec![Command::Audio(UiAction::Mute {
                 output: 9,
                 muted: true
@@ -1298,10 +1354,10 @@ mod tests {
             output: 9,
             muted: true,
         });
-        assert!(click(&ctx, &model, Pos2::new(225.0, 278.0)).is_empty());
+        assert!(click_text(&ctx, &model, "Mute").is_empty());
         model.audio.pending = None;
         model.audio.available = false;
-        assert!(click(&ctx, &model, Pos2::new(131.0, 258.0)).is_empty());
+        assert!(click_text(&ctx, &model, "+").is_empty());
     }
 
     #[test]

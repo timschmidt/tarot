@@ -3,9 +3,9 @@
 use crate::{CardDrop, Command, Layout, ShellModel, StackId, View, WindowId, motion::Presentation};
 use std::{collections::VecDeque, time::Duration};
 
-const SLOP: f32 = 10.0;
+const SLOP: f32 = crate::design::AXIS_SLOP;
 const VELOCITY_WINDOW_MS: u64 = 120;
-pub const HOLD_MS: u64 = 450;
+pub const HOLD_MS: u64 = crate::design::REORDER_HOLD_MS;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Owner {
@@ -76,6 +76,7 @@ struct Contact {
     layout: Layout,
     arranging: bool,
     quick_launch: bool,
+    wave_candidate_at: Option<u64>,
     favorites: crate::quick_launch::Favorites,
     deck_index: usize,
     deck_offset: f32,
@@ -89,16 +90,22 @@ struct Contact {
 impl Contact {
     fn tick(&mut self, time_ms: u64) {
         self.time_ms = self.time_ms.max(time_ms);
-        if matches!(self.origin, Origin::Strip)
+        if !self.quick_launch
+            && matches!(self.origin, Origin::Strip)
             && matches!(self.axis, Some(Axis::Vertical))
-            && self.delta().1 < -48.0
-            && self.time_ms.saturating_sub(self.start.time_ms) >= HOLD_MS
+            && self.delta().1 < -crate::design::WAVE_DRAG
         {
-            self.quick_launch = true;
+            let since = *self.wave_candidate_at.get_or_insert(self.time_ms);
+            if self.time_ms.saturating_sub(since) >= crate::design::WAVE_DWELL_MS {
+                self.quick_launch = true;
+            }
+        } else if !self.quick_launch {
+            self.wave_candidate_at = None;
         }
         if !self.arranging
             && self.axis.is_none()
             && matches!(self.origin, Origin::Cards(Some(_)))
+            && self.delta().0.abs().max(self.delta().1.abs()) <= crate::design::TAP_SLOP
             && self.time_ms.saturating_sub(self.start.time_ms) >= HOLD_MS
         {
             self.arranging = true;
@@ -281,6 +288,7 @@ impl GestureRecognizer {
             layout,
             arranging: false,
             quick_launch: false,
+            wave_candidate_at: None,
             favorites: model.favorites.clone(),
             deck_index: selected_index,
             deck_offset: 0.0,
@@ -339,13 +347,15 @@ impl GestureRecognizer {
         let contact = self.contact.as_ref()?;
         let deadline = if contact.arranging {
             contact.edge.map(|(_, time)| time)?
-        } else if (contact.axis.is_none() && matches!(contact.origin, Origin::Cards(Some(_))))
-            || (!contact.quick_launch
-                && matches!(contact.origin, Origin::Strip)
-                && matches!(contact.axis, Some(Axis::Vertical))
-                && contact.delta().1 < -48.0)
+        } else if contact.axis.is_none()
+            && matches!(contact.origin, Origin::Cards(Some(_)))
+            && contact.delta().0.abs().max(contact.delta().1.abs()) <= crate::design::TAP_SLOP
         {
             contact.start.time_ms + HOLD_MS
+        } else if !contact.quick_launch
+            && let Some(since) = contact.wave_candidate_at
+        {
+            since + crate::design::WAVE_DWELL_MS
         } else {
             return None;
         };
@@ -490,7 +500,8 @@ impl GestureRecognizer {
                 }
             }
             (Origin::Cards(Some(id)), Some(Axis::Vertical))
-                if dy < -(contact.height * 0.18).max(80.0) || (dy < -24.0 && vy < -0.65) =>
+                if dy < -(contact.height * crate::design::DISMISS_DISTANCE).max(80.0)
+                    || (dy < -24.0 && vy <= -crate::design::DISMISS_VELOCITY / 1000.0) =>
             {
                 Some(Command::Close(id))
             }
@@ -685,7 +696,7 @@ mod tests {
             before: false,
         };
         assert!(
-            matches!(recognizer.preview(),Some(Preview::Arrange { id:WindowId(2), target:Some(found), deck_offset,.. }) if found == target && deck_offset < -290.0)
+            matches!(recognizer.preview(),Some(Preview::Arrange { id:WindowId(2), target:Some(found), deck_offset,.. }) if found == target && deck_offset < -(layout.width*crate::design::CARD_SCALE))
         );
         assert_eq!(model.cards, original, "preview cannot mutate the deck");
         let outcome = recognizer.finish(1, 920, &model);

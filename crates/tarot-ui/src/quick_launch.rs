@@ -13,23 +13,36 @@ pub fn show(
     commands: &mut Vec<Command>,
 ) {
     let painter = ui.painter().clone();
+    let mut material = egui::Mesh::with_texture(crate::theme::tray(ui.ctx()));
+    // Shared edges keep the original tray material continuous beneath the wave.
     let first = quick_launch::slot(layout, 0, wave);
-    let last = quick_launch::slot(layout, 4, wave);
-    let top = (0..5)
-        .map(|i| quick_launch::slot(layout, i, wave).y)
-        .fold(first.y, f32::min);
-    let bottom = (0..5)
-        .map(|i| quick_launch::slot(layout, i, wave).y + 64.0)
-        .fold(last.y + 64.0, f32::max);
-    let panel = Rect::from_min_max(
-        Pos2::new(4.0, top - 6.0),
-        Pos2::new(layout.width - 4.0, bottom + 4.0),
-    );
-    painter.rect_filled(
-        panel,
-        18.0,
-        Color32::from_black_alpha(if wave.is_some() { 220 } else { 165 }),
-    );
+    for edge in 0..=5 {
+        let top = match edge {
+            0 => first.y,
+            5 => quick_launch::slot(layout, 4, wave).y,
+            _ => {
+                (quick_launch::slot(layout, edge - 1, wave).y
+                    + quick_launch::slot(layout, edge, wave).y)
+                    * 0.5
+            }
+        };
+        let x = first.x + edge as f32 * first.width;
+        let u = edge as f32 / 5.0;
+        for (y, v) in [(top, 0.0), (top + tarot_core::design::DOCK, 1.0)] {
+            material.vertices.push(egui::epaint::Vertex {
+                pos: Pos2::new(x, y),
+                uv: Pos2::new(u, v),
+                color: Color32::WHITE,
+            });
+        }
+        if edge < 5 {
+            let n = edge as u32 * 2;
+            material
+                .indices
+                .extend_from_slice(&[n, n + 2, n + 1, n + 1, n + 2, n + 3]);
+        }
+    }
+    painter.add(egui::Shape::mesh(material));
     for index in 0..5 {
         let geometry = quick_launch::slot(layout, index, wave);
         let rect = Rect::from_min_size(
@@ -52,7 +65,7 @@ pub fn show(
             painter.rect_filled(
                 rect.expand(2.0),
                 12.0,
-                Color32::from_rgba_unmultiplied(115, 195, 207, 85),
+                crate::theme::FOCUS.gamma_multiply(0.3),
             );
         }
         let response = ui.interact(
@@ -71,24 +84,29 @@ pub fn show(
                 format!("Quick Launch: {label}"),
             )
         });
-        let center = Pos2::new(rect.center().x, rect.top() + 25.0);
+        let center = Pos2::new(rect.center().x, rect.top() + 32.0);
         let color = if available {
             Color32::from_gray(242)
         } else {
             Color32::from_gray(115)
         };
         icon(
+            ui.ctx(),
             &painter,
             center,
             app.map(|a| a.id.as_str()),
             launcher,
             id.is_none(),
-            color,
+            if available { Color32::WHITE } else { color },
         );
-        if wave.is_none() || selected {
-            let text = painter.layout_no_wrap(label.to_owned(), FontId::proportional(11.0), color);
-            painter.with_clip_rect(rect).galley(
-                Pos2::new(rect.center().x - text.size().x / 2.0, rect.top() + 48.0),
+        if selected {
+            let text = painter.layout_no_wrap(label.to_owned(), FontId::proportional(15.0), color);
+            painter.galley(
+                Pos2::new(
+                    (rect.center().x - text.size().x / 2.0)
+                        .clamp(8.0, (layout.width - text.size().x - 8.0).max(8.0)),
+                    rect.top() - 22.0,
+                ),
                 text,
                 color,
             );
@@ -109,6 +127,7 @@ pub fn show(
 }
 
 fn icon(
+    ctx: &egui::Context,
     p: &egui::Painter,
     at: Pos2,
     id: Option<&str>,
@@ -116,6 +135,17 @@ fn icon(
     empty: bool,
     color: Color32,
 ) {
+    if (!empty || launcher)
+        && let Some(texture) = crate::theme::icon(ctx, id.unwrap_or(""), launcher)
+    {
+        p.image(
+            texture,
+            Rect::from_center_size(at, Vec2::splat(tarot_core::design::ICON)),
+            Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0)),
+            color,
+        );
+        return;
+    }
     let stroke = Stroke::new(2.3_f32, color);
     let point = |x, y| at + Vec2::new(x, y);
     let id = id.unwrap_or("").to_ascii_lowercase();

@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 
 pub mod audio;
 pub mod deck;
+pub mod design;
 pub mod display;
 pub mod frame;
 pub mod gesture;
@@ -138,6 +139,7 @@ pub enum Effect {
 
 #[derive(Clone, Debug, Default)]
 pub struct ShellModel {
+    pub clock_label: String,
     pub view: View,
     pub cards: Vec<Card>,
     pub selected: Option<WindowId>,
@@ -693,9 +695,9 @@ pub struct Layout {
 }
 
 impl Layout {
-    pub const STATUS: f32 = 28.0;
-    pub const GESTURE: f32 = 28.0;
-    pub const DOCK: f32 = 76.0;
+    pub const STATUS: f32 = design::STATUS;
+    pub const GESTURE: f32 = design::GESTURE;
+    pub const DOCK: f32 = design::DOCK;
 
     pub fn content(self) -> Rect {
         Rect {
@@ -742,11 +744,18 @@ impl Layout {
     }
 
     pub fn card(self, index: usize, selected_index: usize) -> Rect {
-        let width = self.width * 0.76;
-        let height = (self.height - Self::STATUS - Self::DOCK - Self::GESTURE) * 0.76;
+        let content = self.content();
+        let scale = design::CARD_SCALE.min(
+            ((self.height - Self::STATUS - Self::GESTURE - Self::DOCK - 24.0) / content.height)
+                .max(0.1),
+        );
+        let width = content.width * scale;
+        let height = content.height * scale;
         Rect {
             x: (self.width - width) / 2.0 + (index as f32 - selected_index as f32) * (width + 18.0),
-            y: Self::STATUS + 64.0,
+            y: (self.height * design::CARD_Y / 720.0)
+                .min(self.gesture().y - Self::DOCK - 12.0 - height)
+                .max(Self::STATUS + 12.0),
             width,
             height,
         }
@@ -920,8 +929,8 @@ mod tests {
         assert!(keyboard.contains(180.0, 600.0));
         assert!(!keyboard.contains(180.0, 710.0));
         layout.keyboard_height = 0.0;
-        assert_eq!(layout.content().height, 664.0);
-        assert_eq!(layout.gesture().y, 692.0);
+        assert_eq!(layout.content().height, 652.0);
+        assert_eq!(layout.gesture().y, 684.0);
     }
 
     #[test]
