@@ -1,0 +1,16 @@
+[package]
+name = "tarot-wayland-egui"
+version = "0.1.0"
+edition = "2024"
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+anyhow = "1"
+egui.workspace = true
+egui_glow = "=0.33.3"
+glow = "=0.16.0"
+glutin = { version = "=0.32.3", default-features = false, features = ["egl", "wayland"] }
+raw-window-handle = "=0.6.2"
+wayland-client = { version = "=0.31.15", features = ["system"] }
+png = "0.18"

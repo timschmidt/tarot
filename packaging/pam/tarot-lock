@@ -1,0 +1,4 @@
+#%PAM-1.0
+# Reauthentication for an existing session. No session/credential creation.
+auth    include base-auth
+account include base-account

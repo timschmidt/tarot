@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=Tarot (development)
+Comment=Rust phone shell with native Wayland applications
+Exec=tarot-session
+TryExec=tarot-session
+Type=Application
+DesktopNames=Tarot;

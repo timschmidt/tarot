@@ -1,0 +1,22 @@
+[package]
+name = "tarot-keyboard"
+version = "0.1.0"
+edition = "2024"
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+anyhow = "1"
+egui.workspace = true
+tarot-ui = { path = "../tarot-ui" }
+wayland-client = { version = "=0.31.15", features = ["system"] }
+wayland-protocols-wlr = { version = "=0.3.12", features = ["client"] }
+wayland-protocols-misc = { version = "=0.3.12", features = ["client"] }
+calloop = "0.14"
+calloop-wayland-source = "=0.4.1"
+tempfile = "3"
+xkbcommon = "=0.8.0"
+unicode-segmentation = "=1.13.3"
+rustix = "1"
+
+tarot-wayland-egui = { path = "../tarot-wayland-egui" }

@@ -1,0 +1,7 @@
+[target.aarch64-unknown-linux-musl]
+linker = "scripts/aarch64-linker.sh"
+rustflags = ["-C", "target-feature=-crt-static"]
+
+[target.aarch64-alpine-linux-musl]
+linker = "scripts/aarch64-linker.sh"
+rustflags = ["-C", "target-feature=-crt-static"]

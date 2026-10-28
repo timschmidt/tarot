@@ -1,0 +1,15 @@
+Upstream: e76b1eece59f0ccf87a04f7eaa6762e4f6e8dfee
+Author: Andy Wright
+License: MIT (see smithay/LICENSE.txt)
+Backport to published Smithay 0.7.0; no other dependency-source changes.
+
+--- a/src/backend/renderer/gles/mod.rs
++++ b/src/backend/renderer/gles/mod.rs
+@@ -875,5 +875,6 @@
+                     );
+                 } else {
+-                    for region in damage.iter() {
++                    let buffer_rect = Rectangle::from_size(Size::from((width, height)));
++                    for region in damage.iter().filter_map(|r| r.intersection(buffer_rect)) {
+                         trace!("Uploading partial shm texture");
+                         self.gl.PixelStorei(ffi::UNPACK_SKIP_PIXELS, region.loc.x);

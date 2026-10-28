@@ -1,0 +1,24 @@
+[package]
+name = "tarot-lock"
+version = "0.1.0"
+edition = "2024"
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+anyhow = "1"
+calloop = "0.14"
+calloop-wayland-source = "=0.4.1"
+egui.workspace = true
+libc = "0.2"
+libloading = "=0.8.9"
+tarot-core = { path = "../tarot-core" }
+tarot-ui = { path = "../tarot-ui" }
+tarot-wayland-egui = { path = "../tarot-wayland-egui" }
+wayland-client = { version = "=0.31.15", features = ["system"] }
+wayland-protocols = { version = "=0.32.13", features = ["client", "staging"] }
+xkbcommon = "=0.8.0"
+zeroize = "=1.8.2"
+
+[dev-dependencies]
+tempfile = "3"

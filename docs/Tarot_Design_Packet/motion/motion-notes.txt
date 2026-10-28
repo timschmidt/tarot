@@ -1,0 +1,8 @@
+TAROT CARD MOTION STUDY
+
+This is an illustrative design animation, not captured Tarot software or measured Palm footage.
+720 x 1440 pixels; 60 frames per second. Two repetitions.
+Minimize: 350 ms (21 frames). Maximize: 300 ms (18 frames).
+Ease-out cubic, f(t)=1-(1-t)^3. Direct-manipulation gesture input is not demonstrated.
+The client buffer scales uniformly; the status remains in the global frame.
+The exact historical curve and hardware frame pacing remain to be measured.

@@ -1,0 +1,92 @@
+--- a/src/wayland/session_lock/lock.rs
++++ b/src/wayland/session_lock/lock.rs
+@@ -59,6 +59,7 @@
+ 
+                 // Ensure output is not already locked.
+                 let lock_state = state.lock_state();
++                lock_state.locked_outputs.retain(Resource::is_alive);
+                 if lock_state.locked_outputs.contains(&output) {
+                     lock.post_error(Error::DuplicateOutput, "Output is already locked.");
+                     return;
+@@ -182,6 +183,7 @@
+                 // Ensure session is locked.
+                 if !data.lock_status.load(Ordering::Relaxed) {
+                     lock.post_error(Error::InvalidUnlock, "Session is not locked.");
++                    return;
+                 }
+ 
+                 state.lock_state().locked_outputs.clear();
+--- a/src/wayland/session_lock/surface.rs
++++ b/src/wayland/session_lock/surface.rs
+@@ -140,7 +140,7 @@
+     /// Check if the surface is still alive.
+     #[inline]
+     pub fn alive(&self) -> bool {
+-        self.surface.alive()
++        self.surface.alive() && self.shell_surface.is_alive()
+     }
+ 
+     /// Get the current pending configure state.
+--- a/src/wayland/selection/mod.rs
++++ b/src/wayland/selection/mod.rs
+@@ -31,6 +31,12 @@
+ pub trait SelectionHandler: Sized + SeatHandler {
+     /// UserData attached to server-side selections.
+     type SelectionUserData: Clone + Send + Sync + 'static;
++
++    /// Whether existing clipboard and drag offers may transfer data now.
++    /// Tarot's session protection policy also covers offers issued before locking.
++    fn allow_selection_access(&mut self) -> bool {
++        true
++    }
+ 
+     /// A client has set the selection
+     #[allow(unused_variables)]
+--- a/src/wayland/selection/offer.rs
++++ b/src/wayland/selection/offer.rs
+@@ -130,6 +130,9 @@
+         _: ClientId,
+         msg: Message<ObjectId, OwnedFd>,
+     ) -> Option<Arc<dyn ObjectData<D>>> {
++        if !handle.allow_selection_access() {
++            return None;
++        }
+         let dh = DisplayHandle::from(dh.clone());
+ 
+         // NOTE: we can't parse message more than once, since it expects the `OwnedFd` which
+--- a/src/wayland/selection/data_device/device.rs
++++ b/src/wayland/selection/data_device/device.rs
+@@ -60,6 +60,9 @@
+             None => return,
+         };
+ 
++        if matches!(&request, wl_data_device::Request::StartDrag { .. } | wl_data_device::Request::SetSelection { .. }) && !handler.allow_selection_access() {
++            return;
++        }
+         match request {
+             wl_data_device::Request::StartDrag {
+                 source,
+--- a/src/wayland/selection/data_device/dnd_grab.rs
++++ b/src/wayland/selection/data_device/dnd_grab.rs
+@@ -523,6 +523,9 @@
+         _client_id: ClientId,
+         msg: Message<ObjectId, OwnedFd>,
+     ) -> Option<Arc<dyn ObjectData<D>>> {
++        if !handler.allow_selection_access() {
++            return None;
++        }
+         let dh = DisplayHandle::from(dh.clone());
+         if let Ok((resource, request)) = WlDataOffer::parse_request(&dh, msg) {
+             handle_dnd(handler, &resource, request, &self);
+--- a/src/wayland/selection/data_device/server_dnd_grab.rs
++++ b/src/wayland/selection/data_device/server_dnd_grab.rs
+@@ -498,6 +498,9 @@
+         _client_id: ClientId,
+         msg: Message<ObjectId, OwnedFd>,
+     ) -> Option<Arc<dyn ObjectData<D>>> {
++        if !handler.allow_selection_access() {
++            return None;
++        }
+         let dh = DisplayHandle::from(dh.clone());
+         if let Ok((resource, request)) = WlDataOffer::parse_request(&dh, msg) {
+             handle_server_dnd(handler, &resource, request, &self);

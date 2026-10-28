@@ -1,0 +1,11 @@
+{
+  "pdf_pages": 31,
+  "screen_svgs": 25,
+  "native_screen_pngs": 25,
+  "app_icons": 16,
+  "glyphs": 18,
+  "tokens_valid_json": true,
+  "all_svg_xml_valid": true,
+  "visual_review": "31 PDF pages and screen studies reviewed; changed pages re-rendered",
+  "status": "design proposal; device and historical capture conformance pending"
+}

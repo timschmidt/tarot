@@ -1,0 +1,51 @@
+# Local source-snapshot recipe. Keep Phosh installed as a recovery session.
+pkgname=tarot
+pkgver=0.1.0
+pkgrel=10
+pkgdesc="Rust phone shell and Wayland compositor (development preview)"
+# This unpublished workspace has no remote; link its installed project record.
+url="file:///usr/share/doc/tarot/README.md"
+arch="aarch64"
+license="MIT OR Apache-2.0"
+depends="dbus elogind linux-pam pulseaudio iio-sensor-proxy mesa-dri-gallium mesa-egl mesa-gles
+	wayland-libs-client wayland-libs-egl xkeyboard-config"
+makedepends="cargo clang lld pkgconf libinput-dev libseat-dev mesa-dev
+	wayland-dev libxkbcommon-dev eudev-dev pulseaudio-dev"
+source="tarot-$pkgver.tar.gz"
+builddir="$srcdir/tarot-$pkgver"
+_rust_target=${TAROT_RUST_TARGET:-aarch64-alpine-linux-musl}
+
+build() {
+	if [ -n "${TAROT_SYSROOT:-}" ]; then
+		export TAROT_RUST_TARGET="$_rust_target"
+		export PKG_CONFIG_ALLOW_CROSS=1
+		export PKG_CONFIG_SYSROOT_DIR="$TAROT_SYSROOT"
+		export PKG_CONFIG_LIBDIR="$TAROT_SYSROOT/usr/lib/pkgconfig:$TAROT_SYSROOT/usr/share/pkgconfig"
+		export CC_aarch64_alpine_linux_musl="$builddir/scripts/aarch64-cc.sh"
+	else
+		# A native Alpine build uses its normal compiler and system headers.
+		export CARGO_TARGET_AARCH64_ALPINE_LINUX_MUSL_LINKER=cc
+	fi
+	cargo build --frozen --offline --release --workspace --features drm --bins --target "$_rust_target"
+}
+
+check() {
+	cargo test --frozen --offline --workspace --features drm --target "$_rust_target"
+}
+
+package() {
+	local program
+	for program in tarot tarot-session tarot-keyboard tarot-lock; do
+		install -Dm755 "target/$_rust_target/release/$program" "$pkgdir/usr/bin/$program"
+	done
+	install -Dm644 packaging/nura/tarot.desktop "$pkgdir/usr/share/wayland-sessions/tarot.desktop"
+	install -Dm644 packaging/pam/tarot-lock "$pkgdir/etc/pam.d/tarot-lock"
+	install -Dm644 LICENSE-MIT "$pkgdir/usr/share/licenses/tarot/LICENSE-MIT"
+	install -Dm644 LICENSE-APACHE "$pkgdir/usr/share/licenses/tarot/LICENSE-APACHE"
+	install -Dm644 third-party/Smithay-MIT.txt "$pkgdir/usr/share/licenses/tarot/Smithay-MIT.txt"
+	install -Dm644 README.md "$pkgdir/usr/share/doc/tarot/README.md"
+	install -Dm644 third-party/README.md "$pkgdir/usr/share/doc/tarot/THIRD-PARTY.md"
+}
+
+# The source-snapshot command appends the exact archive checksum to its staged
+# copy of this recipe. The source archive includes locked vendored Cargo crates.

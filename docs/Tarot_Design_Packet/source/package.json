@@ -1,0 +1,9 @@
+{
+  "name": "tarot-design-assets",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Raster rendering for the Tarot design packet",
+  "dependencies": {
+    "sharp": "^0.35.5"
+  }
+}

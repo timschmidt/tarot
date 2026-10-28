@@ -1,0 +1,27 @@
+TAROT SCREEN INDEX
+
+01-card-view-nocturne
+02-card-stack
+03-launcher
+04-email
+05-banner
+06-dashboard
+07-wave-launcher
+08-device-menu
+09-app-menu
+10-just-type
+11-lock
+12-pin
+13-incoming-call
+14-active-call
+15-settings
+16-empty-card-view
+17-heritage
+18-vellum
+19-messaging
+20-boot
+21-calendar
+22-notification-rail
+23-launch-pending
+24-launch-failed
+25-locked-incoming-call

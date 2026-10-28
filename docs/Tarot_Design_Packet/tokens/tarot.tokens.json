@@ -1,0 +1,167 @@
+{
+  "schema_version": 1,
+  "status": "design proposal; calibrate against one captured webOS 2.x build before claiming conformance",
+  "reference": "Palm Pre 2 webOS 2.x phone interaction model",
+  "units": {
+    "layout": "logical pixels",
+    "default_scale": 2,
+    "output_px": [
+      720,
+      1440
+    ],
+    "canvas_dp": [
+      360,
+      720
+    ]
+  },
+  "geometry": {
+    "status_bar_h": 32,
+    "gesture_strip_h": 36,
+    "app_rect": [
+      0,
+      32,
+      360,
+      652
+    ],
+    "header_h": 56,
+    "command_bar_h": 56,
+    "list_row_min_h": 51,
+    "primary_action_touch_min": 48,
+    "compact_target_policy": "status, gesture and keyboard have equivalent accessible routes; do not silently extend hitboxes over clients",
+    "card_scale": 0.66,
+    "inactive_card_scale": 0.61,
+    "card_radius_before_scale": 11,
+    "card_anchor": [
+      61.2,
+      139
+    ],
+    "stack_preview_poses": [
+      {
+        "x": 43,
+        "y": 151,
+        "scale": 0.64,
+        "degrees": -5
+      },
+      {
+        "x": 62,
+        "y": 145,
+        "scale": 0.64,
+        "degrees": 0
+      },
+      {
+        "x": 81,
+        "y": 151,
+        "scale": 0.64,
+        "degrees": 5
+      }
+    ],
+    "quick_launch_rect": [
+      3,
+      611,
+      354,
+      69
+    ],
+    "quick_launch_slots": 5,
+    "quick_launch_icon_size": 56,
+    "launcher_columns": 3,
+    "launcher_icon_size": 58,
+    "banner_h": 32,
+    "banner_accessible_h": 48,
+    "dashboard_row_h": 56,
+    "keyboard_h": 220
+  },
+  "type": {
+    "mockup_ui_family": "Lato",
+    "historical_target_family": "Prelude",
+    "brand_family": "Instrument Serif",
+    "status": 15,
+    "clock": 16,
+    "header": 24,
+    "body": 19,
+    "secondary": 15,
+    "metadata": 13,
+    "launcher_label": 14,
+    "font_match_pending": true
+  },
+  "fixed_palette": {
+    "status": "#030505",
+    "gesture": "#070D10",
+    "app_surface": "#E5E8DF",
+    "app_text": "#2D3933",
+    "muted_text": "#58674F",
+    "divider": "#C4CCC0",
+    "success": "#34733D",
+    "destructive": "#9B302C",
+    "dashboard_text": "#F4F6EF",
+    "dashboard_bg": "#202527"
+  },
+  "themes": {
+    "nocturne": {
+      "name": "Nocturne",
+      "top": "#091A21",
+      "mid": "#173D43",
+      "bottom": "#31534D",
+      "glow": "#708B79",
+      "line": "#C6AE78",
+      "accent": "#A3763F",
+      "focus": "#D7BE89"
+    },
+    "heritage": {
+      "name": "Heritage",
+      "top": "#1D3027",
+      "mid": "#4A6650",
+      "bottom": "#9A9451",
+      "glow": "#CBC883",
+      "line": "#E8DCAD",
+      "accent": "#3C7C96",
+      "focus": "#A9D9E6"
+    },
+    "vellum": {
+      "name": "Vellum",
+      "top": "#34242C",
+      "mid": "#65454A",
+      "bottom": "#926653",
+      "glow": "#C3A477",
+      "line": "#EAD3A1",
+      "accent": "#934C4C",
+      "focus": "#E0BF95"
+    }
+  },
+  "motion_ms": {
+    "maximize": 300,
+    "minimize": 350,
+    "launch": 400,
+    "dismiss": 300,
+    "launcher": 350,
+    "quick_launch": 350,
+    "press_feedback": 70,
+    "reduced_motion_fade": 100
+  },
+  "motion_status": "starting values from later LunaSysMgr config, not a captured Pre 2 timing match",
+  "gesture_proposals": {
+    "start_zone": "reserved strip only for shell navigation",
+    "tap_slop_dp": 10,
+    "axis_lock_dp": 14,
+    "back_min_dp": 54,
+    "home_flick_velocity_dp_s": 700,
+    "wave_dwell_ms": 140,
+    "wave_drag_min_dp": 24,
+    "reorder_hold_ms": 420,
+    "card_dismiss_distance_h": 0.28,
+    "card_dismiss_velocity_dp_s": 900,
+    "advanced_swipe_min_dp": 240,
+    "cancel_on_second_touch": true,
+    "calibration_pending": true
+  },
+  "theme_invariants": [
+    "status position and black fill",
+    "card geometry",
+    "menu anchors",
+    "gesture semantics",
+    "notification placement",
+    "icon slot count",
+    "text contrast",
+    "security state"
+  ],
+  "content_disclaimer": "Fictional contacts and app data. App interiors show cooperative design targets, not automatic GTK or Qt restyling."
+}
