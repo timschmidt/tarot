@@ -140,6 +140,7 @@ pub enum Effect {
 #[derive(Clone, Debug, Default)]
 pub struct ShellModel {
     pub clock_label: String,
+    pub calendar_day: Option<u8>,
     pub view: View,
     pub cards: Vec<Card>,
     pub selected: Option<WindowId>,

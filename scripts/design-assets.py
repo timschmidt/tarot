@@ -35,6 +35,17 @@ def main():
             out=dest/'icons'/(path.stem+'.png')
             cairosvg.svg2png(bytestring=path.read_bytes(),write_to=str(out),output_width=128,output_height=128)
             record['assets'][str(out.relative_to(repo))]={'source':str(path.relative_to(repo)),'source_sha256':hashlib.sha256(path.read_bytes()).hexdigest(),'sha256':hashlib.sha256(out.read_bytes()).hexdigest()}
+        # Preserve the complete icon study; a separate background lets Rust
+        # render the actual local date instead of shipping the sample "28".
+        original=source/'icons/calendar.svg'
+        base,count=re.subn(r'<text\b[^>]*>28</text>', '', original.read_text())
+        assert count==1,'Calendar study must have exactly one illustrative date'
+        out=dest/'icons/calendar-base.png'
+        cairosvg.svg2png(bytestring=base.encode(),write_to=str(out),output_width=128,output_height=128)
+        record['assets'][str(out.relative_to(repo))]={'source':str(original.relative_to(repo)),
+            'source_sha256':hashlib.sha256(original.read_bytes()).hexdigest(),
+            'derivation':'Original artwork with illustrative date text removed; runtime supplies local day',
+            'sha256':hashlib.sha256(out.read_bytes()).hexdigest()}
         # The resting tray is an original packet material, extracted as a
         # separate renderable surface rather than using any screenshot pixels.
         defs=re.search(r'<defs>.*?</defs>',(source/'icons/phone.svg').read_text(),re.S).group(0)

@@ -1,10 +1,9 @@
 # Local source-snapshot recipe. Keep Phosh installed as a recovery session.
 pkgname=tarot
 pkgver=0.1.0
-pkgrel=12
+pkgrel=14
 pkgdesc="Rust phone shell and Wayland compositor (development preview)"
-# This unpublished workspace has no remote; link its installed project record.
-url="file:///usr/share/doc/tarot/README.md"
+url="https://github.com/timschmidt/tarot"
 arch="aarch64"
 license="MIT OR Apache-2.0"
 depends="dbus elogind linux-pam pulseaudio iio-sensor-proxy mesa-dri-gallium mesa-egl mesa-gles

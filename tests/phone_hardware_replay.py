@@ -57,12 +57,16 @@ def replay(socket, pid, screen, guard, tap, state, authenticate, capture, before
         return value
 
     def off(label):
-        # Manual off can present the compositor's opaque protected fallback
-        # before the newly spawned locker submits its first buffer. Require
-        # that current protected KMS generation, not a locker-texture frame.
-        value = state(label, lambda s: s['lock']['phase'] == 'Locked'
-                      and s['lock']['last_presented_generation'] == s['lock']['generation']
-                      and s['lock']['idle']['output_off'] and s['lock']['idle']['policy']['phase'] == 'Off')
+        # The reserved opaque KMS frame can power off before the trusted
+        # client's lock request arrives. Keep that actual off-time proof even
+        # when the later owner begins a new generation on the disabled panel.
+        value = state(label, lambda s: s['lock']['phase'] != 'Unlocked'
+                      and s['lock']['idle']['output_off'] and s['lock']['idle']['policy']['phase'] == 'Off'
+                      and (proof := s['lock']['idle'].get('off_presentation')) is not None
+                      and before['lock']['generation'] < proof['generation'] <= s['lock']['generation']
+                      and proof['off_count'] == s['lock']['idle']['off_count']
+                      and proof['output_revision'] <= s['lock']['output']['presented_revision'])
+        records[label+'-kms-proof'] = value['lock']['idle']['off_presentation']
         assert set(value) == {'ok', 'pid', 'lock'}
         records[label+'-driver'] = panel(True)
         return value

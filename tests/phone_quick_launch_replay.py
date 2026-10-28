@@ -5,6 +5,7 @@ configuration with Calculator as its only favorite. All input uses the existing
 guarded uinput touchscreen. No PAM policy or authentication result is replaced.
 """
 import hashlib
+import datetime
 import json
 from pathlib import Path
 import tomllib
@@ -103,6 +104,24 @@ def replay(socket, screen, state, tap, capture, before, out):
         editor('quick-editor-again')
         tap(320,174)
         favorite('quick-removed-favorite',[CALCULATOR])
+        # The packet's sample date must be replaced by the real local day.
+        calendar='org.gnome.Calendar.desktop'
+        index=available.index(calendar)
+        y=259+51*index
+        assert y<580,'Calendar is outside the verified visible editor list'
+        tap(165,y)
+        dated=favorite('quick-calendar-added',[CALCULATOR,calendar])
+        assert dated['calendar_day']==datetime.datetime.now().day
+        done('quick-editor-done-calendar')
+        request(socket,'overview')
+        state('quick-live-calendar-overview',lambda s:s['view']=='Overview' and s['presentation']['overview']==1.0)
+        capture('quick-live-calendar-in-tray')
+        request(socket,'launcher')
+        state('quick-calendar-launcher',lambda s:s['view']=='Launcher'
+              and all(w['opacity']==0.0 for w in s['presentation']['windows']))
+        editor('quick-calendar-editor')
+        tap(320,225)
+        favorite('quick-calendar-removed',[CALCULATOR])
         done('quick-editor-done')
         wave(42,0);screen.up()
         same_app('quick-favorite-restores-app')
@@ -112,7 +131,7 @@ def replay(socket, screen, state, tap, capture, before, out):
         assert settings['notifications']['dnd'] and settings['display']['rotation_locked']
         records.update(passed=True,native_kms_and_uinput=True,installed_calculator=True,
             wave_preserves_native_geometry=True,release_focuses_same_card=True,outside_release_cancels=True,
-            fixed_launcher=True,actual_favorite_add_move_remove=True,saved_favorites_verified=True,
+            fixed_launcher=True,actual_favorite_add_move_remove=True,saved_favorites_verified=True,live_local_calendar_day=True,
             other_preference_sections_preserved=True,failed_start_keeps_original_app=True,
             restart_persistence_tested=False,password_logged=False)
     finally:

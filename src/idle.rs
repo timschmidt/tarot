@@ -17,12 +17,24 @@ use std::{
 };
 use tarot_core::idle::{Phase, Policy};
 
+/// The protected KMS completion used for the current physical power-off.
+/// A trusted owner may subsequently arrive and begin another lock generation
+/// while the panel remains disabled. That does not change this historical proof.
+#[derive(Clone, Copy, Debug, serde::Serialize)]
+pub struct OffPresentation {
+    pub generation: u64,
+    pub output_revision: u64,
+    pub off_count: u64,
+    pub phase: tarot_core::session::LockPhase,
+}
+
 #[derive(Default)]
 pub struct State {
     pub render_states: Option<smithay::backend::renderer::element::RenderElementStates>,
     pub seat_inactive: bool,
     pub policy: Option<Policy>,
     pub output_off: bool,
+    pub off_presentation: Option<OffPresentation>,
     pub off_count: u64,
     pub wake_count: u64,
     inhibitors: HashMap<WlSurface, usize>,
@@ -39,7 +51,7 @@ impl State {
         self.policy.as_ref().is_some_and(Policy::blocks_unlock)
     }
     pub fn status(&self, ordinary: bool) -> serde_json::Value {
-        serde_json::json!({"policy":self.policy,"output_off":self.output_off,"off_count":self.off_count,"wake_count":self.wake_count,"inhibitor_surfaces":ordinary.then_some(self.inhibitors.len())})
+        serde_json::json!({"policy":self.policy,"output_off":self.output_off,"off_presentation":self.off_presentation,"off_count":self.off_count,"wake_count":self.wake_count,"inhibitor_surfaces":ordinary.then_some(self.inhibitors.len())})
     }
 }
 impl IdleInhibitHandler for Compositor {

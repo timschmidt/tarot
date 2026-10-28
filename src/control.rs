@@ -244,6 +244,7 @@ pub fn start(path: &Path, handle: &LoopHandle<'_, CalloopData>) -> Result<Contro
             response["volume_feedback"] = json!(state.shell.volume_feedback);
             response["favorites"] = json!(state.shell.favorites);
             response["clock"] = json!(state.shell.clock_label);
+            response["calendar_day"] = json!(state.shell.calendar_day);
             response["editing_favorites"] = json!(state.shell.editing_favorites);
             if include_apps {
                 response["applications"] = json!(state.shell.applications);

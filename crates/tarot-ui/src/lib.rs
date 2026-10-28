@@ -733,21 +733,22 @@ fn show_launcher(
                             } else {
                                 Color32::from_rgb(55 + hue % 80, 100 + hue % 90, 110 + hue % 75)
                             };
-                            if let Some(texture) = theme::icon(ui.ctx(), &app.id, false) {
-                                ui.painter().image(
-                                    texture,
-                                    Rect::from_center_size(
-                                        center,
-                                        Vec2::splat(tarot_core::design::LAUNCHER_ICON),
-                                    ),
-                                    Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0)),
-                                    if app.unavailable.is_some() {
-                                        Color32::from_gray(110)
-                                    } else {
-                                        Color32::WHITE
-                                    },
-                                );
-                            } else {
+                            if !theme::paint_icon(
+                                ui.ctx(),
+                                ui.painter(),
+                                &app.id,
+                                false,
+                                Rect::from_center_size(
+                                    center,
+                                    Vec2::splat(tarot_core::design::LAUNCHER_ICON),
+                                ),
+                                if app.unavailable.is_some() {
+                                    Color32::from_gray(110)
+                                } else {
+                                    Color32::WHITE
+                                },
+                                model.calendar_day,
+                            ) {
                                 ui.painter().circle_filled(center, 24.0, color);
                                 let initial = app
                                     .name
@@ -946,6 +947,72 @@ mod tests {
 
     fn click_text(ctx: &egui::Context, model: &ShellModel, label: &str) -> Vec<Command> {
         click(ctx, model, text_position(ctx, model, label))
+    }
+
+    #[test]
+    fn calendar_art_uses_the_observed_local_day_in_dock_and_launcher() {
+        fn has_text(shape: &egui::epaint::Shape, label: &str) -> bool {
+            match shape {
+                egui::epaint::Shape::Text(text) => text.galley.job.text == label,
+                egui::epaint::Shape::Vec(shapes) => shapes.iter().any(|s| has_text(s, label)),
+                _ => false,
+            }
+        }
+        let ctx = egui::Context::default();
+        let mut model = ShellModel::default();
+        model.applications.push(tarot_core::Application {
+            id: "org.gnome.Calendar.desktop".into(),
+            name: "Calendar".into(),
+            description: String::new(),
+            icon: None,
+            keywords: vec![],
+            unavailable: None,
+        });
+        model
+            .favorites
+            .applications
+            .push("org.gnome.Calendar.desktop".into());
+        for view in [View::Home, View::Launcher] {
+            model.view = view;
+            for day in [Some(1), Some(28), Some(31), None, Some(0), Some(32)] {
+                model.calendar_day = day;
+                let mut output = egui::FullOutput::default();
+                for _ in 0..3 {
+                    prepare_pointer_input(&ctx, &[]);
+                    output = ctx.run(
+                        egui::RawInput {
+                            screen_rect: Some(Rect::from_min_size(
+                                Pos2::ZERO,
+                                Vec2::new(360.0, 720.0),
+                            )),
+                            ..Default::default()
+                        },
+                        |ctx| {
+                            let _ = show(
+                                ctx,
+                                &model,
+                                Layout {
+                                    width: 360.0,
+                                    height: 720.0,
+                                    keyboard_height: 0.0,
+                                },
+                            );
+                        },
+                    );
+                }
+                for digit in 0..=32 {
+                    let present = output
+                        .shapes
+                        .iter()
+                        .any(|s| has_text(&s.shape, &digit.to_string()));
+                    assert_eq!(
+                        present,
+                        day == Some(digit) && (1..=31).contains(&digit),
+                        "{view:?}, observed day {day:?}, painted date {digit}"
+                    );
+                }
+            }
+        }
     }
 
     #[test]

@@ -5,6 +5,7 @@ Isolates the application catalog and preferences. Exercises an actual native
 client, gesture preview/commit/cancel, favorite editing and saved restart.
 """
 import argparse
+import datetime
 import json
 import os
 from pathlib import Path
@@ -12,6 +13,8 @@ import select
 import subprocess
 import tempfile
 import time
+
+from PIL import Image, ImageChops
 
 from hardware_replay import PrivateInput
 from notification_replay import await_value
@@ -30,7 +33,7 @@ def main():
     report=out/'app.jsonl'
     app_id='org.tarot.InputProbe.desktop'
     config.write_text('version = 3\n[notifications]\ndnd = true\n[quick_launch]\napplications = ["'+app_id+'"]\n')
-    for identifier,name in [(app_id,'Alpha Probe'),('test.beta.desktop','Beta'),('test.gamma.desktop','Gamma'),('test.delta.desktop','Delta')]:
+    for identifier,name in [(app_id,'Alpha Probe'),('test.beta.desktop','Beta'),('test.gamma.desktop','Gamma'),('test.delta.desktop','Delta'),('org.gnome.Calendar.desktop','Calendar')]:
         executable=(str(root/'target/debug/examples/input-probe')+' --exit-after-seconds 180 --report "'+str(report)+'"') if identifier==app_id else '/bin/false'
         (catalog/identifier).write_text('[Desktop Entry]\nType=Application\nName='+name+'\nExec='+executable+'\n')
     records={'validation':{'passed':False},'scale':args.scale};children=[];logs=[];mouse=session=None
@@ -43,7 +46,15 @@ def main():
         value=await_value(lambda:request(control,'status'),condition,seconds=8);records[label]=value;return value
     def capture(label):
         request(control,'capture',path=str(out/(label+'.png')))
-        state(label,lambda s:not s['capture_pending'] and not s['capture_error'])
+        value=state(label,lambda s:not s['capture_pending'] and not s['capture_error'])
+        with Image.open(out/(label+'.png')) as image:
+            image.load()  # Read the finished PNG, not an image-preview impression.
+            rgb=image.convert('RGB')
+        for role,bounds,minimum in [('clock',(144,0,216,32),50),('right_status',(250,0,360,32),10)]:
+            bounds=tuple(v*args.scale for v in bounds)
+            bright=sum(min(pixel)>150 for pixel in rgb.crop(bounds).getdata())
+            records.setdefault('status_pixels',{})[label+'-'+role]=bright
+            assert bright>=minimum*args.scale*args.scale,(label,role,bright,value['clock'])
     def click(x,y):
         mouse.move(x,y);time.sleep(.08);mouse.button(True);time.sleep(.07);mouse.button(False);time.sleep(.12)
     def wave(x=42,y=610):
@@ -70,7 +81,7 @@ def main():
             session=subprocess.Popen([str(root/'target/debug/tarot'),'--width',str(360*args.scale),'--height',str(720*args.scale),'--scale',str(args.scale),'--config-file',str(config),'--control-socket',str(control),'--input-method',str(root/'target/debug/tarot-keyboard'),'--exit-after-ms','120000'],env=env,stdout=log(label+'.log'),stderr=subprocess.STDOUT)
             children.append(session)
             await_value(lambda:control.exists() or session.poll() is not None,bool);assert session.poll() is None
-            initial=state(label+'-ready',lambda s:s.get('favorites',{}).get('applications')==[app_id] and s['application_count']==4)
+            initial=state(label+'-ready',lambda s:s.get('favorites',{}).get('applications')==[app_id] and s['application_count']==5)
             mouse=ScaledInput(session.pid,xvfb,env['DISPLAY']);await_value(mouse.find,bool)
             mouse.move(180,350);time.sleep(.2)
             return initial
@@ -85,9 +96,19 @@ def main():
         count=lambda:sum(e['event']=='pointer_button' for e in input_events())
         await_value(count,lambda n:n>=2)
         native_buttons=count()
+        capture('native-app-before-wave')
+        before_wave=records['native-app-before-wave']
         shown=wave();assert shown['view']==app['view'] and shown['cards']==app['cards']
         assert shown['presentation']['windows']==app['presentation']['windows']
-        capture('wave-over-native-app');mouse.button(False)
+        capture('wave-over-native-app')
+        if before_wave['clock']==shown['clock']:
+            bounds=(144*args.scale,0,360*args.scale,32*args.scale)
+            ordinary=Image.open(out/'native-app-before-wave.png').convert('RGB').crop(bounds)
+            overlay=Image.open(out/'wave-over-native-app.png').convert('RGB').crop(bounds)
+            changed=ImageChops.difference(ordinary,overlay).getbbox()
+            records['status_during_wave']={'changed_bounds':changed,'scale':args.scale}
+            assert changed is None,'The clock and observed status must remain visible during Quick Launch'
+        mouse.button(False)
         assert count()==native_buttons
         state('favorite-focuses-same-app',lambda s:s['view']==app['view'] and s['presentation']['quick_launch'] is None)
         assert len(state('no-duplicate-launch')['cards'])==1
@@ -95,7 +116,9 @@ def main():
         wave(2,610);mouse.button(False)
         state('outside-release-cancels',lambda s:s['view']==app['view'] and s['presentation']['quick_launch'] is None)
         wave(320,610);mouse.button(False)
-        state('wave-launcher',lambda s:s['view']=='Launcher')
+        launcher=state('wave-launcher',lambda s:s['view']=='Launcher' and all(w['opacity']==0.0 for w in s['presentation']['windows']))
+        assert launcher['calendar_day']==datetime.datetime.now().day
+        capture('launcher-live-calendar')
         # Editor uses real UI presses; reordered identities, not labels, persist.
         click(285,67);state('editor-open',lambda s:s['editing_favorites'])
         capture('editor-before')
@@ -142,7 +165,7 @@ def main():
         records['validation']=dict(passed=True,private_display_and_catalog=True,native_client=True,
             wave_preserves_geometry_and_view=True,release_focuses_existing_app=True,
             outside_release_cancels=True,fixed_launcher=True,actual_editor_add_move_remove=True,failed_launch_feedback_without_input_leak=True,
-            favorites_survive_restart=True,other_preferences_preserved=True,native_and_shell_keyboard_wave=True,typing_after_wave_cancel=True,phone_kms_tested=False)
+            favorites_survive_restart=True,other_preferences_preserved=True,native_and_shell_keyboard_wave=True,typing_after_wave_cancel=True,live_calendar_gles=True,status_pixels_verified=True,phone_kms_tested=False)
         print('PASS: native app Quick Launch wave, commit/cancel, fixed launcher, actual favorite editing and saved restart')
     finally:
         if mouse is not None:mouse.close()

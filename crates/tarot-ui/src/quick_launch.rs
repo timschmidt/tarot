@@ -90,15 +90,27 @@ pub fn show(
         } else {
             Color32::from_gray(115)
         };
-        icon(
-            ui.ctx(),
-            &painter,
-            center,
-            app.map(|a| a.id.as_str()),
-            launcher,
-            id.is_none(),
-            if available { Color32::WHITE } else { color },
-        );
+        let tint = if available { Color32::WHITE } else { color };
+        if !((id.is_some() || launcher)
+            && crate::theme::paint_icon(
+                ui.ctx(),
+                &painter,
+                app.map_or("", |a| a.id.as_str()),
+                launcher,
+                Rect::from_center_size(center, Vec2::splat(tarot_core::design::ICON)),
+                tint,
+                model.calendar_day,
+            ))
+        {
+            icon(
+                &painter,
+                center,
+                app.map(|a| a.id.as_str()),
+                launcher,
+                id.is_none(),
+                tint,
+            );
+        }
         if selected {
             let text = painter.layout_no_wrap(label.to_owned(), FontId::proportional(15.0), color);
             painter.galley(
@@ -127,7 +139,6 @@ pub fn show(
 }
 
 fn icon(
-    ctx: &egui::Context,
     p: &egui::Painter,
     at: Pos2,
     id: Option<&str>,
@@ -135,17 +146,6 @@ fn icon(
     empty: bool,
     color: Color32,
 ) {
-    if (!empty || launcher)
-        && let Some(texture) = crate::theme::icon(ctx, id.unwrap_or(""), launcher)
-    {
-        p.image(
-            texture,
-            Rect::from_center_size(at, Vec2::splat(tarot_core::design::ICON)),
-            Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0)),
-            color,
-        );
-        return;
-    }
     let stroke = Stroke::new(2.3_f32, color);
     let point = |x, y| at + Vec2::new(x, y);
     let id = id.unwrap_or("").to_ascii_lowercase();
@@ -219,13 +219,6 @@ fn icon(
             egui::StrokeKind::Inside,
         );
         p.line_segment([point(-14.0, -6.0), point(14.0, -6.0)], stroke);
-        p.text(
-            point(0.0, 5.0),
-            Align2::CENTER_CENTER,
-            "31",
-            FontId::proportional(17.0),
-            color,
-        );
     } else {
         p.rect_stroke(
             Rect::from_center_size(at, Vec2::splat(31.0)),

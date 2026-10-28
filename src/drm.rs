@@ -113,7 +113,21 @@ impl Device {
     fn reconcile_power(&mut self, state: &mut Compositor) -> Result<bool> {
         if state.idle.off() {
             if !self.powered_off {
+                let proof = state
+                    .lock_generation()
+                    .filter(|generation| {
+                        state.protection.last_presented_generation == Some(*generation)
+                            && state.output_geometry.presented_revision
+                                == Some(state.output_geometry.revision)
+                    })
+                    .map(|generation| crate::idle::OffPresentation {
+                        generation,
+                        output_revision: state.output_geometry.revision,
+                        off_count: state.idle.off_count + 1,
+                        phase: state.protection.gate.phase,
+                    });
                 self.surface.surface().clear()?;
+                state.idle.off_presentation = proof;
                 self.powered_off = true;
                 state.idle.output_off = true;
                 state.idle.off_count += 1;
@@ -397,6 +411,7 @@ pub fn init(
                     if device.pending {
                         if data.state.idle.output_off {
                             data.state.idle.output_off = false;
+                            data.state.idle.off_presentation = None;
                             data.state.idle.wake_count += 1;
                         }
                         data.state

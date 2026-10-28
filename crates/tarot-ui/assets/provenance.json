@@ -82,6 +82,12 @@
       "source_sha256": "d2d7626968672cea65b9c1ce78af82c3bb353a5ce841c8f0dafda84ad3ec4cf2",
       "sha256": "64a3f9b471c3501361d6a3839e8ac5ddbbe42809f22082d345dad3e847715f79"
     },
+    "crates/tarot-ui/assets/icons/calendar-base.png": {
+      "source": "docs/Tarot_Design_Packet/icons/calendar.svg",
+      "source_sha256": "c30e186c0f714200358e6a17f17e2b5b049794bf68b38590e746b39ceb1f0a8f",
+      "derivation": "Original artwork with illustrative date text removed; runtime supplies local day",
+      "sha256": "b9b07df218d38288630b876f196498599b87ac2c22d3187e18b7b36c898d8703"
+    },
     "crates/tarot-ui/assets/nocturne.png": {
       "source": "docs/Tarot_Design_Packet/wallpapers/nocturne.png",
       "source_sha256": "de40022f0dcdbedfad066841ef375b510599059eb068328576966feb949c03b7",

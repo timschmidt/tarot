@@ -116,11 +116,14 @@ pub fn prepare_art(ctx: &egui::Context) {
     let mut icons = BTreeMap::new();
     macro_rules! icon {
         ($name:literal) => {
+            icon!($name, $name)
+        };
+        ($name:literal, $asset:literal) => {
             icons.insert(
                 $name,
                 ctx.load_texture(
                     concat!("Tarot ", $name),
-                    decode(include_bytes!(concat!("../assets/icons/", $name, ".png"))),
+                    decode(include_bytes!(concat!("../assets/icons/", $asset, ".png"))),
                     egui::TextureOptions::LINEAR,
                 ),
             );
@@ -129,7 +132,7 @@ pub fn prepare_art(ctx: &egui::Context) {
     icon!("phone");
     icon!("contacts");
     icon!("mail");
-    icon!("calendar");
+    icon!("calendar", "calendar-base");
     icon!("launcher");
     icon!("web");
     icon!("store");
@@ -186,7 +189,7 @@ pub fn wallpaper(ctx: &egui::Context, layout: tarot_core::Layout) -> egui::Shape
     egui::Shape::mesh(mesh)
 }
 
-pub fn icon(ctx: &egui::Context, id: &str, launcher: bool) -> Option<egui::TextureId> {
+fn icon(ctx: &egui::Context, id: &str, launcher: bool) -> Option<egui::TextureId> {
     let id = id.to_ascii_lowercase();
     let name = if launcher {
         "launcher"
@@ -236,4 +239,40 @@ pub fn tray(ctx: &egui::Context) -> egui::TextureId {
         .unwrap()
         .tray
         .id()
+}
+
+/// Draw original role artwork, with a live Calendar day in the packet's pose.
+pub fn paint_icon(
+    ctx: &egui::Context,
+    painter: &egui::Painter,
+    id: &str,
+    launcher: bool,
+    rect: egui::Rect,
+    tint: Color32,
+    day: Option<u8>,
+) -> bool {
+    let Some(texture) = icon(ctx, id, launcher) else {
+        return false;
+    };
+    painter.image(
+        texture,
+        rect,
+        egui::Rect::from_min_max(egui::Pos2::ZERO, egui::pos2(1.0, 1.0)),
+        tint,
+    );
+    let calendar = !launcher && {
+        let id = id.to_ascii_lowercase();
+        id.contains("calendar") || id.contains("kalendar")
+    };
+    if calendar && let Some(day) = day.filter(|d| (1..=31).contains(d)) {
+        let scale = rect.width() / 64.0;
+        let color = Color32::from_rgb(32, 40, 43).gamma_multiply(f32::from(tint.r()) / 255.0);
+        let text = painter.layout_no_wrap(day.to_string(), bold(ctx, 30.0 * scale), color);
+        let center = rect.center() + egui::vec2(0.0, 7.0 * scale);
+        painter.add(
+            egui::epaint::TextShape::new(center - text.size() * 0.5, text, color)
+                .with_angle_and_anchor(3.0_f32.to_radians(), egui::Align2::CENTER_CENTER),
+        );
+    }
+    true
 }
