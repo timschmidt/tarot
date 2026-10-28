@@ -5,6 +5,7 @@ Input stays on its existing guarded touchscreen. Calculator survives the slice.
 """
 import hashlib
 import json
+import math
 from pathlib import Path
 import time
 from PIL import Image
@@ -19,7 +20,7 @@ def replay(socket, screen, state, tap, capture, before, out, session_cgroup):
     record={'passed':False,'replay_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
             'physical_finger_tested':False,'samples':[],'processes':[]}
     ids=[]
-    audit=json.loads(Path('/home/user/tarot-dev/rounded-probe-r15-audit.json').read_text())
+    audit=json.loads(Path('/home/user/tarot-dev/rounded-probe-audit.json').read_text())
     assert hashlib.sha256(PROBE.read_bytes()).hexdigest()==audit['binary_sha256']
     def window(s,identifier):return next(w for w in s['presentation']['windows'] if w['id']==identifier)
     def physical(s,x,y):
@@ -71,13 +72,32 @@ def replay(socket, screen, state, tap, capture, before, out, session_cgroup):
             s=state('rounded-settled-'+orientation,lambda s:ordinary(s) and s['view']=='Overview' and s['presentation']['overview']==1.0)
             v=window(s,blue);r=v['rect'];radius=v['corner_radius'];assert radius>0
             image=picture('rounded-pixels-'+orientation)
-            corner=(r['x']+1,r['y']+1);inside=(r['x']+radius+2,r['y']+1)
+            def posed(x,y):
+                angle=math.radians(v.get('rotation',0));cx=r['x']+r['width']/2;cy=r['y']+r['height']/2
+                return cx+math.cos(angle)*(x-cx)-math.sin(angle)*(y-cy),cy+math.sin(angle)*(x-cx)+math.cos(angle)*(y-cy)
+            top_corner=posed(r['x']+1,r['y']+1);inside=posed(r['x']+radius+2,r['y']+1)
+            # Opposite fan angles can expose wallpaper at the top corner.
+            # Select a rounded corner that is actually backed by the red card.
+            lower=window(s,red);lr=lower['rect'];la=math.radians(-lower.get('rotation',0))
+            def lower_contains(point,margin=2):
+                cx=lr['x']+lr['width']/2;cy=lr['y']+lr['height']/2;dx=point[0]-cx;dy=point[1]-cy
+                x=cx+math.cos(la)*dx-math.sin(la)*dy;y=cy+math.sin(la)*dx+math.cos(la)*dy
+                rr=lower['corner_radius'];qx=abs(x-cx)-lr['width']/2+rr;qy=abs(y-cy)-lr['height']/2+rr
+                distance=math.hypot(max(qx,0),max(qy,0))+min(max(qx,qy),0)-rr
+                return distance<=-margin
+            corners=[posed(x,y) for x in [r['x'],r['x']+r['width']] for y in [r['y'],r['y']+r['height']]]
+            corner=next(c for c in corners if lower_contains(c))
+            tc=image.getpixel(physical(s,*top_corner))
+            assert not (tc[2]>2*tc[0] and tc[2]>1.3*tc[1]),('top subsurface corner must be clipped',tc)
             cp=image.getpixel(physical(s,*corner));ip=image.getpixel(physical(s,*inside))
-            shadow=image.getpixel(physical(s,r['x']-4,r['y']+20))
+            distance=6*radius/11
+            shadow_candidates=[posed(x,y) for x in [r['x']-distance,r['x']+r['width']+distance] for y in [r['y']+20,r['y']+r['height']/2,r['y']+r['height']-20]]
+            shadow_point=next(c for c in shadow_candidates if lower_contains(c,4))
+            shadow=image.getpixel(physical(s,*shadow_point))
             assert cp[0]>2*max(cp[1:]),(orientation,'corner',cp)
             assert ip[2]>2*ip[0] and ip[2]>1.3*ip[1],(orientation,'inner subsurface',ip)
             assert 90<shadow[0]<230 and shadow[0]>2*max(shadow[1:]),(orientation,'shadow',shadow)
-            record['samples'].append({'orientation':orientation,'corner':cp,'inside':ip,'shadow':shadow,'radius':radius})
+            record['samples'].append({'orientation':orientation,'corner':cp,'inside':ip,'shadow':shadow,'radius':radius,'rotation':v.get('rotation',0)})
             click(s,*corner)
             state('rounded-corner-selects-red-'+orientation,lambda s:ordinary(s) and s['view']=={'App':red}
                   and window(s,red)['corner_radius']==0 and window(s,red)['rect']==s['app_area'])

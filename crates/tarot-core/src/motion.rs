@@ -15,10 +15,41 @@ pub struct WindowVisual {
     pub opacity: f32,
     /// Logical radius, interpolated with the native surface geometry.
     pub corner_radius: f32,
+    /// Clockwise degrees about the card center in output coordinates.
+    pub rotation: f32,
 }
 
 impl WindowVisual {
+    pub fn to_output(self, x: f32, y: f32) -> (f32, f32) {
+        self.rotate(x, y, self.rotation)
+    }
+    pub fn from_output(self, x: f32, y: f32) -> (f32, f32) {
+        self.rotate(x, y, -self.rotation)
+    }
+    fn rotate(self, x: f32, y: f32, degrees: f32) -> (f32, f32) {
+        let cx = self.rect.x + self.rect.width * 0.5;
+        let cy = self.rect.y + self.rect.height * 0.5;
+        let (sin, cos) = degrees.to_radians().sin_cos();
+        (
+            cx + cos * (x - cx) - sin * (y - cy),
+            cy + sin * (x - cx) + cos * (y - cy),
+        )
+    }
+    pub fn bounds(self) -> Rect {
+        let cx = self.rect.x + self.rect.width * 0.5;
+        let cy = self.rect.y + self.rect.height * 0.5;
+        let (sin, cos) = self.rotation.to_radians().sin_cos();
+        let width = cos.abs() * self.rect.width + sin.abs() * self.rect.height;
+        let height = sin.abs() * self.rect.width + cos.abs() * self.rect.height;
+        Rect {
+            x: cx - width * 0.5,
+            y: cy - height * 0.5,
+            width,
+            height,
+        }
+    }
     pub fn contains(self, x: f32, y: f32) -> bool {
+        let (x, y) = self.from_output(x, y);
         if !self.rect.contains(x, y) {
             return false;
         }
@@ -62,6 +93,66 @@ impl Default for Presentation {
     }
 }
 
+// Preserve the packet's relative fan poses while fitting the entire group
+// above the tray in landscape/small outputs. All members share one fit.
+fn preview_pose(
+    layout: Layout,
+    offset: f32,
+    pose: Option<(f32, f32, f32, f32)>,
+    inactive: bool,
+) -> (Rect, f32) {
+    let base = layout.card(0, 0);
+    let raw = |pose: Option<(f32, f32, f32, f32)>| {
+        let mut rect = base.translated(offset, 0.0);
+        let mut rotation = 0.0;
+        if let Some((x, y, scale, degrees)) = pose {
+            let factor = base.width / (360.0 * crate::design::CARD_SCALE);
+            rect.x += (x - 61.2) * factor;
+            rect.y += (y - crate::design::CARD_Y) * factor;
+            rect.width *= scale / crate::design::CARD_SCALE;
+            rect.height *= scale / crate::design::CARD_SCALE;
+            rotation = degrees;
+        }
+        if inactive {
+            let factor = crate::design::INACTIVE_CARD_SCALE / crate::design::CARD_SCALE;
+            rect.x += rect.width * (1.0 - factor) * 0.5;
+            rect.width *= factor;
+            rect.height *= factor;
+            rect.y += 21.0 * base.width / (360.0 * crate::design::CARD_SCALE);
+        }
+        WindowVisual {
+            id: WindowId(0),
+            rect,
+            rotation,
+            opacity: 1.0,
+            corner_radius: 0.0,
+        }
+    };
+    let previews = if pose.is_some() {
+        crate::design::STACK_POSES
+            .map(|p| raw(Some(p)).bounds())
+            .to_vec()
+    } else {
+        vec![raw(None).bounds()]
+    };
+    let top = previews.iter().map(|r| r.y).fold(f32::INFINITY, f32::min);
+    let bottom = previews
+        .iter()
+        .map(|r| r.y + r.height)
+        .fold(f32::NEG_INFINITY, f32::max);
+    let minimum = Layout::STATUS + 52.0;
+    let maximum = (layout.gesture().y - Layout::DOCK - 36.0).max(minimum + 1.0);
+    let factor = ((maximum - minimum) / (bottom - top)).min(1.0);
+    let placed_top = top.clamp(minimum, (maximum - (bottom - top) * factor).max(minimum));
+    let mut visual = raw(pose);
+    let center = base.x + base.width * 0.5 + offset;
+    visual.rect.x = center + (visual.rect.x - center) * factor;
+    visual.rect.y = placed_top + (visual.rect.y - top) * factor;
+    visual.rect.width *= factor;
+    visual.rect.height *= factor;
+    (visual.rect, visual.rotation)
+}
+
 impl Presentation {
     pub fn settled(model: &ShellModel, layout: Layout) -> Self {
         Self::for_view(model, layout, model.view)
@@ -76,36 +167,70 @@ impl Presentation {
         let positions = model.card_positions(layout);
         let selected_position = positions.get(selected).copied().unwrap_or(0.0);
         let selected_stack = model.cards.get(selected).map(|card| card.stack);
+        let selected_start = model
+            .cards
+            .iter()
+            .position(|c| Some(c.stack) == selected_stack)
+            .unwrap_or(0);
         let mut frame = Self {
             windows: model
                 .cards
                 .iter()
-                .enumerate()
-                .map(|(index, card)| WindowVisual {
-                    id: card.id,
-                    rect: if view == View::App(card.id) {
-                        layout.content()
-                    } else {
-                        let mut rect = layout
-                            .card(0, 0)
-                            .translated(positions[index] - selected_position, 0.0);
-                        if Some(card.stack) == selected_stack {
-                            rect.y += (index as f32 - selected as f32).clamp(-3.0, 3.0) * 12.0;
+                .map(|card| {
+                    let group_start = model
+                        .cards
+                        .iter()
+                        .position(|c| c.stack == card.stack)
+                        .unwrap();
+                    let group_offset = positions[group_start]
+                        - positions
+                            .get(selected_start)
+                            .copied()
+                            .unwrap_or(selected_position);
+                    let mut pose = None;
+                    let mut preview_visible = true;
+                    let members = model.stack_members(card.id);
+                    let active_group = Some(card.stack) == selected_stack;
+                    if members.len() > 1 {
+                        let mut order = members;
+                        if let Some(selected) = model.selected.filter(|id| order.contains(id)) {
+                            order.retain(|id| *id != selected);
+                            order.push(selected);
                         }
-                        rect
-                    },
-                    opacity: if view == View::Overview || view == View::App(card.id) {
-                        1.0
-                    } else {
-                        0.0
-                    },
-                    corner_radius: if view == View::App(card.id) {
-                        0.0
-                    } else {
-                        let card = layout.card(0, 0);
-                        (crate::design::CARD_RADIUS * card.width / layout.content().width.max(1.0))
-                            .min(card.width.min(card.height) * 0.5)
-                    },
+                        let rank = order.iter().position(|id| *id == card.id).unwrap();
+                        preview_visible = rank >= order.len().saturating_sub(3);
+                        let slot = if order.len() == 2 {
+                            rank * 2
+                        } else {
+                            rank.saturating_sub(order.len().saturating_sub(3))
+                        };
+                        pose = Some(crate::design::STACK_POSES[slot]);
+                    }
+                    let (mut rect, mut rotation) =
+                        preview_pose(layout, group_offset, pose, !active_group);
+                    if view == View::App(card.id) {
+                        rect = layout.content();
+                        rotation = 0.0;
+                    }
+                    WindowVisual {
+                        id: card.id,
+                        rect,
+                        rotation,
+                        opacity: if (view == View::Overview && preview_visible)
+                            || view == View::App(card.id)
+                        {
+                            1.0
+                        } else {
+                            0.0
+                        },
+                        corner_radius: if view == View::App(card.id) {
+                            0.0
+                        } else {
+                            (crate::design::CARD_RADIUS * rect.width
+                                / layout.content().width.max(1.0))
+                            .min(rect.width.min(rect.height) * 0.5)
+                        },
+                    }
                 })
                 .collect(),
             overview: if view == View::Overview { 1.0 } else { 0.0 },
@@ -134,8 +259,9 @@ impl Presentation {
     }
 
     pub fn visible(&self, id: WindowId, layout: Layout) -> bool {
-        self.window(id)
-            .is_some_and(|window| window.opacity > 0.01 && window.rect.intersects(layout.content()))
+        self.window(id).is_some_and(|window| {
+            window.opacity > 0.01 && window.bounds().intersects(layout.content())
+        })
     }
 
     fn blend(&self, target: &Self, progress: f32) -> Self {
@@ -159,6 +285,7 @@ impl Presentation {
                         },
                         opacity: mix(start.opacity, end.opacity),
                         corner_radius: mix(start.corner_radius, end.corner_radius),
+                        rotation: mix(start.rotation, end.rotation),
                     }
                 })
                 .collect(),
@@ -304,6 +431,117 @@ mod tests {
     use crate::Command;
 
     #[test]
+    fn three_member_fan_uses_packet_poses_and_active_app_returns_to_zero_rotation() {
+        let (mut model, layout, _) = fixture();
+        model.add_window(WindowId(3), "Three".into(), "three".into());
+        model.apply(Command::Overview);
+        model.apply(Command::Stack {
+            card: WindowId(1),
+            with: WindowId(3),
+        });
+        model.apply(Command::Stack {
+            card: WindowId(2),
+            with: WindowId(3),
+        });
+        let frame = Presentation::settled(&model, layout);
+        assert_eq!(frame.windows.len(), 3);
+        for (visual, pose) in frame.windows.iter().zip(crate::design::STACK_POSES) {
+            assert!((visual.rect.x - pose.0).abs() < 0.001);
+            assert!((visual.rect.y - pose.1).abs() < 0.001);
+            assert!((visual.rect.width - 360.0 * pose.2).abs() < 0.001);
+            assert_eq!(visual.rotation, pose.3);
+        }
+        let selected = model.selected.unwrap();
+        model.apply(Command::Activate(selected));
+        let active = Presentation::settled(&model, layout);
+        assert_eq!(active.window(selected).unwrap().rotation, 0.0);
+        assert_eq!(active.window(selected).unwrap().rect, layout.content());
+    }
+
+    #[test]
+    fn large_stacks_keep_every_card_but_only_three_live_previews_and_browse_brings_each_forward() {
+        let (mut model, layout, _) = fixture();
+        for id in 3..=5 {
+            model.add_window(WindowId(id), id.to_string(), "same.app".into());
+        }
+        model.apply(Command::Overview);
+        for id in 1..5 {
+            model.apply(Command::Stack {
+                card: WindowId(id),
+                with: WindowId(5),
+            });
+        }
+        model.apply(Command::BrowseCards(i32::MAX));
+        let mut visited = std::collections::HashSet::new();
+        for _ in 0..10 {
+            visited.insert(model.selected.unwrap());
+            let frame = Presentation::settled(&model, layout);
+            assert_eq!(frame.windows.len(), 5);
+            assert_eq!(frame.windows.iter().filter(|w| w.opacity > 0.0).count(), 3);
+            assert_eq!(frame.windows.last().unwrap().id, model.selected.unwrap());
+            assert_eq!(frame.windows.last().unwrap().opacity, 1.0);
+            model.apply(Command::BrowseCards(-1));
+        }
+        assert_eq!(visited.len(), 5);
+    }
+
+    #[test]
+    fn landscape_fans_reserve_controls_caption_and_tray_without_distorting_members() {
+        for (width, height) in [(360.0, 720.0), (720.0, 360.0), (320.0, 240.0)] {
+            let layout = Layout {
+                width,
+                height,
+                keyboard_height: 0.0,
+            };
+            let ratios = crate::design::STACK_POSES.map(|pose| {
+                let (rect, rotation) = preview_pose(layout, 0.0, Some(pose), false);
+                let bounds = WindowVisual {
+                    id: WindowId(0),
+                    rect,
+                    rotation,
+                    opacity: 1.0,
+                    corner_radius: 0.0,
+                }
+                .bounds();
+                assert!(bounds.y >= Layout::STATUS + 52.0 - 0.001);
+                assert!(
+                    bounds.y + bounds.height <= layout.gesture().y - Layout::DOCK - 36.0 + 0.001
+                );
+                rect.width / (width * pose.2)
+            });
+            assert!((ratios[0] - ratios[1]).abs() < 0.001 && (ratios[1] - ratios[2]).abs() < 0.001);
+        }
+    }
+
+    #[test]
+    fn rotated_shape_uses_inverse_pose_and_expanded_visibility_bounds() {
+        let card = WindowVisual {
+            id: WindowId(1),
+            rect: Rect {
+                x: 60.0,
+                y: 139.0,
+                width: 230.4,
+                height: 417.28,
+            },
+            opacity: 1.0,
+            corner_radius: 7.04,
+            rotation: 5.0,
+        };
+        let inside = card.to_output(card.rect.x + 10.0, card.rect.y + 10.0);
+        assert!(card.contains(inside.0, inside.1));
+        let corner = card.to_output(card.rect.x + 1.0, card.rect.y + 1.0);
+        assert!(!card.contains(corner.0, corner.1));
+        let edge = card.to_output(
+            card.rect.x + card.rect.width - 1.0,
+            card.rect.y + card.rect.height * 0.5,
+        );
+        let roundtrip = card.from_output(edge.0, edge.1);
+        assert!((roundtrip.0 - card.rect.x - card.rect.width + 1.0).abs() < 0.001);
+        assert!(card.bounds().width > card.rect.width && card.bounds().height > card.rect.height);
+        assert!(card.bounds().contains(edge.0, edge.1));
+    }
+
+    #[test]
     fn a_rounded_corner_selects_the_visible_card_behind_it() {
         let back = WindowVisual {
             id: WindowId(1),
@@ -315,6 +553,7 @@ mod tests {
             },
             opacity: 1.0,
             corner_radius: 0.0,
+            rotation: 0.0,
         };
         let front = WindowVisual {
             id: WindowId(2),
@@ -326,6 +565,7 @@ mod tests {
             },
             opacity: 1.0,
             corner_radius: 11.0,
+            rotation: 0.0,
         };
         let frame = Presentation {
             windows: vec![back, front],

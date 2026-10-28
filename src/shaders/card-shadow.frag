@@ -11,6 +11,7 @@ uniform float tarot_radius;
 uniform float tarot_sigma;
 uniform float tarot_offset;
 uniform float tarot_pixel;
+uniform vec2 tarot_pose;
 #if defined(DEBUG_FLAGS)
 uniform float tint;
 #endif
@@ -27,6 +28,9 @@ float gaussian_coverage(float distance) {
 }
 void main() {
     vec2 p=v_coords*size;
+    vec2 center=tarot_card.xy+tarot_card.zw*0.5;
+    vec2 d=p-center;
+    p=center+vec2(tarot_pose.x*d.x+tarot_pose.y*d.y,-tarot_pose.y*d.x+tarot_pose.x*d.y);
     float outside=smoothstep(-0.5*tarot_pixel,0.5*tarot_pixel,rounded_distance(p));
     float shade=gaussian_coverage(rounded_distance(p-vec2(0.0,tarot_offset)));
     gl_FragColor=vec4(0.0,0.0,0.0,0.55*alpha*outside*shade);

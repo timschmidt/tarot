@@ -23,6 +23,7 @@ struct Clip {
     rect: Rectangle<i32, Physical>,
     radius: f32,
     scene: Size<i32, Physical>,
+    rotation: f32,
 }
 struct Commit {
     native: CommitCounter,
@@ -62,6 +63,9 @@ impl Cards {
                     UniformName::new("tarot_radius", UniformType::_1f),
                     UniformName::new("tarot_from_fb_x", UniformType::_3f),
                     UniformName::new("tarot_from_fb_y", UniformType::_3f),
+                    UniformName::new("tarot_pose", UniformType::_2f),
+                    UniformName::new("tarot_sample", UniformType::_4f),
+                    UniformName::new("tarot_destination", UniformType::_2f),
                 ],
             )?;
             let shadow = gles.compile_custom_pixel_shader(
@@ -72,6 +76,7 @@ impl Cards {
                     UniformName::new("tarot_sigma", UniformType::_1f),
                     UniformName::new("tarot_offset", UniformType::_1f),
                     UniformName::new("tarot_pixel", UniformType::_1f),
+                    UniformName::new("tarot_pose", UniformType::_2f),
                 ],
             )?;
             self.mask = Some(mask);
@@ -93,17 +98,18 @@ impl Cards {
         &mut self,
         inner: E,
         rect: Rectangle<i32, Physical>,
-        radius: f32,
+        visual: WindowVisual,
         scene: Size<i32, Physical>,
         scale: f64,
     ) -> Option<Masked<E>> {
-        let radius = radius
+        let radius = (visual.corner_radius * scale as f32)
             .max(0.0)
             .min(rect.size.w.min(rect.size.h) as f32 * 0.5);
         let clip = Clip {
             rect,
             radius,
             scene,
+            rotation: visual.rotation,
         };
         if radius > 0.001 && !rounded_intersects(rect, radius, inner.geometry(scale.into())) {
             return None;
@@ -131,6 +137,7 @@ impl Cards {
         }
         entry.used = true;
         Some(Masked {
+            original: inner.geometry(scale.into()),
             inner,
             clip,
             program: self.mask.as_ref().unwrap().clone(),
@@ -150,10 +157,11 @@ impl Cards {
         // Packet SVG's dy=6/stdDeviation=6 before card scale; alpha=.55.
         let material_scale = visual.corner_radius / tarot_core::design::CARD_RADIUS;
         let margin = (24.0 * material_scale).ceil().max(1.0);
-        let left = (visual.rect.x - margin).floor() as i32;
-        let top = (visual.rect.y - margin).floor() as i32;
-        let right = (visual.rect.x + visual.rect.width + margin).ceil() as i32;
-        let bottom = (visual.rect.y + visual.rect.height + margin).ceil() as i32;
+        let bounds = visual.bounds();
+        let left = (bounds.x - margin).floor() as i32;
+        let top = (bounds.y - margin).floor() as i32;
+        let right = (bounds.x + bounds.width + margin).ceil() as i32;
+        let bottom = (bounds.y + bounds.height + margin).ceil() as i32;
         let area = Rectangle::new((left, top).into(), (right - left, bottom - top).into());
         let physical_area: Rectangle<i32, Physical> = area.to_physical_precise_round(scale);
         let origin = physical_area.loc;
@@ -162,7 +170,9 @@ impl Cards {
         let radius = visual
             .corner_radius
             .min(target.size.w.min(target.size.h) as f32 / scale as f32 * 0.5);
+        let (sin, cos) = visual.rotation.to_radians().sin_cos();
         let uniforms = vec![
+            Uniform::new("tarot_pose", (cos, sin)),
             Uniform::new(
                 "tarot_card",
                 (
@@ -244,6 +254,7 @@ fn rounded_intersects(
 #[derive(Clone, Debug)]
 pub struct Masked<E> {
     inner: E,
+    original: Rectangle<i32, Physical>,
     clip: Clip,
     program: GlesTexProgram,
     commit: CommitCounter,
@@ -260,7 +271,11 @@ impl<E: Element> Element for Masked<E> {
         self.inner.src()
     }
     fn geometry(&self, scale: Scale<f64>) -> Rectangle<i32, Physical> {
-        self.inner.geometry(scale)
+        rotated_bounds(
+            self.inner.geometry(scale),
+            self.clip.rect,
+            self.clip.rotation,
+        )
     }
     fn transform(&self) -> Transform {
         self.inner.transform()
@@ -283,12 +298,31 @@ impl<E: Element> Element for Masked<E> {
             .iter()
             .find(|old| Some(old.counter) == commit && old.clip == self.clip)
         {
-            self.inner.damage_since(scale, Some(old.native))
+            let damage = self.inner.damage_since(scale, Some(old.native));
+            if self.clip.rotation.abs() < 0.00001 {
+                return damage;
+            }
+            let original = self.inner.geometry(scale);
+            let bounds = self.geometry(scale);
+            damage
+                .iter()
+                .map(|d| {
+                    let rotated = rotated_bounds(
+                        Rectangle::new(d.loc + original.loc, d.size),
+                        self.clip.rect,
+                        self.clip.rotation,
+                    );
+                    Rectangle::new(rotated.loc - bounds.loc, rotated.size)
+                })
+                .collect()
         } else {
             DamageSet::from_slice(&[Rectangle::from_size(self.geometry(scale).size)])
         }
     }
     fn opaque_regions(&self, scale: Scale<f64>) -> OpaqueRegions<i32, Physical> {
+        if self.clip.rotation.abs() >= 0.00001 {
+            return OpaqueRegions::default();
+        }
         let inner = self.inner.opaque_regions(scale);
         if self.clip.radius <= 0.001 {
             return inner;
@@ -334,7 +368,7 @@ impl<E: RenderElement<GlowRenderer>> RenderElement<GlowRenderer> for Masked<E> {
         damage: &[Rectangle<i32, Physical>],
         opaque: &[Rectangle<i32, Physical>],
     ) -> Result<(), GlesError> {
-        if self.clip.radius <= 0.001 {
+        if self.clip.radius <= 0.001 && self.clip.rotation.abs() < 0.00001 {
             return self.inner.draw(frame, src, dst, damage, opaque);
         }
         {
@@ -342,6 +376,8 @@ impl<E: RenderElement<GlowRenderer>> RenderElement<GlowRenderer> for Masked<E> {
             let fb = gles.transformation().transform_size(self.clip.scene);
             let (x, y) = from_framebuffer(gles.projection(), fb);
             let r = self.clip.rect;
+            let e = self.original;
+            let (sin, cos) = self.clip.rotation.to_radians().sin_cos();
             gles.override_default_tex_program(
                 self.program.clone(),
                 vec![
@@ -355,21 +391,63 @@ impl<E: RenderElement<GlowRenderer>> RenderElement<GlowRenderer> for Masked<E> {
                         ),
                     ),
                     Uniform::new("tarot_radius", self.clip.radius),
+                    Uniform::new("tarot_pose", (cos, sin)),
+                    Uniform::new(
+                        "tarot_sample",
+                        (
+                            e.loc.x as f32,
+                            e.loc.y as f32,
+                            e.size.w as f32,
+                            e.size.h as f32,
+                        ),
+                    ),
+                    Uniform::new("tarot_destination", (dst.size.w as f32, dst.size.h as f32)),
                     Uniform::new("tarot_from_fb_x", x),
                     Uniform::new("tarot_from_fb_y", y),
                 ],
             );
         }
-        let result = self.inner.draw(frame, src, dst, damage, opaque);
+        let result = if self.clip.rotation.abs() < 0.00001 {
+            self.inner.draw(frame, src, dst, damage, opaque)
+        } else {
+            // The shader reconstructs native UVs inside the rotated bounding
+            // quad. Preserve the full native crop even if an outer output crop
+            // has changed src/dst; only the requested destination damage draws.
+            self.inner.draw(frame, self.inner.src(), dst, damage, &[])
+        };
         let gles: &mut GlesFrame<'_, '_> = frame.borrow_mut();
         gles.clear_tex_program_override();
         result
     }
     fn underlying_storage(&self, renderer: &mut GlowRenderer) -> Option<UnderlyingStorage<'_>> {
-        (self.clip.radius <= 0.001)
+        (self.clip.radius <= 0.001 && self.clip.rotation.abs() < 0.00001)
             .then(|| self.inner.underlying_storage(renderer))
             .flatten()
     }
+}
+
+fn rotated_bounds(
+    rect: Rectangle<i32, Physical>,
+    card: Rectangle<i32, Physical>,
+    degrees: f32,
+) -> Rectangle<i32, Physical> {
+    if degrees.abs() < 0.00001 {
+        return rect;
+    }
+    let (sin, cos) = f64::from(degrees).to_radians().sin_cos();
+    let cx = f64::from(card.loc.x) + f64::from(card.size.w) * 0.5;
+    let cy = f64::from(card.loc.y) + f64::from(card.size.h) * 0.5;
+    let x = f64::from(rect.loc.x) + f64::from(rect.size.w) * 0.5 - cx;
+    let y = f64::from(rect.loc.y) + f64::from(rect.size.h) * 0.5 - cy;
+    let half_w = (cos.abs() * f64::from(rect.size.w) + sin.abs() * f64::from(rect.size.h)) * 0.5;
+    let half_h = (sin.abs() * f64::from(rect.size.w) + cos.abs() * f64::from(rect.size.h)) * 0.5;
+    let center_x = cx + cos * x - sin * y;
+    let center_y = cy + sin * x + cos * y;
+    let left = (center_x - half_w).floor() as i32;
+    let top = (center_y - half_h).floor() as i32;
+    let right = (center_x + half_w).ceil() as i32;
+    let bottom = (center_y + half_h).ceil() as i32;
+    Rectangle::new((left, top).into(), (right - left, bottom - top).into())
 }
 
 fn from_framebuffer(m: &[f32; 9], fb: Size<i32, Physical>) -> ([f32; 3], [f32; 3]) {

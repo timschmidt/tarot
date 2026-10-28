@@ -7,6 +7,7 @@ Pixels must reveal the lower native client through the upper rounded corner.
 import argparse
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
 import select
@@ -65,7 +66,7 @@ def main():
         ready=state('ready');mouse=PrivateInput(session.pid,server,env['DISPLAY']);await_value(mouse.find,bool)
         native_env=dict(env,WAYLAND_DISPLAY=ready['wayland_display']);native_env.pop('DISPLAY',None)
         ids=[]
-        for name,color,extra in [('red','e91d31',[]),('blue','2255dd',['--corner-child','--refuse-close'])]:
+        for name,color,extra in [('red','e91d31',['--no-child']),('blue','2255dd',['--corner-child','--refuse-close'])]:
             app=subprocess.Popen([str(root/'target/debug/examples/input-probe'),'--fit-output','--solid-color',color,'--report',str(out/(name+'.jsonl')),'--exit-after-seconds','180',*(['--opaque'] if args.opaque else []),*extra],env=native_env,stdout=log(name+'.log'),stderr=subprocess.STDOUT)
             children.append(app);apps[name]=app
             s=state(name+'-mapped',lambda s:len(s['cards'])==len(ids)+1 and s['presentation']['windows'][-1]['opacity']==1.0)
@@ -88,13 +89,32 @@ def main():
             s=state('settled-'+orientation,lambda s:s['view']=='Overview' and s['presentation']['overview']==1.0)
             b=window(s,blue);r=b['rect'];radius=b['corner_radius'];assert radius>0
             image=capture('stack-'+orientation)
-            corner=(r['x']+1,r['y']+1);inside=(r['x']+radius+2,r['y']+1)
+            def posed(x,y):
+                angle=math.radians(b.get('rotation',0));cx=r['x']+r['width']/2;cy=r['y']+r['height']/2
+                return cx+math.cos(angle)*(x-cx)-math.sin(angle)*(y-cy),cy+math.sin(angle)*(x-cx)+math.cos(angle)*(y-cy)
+            top_corner=posed(r['x']+1,r['y']+1);inside=posed(r['x']+radius+2,r['y']+1)
+            # Opposite fan angles can expose wallpaper at the top corner.
+            # Select a rounded corner that is actually backed by the red card.
+            lower=window(s,red);lr=lower['rect'];la=math.radians(-lower.get('rotation',0))
+            def lower_contains(point,margin=2):
+                cx=lr['x']+lr['width']/2;cy=lr['y']+lr['height']/2;dx=point[0]-cx;dy=point[1]-cy
+                x=cx+math.cos(la)*dx-math.sin(la)*dy;y=cy+math.sin(la)*dx+math.cos(la)*dy
+                rr=lower['corner_radius'];qx=abs(x-cx)-lr['width']/2+rr;qy=abs(y-cy)-lr['height']/2+rr
+                distance=math.hypot(max(qx,0),max(qy,0))+min(max(qx,qy),0)-rr
+                return distance<=-margin
+            corners=[posed(x,y) for x in [r['x'],r['x']+r['width']] for y in [r['y'],r['y']+r['height']]]
+            corner=next(c for c in corners if lower_contains(c))
+            tc=image.getpixel(physical(s,*top_corner))
+            assert not (tc[2]>2*tc[0] and tc[2]>1.3*tc[1]),('top subsurface corner must be clipped',tc)
             cp=image.getpixel(physical(s,*corner));ip=image.getpixel(physical(s,*inside))
             assert cp[0]>cp[1]*2 and cp[0]>cp[2]*2,('corner must reveal red native client',orientation,cp,corner,s)
             assert ip[2]>ip[0]*2 and ip[2]>ip[1]*1.3,('inner edge remains blue subsurface',orientation,ip,inside)
-            shadow=image.getpixel(physical(s,r['x']-4,r['y']+20))
+            distance=6*radius/11
+            shadow_candidates=[posed(x,y) for x in [r['x']-distance,r['x']+r['width']+distance] for y in [r['y']+20,r['y']+r['height']/2,r['y']+r['height']-20]]
+            shadow_point=next(c for c in shadow_candidates if lower_contains(c,4))
+            shadow=image.getpixel(physical(s,*shadow_point))
             assert 90<shadow[0]<230 and shadow[0]>2*max(shadow[1:]),('shadow must dim the red client behind, not repaint wallpaper',orientation,shadow)
-            samples.append(dict(orientation=orientation,corner=cp,inside=ip,shadow=shadow,radius=radius))
+            samples.append(dict(orientation=orientation,corner=cp,inside=ip,shadow=shadow,radius=radius,rotation=b.get('rotation',0)))
             click(s,*corner)
             focused=state('corner-selects-red-'+orientation,lambda s:s['view']=={'App':red} and window(s,red)['corner_radius']==0 and window(s,red)['rect']==s['app_area'])
             assert len(focused['cards'])==2

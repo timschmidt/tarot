@@ -19,7 +19,8 @@ impl CardDrop {
 }
 
 impl ShellModel {
-    /// Absolute deck positions; members expose a 48-unit strip, groups have a gap.
+    /// Logical browse steps: 48 units within a group, then an inter-group gap.
+    /// Presentation folds members into the fan; these are navigation distances.
     pub fn card_positions(&self, layout: Layout) -> Vec<f32> {
         let mut position = 0.0;
         self.cards

@@ -405,13 +405,25 @@ fn show_cards(
                         points.push(center + Vec2::new(cos * radius, sin * radius));
                     }
                 }
+                let points = points
+                    .into_iter()
+                    .map(|p| {
+                        let (x, y) = visual.to_output(p.x, p.y);
+                        Pos2::new(x, y)
+                    })
+                    .collect();
                 painter.add(egui::Shape::convex_polygon(
                     points,
                     Color32::TRANSPARENT,
                     Stroke::new(width, Color32::from_rgb(218, 227, 215)),
                 ));
             }
-            let response = ui.interact(card_rect, ui.id().with("activate"), Sense::click());
+            let bounds = visual.bounds();
+            let hit_rect = Rect::from_min_size(
+                Pos2::new(bounds.x, bounds.y),
+                Vec2::new(bounds.width, bounds.height),
+            );
+            let response = ui.interact(hit_rect, ui.id().with("activate"), Sense::click());
             response.widget_info(|| {
                 egui::WidgetInfo::labeled(
                     egui::WidgetType::Button,
@@ -434,11 +446,11 @@ fn show_cards(
             if representative == Some(card.id) && presentation.arrange.is_none() {
                 painter
                     .with_clip_rect(Rect::from_min_size(
-                        Pos2::new(card_rect.left(), card_rect.bottom() + 4.0),
-                        Vec2::new(card_rect.width(), 32.0),
+                        Pos2::new(hit_rect.left(), hit_rect.bottom() + 4.0),
+                        Vec2::new(hit_rect.width(), 32.0),
                     ))
                     .text(
-                        Pos2::new(card_rect.center().x, card_rect.bottom() + 20.0),
+                        Pos2::new(hit_rect.center().x, hit_rect.bottom() + 20.0),
                         Align2::CENTER_CENTER,
                         label,
                         FontId::proportional(14.0),
@@ -449,7 +461,7 @@ fn show_cards(
             // remain selectable through their visible card strips.
             if Some(card.id) == model.selected && presentation.arrange.is_none() {
                 let close = Rect::from_center_size(
-                    Pos2::new(card_rect.right() - 16.0, card_rect.top() - 26.0),
+                    Pos2::new(hit_rect.right() - 16.0, hit_rect.top() - 26.0),
                     Vec2::splat(48.0),
                 );
                 if ui
@@ -466,7 +478,7 @@ fn show_cards(
                     commands.push(Command::Close(card.id));
                 }
                 let options = Rect::from_center_size(
-                    Pos2::new(card_rect.left() + 16.0, card_rect.top() - 26.0),
+                    Pos2::new(hit_rect.left() + 16.0, hit_rect.top() - 26.0),
                     Vec2::splat(48.0),
                 );
                 let response = ui
@@ -533,7 +545,7 @@ fn show_cards(
                 if members.len() > 1 {
                     let index = members.iter().position(|id| *id == card.id).unwrap();
                     painter.text(
-                        Pos2::new(card_rect.center().x, card_rect.top() - 26.0),
+                        Pos2::new(hit_rect.center().x, hit_rect.top() - 26.0),
                         Align2::CENTER_CENTER,
                         format!("{} / {}", index + 1, members.len()),
                         FontId::proportional(13.0),

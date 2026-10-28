@@ -166,7 +166,7 @@ impl Contact {
         } else {
             let anchor = candidates
                 .into_iter()
-                .find(|w| w.rect.translated(self.deck_offset, 0.0).contains(x, y))?;
+                .find(|w| w.contains(x - self.deck_offset, y))?;
             Some(CardDrop::Into {
                 anchor: anchor.id,
                 before: x < anchor.rect.x + anchor.rect.width / 2.0 + self.deck_offset,
@@ -731,7 +731,12 @@ mod tests {
             card: WindowId(2),
             with: WindowId(3),
         });
-        begin(&mut recognizer, &model, layout, (20.0, 300.0)); // Exposed strip of card 3.
+        let frame = Presentation::settled(&model, layout);
+        assert_eq!(
+            frame.card_at(60.0, 300.0, model.selected),
+            Some(WindowId(3))
+        );
+        begin(&mut recognizer, &model, layout, (60.0, 300.0)); // Exposed fan of card 3.
         recognizer.tick_elapsed(Duration::from_millis(HOLD_MS));
         recognizer.update(1, 210.0, 300.0, 500);
         model.apply(recognizer.finish(1, 550, &model).command.unwrap());

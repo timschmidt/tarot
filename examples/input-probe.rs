@@ -32,6 +32,8 @@ struct Options {
     #[arg(long)]
     corner_child: bool,
     #[arg(long)]
+    no_child: bool,
+    #[arg(long)]
     opaque: bool,
     #[arg(long)]
     refuse_close: bool,
@@ -91,6 +93,7 @@ struct Probe {
     fit_output: bool,
     configured_size: (i32, i32),
     corner_child: bool,
+    no_child: bool,
     compositor: Option<wl_compositor::WlCompositor>,
     subcompositor: Option<wl_subcompositor::WlSubcompositor>,
     shm: Option<wl_shm::WlShm>,
@@ -287,9 +290,11 @@ impl Probe {
         subsurface.set_position(x, y);
         subsurface.set_desync();
         let child_buffer = self.buffer(qh, 200, 200, true);
-        child.attach(Some(&child_buffer), 0, 0);
-        child.damage(0, 0, 200, 200);
-        child.commit();
+        if !self.no_child {
+            child.attach(Some(&child_buffer), 0, 0);
+            child.damage(0, 0, 200, 200);
+            child.commit();
+        }
         let xdg = self
             .shell
             .as_ref()
@@ -332,6 +337,7 @@ fn main() -> Result<()> {
         fit_output: options.fit_output,
         configured_size: (360, 652),
         corner_child: options.corner_child,
+        no_child: options.no_child,
         compositor: None,
         subcompositor: None,
         shm: None,

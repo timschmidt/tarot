@@ -15,6 +15,7 @@ fn main() {
         ("ICON", &g["quick_launch_icon_size"]),
         ("LAUNCHER_ICON", &g["launcher_icon_size"]),
         ("CARD_SCALE", &g["card_scale"]),
+        ("INACTIVE_CARD_SCALE", &g["inactive_card_scale"]),
         ("CARD_RADIUS", &g["card_radius_before_scale"]),
         ("CARD_Y", &g["card_anchor"][1]),
         ("AXIS_SLOP", &gestures["axis_lock_dp"]),
@@ -27,6 +28,21 @@ fn main() {
         assert!(n.is_finite() && n > 0.0);
         writeln!(&mut out, "pub const {name}: f32 = {n:?};").unwrap();
     }
+    let poses = g["stack_preview_poses"].as_array().unwrap();
+    assert_eq!(poses.len(), 3);
+    out.push_str("pub const STACK_POSES: [(f32,f32,f32,f32);3] = [");
+    for pose in poses {
+        let values = ["x", "y", "scale", "degrees"].map(|key| pose[key].as_f64().unwrap());
+        assert!(values.iter().all(|v| v.is_finite()));
+        assert!((0.1..=1.0).contains(&values[2]) && values[3].abs() <= 15.0);
+        writeln!(
+            &mut out,
+            "({:?},{:?},{:?},{:?}),",
+            values[0], values[1], values[2], values[3]
+        )
+        .unwrap();
+    }
+    out.push_str("];\n");
     for (name, value) in [
         ("REORDER_HOLD_MS", &gestures["reorder_hold_ms"]),
         ("WAVE_DWELL_MS", &gestures["wave_dwell_ms"]),

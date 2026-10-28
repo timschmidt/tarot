@@ -12,10 +12,10 @@ The current Nura/OpenRC/elogind and PulseAudio baseline is independently observe
 
 ## Implemented foundation
 
-Installed revision 15 applies the packet to running Rust/GLES surfaces rather than displaying its screen mockups:
+Installed revision 16 applies the packet to running Rust/GLES surfaces rather than displaying its screen mockups:
 
 - Compile shared geometry, motion and gesture constants from an exact snapshot of `tokens/tarot.tokens.json`. The 360 × 720 portrait baseline has a 32-unit status bar, 36-unit exclusively owned gesture strip and 360 × 652 app area. The resting five-position tray occupies `[3,611,354,69]`.
-- Preserve app aspect ratio at the proposed 0.66 card scale and 139-unit portrait anchor; constrain the same geometry safely in landscape and above keyboards. Shared native corner masks, depth shadows and rounded input now pass on Panfrost. Arbitrary card rotation remains renderer work.
+- Preserve app aspect ratio at the proposed 0.66 card scale and 139-unit portrait anchor; constrain the same geometry safely in landscape and above keyboards. Shared native corner masks, depth shadows and rounded input now pass on Panfrost. Shared fan poses and inactive scale now apply to live surfaces; native two-client rotation/touch acceptance passes.
 - Load the original Nocturne wallpaper, supplied role icons, Lato regular/bold/italic and reserved Instrument Serif identity font. The shared egui view, native keyboard and trusted locker use the font setup. Application buffers remain independent.
 - Render the supplied translucent tray material as a continuous textured mesh, including beneath the transient wave. Keep four editable favorite identities plus fixed Launcher. Ordinary Launcher has no persistent tray and reclaims its vertical space. Favorite editing may show it.
 - Use an actual centered local clock and local Calendar icon day, updated together at minute boundaries by the compositor event loop. The derived Calendar background omits the packet’s illustrative date; unknown dates remain blank. Do not substitute the mockup’s 9:41. Unknown service state remains unknown rather than displaying fictional signal or battery readings.
@@ -30,8 +30,8 @@ The update also fixes diagnostic preference isolation: native DRM diagnostic ses
 
 | Packet study | Current live implementation | Remaining application / acceptance |
 | --- | --- | --- |
-| 01 Card view / Nocturne | Wallpaper, shared scale/anchor, live native cards and tray; rounded mask/shadow passes desktop GLES and native Panfrost | Inactive-card scale, title treatment and continuity comparison |
-| 02 Card stack | Real member identity, selection, grouping, extraction and independent close; native-verified shared corner/input mask | Proposed fan angles/poses, lift; rotated renderer/input transforms and real recordings |
+| 01 Card view / Nocturne | Wallpaper, shared scale/anchor, live native cards and tray; rounded mask/shadow passes desktop GLES and native Panfrost | Title treatment and continuity comparison |
+| 02 Card stack | Real member identity, grouping, extraction and independent close; native-verified fan angles, shared corner/input mask and shadows | Larger native stacks, lift, gesture calibration and real recordings |
 | 03 Launcher | Installed catalog, three columns, supplied role icons, no ordinary tray | Named persistent pages, rename/reorder, icon placement, native icon resolution, two-line labels and page/scroll disambiguation |
 | 04 Email | Ordinary native mail clients may run in cards | Cooperative Rust app styling/navigation; do not repaint a foreign client’s content |
 | 05 Banner | Standard service, replacement/actions/expiry and bottom overlay | Packet bottom well: coherently shrink foreground rather than cover it; compact/accessible heights and arrival transitions |
@@ -59,7 +59,7 @@ The update also fixes diagnostic preference isolation: native DRM diagnostic ses
 ## Ordered remaining work
 
 1. The foundation now passes Rust/MSRV/AArch64 checks, actual nested GLES input replays and clean installed-package touch/PAM/keyboard/protected-rotation tests. Keep original attempts and exact sources. A subsequent pixel audit retracts the suspected missing status text: the actual native clock/status regions are identical across captured states. Pixel visibility/comparison checks now guard the host replay. Leave the phone in normal Tarot.
-2. Rounded native clipping, shadow and corner selection now pass on the phone. Complete stack rotations and aligned inverse input transforms, then record launch → minimize → browse → maximize → dismiss with real changing buffers and an unsaved-document refusal.
+2. Rounded native clipping, shadow and corner selection now pass on the phone. Fan/input transforms now pass on the phone; record launch → minimize → browse → maximize → dismiss with real changing buffers and an unsaved-document refusal.
 3. Implement everyday shell composition: named Launcher pages, native icons, Just Type, distinct app/device menus and the notification well/rail/dashboard. Establish keyboard-visible and landscape contracts before polish. Reuse light app chrome only for shell-owned or cooperating applications.
 4. Complete the phone/trust paths: locker presentation, privacy policy, authorization agents/portals, Bluetooth, ModemManager phone/SMS and audio routes. No active SIM is available; carrier gates remain explicitly pending.
 5. Run the packet’s A–L capture suite, motion/gesture calibration, text enlargement, reduced-motion and real-panel review. Only then apply Heritage/Vellum and score cross-theme conformance.
@@ -70,6 +70,6 @@ These tasks refine M1–M6 in the [development plan](DEVELOPMENT_PLAN.md); they 
 
 [Runtime artwork](../crates/tarot-ui/assets/README.md) records derivation and licensing. `scripts/design-assets.py` copies the original wallpaper/fonts/token snapshot and rasterizes editable SVG assets using the supplied fonts. Runtime loading and rendering use Rust PNG/egui/GLES; Python, CairoSVG and fontconfig are development tools. The font OFL notices are retained in source and installed packages. Historical reference fragments and complete mockup screens are never runtime assets.
 
-Current deviations include immediate reduced-motion settling rather than the proposed 100 ms fade, preliminary non-rotated stack geometry and separate-card rail, an explicit favorite editor rather than drag organization, incomplete menu/dashboard/locker styling, fallback artwork for unresolved native icons, and existing text affordances in the gesture strip. CairoSVG filter/shadow matching needs visual review against the packet’s PNGs. These are tracked gaps, not accepted historical substitutions.
+Current deviations include immediate reduced-motion settling rather than the proposed 100 ms fade, three-preview fans with logical member-browse steps still awaiting motion calibration, an explicit favorite editor rather than drag organization, incomplete menu/dashboard/locker styling, fallback artwork for unresolved native icons, and existing text affordances in the gesture strip. CairoSVG filter/shadow matching needs visual review against the packet’s PNGs. These are tracked gaps, not accepted historical substitutions.
 
 Verification outcomes and exact package identity belong in [implementation status](IMPLEMENTATION_STATUS.md). Appearance, behavior and platform adaptation must receive separate acceptance decisions. No complete milestone or historical visual conformance is claimed by this foundation.

@@ -36,7 +36,7 @@ use tarot_core::WindowId;
 type TransformedCardElement = CropRenderElement<
     RelocateRenderElement<RescaleRenderElement<WaylandSurfaceRenderElement<GlowRenderer>>>,
 >;
-type CardElement = crate::card_renderer::Masked<CropRenderElement<TransformedCardElement>>;
+type CardElement = CropRenderElement<crate::card_renderer::Masked<TransformedCardElement>>;
 smithay::backend::renderer::element::render_elements! {
     pub RecoveryElement<=GlowRenderer>;
     Texture=TextureRenderElement<GlesTexture>,
@@ -473,9 +473,10 @@ pub fn build_scene(
             continue;
         };
         let scale = state.scale as f64;
-        if let Some(geometry) =
+        if let Some(mut geometry) =
             crate::focus::RenderGeometry::new(window.geometry(), visual.rect, visual.opacity, scale)
         {
+            geometry.rotation = visual.rotation;
             state.presented_windows.insert(id, geometry);
             crate::focus::cache_surface_placements(window, id, &mut state.presented_surfaces);
             let target = geometry.target;
@@ -490,16 +491,14 @@ pub fn build_scene(
                 ConstrainScaleBehavior::Fit,
                 ConstrainAlign::CENTER,
                 scale,
-            )
-            .filter_map(|element| CropRenderElement::from_element(element, scale, content_clip))
-            {
-                if let Some(element) = shell.cards.mask(
-                    element,
-                    target,
-                    visual.corner_radius * scale as f32,
-                    size,
-                    scale,
-                ) {
+            ) {
+                if let Some(element) = shell
+                    .cards
+                    .mask(element, target, *visual, size, scale)
+                    .and_then(|element| {
+                        CropRenderElement::from_element(element, scale, content_clip)
+                    })
+                {
                     scene.push(SceneElement::Card(element));
                 }
             }
