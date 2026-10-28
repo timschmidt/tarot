@@ -479,6 +479,18 @@ python3 tests/quick_launch_replay.py --output /absolute/new/quick-launch-evidenc
 
 It supplies its own display, catalog and config file, exercises real native app/keyboard clients and actual favorite editing, then restarts to check persistence. Captures contain synthetic fixture content only. It does not establish phone KMS/PAM results. Favorites use schema version 3; old versions migrate lazily, but revision 9 cannot load the new schema. Keep rollback/schema acceptance separate from the earlier retained-package test. Read the [current checkpoint](IMPLEMENTATION_STATUS.md#quick-launch-development-checkpoint) before treating local results as installed behavior.
 
+[Favorite hold-and-drag organization](FAVORITE_DRAG.md) has a separate replay at portrait scales 1/2 and landscape scale 2:
+
+```sh
+python3 tests/favorite_drag_replay.py --output /absolute/new/favorite-portrait-1 --scale 1 --xvfb /path/to/Xvfb
+python3 tests/favorite_drag_replay.py --output /absolute/new/favorite-portrait-2 --scale 2 --xvfb /path/to/Xvfb
+python3 tests/favorite_drag_replay.py --output /absolute/new/favorite-landscape-2 --scale 2 --landscape --xvfb /path/to/Xvfb
+```
+
+This uses an isolated catalog/config and real native input, checks preview bytes before committing, and preserves its own restart result. The phone's `--favorite-drag` option requires the four temporary `test.tarot.Favorite{Beta,Delta,Epsilon,Gamma}.desktop` entries and a private `favorite-drag` report directory provisioned by the audited native wrapper. Keep the installed package and full native acceptance separate from the host passes; current scope is recorded in the feature document.
+
+Native browser QA deliberately queues three real touchscreen contacts while only its verified ordinary-user keyboard is briefly stopped, always resumes that helper and requires exact `caf`. DOM reports use source timestamps/sequences because HTTP arrival can be reordered. `browser_fixture.py --protocol-metadata` optionally records text-input protocol method names and permitted numeric serial/content-type arguments, dropping every string argument and unrelated stderr line before recording. Eight host checks cover observation ordering, metadata redaction, real TCP bursts and the shared report queue (Node is optional for the latter). The observer uses persistent HTTP, a larger accept backlog, one report in flight and coalesced read-only heartbeats; native input timing and exact-value timeouts remain separate. Use fresh output directories and preserve failed runs/executed sources before changing staged QA. Toolkit fullscreen replays require a bounds report after each triggering action, so earlier matching geometry cannot stand in for a newly completed client resize.
+
 The rounded-card GPU replay uses the same private-display boundary and requires Python Pillow, Xvfb and a built `input-probe` example:
 
 ```sh

@@ -1,15 +1,19 @@
 """Real native Firefox UI input with a loopback DOM observer, no WebDriver."""
 import hashlib
 import json
+import os
 from pathlib import Path
+import signal
 import time
 from PIL import Image, ImageChops
 from browser_fixture import COLORS, EXPECTED
+from browser_observations import latest_reports
 from dialog_button import locate
 from lock_replay import events
 from notification_replay import await_value
 from phone_gesture_replay import request
 from phone_touch_keyboard import Keyboard
+from phone_stock_login import processes
 
 
 def replay(control,tap,state,capture,out,cgroup,authenticate,inspect_only=False):
@@ -21,15 +25,22 @@ def replay(control,tap,state,capture,out,cgroup,authenticate,inspect_only=False)
     def exact(field,text,page='main'):
         index=EXPECTED.index(text)
         def matches(es):
-            found=[e['fields'][field] for e in es if e.get('page')==page and field in e.get('fields',{})]
-            return bool(found) and found[-1]['state']==index
-        return await_value(lambda:events(report),matches,seconds=15)
+            latest=latest_reports(es).get(page)
+            return latest is not None and field in latest['fields'] and latest['fields'][field]['state']==index
+        try:return await_value(lambda:events(report),matches,seconds=15)
+        except AssertionError:
+            latest=latest_reports(events(report))
+            # Preserve the rendered keyboard only when all field contents are
+            # still recognized synthetic states. This happens after failure,
+            # without changing the timing or acceptance of any input.
+            if all(f['state']>=0 for e in latest.values() for f in e['fields'].values()):
+                safe_capture('browser-exact-state-failure')
+                result['failure_snapshot']={p:e['fields'] for p,e in latest.items()}
+            raise
     def safe_capture(label):
-        latest={}
-        for event in events(report):
-            if 'fields' in event:latest[event['page']]=event['fields']
-        unknown=[{'page':page,'field':name,'length':field['length']} for page,fields in latest.items()
-                 for name,field in fields.items() if field['state']==-1]
+        latest=latest_reports(events(report))
+        unknown=[{'page':page,'field':name,'length':field['length']} for page,event in latest.items()
+                 for name,field in event['fields'].items() if field['state']==-1]
         assert not unknown,{'unexpected_content_capture_suppressed':unknown}
         capture(label)
     def target(name,label):
@@ -71,6 +82,37 @@ def replay(control,tap,state,capture,out,cgroup,authenticate,inspect_only=False)
         return s
     def hide(label):
         tap(329,663);state('browser-'+label,lambda s:not s['keyboard_visible'])
+    def queued_taps():
+        # Stop only our verified ordinary-user keyboard, queue actual touchscreen
+        # contacts, and resume it even if input fails. This deliberately batches
+        # taps without WebDriver, text injection or slowing the acceptance input.
+        target('primary','browser-before-key-burst')
+        candidates=[p for p in processes() if p['uid']==10000 and p['name']=='tarot-keyboard'
+                    and Path('/proc',str(p['pid']),'cgroup').read_text()==cgroup]
+        assert len(candidates)==1
+        helper=candidates[0];proc=Path('/proc',str(helper['pid']))
+        digest=hashlib.sha256((proc/'exe').read_bytes()).hexdigest()
+        assert (proc/'exe').resolve()==Path('/usr/bin/tarot-keyboard')
+        assert digest==hashlib.sha256(Path('/usr/bin/tarot-keyboard').read_bytes()).hexdigest()
+        fd=os.pidfd_open(helper['pid']);stopped=False
+        try:
+            assert helper in processes() and proc.stat().st_uid==10000
+            assert (proc/'cgroup').read_text()==cgroup
+            assert request(control,'status')['lock']['phase']=='Unlocked'
+            signal.pidfd_send_signal(fd,signal.SIGSTOP);stopped=True
+            await_value(lambda:(proc/'status').read_text(),lambda s:'State:\tT' in s,seconds=5)
+            result['queued_taps']={'helper':helper,'loaded_sha256':digest,'passed':False,
+                                   'actual_touch_contacts':3,'helper_stopped_before_contacts':True}
+            Keyboard(tap).type_ascii('caf')
+        finally:
+            try:
+                if stopped:signal.pidfd_send_signal(fd,signal.SIGCONT)
+            finally:os.close(fd)
+        exact('primary','caf')
+        result['queued_taps']['passed']=True
+        safe_capture('browser-key-burst-retained')
+        for expected in ['ca','c','']:
+            tap(330,609);exact('primary',expected)
     try:
         assert not request(control,'status')['cards']
         request(control,'launch',id='test.tarot.Browser.desktop')
@@ -83,6 +125,7 @@ def replay(control,tap,state,capture,out,cgroup,authenticate,inspect_only=False)
         result['browser']={**start,'exe':str((proc/'exe').resolve()),'loaded_sha256':hashlib.sha256((proc/'exe').read_bytes()).hexdigest()}
         observe('ready',lambda e:e['page']=='main',seconds=60)
         click('primary','browser-primary');keyboard('text-keyboard')
+        queued_taps()
         Keyboard(tap).type_ascii('tarot');exact('primary','tarot')
         safe_capture('browser-first-typed')
         if inspect_only:
@@ -125,7 +168,7 @@ def replay(control,tap,state,capture,out,cgroup,authenticate,inspect_only=False)
         assert dismiss is not None,'Expected Firefox synthetic-password save prompt'
         result['password_save_prompt_dismissal']=dismiss
         tap(dismiss['point'][0]/2,dismiss['point'][1]/2)
-        click('back','browser-back');returned=observe('pageshow',lambda e:e['page']=='main' and e['monotonic']>second['monotonic'])
+        click('back','browser-back');returned=observe('pageshow',lambda e:e['page']=='main' and e['observed']>second['observed'])
         result['history_returned_fields']=returned.get('fields')
         click('popup','browser-popup-button');observe('ready',lambda e:e['page']=='popup')
         popup=state('browser-popup-mapped',lambda s:len(s['native_geometry'])>=2)
@@ -148,5 +191,10 @@ def replay(control,tap,state,capture,out,cgroup,authenticate,inspect_only=False)
         result.update(passed=True,native_browser_launch_and_text=True,unicode_and_backspace=True,
             overview_and_actual_pam=True,password_field=True,navigation_and_back=True,
             popup_input_and_cooperative_close=True,fullscreen_bottom_field=True)
-    finally:(folder/'validation.json').write_text(json.dumps(result,indent=2)+'\n')
+    finally:
+        snapshots=events(report)
+        result['observer']={'heartbeats':sum(e['event']=='heartbeat' for e in snapshots),
+            'reported_transport_failures':max((e.get('transportFailures',0) for e in snapshots),default=0),
+            'receipt_minus_browser_timestamp_ms_max':max((e.get('report_delivery_ms',0) for e in snapshots),default=0)}
+        (folder/'validation.json').write_text(json.dumps(result,indent=2)+'\n')
     return result

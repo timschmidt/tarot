@@ -6,6 +6,7 @@ pub mod audio;
 pub mod deck;
 pub mod design;
 pub mod display;
+pub mod favorite_drag;
 pub mod frame;
 pub mod gesture;
 pub mod hardware;

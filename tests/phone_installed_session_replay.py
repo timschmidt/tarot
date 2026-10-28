@@ -204,6 +204,9 @@ def run(args, password):
         assert candidates and all(p['cgroup'] == cgroup for p in candidates)
         records['native_app_processes'] = candidates
         capture('app-before')
+        if getattr(args, 'favorite_drag', False):
+            from phone_favorite_drag_replay import replay as favorite_replay
+            records['favorite_drag'] = favorite_replay(socket,screen,state,tap,capture,before,args.output,authenticate)
         if getattr(args, 'quick_launch', False):
             from phone_quick_launch_replay import replay as quick_replay
             records['quick_launch'] = quick_replay(socket, screen, state, tap, capture, before, args.output)
@@ -448,6 +451,7 @@ def main():
     parser.add_argument('--resource-sample', action='store_true')
     parser.add_argument('--hardware-keys', action='store_true')
     parser.add_argument('--quick-launch', action='store_true')
+    parser.add_argument('--favorite-drag', action='store_true')
     parser.add_argument('--rounded-cards', action='store_true')
     parser.add_argument('--stack-matrix', action='store_true')
     parser.add_argument('--gtk-close', action='store_true')

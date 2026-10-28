@@ -1,6 +1,7 @@
 //! The shared egui shell view; all platform effects are returned as commands.
 pub mod audio;
 pub mod credentials;
+mod favorite_drag;
 pub mod keyboard;
 pub mod lock_recovery;
 pub mod native_text;
@@ -93,6 +94,7 @@ pub fn show_with_native_fullscreen(
     theme::install(ctx);
     theme::prepare_art(ctx);
     let mut commands = Vec::new();
+    let favorite_frame = favorite_drag::begin(ctx, model, layout);
     let mut search_focused = false;
     let search_id = egui::Id::new("launcher_search");
     let modal = model.system_menu_open || model.notifications_open;
@@ -192,7 +194,14 @@ pub fn show_with_native_fullscreen(
                             if modal {
                                 ui.disable();
                             }
-                            show_launcher(ui, &painter, model, layout, &mut commands)
+                            show_launcher(
+                                ui,
+                                &painter,
+                                model,
+                                layout,
+                                favorite_frame.preview.as_ref().map(|p| p.source.id()),
+                                &mut commands,
+                            )
                         })
                         .inner
                         || (keyboard_interaction && !modal)
@@ -204,15 +213,23 @@ pub fn show_with_native_fullscreen(
                 show_cards(ui, model, layout, presentation, &mut commands);
             }
 
-            if presentation.dock > 0.001
-                && (model.view != View::Launcher || model.editing_favorites)
+            if (presentation.dock > 0.001
+                && (model.view != View::Launcher || model.editing_favorites))
+                || favorite_frame.preview.is_some()
             {
                 ui.scope(|ui| {
                     ui.set_opacity(presentation.dock);
                     if matches!(model.view, View::App(_)) || modal {
                         ui.disable();
                     }
-                    quick_launch::show(ui, model, layout, None, &mut commands);
+                    quick_launch::show(
+                        ui,
+                        model,
+                        layout,
+                        None,
+                        favorite_frame.preview.as_ref(),
+                        &mut commands,
+                    );
                 });
             }
             let gesture = layout.gesture();
@@ -268,7 +285,11 @@ pub fn show_with_native_fullscreen(
                 commands.push(Command::Overview);
             }
         });
-    if model.view == View::Launcher && model.shell_text_focus {
+    if favorite_frame.pending && model.shell_text_focus {
+        ctx.memory_mut(|memory| memory.request_focus(search_id));
+        search_focused = true;
+    }
+    if model.view == View::Launcher && model.shell_text_focus && favorite_frame.preview.is_none() {
         let keyboard_id = egui::Id::new("shell_keyboard_state");
         let mut keyboard = ctx
             .data_mut(|data| data.get_temp::<keyboard::KeyboardUi>(keyboard_id))
@@ -337,12 +358,13 @@ pub fn show_with_native_fullscreen(
             .fade_in(false)
             .show(ctx, |ui| {
                 ui.set_min_size(full.size());
-                quick_launch::show(ui, model, layout, Some(wave), &mut commands);
+                quick_launch::show(ui, model, layout, Some(wave), None, &mut commands);
             });
     }
     if let Some(feedback) = &model.volume_feedback {
         audio::show_key_feedback(ctx, feedback, layout);
     }
+    favorite_drag::finish(ctx, &favorite_frame, model, layout, &mut commands);
     commands
 }
 
@@ -668,24 +690,28 @@ fn show_launcher(
     painter: &egui::Painter,
     model: &ShellModel,
     layout: Layout,
+    dragged_app: Option<&str>,
     commands: &mut Vec<Command>,
 ) -> bool {
-    painter.text(
-        Pos2::new(20.0, 67.0),
-        Align2::LEFT_CENTER,
-        if model.editing_favorites {
-            "Quick Launch"
-        } else {
-            "Applications"
-        },
-        FontId::proportional(22.0),
-        Color32::WHITE,
-    );
+    let compact = model.shell_text_focus && layout.height < 480.0;
+    if !compact {
+        painter.text(
+            Pos2::new(20.0, 67.0),
+            Align2::LEFT_CENTER,
+            if model.editing_favorites {
+                "Quick Launch"
+            } else {
+                "Applications"
+            },
+            FontId::proportional(22.0),
+            Color32::WHITE,
+        );
+    }
     if ui
         .put(
             Rect::from_min_size(
-                Pos2::new(layout.width - 124.0, 43.0),
-                Vec2::new(108.0, 48.0),
+                Pos2::new(layout.width - 124.0, if compact { 36.0 } else { 43.0 }),
+                Vec2::new(108.0, if compact { 44.0 } else { 48.0 }),
             ),
             egui::Button::new(if model.editing_favorites {
                 "Done"
@@ -701,7 +727,11 @@ fn show_launcher(
         quick_launch::editor(ui, model, layout, commands);
         return false;
     }
-    let search = Rect::from_min_size(Pos2::new(20.0, 96.0), Vec2::new(layout.width - 40.0, 40.0));
+    let search = if compact {
+        Rect::from_min_size(Pos2::new(20.0, 36.0), Vec2::new(layout.width - 164.0, 44.0))
+    } else {
+        Rect::from_min_size(Pos2::new(20.0, 96.0), Vec2::new(layout.width - 40.0, 40.0))
+    };
     let mut query = model.launcher_query.clone();
     let response = ui.put(
         search,
@@ -729,7 +759,7 @@ fn show_launcher(
         })
         .collect();
     let bottom = if model.shell_text_focus {
-        layout.keyboard().y - 12.0
+        layout.keyboard().y - if compact { 4.0 } else { 12.0 }
     } else {
         layout.gesture().y - 12.0
     };
@@ -738,118 +768,152 @@ fn show_launcher(
     } else {
         0.0
     };
+    let grid_top: f32 = if compact { 84.0 } else { 154.0 };
     let bounds = Rect::from_min_max(
-        Pos2::new(16.0, 154.0),
-        Pos2::new(layout.width - 16.0, bottom - feedback_height),
+        Pos2::new(16.0, grid_top),
+        Pos2::new(
+            layout.width - 16.0,
+            (bottom - feedback_height).max(grid_top),
+        ),
     );
-    let mut child = ui.new_child(egui::UiBuilder::new().max_rect(bounds));
-    child.spacing_mut().item_spacing.y = 10.0;
-    egui::ScrollArea::vertical()
-        .id_salt("installed_apps")
-        .max_height(bounds.height())
-        .show_rows(
-            &mut child,
-            104.0,
-            apps.len().div_ceil(3).max(1),
-            |ui, rows| {
-                if apps.is_empty() {
-                    ui.label(if model.applications.is_empty() {
-                        "No installed applications found"
-                    } else {
-                        "No matching applications"
-                    });
-                }
-                let width = (bounds.width() - 24.0) / 3.0;
-                egui::Grid::new("application_grid")
-                    .num_columns(3)
-                    .spacing(Vec2::new(8.0, 10.0))
-                    .show(ui, |ui| {
-                        for (index, app) in apps
-                            .iter()
-                            .enumerate()
-                            .skip(rows.start * 3)
-                            .take(rows.len() * 3)
-                        {
-                            let response = ui
-                                .push_id(&app.id, |ui| {
-                                    ui.add_sized(
-                                        Vec2::new(width, 104.0),
-                                        egui::Button::new("").frame(false),
+    if bounds.height() >= 44.0 {
+        let mut child = ui.new_child(egui::UiBuilder::new().max_rect(bounds));
+        child.spacing_mut().item_spacing.y = 10.0;
+        let row_height = if compact { 56.0 } else { 104.0 };
+        egui::ScrollArea::vertical()
+            .id_salt("installed_apps")
+            .scroll_source(egui::scroll_area::ScrollSource {
+                drag: dragged_app.is_none(),
+                ..Default::default()
+            })
+            .max_height(bounds.height())
+            .show_rows(
+                &mut child,
+                row_height,
+                apps.len().div_ceil(3).max(1),
+                |ui, rows| {
+                    if apps.is_empty() {
+                        ui.label(if model.applications.is_empty() {
+                            "No installed applications found"
+                        } else {
+                            "No matching applications"
+                        });
+                    }
+                    let width = (bounds.width() - 24.0) / 3.0;
+                    egui::Grid::new("application_grid")
+                        .num_columns(3)
+                        .spacing(Vec2::new(8.0, 10.0))
+                        .show(ui, |ui| {
+                            for (index, app) in apps
+                                .iter()
+                                .enumerate()
+                                .skip(rows.start * 3)
+                                .take(rows.len() * 3)
+                            {
+                                let response = ui
+                                    .push_id(&app.id, |ui| {
+                                        ui.add_sized(
+                                            Vec2::new(width, row_height),
+                                            egui::Button::new("").frame(false),
+                                        )
+                                    })
+                                    .inner;
+                                response.widget_info(|| {
+                                    egui::WidgetInfo::labeled(
+                                        egui::WidgetType::Button,
+                                        true,
+                                        format!("Open {}", app.name),
                                     )
-                                })
-                                .inner;
-                            response.widget_info(|| {
-                                egui::WidgetInfo::labeled(
-                                    egui::WidgetType::Button,
-                                    true,
-                                    format!("Open {}", app.name),
-                                )
-                            });
-                            let center =
-                                Pos2::new(response.rect.center().x, response.rect.top() + 28.0);
-                            let hue = app.id.bytes().fold(0u8, u8::wrapping_add);
-                            let color = if app.unavailable.is_some() {
-                                Color32::from_gray(80)
-                            } else {
-                                Color32::from_rgb(55 + hue % 80, 100 + hue % 90, 110 + hue % 75)
-                            };
-                            if !theme::paint_icon(
-                                ui.ctx(),
-                                ui.painter(),
-                                &app.id,
-                                false,
-                                Rect::from_center_size(
-                                    center,
-                                    Vec2::splat(tarot_core::design::LAUNCHER_ICON),
-                                ),
-                                if app.unavailable.is_some() {
-                                    Color32::from_gray(110)
+                                });
+                                let center = Pos2::new(
+                                    response.rect.center().x,
+                                    response.rect.top() + if compact { 16.0 } else { 28.0 },
+                                );
+                                favorite_drag::register(
+                                    ui,
+                                    tarot_core::favorite_drag::Source::Launcher(app.id.clone()),
+                                    response.rect,
+                                );
+                                let opacity = if dragged_app == Some(app.id.as_str()) {
+                                    0.3
                                 } else {
-                                    Color32::WHITE
-                                },
-                                model.calendar_day,
-                            ) {
-                                ui.painter().circle_filled(center, 24.0, color);
-                                let initial = app
-                                    .name
-                                    .chars()
-                                    .next()
-                                    .unwrap_or('?')
-                                    .to_uppercase()
-                                    .to_string();
-                                ui.painter().text(
-                                    center,
-                                    Align2::CENTER_CENTER,
-                                    initial,
-                                    FontId::proportional(25.0),
+                                    1.0
+                                };
+                                let hue = app.id.bytes().fold(0u8, u8::wrapping_add);
+                                let color = if app.unavailable.is_some() {
+                                    Color32::from_gray(80)
+                                } else {
+                                    Color32::from_rgb(55 + hue % 80, 100 + hue % 90, 110 + hue % 75)
+                                };
+                                if !theme::paint_icon(
+                                    ui.ctx(),
+                                    ui.painter(),
+                                    &app.id,
+                                    false,
+                                    Rect::from_center_size(
+                                        center,
+                                        Vec2::splat(if compact {
+                                            28.0
+                                        } else {
+                                            tarot_core::design::LAUNCHER_ICON
+                                        }),
+                                    ),
+                                    if app.unavailable.is_some() {
+                                        Color32::from_gray(110)
+                                    } else {
+                                        Color32::WHITE.gamma_multiply(opacity)
+                                    },
+                                    model.calendar_day,
+                                ) {
+                                    ui.painter().circle_filled(
+                                        center,
+                                        if compact { 14.0 } else { 24.0 },
+                                        color.gamma_multiply(opacity),
+                                    );
+                                    let initial = app
+                                        .name
+                                        .chars()
+                                        .next()
+                                        .unwrap_or('?')
+                                        .to_uppercase()
+                                        .to_string();
+                                    ui.painter().text(
+                                        center,
+                                        Align2::CENTER_CENTER,
+                                        initial,
+                                        FontId::proportional(if compact { 18.0 } else { 25.0 }),
+                                        Color32::WHITE.gamma_multiply(opacity),
+                                    );
+                                }
+                                let label = ui.painter().layout(
+                                    app.name.clone(),
+                                    FontId::proportional(14.0),
+                                    Color32::WHITE.gamma_multiply(opacity),
+                                    width - 4.0,
+                                );
+                                let label_x = response.rect.center().x - label.size().x / 2.0;
+                                ui.painter().with_clip_rect(response.rect).galley(
+                                    Pos2::new(
+                                        label_x,
+                                        response.rect.top() + if compact { 34.0 } else { 60.0 },
+                                    ),
+                                    label,
                                     Color32::WHITE,
                                 );
+                                if response.clicked() {
+                                    commands.push(Command::Launch(app.id.clone()));
+                                }
+                                response.on_hover_text(
+                                    app.unavailable.as_deref().unwrap_or(&app.description),
+                                );
+                                if index % 3 == 2 {
+                                    ui.end_row();
+                                }
                             }
-                            let label = ui.painter().layout(
-                                app.name.clone(),
-                                FontId::proportional(14.0),
-                                Color32::WHITE,
-                                width - 4.0,
-                            );
-                            let label_x = response.rect.center().x - label.size().x / 2.0;
-                            ui.painter().with_clip_rect(response.rect).galley(
-                                Pos2::new(label_x, response.rect.top() + 60.0),
-                                label,
-                                Color32::WHITE,
-                            );
-                            if response.clicked() {
-                                commands.push(Command::Launch(app.id.clone()));
-                            }
-                            response.on_hover_text(
-                                app.unavailable.as_deref().unwrap_or(&app.description),
-                            );
-                            if index % 3 == 2 {
-                                ui.end_row();
-                            }
-                        }
-                    });
-            },
-        );
+                        });
+                },
+            );
+    }
     if let Some(feedback) = &model.launch_feedback {
         let rect = Rect::from_min_size(
             Pos2::new(20.0, bottom - 54.0),

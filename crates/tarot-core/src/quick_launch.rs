@@ -16,6 +16,7 @@ pub enum Edit {
     Add(String),
     Remove(usize),
     Move { from: usize, to: usize },
+    Place { id: String, at: usize },
 }
 
 impl Favorites {
@@ -59,6 +60,19 @@ impl Favorites {
     pub fn edit(&mut self, edit: Edit, catalog: &[Application]) -> bool {
         let mut next = self.clone();
         match edit {
+            Edit::Place { id, at } if at < CAPACITY => {
+                if let Some(from) = next.applications.iter().position(|entry| *entry == id) {
+                    next.applications.remove(from);
+                } else if next.applications.len() == CAPACITY
+                    || !catalog
+                        .iter()
+                        .any(|a| a.id == id && a.unavailable.is_none())
+                {
+                    return false;
+                }
+                next.applications
+                    .insert(at.min(next.applications.len()), id);
+            }
             Edit::Add(id) => {
                 if next.applications.len() == CAPACITY
                     || next.applications.contains(&id)

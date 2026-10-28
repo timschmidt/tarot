@@ -10,6 +10,7 @@ pub fn show(
     model: &ShellModel,
     layout: Layout,
     wave: Option<Wave>,
+    drag: Option<&tarot_core::favorite_drag::Preview>,
     commands: &mut Vec<Command>,
 ) {
     let painter = ui.painter().clone();
@@ -49,7 +50,8 @@ pub fn show(
             Pos2::new(geometry.x, geometry.y),
             Vec2::new(geometry.width, geometry.height),
         );
-        let id = model.favorites.applications.get(index);
+        let favorites = drag.map_or(&model.favorites, |drag| &drag.favorites);
+        let id = favorites.applications.get(index);
         let app = id.and_then(|id| model.applications.iter().find(|a| a.id == *id));
         let launcher = index == quick_launch::CAPACITY;
         let label = if launcher {
@@ -60,7 +62,8 @@ pub fn show(
             app.map_or("Unavailable", |a| a.name.as_str())
         };
         let available = launcher || id.is_none() || app.is_some_and(|a| a.unavailable.is_none());
-        let selected = wave.is_some_and(|w| w.selected == Some(index));
+        let selected = wave.is_some_and(|w| w.selected == Some(index))
+            || drag.is_some_and(|d| matches!(d.target,Some(tarot_core::favorite_drag::Target::Place(i) | tarot_core::favorite_drag::Target::Full(i)) if i==index));
         if selected {
             painter.rect_filled(
                 rect.expand(2.0),
@@ -85,13 +88,34 @@ pub fn show(
             )
         });
         let center = Pos2::new(rect.center().x, rect.top() + 32.0);
+        if wave.is_none()
+            && drag.is_none()
+            && let Some(id) = id
+        {
+            crate::favorite_drag::register(
+                ui,
+                tarot_core::favorite_drag::Source::Dock {
+                    id: id.clone(),
+                    index,
+                },
+                rect,
+            );
+        }
         let color = if available {
             Color32::from_gray(242)
         } else {
             Color32::from_gray(115)
         };
         let tint = if available { Color32::WHITE } else { color };
-        if !((id.is_some() || launcher)
+        let held = drag.is_some_and(|d| id.is_some_and(|id| *id == d.source.id()));
+        if held {
+            painter.rect_stroke(
+                rect.shrink(6.0),
+                8.0,
+                Stroke::new(1.0_f32, crate::theme::FOCUS),
+                egui::StrokeKind::Inside,
+            );
+        } else if !((id.is_some() || launcher)
             && crate::theme::paint_icon(
                 ui.ctx(),
                 &painter,
@@ -135,6 +159,25 @@ pub fn show(
         } else {
             format!("{} is not installed or available", id.unwrap())
         });
+    }
+}
+
+pub(crate) fn paint_drag_icon(
+    ctx: &egui::Context,
+    painter: &egui::Painter,
+    id: &str,
+    rect: Rect,
+    day: Option<u8>,
+) {
+    if !crate::theme::paint_icon(ctx, painter, id, false, rect, Color32::WHITE, day) {
+        icon(
+            painter,
+            rect.center(),
+            Some(id),
+            false,
+            false,
+            Color32::WHITE,
+        );
     }
 }
 

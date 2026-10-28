@@ -1,0 +1,2130 @@
+{
+  "revision": 28,
+  "date": "2026-10-28",
+  "published_parent": "a42fc9e68e084d221f15669242548f3845c49bbd",
+  "source_archive_sha256": "eca053941c74bfb621854e9359351253bc7f9f2c35ac637b0640447fed4b1f96",
+  "source_archive_sha512": "c17daf7ca39e6639c9e1f4621c9cd56e2ff9fc4798c28fd9974a529d5cc238a88b6aafa7573fa68dbf13a5bb15b8268a12e9737d6ed440c58c21628b871b70f3",
+  "locked_registry_packages": 417,
+  "frozen_project_rust_sha256": {
+    "crates/tarot-core/build.rs": "fa99d7eb1286a0cb69e88896569b375e6acf91b0a9ad1ecd0118179559556eb2",
+    "crates/tarot-core/src/audio.rs": "56b242e5fd1752f585e2a35ee22d57dc49f659893189f128b453ec49de73dc3d",
+    "crates/tarot-core/src/deck.rs": "2f7079158403d80f7cfc95b4b04d11e319af353ecffd4cac2ffade3fe22df8e6",
+    "crates/tarot-core/src/design.rs": "b88a8f838b1c183f2d746a80985d52ceb73a36869db6e5c0cef94f33255e2d01",
+    "crates/tarot-core/src/display.rs": "e9e46d2b474d1e4c812d3978688f9e04dfd3b31ddefe1cd29a9939cf99e7a079",
+    "crates/tarot-core/src/favorite_drag.rs": "25dae268923dd852568572b8a381d24e7be14b5e5330139ef985ae9a8d2eaeda",
+    "crates/tarot-core/src/frame.rs": "99c90b23df5dd81b1aa7b83542fc0c9e2e5b83a38b21d55012a48de703b0d686",
+    "crates/tarot-core/src/gesture.rs": "eafab738ea651166a096a55f2bb0d4cf81c4c69a504b60aa94f399a5dd15aa8c",
+    "crates/tarot-core/src/hardware.rs": "319aecbe136754d09e77d8880f3b63165d511f9d6b993b48afa1694c311aa73a",
+    "crates/tarot-core/src/idle.rs": "b81406e482b70d1848189cfd0f139084bb1b884e97fad5321021eeac486cc517",
+    "crates/tarot-core/src/lib.rs": "500f00ad670fa3d47de9f506c571832edbf73ecdc151944737b636363bc7a68c",
+    "crates/tarot-core/src/motion.rs": "4e6fd6f7662b14a6e703a0bec04a7ab8bb31f4b37412f9873c7b3a9fe6165937",
+    "crates/tarot-core/src/network.rs": "4ddb000cfcfb7f8a650dfedf3a14ce1b631c1c269cbedea603338035aa6548e5",
+    "crates/tarot-core/src/notifications.rs": "162bb882ee1ab031d1642e1d0497f825c1c5da0d63ecbb1ce0cad29c1bfe0b28",
+    "crates/tarot-core/src/orientation.rs": "654172fb72c3f7e7eb26cf36d177e87c0104fc7a69544d553a95fc84ed79662c",
+    "crates/tarot-core/src/power.rs": "7cad27339f1b677403817e8e8ab34bec6b2aa2bd08eaac22238783b5abd05fad",
+    "crates/tarot-core/src/quick_launch.rs": "3da42cca6f2d343a372093a22b77039399b62d6e599f678f7784dd6474fba497",
+    "crates/tarot-core/src/session.rs": "4809622b6f5e0fdf632f23021f7675270d7d1d543b7f70abb525efea12551a10",
+    "crates/tarot-core/src/sleep.rs": "d2b5c1254ed8d31ab93cfb56a181a19ad81dc4d7727452764c15760a54e24bb8",
+    "crates/tarot-core/src/touch.rs": "67c5e265240268556ede913d993a2359f2db67ea11344e4b26494cae415bdda1",
+    "crates/tarot-egui-probe/src/main.rs": "60e8542177f974cc82de45a1d0c77d7bbe639b56f9d988e4c3e01e378cb765f1",
+    "crates/tarot-keyboard/src/main.rs": "1d428f62e59dc0bfb5439ab0af5f6f765aae739e1fe125f95b6574d575a441fb",
+    "crates/tarot-keyboard/src/terminal.rs": "9191154f353dfa730527c8a6441ff5f252a51207da6777650681c439cb2b07d8",
+    "crates/tarot-keyboard/src/ui.rs": "369628e5573bfbc46e1a4274717110b470acdfb85452e61928f77ccc614f7ad1",
+    "crates/tarot-lock/src/auth.rs": "c9cc017dfa7cb05916fc842d2cf424b741247ad738f811807f300a392e107bc7",
+    "crates/tarot-lock/src/main.rs": "b0d10ca50f15d0ff00cd653b1392ea2baee6f792f8b8ecd514a748eed01d7678",
+    "crates/tarot-lock/src/ui.rs": "456cb343b0b677044b45641a84757d476bb6b0afe4538ca586ad6214ca8ece33",
+    "crates/tarot-ui/src/audio.rs": "ddf7993a3a2bbeb357d24ed9ed349428a2f45fb9318c8452c4f716bb6d3679e2",
+    "crates/tarot-ui/src/credentials.rs": "b0f7bba3516512c2d6c0af88e87deeab733116bbe83ba144e89268af9018a859",
+    "crates/tarot-ui/src/favorite_drag.rs": "582f105ea11aef2381565b96fb03d4b919d7df571739a2d1f042763acba5c9e7",
+    "crates/tarot-ui/src/keyboard.rs": "f61bc320a9ac3a15eb6d473c3df11622ae44a50982c1587707a914be4df4ab7e",
+    "crates/tarot-ui/src/keyboard/terminal.rs": "23ddf4b9c31ab4ca739b9536e46949ec4e048163a41dca698ece46fa6ccab8fd",
+    "crates/tarot-ui/src/lib.rs": "bca537adbac1b431513145ba83f172264c68a32110f2e81988f59f1e2f6d8b0c",
+    "crates/tarot-ui/src/lock_recovery.rs": "90d0fdfac9c9d67e3d33bdea5e85feed1ec2315d2c535707d5f58e2c12c344f6",
+    "crates/tarot-ui/src/native_text.rs": "9a3186d6d71964d068892e89c50370946b0d1c0887dfde52de8d0adad7cb8112",
+    "crates/tarot-ui/src/notifications.rs": "a411d57c3a67c026fa0da4703d146defa8535afdc1cc75fe9c6ee509419cda82",
+    "crates/tarot-ui/src/quick_launch.rs": "bda28345a8a52e79cef89c6266f37285938f91804835bd094686b09701abbd86",
+    "crates/tarot-ui/src/system.rs": "870d333c4a1026c92a355b3f9bd91ea90a769f42690db8d711a453247b024e89",
+    "crates/tarot-ui/src/theme.rs": "11a8c2d23e6d9cfe2d72b48391f36db7d3325787bdb26bfd09675b4fdc4b2540",
+    "crates/tarot-ui/src/wifi.rs": "ca68c8da307cfbdde613761f406ecc245756305cacf098ebe5986a850c3e0667",
+    "crates/tarot-wayland-egui/src/lib.rs": "be9c715aa015e253b78e9517b044a88766cc9e8977f22b9a0fe14acb795432f7",
+    "src/apps/exec.rs": "92c2132a2f9996c2ef22e7badf8d0d6fcefcadd24064e21db617324d36249c60",
+    "src/apps/mod.rs": "93a52521d024f3be89e81014b3b20aa2b51d44321fd0bb5bab68cf6250554fb0",
+    "src/audio.rs": "d63e5c5f233444587ce74d30a38654e96ef6172bf2eb12bf9f56cd22be5774fa",
+    "src/audio/pulse.rs": "66f022246c3ba039b945d175afc17836697cf6af59fda7e8e52963e42cdcb510",
+    "src/bin/session.rs": "5a14158de14c11557f321e79932d534c2c88ffa7b6e8aeaa56d4884c9b2b97b7",
+    "src/bin/tarotctl.rs": "8d8f2089bde521e82ea30e27dee156d4633865a28b4d95ee9e66e113e48149fb",
+    "src/card_renderer.rs": "2929e94638c040fcc4e6432bc5bf8078327e5a1091aa9505876017dc479f71b4",
+    "src/clock.rs": "fd487108064ed0f488f7aece493687bd472c3bc793fcf79272fb218e1726cd0e",
+    "src/control.rs": "384c95142556d562531693c45f4c6c9cea373f9590965f399727071e1e737367",
+    "src/drm.rs": "5850580f6621009ad10954db9cd3b69b4b579c89ad736421cd59c2128fbd2f25",
+    "src/families.rs": "4b6749528eaa9c2d8cc1a2cc009013ff9e1f617f858c96b7909807613eaf2212",
+    "src/focus.rs": "c8eec2eb8abe0b8259074f0842a68361adda1ca8949980a1d2145b27e0566ec1",
+    "src/grabs/mod.rs": "bd542eafc2625dc3ed0bab3a682cf80154ec193bccdde63e7fdce954fbadda96",
+    "src/grabs/move_grab.rs": "3e149081b2dc98952bbdbfdeabdf48d5f869fae7d42ffbfd7c67d9eecdf82fbb",
+    "src/grabs/resize_grab.rs": "266dddbcff42f8970ea733a8244802263b5efb42e153ba890afe885be836d1d3",
+    "src/handlers/compositor.rs": "6680abceaee704ad949980d6dcb132acda0f45b7350429960d5de64eeff78d07",
+    "src/handlers/mod.rs": "5e5af06000124e385fd00dddb5daea900018ccc0deb40c83e4d0851be2787df4",
+    "src/handlers/xdg_shell.rs": "3e7de2a1b6b9ee2ce1f8254f9375c48e39f4e77c27c4b95f816b9e791e2b25e5",
+    "src/hardware.rs": "cec0d6a60da6a4a0918535870375bf61f4a120414496ed712be53812aa43acc7",
+    "src/idle.rs": "9660bdae4a3f7a102ee3e8494920dc2496dcacf8f601a7b715919fe5299ffbb3",
+    "src/input.rs": "028ad09f66b258b4e5b61987ac2a35acb86ef63ad60b5c58b76bd4014b27a53f",
+    "src/input_method_process.rs": "196c6b3ba6557799f544f2bc497e945b5a3d307c6a3e702ef11138e1f7e2124a",
+    "src/keyboard.rs": "eb41f969c74fc1bf7a28be0d14f75f6c4ad041bf03e61d0da1c82f15a531be30",
+    "src/lock.rs": "67885a30bc133c292a4e3a6df2142a02a000083536e729dc505df62f20e082c2",
+    "src/main.rs": "776718de8556e765a0cef14f9360375c4af54e495025445a1e21a472991a86c5",
+    "src/metrics.rs": "9995312a6d4546d409124d897ef9b3c685317683ec002577c666d71783343dbe",
+    "src/network.rs": "2df84df589a3b762ab910b3d376d7190294a18bb877fa4f3e1b40d901d99c14a",
+    "src/network/agent.rs": "2a2d91e8999ddf8abf890594760986b1a28819d485422c73b9abb79eefa87e0f",
+    "src/notifications.rs": "5e2babd4a0847916c3ed2c98d37366fe260ca6d37723ac12ad39df5fcb600891",
+    "src/output.rs": "0371f2b9fb363e182811b2aa046025883297b77ce36950708a14f41b0fb94205",
+    "src/popups.rs": "ae5307e32d4e79d060b41df76cc1dfb3eebb5a452afa3013b99843bde803d253",
+    "src/power.rs": "223e63aa435bf654cd03103b915feff5b588c3b397199b359e794a59dd50e2d0",
+    "src/preferences.rs": "a503e1b6190d865c1cdf85443505ebb530ac9f5a9d28b4275208531d6aa6d0f3",
+    "src/preferences/service.rs": "7b7c6be96dc4a6ef9814ca3ace3056dd6014b5cc66f2db6db49a70693117ae73",
+    "src/recovery.rs": "342cfd3a34ca6ef44c523196105717c58828f17d3e7eeda16900223df3b36cfd",
+    "src/renderer.rs": "a02b88b50112c3108de796acfe710bd37e4ed210d4cf80654f8d6a43935df552",
+    "src/sensors.rs": "239c095822c4f90284018f93b0ea386353565aebaed37589288a92f8e4328f11",
+    "src/sleep.rs": "9f720b945c2972f02e7a80d94050ada99f06f33070f0c2d5fe73fb12e05e8562",
+    "src/state.rs": "496816b4f94a7e3c52b289c42fe17b29e76fc204398d2f0e19a72b95f1114a2f",
+    "src/text.rs": "09dabc09bb7928aa90841deadec80edb42674f60e8204e5acbf2288b5ea81b28",
+    "src/window_state.rs": "7d7fadf1a061ffdbbe1eb50ab75bc675140a1e44bfa8640c140fa3c7040550ff",
+    "src/winit.rs": "72c215fc529f2c61e4ca3e7546a749a06a6694d532ab3cc60ade930c4dfb6cec",
+    "tests/subsurface_transactions.rs": "d0982f1fb1debe3d4c25161f6ee35a16ef606b9b644e56dd9910650e1cb89712",
+    "tests/wayland_lifecycle.rs": "659f47406d3dc8f35c4a35ca94e7fdf66387a206e5589713c39c97699f80c1f1",
+    "third-party/smithay/benches/benchmark.rs": "9e4bfe755bdfede18c4f0641e589bbc822b90536700689821d1c6a0461dcf9b7",
+    "third-party/smithay/benches/geometry.rs": "b3a31f4139f70a8998d4f92cdce9efaa7d6bb5c412868465571f6a54114205b2",
+    "third-party/smithay/build.rs": "a486d5933593ab07bfb7f966cb30f39967b7e1c0c3065b444c9f7a40199cd950",
+    "third-party/smithay/examples/buffer_test.rs": "e5fbf69c24d9e7fae78790695bc46a489153e982a2a9b96ef4516218fba345d1",
+    "third-party/smithay/examples/compositor.rs": "a5a60615926854e99c5628b451221aa9e2c22088b41637a68380474fa5a5ff5e",
+    "third-party/smithay/examples/minimal.rs": "24c5c7e8d26091fe772312b3fa3bf4218ae32caa0bb7b1b5c16c5901c698178b",
+    "third-party/smithay/examples/seat.rs": "f46999abec2d4f524576854fcb51f96e589a89ecdf076e4f95cccd57d7df9049",
+    "third-party/smithay/examples/vulkan.rs": "ba42de3f784adbf4ebf60c85a525b9995adeeadcca7cfa49912ca114d89f6176",
+    "third-party/smithay/src/backend/allocator/dmabuf.rs": "375e35b380f3f790f320d1a3853f1ef98763a9959ca7e6f8c8addf95e421f88a",
+    "third-party/smithay/src/backend/allocator/dumb.rs": "ea7c46413312752dd060afc1ed2761a3860c69e190969fbbf9ed3fa780619e3e",
+    "third-party/smithay/src/backend/allocator/format.rs": "4db7fff09a317d695552fd091cba61f81f02c881d3d9b14f9a39bf7f28e26fbe",
+    "third-party/smithay/src/backend/allocator/gbm.rs": "683e70fd24ce9ee60dd45af6dbcc9f4ed0cf79d9fc771d70b6d374833e3d16bb",
+    "third-party/smithay/src/backend/allocator/mod.rs": "19da4f75e1c494004bd1a3a431fa6a2b559cc9b285c287a1da36eb2a26c6ef27",
+    "third-party/smithay/src/backend/allocator/swapchain.rs": "507adc7bcc81156336f627b355f416d3af074342ce0147df2f774e2268b87c76",
+    "third-party/smithay/src/backend/allocator/vulkan/format.rs": "7c94fb5713a62d25be34fc3221d176c89853bca778c64e4ae102ff0b1ad764d9",
+    "third-party/smithay/src/backend/allocator/vulkan/mod.rs": "4f47fa2be24e96fed8893c1d852a27f599f9dbe110f0ad4de9327dc7f9f042f8",
+    "third-party/smithay/src/backend/drm/compositor/elements.rs": "ef09fac5ae759c448747e923039e8eceaa90edc83fcabbf34fdf7d87911d24db",
+    "third-party/smithay/src/backend/drm/compositor/frame_result.rs": "847bd2a594d7628e1073d4c41c1b40dc80aeb732add01776d2d97741a790774f",
+    "third-party/smithay/src/backend/drm/compositor/mod.rs": "bb629c402ee55b615763ccea405bc085f967b89cf9ee6f31e458d9ed2e0a534a",
+    "third-party/smithay/src/backend/drm/device/atomic.rs": "5676ddb5a560eeafc2ed2511df221666e2813cd01a14eb088b0f1115fce3b2af",
+    "third-party/smithay/src/backend/drm/device/fd.rs": "eafcca88e15bb44d7e55eeee20277699eb03a8d7e1a30f3e351b2bc3c6f0212e",
+    "third-party/smithay/src/backend/drm/device/legacy.rs": "32c5404efdd6d4e6a80580be1f218198d5f8a058e213847b8bc49c2ffd10812b",
+    "third-party/smithay/src/backend/drm/device/mod.rs": "4b78c8761ee02cfd2ee2e7f12e91c3327a68a008418ec5ef41f9df90dac7468a",
+    "third-party/smithay/src/backend/drm/dumb.rs": "61608d5647460f05e273fe110092aa28e7e63c3934d03189e416634dd323c203",
+    "third-party/smithay/src/backend/drm/error.rs": "de606083c099a85b593b47242abcdd7df5792709f6ed04a0895999450a20706c",
+    "third-party/smithay/src/backend/drm/exporter/dumb.rs": "241fd0008765b9d6344f3f723faa9e954704306ec8b25c3ade998dd08a5f6444",
+    "third-party/smithay/src/backend/drm/exporter/gbm.rs": "b3f7dad2563f09d4662af58c17f85f651abe9e17774cb36fcdcfface587003be",
+    "third-party/smithay/src/backend/drm/exporter/mod.rs": "e5fdb66838095a1b60175e5f314e4006d52f7538c6dd79f963b790a7c0b89d6d",
+    "third-party/smithay/src/backend/drm/gbm.rs": "82a5cb70d5e0fc98b58ca81d742782eeae4e8d6475f3adff897445b7ca518302",
+    "third-party/smithay/src/backend/drm/mod.rs": "92b0f03e0ed6fa3f843ba5603a5d3227363159005275958f1ba07e37e4b30dae",
+    "third-party/smithay/src/backend/drm/output.rs": "ef17c287d35ef1d0a555bf1d63aecf2b06e6797cca331cb7bf8ead9480557096",
+    "third-party/smithay/src/backend/drm/surface/atomic.rs": "9fb5e2ec3c08883d004df372d4f06596fd25da0ebb73c3f2b44851a3b2e0ee0a",
+    "third-party/smithay/src/backend/drm/surface/gbm.rs": "7d6aced99e5cd21037c3d28232915f1ea384db8b0fa870e15b41b21d4ae9bb99",
+    "third-party/smithay/src/backend/drm/surface/legacy.rs": "a9d6b97af0566d41a7f7296718c5db93ff8edf38f25e1aa71eb373b008306107",
+    "third-party/smithay/src/backend/drm/surface/mod.rs": "a994634c17a2fcadda0cfe8855bd0334eae5b0543d99c09acb052273ca393f37",
+    "third-party/smithay/src/backend/egl/context.rs": "f4aa93728fa23cdc275c55ffc5f7947d758c082449025124e6d8dd2567e51417",
+    "third-party/smithay/src/backend/egl/device.rs": "c419517bdf5f663920fab47400a415c291f43b0740a05fa208d4a75b79e3fe7a",
+    "third-party/smithay/src/backend/egl/display.rs": "3f67b264fb139235435024c00af3bf9aedb176b7567f81e45cd8726197209fbf",
+    "third-party/smithay/src/backend/egl/error.rs": "99cb56dd0e83779d3d40bc2d41ba3ef5037fc802782a3494af50fb8021966e07",
+    "third-party/smithay/src/backend/egl/fence.rs": "f26cb876d411fde8bcb61a6e196f96499c6422386af9dff6914c44a22bbd5278",
+    "third-party/smithay/src/backend/egl/ffi.rs": "e126ab3cd72cddd6477285c7ecd504a091d1f1daa7c5a6a0250169eaff67422c",
+    "third-party/smithay/src/backend/egl/mod.rs": "f1f765f8370cc14f655bc976120bc40aaf21c65d356e97e0ea1637fe1cd318b6",
+    "third-party/smithay/src/backend/egl/native.rs": "b358edc1f486ee00d43ef8f5ebf375bb4a0054878fbc402c12bdc66e66f9cb43",
+    "third-party/smithay/src/backend/egl/surface.rs": "0c0a1092d0811e67cf34758dc18d9e60af1dcd7c515d2d3eda17277ef70f4434",
+    "third-party/smithay/src/backend/input/mod.rs": "3adb698dfb5b790ad83cf5dd2cec5d2955f7460c225e2a1e2f8ed5adb0ce26db",
+    "third-party/smithay/src/backend/input/tablet.rs": "3de1828f860902c9fb88fa134fce0368f331aace6445d157cab2058afed2a63b",
+    "third-party/smithay/src/backend/libinput/mod.rs": "17a376d4e06242c3ce870e5c68df492ea49d2c993cef2c18dc81500e9424b048",
+    "third-party/smithay/src/backend/libinput/tablet.rs": "c136d7504eb8f9bc09b1894d2866334b24fd1fe32c24c74573c70eb0b4c171ff",
+    "third-party/smithay/src/backend/mod.rs": "d0405dd2ecae4b28036422f1b5ea0371f603c5b0d51a413864b37effb59dea35",
+    "third-party/smithay/src/backend/renderer/color.rs": "13c9b8c20f97dddf2a62bca4c34b97df7a17c0521042023a52c2523156e00373",
+    "third-party/smithay/src/backend/renderer/damage/mod.rs": "ff978274136b134b4e2e04dd6f185d81a8f47432e494d9548aed1ded138d3802",
+    "third-party/smithay/src/backend/renderer/damage/shaper.rs": "50bdcb43a69bd07ec8821c8f0ecc453600a46dd5e5feaad3aac02c2adc8b884e",
+    "third-party/smithay/src/backend/renderer/element/memory.rs": "a0cf6c2d0ff9a701770c00696bc78ca8fa74895c686806d2c2cc9cc22684299f",
+    "third-party/smithay/src/backend/renderer/element/mod.rs": "a0cc72657a9dbba480ccd02d88e94456889a7818f9bf998f7012c7d085435809",
+    "third-party/smithay/src/backend/renderer/element/solid.rs": "5ce41e1e803511c08f7249d091dce7dfad9d2790c337712edb407bfe45897732",
+    "third-party/smithay/src/backend/renderer/element/surface.rs": "98ad88cbf56dcb7a1f2373ec6f8063b27d491f92b32bf2b72a0ba05731598cbe",
+    "third-party/smithay/src/backend/renderer/element/tests.rs": "f6ea930a4bd4638d1bb344bb2a4d70f85c872d42d605e8de7fa2312a69ec6c60",
+    "third-party/smithay/src/backend/renderer/element/texture.rs": "41e5127a09218e7a7d4b9143d05edeb2f8fabe074d840e235c48a3662c8e4c4f",
+    "third-party/smithay/src/backend/renderer/element/utils/elements.rs": "2546a44ff214afd694a02a89d3acce79bf78517d807485176448926e3385c495",
+    "third-party/smithay/src/backend/renderer/element/utils/mod.rs": "b2165f6e20f356d9b8329f768f6c0c44876c8b0552876b2c579a4e8002fe15f4",
+    "third-party/smithay/src/backend/renderer/element/utils/wayland.rs": "b85f42ecaa81c82227016568eff34c0c0902f4edaabfc7721ea25d523d18d37a",
+    "third-party/smithay/src/backend/renderer/gles/element.rs": "5d6af1f090465f34c2cff8e434e34e52d01711c242bf1076b0f3f969ad4548b0",
+    "third-party/smithay/src/backend/renderer/gles/error.rs": "699f8ae66373d7b99d501e5afcaac09707b5d829f5588ac34a7c7b3460d36678",
+    "third-party/smithay/src/backend/renderer/gles/format.rs": "cbb36b2262642b3c9aad0fa2aa1eca9c2af4beef12937ff811354d8d570717e5",
+    "third-party/smithay/src/backend/renderer/gles/mod.rs": "f5dd5e98f092207b14d596f675209b74bfd831e91dd7d92fee20d8efe8caebe9",
+    "third-party/smithay/src/backend/renderer/gles/shaders/implicit/mod.rs": "def0469231e3ee67866a30c3d072648f3e98f37e5a06c78b959b2a94ea646631",
+    "third-party/smithay/src/backend/renderer/gles/shaders/mod.rs": "0cbc92031e3ffc2e5e31d7cdb51519a2d76af254c52d577ecbe381016b78dec5",
+    "third-party/smithay/src/backend/renderer/gles/texture.rs": "9dbdbb08b00e0be6b0de3c5fbaaf3b9702fda51983d2410e5954d44888bbd3f0",
+    "third-party/smithay/src/backend/renderer/gles/uniform.rs": "383683fb2dd7667867e7e80126de32f8e2db2e245601a2fb64c638946bc78dc7",
+    "third-party/smithay/src/backend/renderer/gles/version.rs": "8d7885ac67d455a08c01bcc394dde1e82fb947af9f6af1658b5bc384a593a080",
+    "third-party/smithay/src/backend/renderer/glow.rs": "55e1be2685e7539e9e149d1619383ee5caf40e89fd6fc147e21408d678396561",
+    "third-party/smithay/src/backend/renderer/mod.rs": "41218997ab9d8f69c23b4a7c104021ec74d236183d59af647de3cb1b31962a78",
+    "third-party/smithay/src/backend/renderer/multigpu/gbm.rs": "11a08662a4a4519b5416d38f7e102dd6812cccf1c0cf19c090b2a4c6000454d1",
+    "third-party/smithay/src/backend/renderer/multigpu/mod.rs": "e7383a225dde2f025fb592184ef654ab195d15724b7acc5cd8b720a191468424",
+    "third-party/smithay/src/backend/renderer/pixman/error.rs": "8bb489534d7483669b97df882152c73eba1deaa64d611145c39ea25b32b9c991",
+    "third-party/smithay/src/backend/renderer/pixman/mod.rs": "329569cf6f307cc4e8fe5a8b70f79b3a6f46a19d46d763903d8a78bf445b053c",
+    "third-party/smithay/src/backend/renderer/sync/egl.rs": "8d6d86a6cf7372768d12ac539dbfd7795d3c91c24dea232dc54d1a6253326abd",
+    "third-party/smithay/src/backend/renderer/sync/mod.rs": "987c21a103f940a97d34399757b7c5c990987423043434913b94f1db18a1eb80",
+    "third-party/smithay/src/backend/renderer/test.rs": "5a147d28315a4f3b735f199d343fd7d1a97ba5cd28a5d367fdae223f5cc16740",
+    "third-party/smithay/src/backend/renderer/utils/mod.rs": "699d9825eb35b1d9e07a988c9342d279030920f44d37462715df22a5ce53b5b7",
+    "third-party/smithay/src/backend/renderer/utils/wayland.rs": "eef91f55e4b518e697e3552b76a8d5338efcf1c8e0a084cd20c3cee7385b6090",
+    "third-party/smithay/src/backend/session/libseat.rs": "673b95952cb4a81bb50a4f2c2cb5b371798ba2717d890b52128f58b0b75c19d2",
+    "third-party/smithay/src/backend/session/mod.rs": "5a6f7140a1f44a477e0af368144a2523adea716d23ca6c023342010f19c10003",
+    "third-party/smithay/src/backend/udev.rs": "0a40363cf333bb45df630968481ebb5d7ba80a89e0a7c299eafcd4eb78d1653b",
+    "third-party/smithay/src/backend/vulkan/inner.rs": "520829ebb47d43dcc4d380d03d9d6a7c4a030e19943adc850895f6060639a43d",
+    "third-party/smithay/src/backend/vulkan/mod.rs": "b039f91ac584d23e9caa05e9c097bc62bc697fc4780f71e07995b102f4d32b59",
+    "third-party/smithay/src/backend/vulkan/phd.rs": "01995b2b771d69730bd570714413e9268fd8fdc9b0e91f17f3e19e03d3bac448",
+    "third-party/smithay/src/backend/vulkan/version.rs": "694a0ec077d7bab8e99585705fe2da5a4af688c01d7110d384330537d4fc211e",
+    "third-party/smithay/src/backend/winit/input.rs": "3a37908b18c1cc8dbbe6632a03e361c55424a3400ada477ea0f5308db4717b5d",
+    "third-party/smithay/src/backend/winit/mod.rs": "98db46acb873c1cd6d499ffc32ae5b7d80bee9caa98eb220b05e59fa8adb4e20",
+    "third-party/smithay/src/backend/x11/buffer.rs": "e605bb078e91a93a06b2bfd7a185ea485de254bfe24d475476c63061901058d0",
+    "third-party/smithay/src/backend/x11/error.rs": "570041f6c6af219113b7b1d3be8eb053d13496a6acce8a50d180682ba5e0f49d",
+    "third-party/smithay/src/backend/x11/extension.rs": "79ed54f9fbf7339460b974044977254858f6d92527675b53956060fb1340fed8",
+    "third-party/smithay/src/backend/x11/input.rs": "115cadce1c9ce4112a56e1469a237b29c0865d4b9342ef2a39e90dcf3d0b6b2b",
+    "third-party/smithay/src/backend/x11/mod.rs": "3a884a4e92c11a3cb58a2ad09f3350b437457a514ccc44479ff142b5ca37aecd",
+    "third-party/smithay/src/backend/x11/surface.rs": "aecbf41422d834d5a9da8911ab1d50e484b40338722aa214c1cd5a9673e53c86",
+    "third-party/smithay/src/backend/x11/window_inner.rs": "d7344b849b551338459e177dc4e39376724764de5ff918710acc782d5f3b12a2",
+    "third-party/smithay/src/desktop/mod.rs": "012e1d8219f8d98023b5a365ce355340e7fd8cfd3ce9eaf63086a382d40237ad",
+    "third-party/smithay/src/desktop/space/element/mod.rs": "1cbdccbdf0003656142c058c29cecbd0fc6dc4365395595630a65719fea79b27",
+    "third-party/smithay/src/desktop/space/element/wayland.rs": "e3c2e4beb610164b16c7d235d15ff4bb70d7b7063daf069bdcc19c8ec5918310",
+    "third-party/smithay/src/desktop/space/mod.rs": "b675c568fb35e082d4f99144001adfa7f300db3998e5d799fde55427cfda5d02",
+    "third-party/smithay/src/desktop/space/output.rs": "49757f31dd73339090854ea8dae504d221bdf85270acdaf7107745955d4c8e64",
+    "third-party/smithay/src/desktop/space/utils.rs": "a34943084fe5ca8a669ef54400a7771f3c348e01038a0eac96e71dcf916df323",
+    "third-party/smithay/src/desktop/space/wayland/layer.rs": "b1650aff34e3cfa7301798d4d2064339ab53345bffbb36b42f32deddb1cb0f77",
+    "third-party/smithay/src/desktop/space/wayland/mod.rs": "391b1196a9e7f3ca9fcabed7d29f6d40b7bccc1720bf89a8055e223e27e1b959",
+    "third-party/smithay/src/desktop/space/wayland/window.rs": "d83bbafa1df4e58883d4a6545ca551931c7c9c932ee721a57b2e6c890feaad24",
+    "third-party/smithay/src/desktop/space/wayland/x11.rs": "f089ecdfa5cce25111409211fb0a8f6f68a3857ed28855baa576584d3f003f51",
+    "third-party/smithay/src/desktop/wayland/layer.rs": "94cb910082b517278401d13508a6869082d00cf1a2abb2f5c2832d46602b962e",
+    "third-party/smithay/src/desktop/wayland/popup/grab.rs": "8e335e8af50331f85862ffec107447d79b7223eadc27064f02298b498a8f759b",
+    "third-party/smithay/src/desktop/wayland/popup/manager.rs": "e232cc1d556bb1bbb49a34295cbba06e101103ffb56d36160c8367c785a25b98",
+    "third-party/smithay/src/desktop/wayland/popup/mod.rs": "822bee73358745eaf79994a79b5619285386b6c12f8857f066614d81715ddca0",
+    "third-party/smithay/src/desktop/wayland/utils.rs": "7247d1f97bd6eb17b1038ef3a5e87ea5dec731270e4733890090554010beff05",
+    "third-party/smithay/src/desktop/wayland/window.rs": "ca7c62ec74e4dee0d1084e4881bf1cbabfb30c9a49b9bdb4f7a2acf3abbddb40",
+    "third-party/smithay/src/input/keyboard/keymap_file.rs": "573e7e72270af73f4d53e9cf04b92a1febbd6b96c344c4bb6959735ca24dd4c0",
+    "third-party/smithay/src/input/keyboard/mod.rs": "be7823a038fa1ed519036ff3b0ed84b3e01653eab7e8500f01f905f0e6eafe3a",
+    "third-party/smithay/src/input/keyboard/modifiers_state.rs": "03cecae2f26bbe34ee53f250ab92718e1ff29cb00f354bf44ea329c3874706d6",
+    "third-party/smithay/src/input/keyboard/xkb_config.rs": "8b6273d434248f01018dcfd16ad349d5ea0e8bdc039c4fa80a7af77a1d4140c8",
+    "third-party/smithay/src/input/mod.rs": "f6b8c11d8ba70b10a7e5f348bc707b5dd9c79aa4fd330c941017b89ecd27f287",
+    "third-party/smithay/src/input/pointer/cursor_image.rs": "55c7411eed3a493f8085d641c4a7c4aa9b59b77bfb828ddae5737bd65a83fe45",
+    "third-party/smithay/src/input/pointer/grab.rs": "a1feb40ea337e862b9e48e7856ddcb9e2cbd08d09b83e2acf9d781779803c990",
+    "third-party/smithay/src/input/pointer/mod.rs": "98652cb691d360d175590786f89ab54225c676f66d88aa5f6143aa335de419dd",
+    "third-party/smithay/src/input/touch/grab.rs": "12f2a1801a6b0f5d15afd4d7ec3eebae0dccd3e3de59cb562cdf673dbef15246",
+    "third-party/smithay/src/input/touch/mod.rs": "c17ba2285e98f7b71bf411086e6355e2939120215d63a88ec1317941399a68f7",
+    "third-party/smithay/src/lib.rs": "95ab00dbb8018bfd4c4f0ce8b75c87bc519182831f4f7949bd3082ebd531ec18",
+    "third-party/smithay/src/output.rs": "7bfcb5c49909139c6015d3af835ede04095d9ea0b173d18be2964a2cc46a4b15",
+    "third-party/smithay/src/reexports.rs": "706d88e3b281bfdbe5f3451dc37ffad8a48d92f87e78065d3ee6a73452dc4a6c",
+    "third-party/smithay/src/utils/alive_tracker.rs": "df6b5cb8e241946268cc10ea0a183b15f7e2226d3a595ad9cc057107ed883017",
+    "third-party/smithay/src/utils/clock.rs": "043d5e4071c3172c24219c683747b4a136521fc1afcf15b388dd488c34381917",
+    "third-party/smithay/src/utils/fd.rs": "3360894a10c632cc70bfe52e206d7d96617effb1cb409610dcbc767dd33bf3bc",
+    "third-party/smithay/src/utils/geometry.rs": "caf476f8d68499b7d0eaa77a04703c3655df0b44eb34494567749879126c28dd",
+    "third-party/smithay/src/utils/hook.rs": "a0cbf0f758a5ba660e33c2a51871874eb594a3d374ba673157e0fce927f8127a",
+    "third-party/smithay/src/utils/ids.rs": "2d5c4e9900529985d19a6c6c61963f5854b7f0cb7bfdbd517cd60f4617b33573",
+    "third-party/smithay/src/utils/iter.rs": "91d7a9e1511c9ee985945a0aa8dbfe2852fbaafd3b4da3af0f4e2c79895f9ca8",
+    "third-party/smithay/src/utils/mod.rs": "a5e172ef6cb6d0f6c9b382af5dbd00fc414372dee38cd3c0666dce8ca5cd56e1",
+    "third-party/smithay/src/utils/sealed_file.rs": "1ef302019ec4baaa754749976fd5694e8d78716150c9c5bc6fb825d798401d88",
+    "third-party/smithay/src/utils/serial.rs": "e117fc7aeb60b37e8d3b4d3aaa8bf800ab0395961170a52b6089b66c5b604976",
+    "third-party/smithay/src/utils/signaling.rs": "2d44be032c54cc6532e5dd7242d20b078747912d655fd55f5ba4d859d742a50f",
+    "third-party/smithay/src/utils/user_data.rs": "8aa27ec492ac26d9f8704839feddf97dd5dacb5c45a43a0cc7331ee9242a3c7c",
+    "third-party/smithay/src/utils/x11rb.rs": "96d8c993869ca50cb85eaa9526d6d2d87907083adca61adf613400bdd0131e07",
+    "third-party/smithay/src/wayland/alpha_modifier/dispatch.rs": "fc7d1a4bed557e45f802d557191a339654e5c6387e354d322b7174996f405844",
+    "third-party/smithay/src/wayland/alpha_modifier/mod.rs": "66b2ff508daa4ed239894c07658acb8a062f522a1352d6d1f0986e07364398ae",
+    "third-party/smithay/src/wayland/buffer/mod.rs": "f630300cd801192f0b1d5182e7837031c24ffa16e5629df0acef54b8999d0909",
+    "third-party/smithay/src/wayland/commit_timing/mod.rs": "728ccd41be9e335eac432ef9e1cd14822640a440541da97cc849353284e84699",
+    "third-party/smithay/src/wayland/compositor/cache.rs": "62d218d5d3cb9e917fafe4a474eaf850ff59e8f88d1c1a16cf094a77ac079eeb",
+    "third-party/smithay/src/wayland/compositor/handlers.rs": "49a4f834b00f03135159272241a1e7f2d781c7808a713c186f9a0a92539b2ed1",
+    "third-party/smithay/src/wayland/compositor/mod.rs": "1570b41820c4594ab6ccac6f83f3b70a4b1e810df8de13f0311426556f42f19c",
+    "third-party/smithay/src/wayland/compositor/transaction.rs": "2bb35f54ab13207d27cb1bf8911618d69a2e34df71c57e6dc11de9bef72b9bd7",
+    "third-party/smithay/src/wayland/compositor/tree.rs": "a454ea636eb3295dc720d07dc6504c3e8c4681bd9a7b9ab3ce13eb1a969501f1",
+    "third-party/smithay/src/wayland/content_type/dispatch.rs": "d531cbce6ca892e127f9e7d6b5f9aec6a0be66166227a3c90369106b1db92b77",
+    "third-party/smithay/src/wayland/content_type/mod.rs": "d8f8e61b831b7e7f47a842e42043adbfbb6cae1830e9e61d586506a34b30280d",
+    "third-party/smithay/src/wayland/cursor_shape.rs": "7fff5f5a9d7cd6f8351739872ad2987e15ef692dddd1d3d94e0b6636dc19a49a",
+    "third-party/smithay/src/wayland/dmabuf/dispatch.rs": "c27f0e4fbdcb70b7c0165c7522cc59cb7f3852bfd611b80384ce6b295d8e80c1",
+    "third-party/smithay/src/wayland/dmabuf/mod.rs": "b57d7ad8f1ae0fbc3520ada42a9f268fa19a10b595fda7f2303208506a937edd",
+    "third-party/smithay/src/wayland/drm_lease/mod.rs": "7f8302736ae8076d2ccd15122128f87e3b7c2c225b3a92505bbab8ef58307e52",
+    "third-party/smithay/src/wayland/drm_syncobj/mod.rs": "b61833f7b20586fbedde816d79c7331c68ecbda3f8657eb5e8a6ee767b643136",
+    "third-party/smithay/src/wayland/drm_syncobj/sync_point.rs": "de55f159a61fc01b24e0641570b2fa9226d3e4000d5fca24f4d1cb2e4007d3a7",
+    "third-party/smithay/src/wayland/fifo/mod.rs": "7170fa893ec48c46542e85954ee53b6e33bd3c3d4da932ebbdf128ff7c6d779d",
+    "third-party/smithay/src/wayland/foreign_toplevel_list/mod.rs": "00ffae8501842462cf7bd78af768e11dc90e4fd4f4eea6e8f8f3de860a753a93",
+    "third-party/smithay/src/wayland/fractional_scale/mod.rs": "e2a9bd2f0d1462109cd79311b66d70e0f4b718814d91c2e986769a4d13934e16",
+    "third-party/smithay/src/wayland/idle_inhibit/inhibitor.rs": "cf3e394b738008db22252394624fbad22c4d7833348ff66d7a0d81602fc98295",
+    "third-party/smithay/src/wayland/idle_inhibit/mod.rs": "ce8dab4e8148fd53d86cae9556d11dde6a1aeec097fafdba0cfc348432168d71",
+    "third-party/smithay/src/wayland/idle_notify/mod.rs": "c4fb695b7c41849ae62ea39911442333175f5c1298a86ad94b62b759e524af80",
+    "third-party/smithay/src/wayland/input_method/input_method_handle.rs": "4284caeee869d563f513894cf655f1c843d972acf83982bf283d2a61a62c9f5e",
+    "third-party/smithay/src/wayland/input_method/input_method_keyboard_grab.rs": "cd8369f30ff9d5c974c1caa4fd1fb1a4da878f8c1374118025c26a1d117f160f",
+    "third-party/smithay/src/wayland/input_method/input_method_popup_surface.rs": "c8771bc6b8a757a3bfb87673b51e43a3c494774345b2f8894820af4a609f52ce",
+    "third-party/smithay/src/wayland/input_method/mod.rs": "33085e8f5a271d9de65feeb106f26e839e3409909ad51d729cc56cf901ff02d7",
+    "third-party/smithay/src/wayland/keyboard_shortcuts_inhibit/dispatch.rs": "e09af8b1b521059257219102626e6a54bbb952660fe1751ccc66988ca36a3108",
+    "third-party/smithay/src/wayland/keyboard_shortcuts_inhibit/mod.rs": "3e37be57c91a047c24808417a456f62f7da52c08ee9e35b5422a623f9140f7df",
+    "third-party/smithay/src/wayland/mod.rs": "ef86748c2a79aecf0beeac373ae8c861d82c62456e98fc0584a78aff181d259f",
+    "third-party/smithay/src/wayland/output/handlers.rs": "5532dadfd15270c6e6b74f3372413d9cdf5855eb57c9817028215e9d52c927a8",
+    "third-party/smithay/src/wayland/output/mod.rs": "ca1441e8ae06ae0b4c389b176a68a46eae18cbd751e12561a7e1a3c005d041f8",
+    "third-party/smithay/src/wayland/output/xdg.rs": "cc989e5c80490106d09e06cad0a1a5bec0ca57e5201d489ecb92cc97fd812e47",
+    "third-party/smithay/src/wayland/pointer_constraints.rs": "ca6aadf58810da79dd74cd403a13a283d5ff2c9f82ffc87f54fc0ae26607e62c",
+    "third-party/smithay/src/wayland/pointer_gestures.rs": "e7171507c7aa01da0d29cf400f68bde00a6d4e04dfaadbe4078b1d00f04a55c2",
+    "third-party/smithay/src/wayland/presentation/mod.rs": "bc6dca48e4782b2432bfcdd8ce350bcb27603f123a4f54098ac8a05e93ac96ee",
+    "third-party/smithay/src/wayland/relative_pointer.rs": "f41f214e88e8db9e94aa410f56328afe3cd651afba25088c4c762321dbfd9303",
+    "third-party/smithay/src/wayland/seat/keyboard.rs": "6ba440ed6420db196cebc0a5d27ff51ee22b2e9c4b09ca599da7ebba98a30185",
+    "third-party/smithay/src/wayland/seat/mod.rs": "9ecc381476d7f866b99674b52dcbb47c4ff7651568622355c604ddb6a807dc75",
+    "third-party/smithay/src/wayland/seat/pointer.rs": "71b82b19b89768b24ba307471ee8185d2de64906000adfeb303940666c48a5a1",
+    "third-party/smithay/src/wayland/seat/touch.rs": "782b0928e3492f765d9a87e69dfc2e935392e50c1a0310be8dc86eeab7432dd9",
+    "third-party/smithay/src/wayland/security_context/listener_source.rs": "7dc3e718b1cc7c27117c1700477d62492fe6fde6c50aad6facd2708de97b12c1",
+    "third-party/smithay/src/wayland/security_context/mod.rs": "ff8255d1567e0190acf3baa6e3768c63826d3ce4f749a3a750b84e2a82600443",
+    "third-party/smithay/src/wayland/selection/data_device/device.rs": "d096e1fa256f9a12e032bd1cc01c9eb3700b4a23b1a908ab88f26ab5375028bf",
+    "third-party/smithay/src/wayland/selection/data_device/dnd_grab.rs": "1b55fd345e17d2b775f3471c546847d0c0357c1d0ef84b09eeb63222bf59e7ee",
+    "third-party/smithay/src/wayland/selection/data_device/mod.rs": "291dce183eb25aaa06e0b8afa78b68fcba09e9ca0432463a161a65dcbf7ae674",
+    "third-party/smithay/src/wayland/selection/data_device/server_dnd_grab.rs": "479bae94c0463fd72d41526e1ec67121240289251c171dd5f904515c200e6859",
+    "third-party/smithay/src/wayland/selection/data_device/source.rs": "594f7c37cd88f87079a613659a4073e9bb489278bd40f0acf6cc2542d85f58aa",
+    "third-party/smithay/src/wayland/selection/device.rs": "f40f06ddacab8fa5d4ef0819e7339fa8fbfbfada1b9fd09bb4c4dc8ad20deacf",
+    "third-party/smithay/src/wayland/selection/ext_data_control/device.rs": "a0e7a991c716f89addb26634122b217c2e0df2555244a56c85c454b2aed5911a",
+    "third-party/smithay/src/wayland/selection/ext_data_control/mod.rs": "8e9e08836f9dfeea36fcb9b4e447bed448f06a8ecaf2db97ee496f0200f25294",
+    "third-party/smithay/src/wayland/selection/ext_data_control/source.rs": "1d687c136609f3abe1b30d7ef1e49f85a24547f76e773af0c0f274949942008a",
+    "third-party/smithay/src/wayland/selection/mod.rs": "1ae45ea0086e96b8def5fa27127bb8ac4253cbe405082368dc68a2164b8fc051",
+    "third-party/smithay/src/wayland/selection/offer.rs": "c9d93497d1432013e3262ea12efcfa8f700f5b50b3883ed5a6b471f3dea3e198",
+    "third-party/smithay/src/wayland/selection/primary_selection/device.rs": "01c49b08ea7c9a917f68102152297670bbab2a089a428aba61730a7a9ea1b0c9",
+    "third-party/smithay/src/wayland/selection/primary_selection/mod.rs": "0aa2cc30bb07104ec2a097920292a0ed0a747ef29c0f89bbb725b2c190f39d6b",
+    "third-party/smithay/src/wayland/selection/primary_selection/source.rs": "2f1cfbfdf0df5db6fcf077fe740af7fec58fc79332905ec786b7520aa3e309f4",
+    "third-party/smithay/src/wayland/selection/seat_data.rs": "9b9b8549b18fcfbbadd689c8d786e9d06ffd94812e4f98b2d70d8b22fa576d53",
+    "third-party/smithay/src/wayland/selection/source.rs": "d3fe0e05aa55beecc9c2980844b210862b50cd802264abefdc194a64c181d2d4",
+    "third-party/smithay/src/wayland/selection/wlr_data_control/device.rs": "c643c538e5b536330e0294d92686ff450b35b9e798968bdbbf3230904ac81069",
+    "third-party/smithay/src/wayland/selection/wlr_data_control/mod.rs": "914380369a9508c785b5150489f9f84ef9ad4e692e82521771c1c589ad2b80cf",
+    "third-party/smithay/src/wayland/selection/wlr_data_control/source.rs": "4e3b8328e12cf2291b7456f2cfe41b77bc36b5b5411928287789a734d5741cba",
+    "third-party/smithay/src/wayland/session_lock/lock.rs": "a8ace68919430bd0ba753f51a5ce7d374ff1960c33d57e9bebf8fc313e3384b9",
+    "third-party/smithay/src/wayland/session_lock/mod.rs": "c4bef886de89e384ee50a2996453d4537a8e7b95c343463219fb83c3c3c2013f",
+    "third-party/smithay/src/wayland/session_lock/surface.rs": "46a3fd3c93a3f7ad24fc086a159cff3e36848f7adb9f840f99234997e132c7ac",
+    "third-party/smithay/src/wayland/shell/kde/decoration.rs": "8bf472405b20dbd35f9255192bc24e14362cc183b0e136643e4d662838312968",
+    "third-party/smithay/src/wayland/shell/kde/handlers.rs": "91177a7daf8ba6d68f6a192c7b1d531db731e9b4eac963b80228a146786b9ee3",
+    "third-party/smithay/src/wayland/shell/kde/mod.rs": "93e04f39232e6d67950c1347dab276c49fb3fafb95b664bbb9a6cba4c6fea0b4",
+    "third-party/smithay/src/wayland/shell/mod.rs": "d3f0fde9b9d4839e70f93717a65580fe9a43ae8e22667d6fee0efc3bf17f54d2",
+    "third-party/smithay/src/wayland/shell/wlr_layer/handlers.rs": "76b9ac123bb4b2b94fbf9ecbeedf27263e5163d7a010a49ff0e958ce0a7c9465",
+    "third-party/smithay/src/wayland/shell/wlr_layer/mod.rs": "9e7d963ab74360a56a1820054c1fb6a5bfa89a2a5e8afbb6fbf8725b63bcf7a6",
+    "third-party/smithay/src/wayland/shell/wlr_layer/types.rs": "2dc1c7fda474800a7f41a3aa38e3120b5a0cce6ad5c5354fd6ae7fad53d576ee",
+    "third-party/smithay/src/wayland/shell/xdg/decoration.rs": "14b8d68070eca54415d43e9479a4ce781ed69985c2b40a93614a8933de4a29ee",
+    "third-party/smithay/src/wayland/shell/xdg/dialog.rs": "3f5dbd0c9580a62eec115bd2c137b80edcd3d74c0420dbbfee50b557d7180409",
+    "third-party/smithay/src/wayland/shell/xdg/handlers.rs": "c9e11ae8aea520157fb17545812dcd2c80dfddadf0d95bec20a3514d94e03c3a",
+    "third-party/smithay/src/wayland/shell/xdg/handlers/positioner.rs": "19e34609a758a7fea82a082a432fc94b2e1aa0714a3c18dedd1884b135db0053",
+    "third-party/smithay/src/wayland/shell/xdg/handlers/surface.rs": "70781cbb63cab1c77b76450940d57fa8b85751cb877d23f6adabafdf1e8a6a60",
+    "third-party/smithay/src/wayland/shell/xdg/handlers/surface/popup.rs": "5adb36f60a7a34abcbfa4b05cb5c2e4972a26206adade09b1ca188ee680084f1",
+    "third-party/smithay/src/wayland/shell/xdg/handlers/surface/toplevel.rs": "96ef225e9ead4abd3a819e4b9b3a3f7535fe910e63bfaa7abadeafed8b7adad1",
+    "third-party/smithay/src/wayland/shell/xdg/handlers/wm_base.rs": "625e04c87c29b2f01e0d09b15ff0fe991d7a6e7de55ed3459139ecb634c4bfef",
+    "third-party/smithay/src/wayland/shell/xdg/mod.rs": "bd39d7cfd9cbf9bd0a1412f3dbaacf9ac931cfe4a62a18ae4322c7e9174fbec3",
+    "third-party/smithay/src/wayland/shm/handlers.rs": "8bc74b8b6f60de2860cfb36a5d0b67f276aa3a424044fcd502ea595794d53287",
+    "third-party/smithay/src/wayland/shm/mod.rs": "507aa315e372cf0d242610f46af50671011cf660fb07479d0303a96aed6d2c7a",
+    "third-party/smithay/src/wayland/shm/pool.rs": "1af46fbae29da83624c8838800cb376070fd038c59c4a8703725912ef6473a28",
+    "third-party/smithay/src/wayland/single_pixel_buffer/handlers.rs": "802298390a99864b79ebcd77d0a3dd48f242c140b364f7c09c6740961ad71482",
+    "third-party/smithay/src/wayland/single_pixel_buffer/mod.rs": "9081893da4f781d1be7725a4ac9a4d5ee3b8cc4bf93e854121a489580ee71bd7",
+    "third-party/smithay/src/wayland/socket.rs": "2a6d52abe1a4a627e2a157091830ce3aa66013b3fa84f06190992057a11b160a",
+    "third-party/smithay/src/wayland/tablet_manager/mod.rs": "f37920514535a20990490b3d4834dd2c2d41f5a22f5dac6ebbe473b3172ce969",
+    "third-party/smithay/src/wayland/tablet_manager/tablet.rs": "86b04b9a7779c0fe927a78b34b043af7a43ab80527deb4146e78289ff7613d17",
+    "third-party/smithay/src/wayland/tablet_manager/tablet_seat.rs": "d557f0112364a472539d042f8340a0e95526cc5efe5812654b7d728f99562a53",
+    "third-party/smithay/src/wayland/tablet_manager/tablet_tool.rs": "b93af848c7142e6069e7b8498852d4370d020a8c4bd53fcddba6ac1d057a769f",
+    "third-party/smithay/src/wayland/text_input/mod.rs": "9a9f91803d7e2b72e37d75a9da50d907f4d5a8e7d5b685edf91343423b928fd9",
+    "third-party/smithay/src/wayland/text_input/text_input_handle.rs": "8ed9e253926aaae0784793e83e33f6c2483f579e5495084a658c392b6b727baf",
+    "third-party/smithay/src/wayland/viewporter/mod.rs": "98268a478f8cababe10e3b55f9f6537b25fc3c43f365ecc6200ea76ace045dcb",
+    "third-party/smithay/src/wayland/virtual_keyboard/mod.rs": "534dcadd13699a521c81a6928ed3957542c1e57a1592966bc4e102603d8d6581",
+    "third-party/smithay/src/wayland/virtual_keyboard/virtual_keyboard_handle.rs": "db14fd6a0b3e9df7140a7b17646b56816fdebd6c1ab94feba70af64f675578af",
+    "third-party/smithay/src/wayland/xdg_activation/dispatch.rs": "a91fb258d4dbda5c07bd233e5a128f80d5d002cac836d9dff2606089d0234615",
+    "third-party/smithay/src/wayland/xdg_activation/mod.rs": "7b295c5a73939278e96a2105d8bc4e1f19efe50c4332c07662a4c883e70da642",
+    "third-party/smithay/src/wayland/xdg_foreign/handlers.rs": "9be11c71cd8ef9d1d622c325e883885c28eb4031fa74a1f1d84ee58ca296cb69",
+    "third-party/smithay/src/wayland/xdg_foreign/mod.rs": "38ef6b553114da42ee79d42ba4c76facc8721dbaf5fd9e129a88103a22560b6b",
+    "third-party/smithay/src/wayland/xdg_system_bell.rs": "d6227f9723b1b5a9790aff9942871e9c7989ff5ca63e7ac72f5461fd632bb365",
+    "third-party/smithay/src/wayland/xdg_toplevel_icon.rs": "f66da6ee5bfa589278c809100f1c479fab4defc63b31ccac5309991584960762",
+    "third-party/smithay/src/wayland/xdg_toplevel_tag.rs": "7a89a244a0f872917562cb9f489cbdbbb483a5b68bb9f60bb2761b59474532cc",
+    "third-party/smithay/src/wayland/xwayland_keyboard_grab.rs": "f79b692d55fcc854a47ca3d51a054a9b3ae102a654a4ca2fd030832769c68ae9",
+    "third-party/smithay/src/wayland/xwayland_shell.rs": "229f7c4d9b1430ed3b898ada5c025c2cb218bc1d64b51b46c5a24519c9a270b4",
+    "third-party/smithay/src/xwayland/mod.rs": "c90affb819f4ce6929f187bff37c7f8853495b4018bab15980227a2fb742554d",
+    "third-party/smithay/src/xwayland/x11_sockets.rs": "83144780c8db4a418d27ffceb02ecda52ce10cbaeee6b43cfe95e38d547775fc",
+    "third-party/smithay/src/xwayland/xserver.rs": "a0a32e66b79c2f55f111d4dab0fff1d880fba638db0f09952af275acac3f9bc3",
+    "third-party/smithay/src/xwayland/xwm/mod.rs": "27badb09b9c6373944ca19bbaf61927036f2ba03f9a6846b0c15cc7b00548373",
+    "third-party/smithay/src/xwayland/xwm/settings.rs": "3734bc7544e98de50c7e13008a18733a4dee5ff343cc2a2f63749089f837a4af",
+    "third-party/smithay/src/xwayland/xwm/surface.rs": "e9cda75f2c40bc247f36e2c61518e284ab01aff7776c37231865260b07c1ddb7"
+  },
+  "package_sha256": "9c8dc8af00c04dd55cd11af16fa5d0e612abe5adbd3fb89f9081799f95c5fa20",
+  "binaries_sha256": {
+    "tarot": "2aa3757cde786bd431f3632aaca6c00ffa1cbf77edfca87f680490a5217663f0",
+    "tarot-session": "0a8ca31bfb23aedbc2f6154f1cc3a93ed87c01c9e8d670d4de610585d627f776",
+    "tarot-lock": "809c57a0c281d6a273597dc50e2868c2a2a1f9fc5d7bace817c4374657bb07e5",
+    "tarot-keyboard": "c131b356bd04605c2f41079c130afceff64f497e2b129d9c099617d33c6b4c70"
+  },
+  "package_validation": {
+    "passed": true,
+    "four_unique_revision_28_command_providers": true,
+    "four_root_owned_aarch64_musl_binaries": true,
+    "hardware_flag_in_main_and_launcher": true,
+    "main_and_keyboard_changed_for_queued_input": true,
+    "public_repository_url": true,
+    "font_notices_installed": true,
+    "pam_policy_unchanged": true,
+    "install_scripts_absent": true
+  },
+  "build": {
+    "clean_abuild_exit": 0,
+    "elapsed_seconds": 223,
+    "completed_utc": "2026-10-28 22:02:04 UTC",
+    "stable_source_prefix": "/build/aport-r25/src/tarot-0.1.0",
+    "builder_signature_verified": true,
+    "phone_signature_verified": true,
+    "public_key_sha256": "eb2f2c10ab2b5d94d528296cd27c9511ce6a3a9dcdd787cbfe1a2730ee7bc920"
+  },
+  "host": {
+    "host_binaries_sha256": {
+      "tarot": "c3b8aa001e6a54a890abb7193e29546606c681dcc3d54ff8b74619ebb948f12d",
+      "tarot-session": "19a59f8feb3553123f9328da7f9ffeb72c2935a5514caa4991c88307c9b6dd3f",
+      "tarot-lock": "de49f445c6c4f8941c2ab2a624faf01671ce715bff19de5acc349fd6063b00b1",
+      "tarot-keyboard": "963f2b049834d072c053af00116f0d67c39f6bb9ed946aab58d303577bae624f"
+    },
+    "rust_tests_current": 161,
+    "rust_tests_minimum": 161,
+    "strict_host_and_arm": true,
+    "minimum_arm_check": true,
+    "native_acceptance_pending": true,
+    "host_regressions": {
+      "virtual-lock": 0,
+      "virtual-crash": 0,
+      "terminal": 0,
+      "favorite-portrait-1": 0,
+      "favorite-portrait-2": 0,
+      "favorite-landscape-2": 0
+    }
+  },
+  "native": {
+    "full_acceptance_pending": true,
+    "controlled_queued_caf_passes": true,
+    "manual_physical_finger_acceptance": false,
+    "suspend_cycles_requested": 0,
+    "password_transition_failure_unexplained": true,
+    "latest_attempt": "favorite-component-native-r28",
+    "protocol_instrumentation_in_latest_attempt": false,
+    "latest_component_scope": [
+      "favorite-drag",
+      "quick-launch",
+      "rounded-cards",
+      "stack-matrix",
+      "gtk-close",
+      "hardware-keys",
+      "saved-restart"
+    ],
+    "latest_run_is_full_native_acceptance": false,
+    "component_replay_passed": true,
+    "component_controller": {
+      "controller_pid": 13580,
+      "boot_id": "c619d191-9a9f-4103-95dd-2df0b9743352",
+      "validation": {
+        "passed": true,
+        "password_logged": false
+      },
+      "controller_sha256": "fe0a5ed32f098a20a4cde431e59f0cb941c60c95cf7db55412deda3ff5e195f1",
+      "replay_sha256": "127c41be7e88d2ccf19b142503c7d1f9a388ad903ed252840c14522405070980",
+      "quick_replay_sha256": "943797227afdd9d3de275f7d69151646cc4e5392aa7607b5f3866d2d42d353fc",
+      "full_native_acceptance": false,
+      "component_scope": [
+        "favorite-drag",
+        "quick-launch",
+        "rounded-cards",
+        "stack-matrix",
+        "gtk-close",
+        "hardware-keys",
+        "saved-restart"
+      ],
+      "ended_normal_session": {
+        "pid": 11176,
+        "uid": 10000,
+        "name": "tarot",
+        "start": "7185181"
+      },
+      "stage": "terminal",
+      "package_reinstalled": false,
+      "original_install_evidence": "artifacts/favorite-drag-native-r28/install/status.json",
+      "original_settings_metadata": {
+        "uid": 10000,
+        "gid": 10000,
+        "mode": 384
+      },
+      "original_settings_absent": false,
+      "gtk_editor_version": "Text Editor 50.1 (50.1)\n\n            GTK: 4.22.4 (Compiled against 4.22.4)\n  GtkSourceView: 5.20.0 (Compiled against 5.20.0)\n\nCopyright 2020-2025 Christian Hergert, et al.\nThis is free software; see the source for copying conditions. There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n",
+      "tesseract_version": "tesseract 5.5.2",
+      "temporary_entries_sha256": {
+        "/home/user/.local/share/applications/test.tarot.CardRed.desktop": "e384c40d63d2e9a0748962ca6b4bdbd7ee754bb87477217c9a9877e73219f9a3",
+        "/home/user/.local/share/applications/test.tarot.CardBlue.desktop": "a596b53c87fb8f69cd8620de0f3e8d2c0c7f71f5d0aa4370d789ae573cdd1595",
+        "/home/user/.local/share/applications/test.tarot.Matrix0.desktop": "1a13dacfa48238b24b94d650b1504d55aa86799b4ef575df12dfbe7939952460",
+        "/home/user/.local/share/applications/test.tarot.Matrix1.desktop": "c161d6d4e492e57b177b973c853a00b17e7f1c3e3dcc5f0cbb0b426673457d7b",
+        "/home/user/.local/share/applications/test.tarot.Matrix2.desktop": "4c68ad1514539f85b02dd216c2f3a45cc14b0f5a9813d5d88a890edc6ccd37eb",
+        "/home/user/.local/share/applications/test.tarot.Matrix3.desktop": "3e50da534ef83142d4e6f5b76993f1238c112a13efd60db00d7721e127eae48b",
+        "/home/user/.local/share/applications/test.tarot.Matrix4.desktop": "0fd2d3a6e8e70d9b1180649763940dae57c2b39c48f9030121ce637f38b54e46",
+        "/home/user/.local/share/applications/test.tarot.GtkClose.desktop": "6639eca03d4dc40ec0d9e108ff99e8a7d9be33cb16cd6d3092d9916abda2db12",
+        "/home/user/.local/share/applications/test.tarot.Browser.desktop": "73bf4e4dcb3a794b94f70c5a994fbe8b9e635fc04d0745ea1cecc2c6b39e1b3e",
+        "/home/user/.local/share/applications/test.tarot.Terminal.desktop": "ddea356b412f096d7cab28e44e6bf5f3a8b4620a35a08398236a672592098b49",
+        "/home/user/.local/share/applications/test.tarot.TerminalFullscreen.desktop": "a265794f8f6167a2ac4d50b107a5de552be8cb204ab725fc184deea2287ce581",
+        "/home/user/.local/share/applications/test.tarot.Clipboard.desktop": "a40744a4af7bdf7ce175eebb27fbd86ebd4e85bf24f096516f6de19eb1842258",
+        "/home/user/.local/share/applications/test.tarot.VirtualLock.desktop": "2f557f2698ae27de171261659d5e0f2cc2819711ef147476613813f1106e1f7d",
+        "/home/user/.local/share/applications/test.tarot.Transients.desktop": "d648d11360197b0c2cb07773a6b72e78db774b1927e59cf87625d301921ca043",
+        "/home/user/.local/share/applications/test.tarot.GtkDialog.desktop": "7101af5c8c0b440db1c5ddae518612a6016af5d55f15b169c3bf930999c87d0e",
+        "/home/user/.local/share/applications/test.tarot.QtDialog.desktop": "94979206715487d9b35dfde155f8625a91b925083da62285139db2681796cfc3",
+        "/home/user/.local/share/applications/test.tarot.FavoriteBeta.desktop": "7379bcf6125a3c9e538bb19aa52eb715250a58110c2adeeed9f9fc0bdfc261db",
+        "/home/user/.local/share/applications/test.tarot.FavoriteDelta.desktop": "a09a0ec57f4826ee99f2b30532b67c9bed3aa18b09bd8b94884613a9b674b82c",
+        "/home/user/.local/share/applications/test.tarot.FavoriteEpsilon.desktop": "0c6df229bad9d08dc70bb99add27709f2afd23bed0f100e5f7bce332fec43170",
+        "/home/user/.local/share/applications/test.tarot.FavoriteGamma.desktop": "d8863b0d70606b44c67d8982493c55aaf3a1c28bde32f72dfcc9a2360cf95285",
+        "/home/user/.local/share/applications/test.tarot.QuickLaunchFailure.desktop": "e311a0ac472d943990a7a2e36331598aecca04686d8cf4e3f2dc6133dd08faa4"
+      },
+      "native_favorite_drag_passed": true,
+      "native_quick_and_hardware_passed": true,
+      "native_rounded_cards_passed": true,
+      "native_stack_matrix_passed": true,
+      "native_gtk_close_passed": true,
+      "restart_persistence_passed": true,
+      "original_settings_restored": true,
+      "temporary_entry_removed": true,
+      "card_entries_removed": true,
+      "normal_tarot_restored": true
+    },
+    "favorite_result": {
+      "passed": true,
+      "physical_finger_tested": false,
+      "input": "native uinput/libinput touchscreen",
+      "replay_sha256": "9e61c2ee8185420f93677dbe6d705f315b13fa1e59f5037fa8312dd7ecf12250",
+      "holds": [
+        {
+          "label": "add-beta",
+          "orientation": "normal",
+          "point": [
+            66.66666666666666,
+            182
+          ],
+          "recognized": {
+            "word": "Release",
+            "point": [
+              245.0,
+              1083.5
+            ],
+            "recognized": {
+              "level": "5",
+              "page_num": "1",
+              "block_num": "6",
+              "par_num": "1",
+              "line_num": "1",
+              "word_num": "1",
+              "left": "196",
+              "top": "1014",
+              "width": "98",
+              "height": "23",
+              "conf": "92.959312",
+              "text": "Release"
+            },
+            "crop_top": 58,
+            "scale": 1,
+            "variant": "crop",
+            "mode": 3,
+            "attempts": [
+              {
+                "variant": "crop",
+                "mode": 3,
+                "matches": [
+                  {
+                    "level": "5",
+                    "page_num": "1",
+                    "block_num": "6",
+                    "par_num": "1",
+                    "line_num": "1",
+                    "word_num": "1",
+                    "left": "196",
+                    "top": "1014",
+                    "width": "98",
+                    "height": "23",
+                    "conf": "92.959312",
+                    "text": "Release"
+                  }
+                ]
+              }
+            ],
+            "excluded_bounds": null
+          }
+        },
+        {
+          "label": "top-of-tray",
+          "orientation": "normal",
+          "point": [
+            109.2,
+            612.0
+          ],
+          "recognized": {
+            "word": "Release",
+            "point": [
+              250.5,
+              1076.0
+            ],
+            "recognized": {
+              "level": "5",
+              "page_num": "1",
+              "block_num": "1",
+              "par_num": "1",
+              "line_num": "1",
+              "word_num": "2",
+              "left": "202",
+              "top": "1007",
+              "width": "97",
+              "height": "22",
+              "conf": "88.459610",
+              "text": "Release"
+            },
+            "crop_top": 58,
+            "scale": 1,
+            "variant": "crop",
+            "mode": 3,
+            "attempts": [
+              {
+                "variant": "crop",
+                "mode": 3,
+                "matches": [
+                  {
+                    "level": "5",
+                    "page_num": "1",
+                    "block_num": "1",
+                    "par_num": "1",
+                    "line_num": "1",
+                    "word_num": "2",
+                    "left": "202",
+                    "top": "1007",
+                    "width": "97",
+                    "height": "22",
+                    "conf": "88.459610",
+                    "text": "Release"
+                  }
+                ]
+              }
+            ],
+            "excluded_bounds": null
+          }
+        },
+        {
+          "label": "insert-delta",
+          "orientation": "normal",
+          "point": [
+            176.0,
+            182
+          ],
+          "recognized": {
+            "word": "Release",
+            "point": [
+              245.0,
+              1083.5
+            ],
+            "recognized": {
+              "level": "5",
+              "page_num": "1",
+              "block_num": "6",
+              "par_num": "1",
+              "line_num": "1",
+              "word_num": "1",
+              "left": "196",
+              "top": "1014",
+              "width": "98",
+              "height": "23",
+              "conf": "92.959312",
+              "text": "Release"
+            },
+            "crop_top": 58,
+            "scale": 1,
+            "variant": "crop",
+            "mode": 3,
+            "attempts": [
+              {
+                "variant": "crop",
+                "mode": 3,
+                "matches": [
+                  {
+                    "level": "5",
+                    "page_num": "1",
+                    "block_num": "6",
+                    "par_num": "1",
+                    "line_num": "1",
+                    "word_num": "1",
+                    "left": "196",
+                    "top": "1014",
+                    "width": "98",
+                    "height": "23",
+                    "conf": "92.959312",
+                    "text": "Release"
+                  }
+                ]
+              }
+            ],
+            "excluded_bounds": null
+          }
+        },
+        {
+          "label": "add-epsilon",
+          "orientation": "normal",
+          "point": [
+            285.3333333333333,
+            182
+          ],
+          "recognized": {
+            "word": "Release",
+            "point": [
+              245.0,
+              1083.0
+            ],
+            "recognized": {
+              "level": "5",
+              "page_num": "1",
+              "block_num": "6",
+              "par_num": "1",
+              "line_num": "1",
+              "word_num": "1",
+              "left": "196",
+              "top": "1014",
+              "width": "98",
+              "height": "22",
+              "conf": "92.959312",
+              "text": "Release"
+            },
+            "crop_top": 58,
+            "scale": 1,
+            "variant": "crop",
+            "mode": 3,
+            "attempts": [
+              {
+                "variant": "crop",
+                "mode": 3,
+                "matches": [
+                  {
+                    "level": "5",
+                    "page_num": "1",
+                    "block_num": "6",
+                    "par_num": "1",
+                    "line_num": "1",
+                    "word_num": "1",
+                    "left": "196",
+                    "top": "1014",
+                    "width": "98",
+                    "height": "22",
+                    "conf": "92.959312",
+                    "text": "Release"
+                  }
+                ]
+              }
+            ],
+            "excluded_bounds": null
+          }
+        },
+        {
+          "label": "full-tray",
+          "orientation": "normal",
+          "point": [
+            66.66666666666666,
+            296
+          ],
+          "recognized": {
+            "word": "Release",
+            "point": [
+              245.5,
+              1083.0
+            ],
+            "recognized": {
+              "level": "5",
+              "page_num": "1",
+              "block_num": "6",
+              "par_num": "1",
+              "line_num": "1",
+              "word_num": "1",
+              "left": "197",
+              "top": "1014",
+              "width": "97",
+              "height": "22",
+              "conf": "91.150131",
+              "text": "Release"
+            },
+            "crop_top": 58,
+            "scale": 1,
+            "variant": "crop",
+            "mode": 3,
+            "attempts": [
+              {
+                "variant": "crop",
+                "mode": 3,
+                "matches": [
+                  {
+                    "level": "5",
+                    "page_num": "1",
+                    "block_num": "6",
+                    "par_num": "1",
+                    "line_num": "1",
+                    "word_num": "1",
+                    "left": "197",
+                    "top": "1014",
+                    "width": "97",
+                    "height": "22",
+                    "conf": "91.150131",
+                    "text": "Release"
+                  }
+                ]
+              }
+            ],
+            "excluded_bounds": null
+          }
+        },
+        {
+          "label": "existing-in-full-tray",
+          "orientation": "normal",
+          "point": [
+            176.0,
+            182
+          ],
+          "recognized": {
+            "word": "Release",
+            "point": [
+              245.5,
+              1083.0
+            ],
+            "recognized": {
+              "level": "5",
+              "page_num": "1",
+              "block_num": "6",
+              "par_num": "1",
+              "line_num": "1",
+              "word_num": "1",
+              "left": "197",
+              "top": "1014",
+              "width": "97",
+              "height": "22",
+              "conf": "91.150131",
+              "text": "Release"
+            },
+            "crop_top": 58,
+            "scale": 1,
+            "variant": "crop",
+            "mode": 3,
+            "attempts": [
+              {
+                "variant": "crop",
+                "mode": 3,
+                "matches": [
+                  {
+                    "level": "5",
+                    "page_num": "1",
+                    "block_num": "6",
+                    "par_num": "1",
+                    "line_num": "1",
+                    "word_num": "1",
+                    "left": "197",
+                    "top": "1014",
+                    "width": "97",
+                    "height": "22",
+                    "conf": "91.150131",
+                    "text": "Release"
+                  }
+                ]
+              }
+            ],
+            "excluded_bounds": null
+          }
+        },
+        {
+          "label": "fixed-apps",
+          "orientation": "normal",
+          "point": [
+            66.66666666666666,
+            296
+          ],
+          "recognized": {
+            "word": "Release",
+            "point": [
+              245.5,
+              1083.0
+            ],
+            "recognized": {
+              "level": "5",
+              "page_num": "1",
+              "block_num": "6",
+              "par_num": "1",
+              "line_num": "1",
+              "word_num": "1",
+              "left": "197",
+              "top": "1014",
+              "width": "97",
+              "height": "22",
+              "conf": "91.150131",
+              "text": "Release"
+            },
+            "crop_top": 58,
+            "scale": 1,
+            "variant": "crop",
+            "mode": 3,
+            "attempts": [
+              {
+                "variant": "crop",
+                "mode": 3,
+                "matches": [
+                  {
+                    "level": "5",
+                    "page_num": "1",
+                    "block_num": "6",
+                    "par_num": "1",
+                    "line_num": "1",
+                    "word_num": "1",
+                    "left": "197",
+                    "top": "1014",
+                    "width": "97",
+                    "height": "22",
+                    "conf": "91.150131",
+                    "text": "Release"
+                  }
+                ]
+              }
+            ],
+            "excluded_bounds": null
+          }
+        },
+        {
+          "label": "outside",
+          "orientation": "normal",
+          "point": [
+            66.66666666666666,
+            296
+          ],
+          "recognized": {
+            "word": "Release",
+            "point": [
+              245.5,
+              1083.0
+            ],
+            "recognized": {
+              "level": "5",
+              "page_num": "1",
+              "block_num": "6",
+              "par_num": "1",
+              "line_num": "1",
+              "word_num": "1",
+              "left": "197",
+              "top": "1014",
+              "width": "97",
+              "height": "22",
+              "conf": "91.150131",
+              "text": "Release"
+            },
+            "crop_top": 58,
+            "scale": 1,
+            "variant": "crop",
+            "mode": 3,
+            "attempts": [
+              {
+                "variant": "crop",
+                "mode": 3,
+                "matches": [
+                  {
+                    "level": "5",
+                    "page_num": "1",
+                    "block_num": "6",
+                    "par_num": "1",
+                    "line_num": "1",
+                    "word_num": "1",
+                    "left": "197",
+                    "top": "1014",
+                    "width": "97",
+                    "height": "22",
+                    "conf": "91.150131",
+                    "text": "Release"
+                  }
+                ]
+              }
+            ],
+            "excluded_bounds": null
+          }
+        },
+        {
+          "label": "second-contact",
+          "orientation": "normal",
+          "point": [
+            66.66666666666666,
+            182
+          ],
+          "recognized": {
+            "word": "Release",
+            "point": [
+              245.0,
+              1083.0
+            ],
+            "recognized": {
+              "level": "5",
+              "page_num": "1",
+              "block_num": "6",
+              "par_num": "1",
+              "line_num": "1",
+              "word_num": "1",
+              "left": "196",
+              "top": "1014",
+              "width": "98",
+              "height": "22",
+              "conf": "92.959312",
+              "text": "Release"
+            },
+            "crop_top": 58,
+            "scale": 1,
+            "variant": "crop",
+            "mode": 3,
+            "attempts": [
+              {
+                "variant": "crop",
+                "mode": 3,
+                "matches": [
+                  {
+                    "level": "5",
+                    "page_num": "1",
+                    "block_num": "6",
+                    "par_num": "1",
+                    "line_num": "1",
+                    "word_num": "1",
+                    "left": "196",
+                    "top": "1014",
+                    "width": "98",
+                    "height": "22",
+                    "conf": "92.959312",
+                    "text": "Release"
+                  }
+                ]
+              }
+            ],
+            "excluded_bounds": null
+          }
+        },
+        {
+          "label": "protected-interruption",
+          "orientation": "normal",
+          "point": [
+            66.66666666666666,
+            182
+          ],
+          "recognized": {
+            "word": "Release",
+            "point": [
+              245.0,
+              1083.0
+            ],
+            "recognized": {
+              "level": "5",
+              "page_num": "1",
+              "block_num": "6",
+              "par_num": "1",
+              "line_num": "1",
+              "word_num": "1",
+              "left": "196",
+              "top": "1014",
+              "width": "98",
+              "height": "22",
+              "conf": "92.959312",
+              "text": "Release"
+            },
+            "crop_top": 58,
+            "scale": 1,
+            "variant": "crop",
+            "mode": 3,
+            "attempts": [
+              {
+                "variant": "crop",
+                "mode": 3,
+                "matches": [
+                  {
+                    "level": "5",
+                    "page_num": "1",
+                    "block_num": "6",
+                    "par_num": "1",
+                    "line_num": "1",
+                    "word_num": "1",
+                    "left": "196",
+                    "top": "1014",
+                    "width": "98",
+                    "height": "22",
+                    "conf": "92.959312",
+                    "text": "Release"
+                  }
+                ]
+              }
+            ],
+            "excluded_bounds": null
+          }
+        },
+        {
+          "label": "rotation-interruption",
+          "orientation": "normal",
+          "point": [
+            66.66666666666666,
+            182
+          ],
+          "recognized": {
+            "word": "Release",
+            "point": [
+              245.0,
+              1083.0
+            ],
+            "recognized": {
+              "level": "5",
+              "page_num": "1",
+              "block_num": "6",
+              "par_num": "1",
+              "line_num": "1",
+              "word_num": "1",
+              "left": "196",
+              "top": "1014",
+              "width": "98",
+              "height": "22",
+              "conf": "91.622978",
+              "text": "Release"
+            },
+            "crop_top": 58,
+            "scale": 1,
+            "variant": "crop",
+            "mode": 3,
+            "attempts": [
+              {
+                "variant": "crop",
+                "mode": 3,
+                "matches": [
+                  {
+                    "level": "5",
+                    "page_num": "1",
+                    "block_num": "6",
+                    "par_num": "1",
+                    "line_num": "1",
+                    "word_num": "1",
+                    "left": "196",
+                    "top": "1014",
+                    "width": "98",
+                    "height": "22",
+                    "conf": "91.622978",
+                    "text": "Release"
+                  }
+                ]
+              }
+            ],
+            "excluded_bounds": null
+          }
+        },
+        {
+          "label": "remove-beta",
+          "orientation": "normal",
+          "point": [
+            38.4,
+            643.0
+          ],
+          "recognized": {
+            "word": "Release",
+            "point": [
+              250.5,
+              1083.0
+            ],
+            "recognized": {
+              "level": "5",
+              "page_num": "1",
+              "block_num": "1",
+              "par_num": "1",
+              "line_num": "6",
+              "word_num": "2",
+              "left": "202",
+              "top": "1014",
+              "width": "97",
+              "height": "22",
+              "conf": "90.814804",
+              "text": "Release"
+            },
+            "crop_top": 58,
+            "scale": 1,
+            "variant": "crop",
+            "mode": 6,
+            "attempts": [
+              {
+                "variant": "crop",
+                "mode": 3,
+                "matches": []
+              },
+              {
+                "variant": "crop",
+                "mode": 6,
+                "matches": [
+                  {
+                    "level": "5",
+                    "page_num": "1",
+                    "block_num": "1",
+                    "par_num": "1",
+                    "line_num": "6",
+                    "word_num": "2",
+                    "left": "202",
+                    "top": "1014",
+                    "width": "97",
+                    "height": "22",
+                    "conf": "90.814804",
+                    "text": "Release"
+                  }
+                ]
+              }
+            ],
+            "excluded_bounds": null
+          }
+        },
+        {
+          "label": "remove-running-shortcut",
+          "orientation": "normal",
+          "point": [
+            38.4,
+            643.0
+          ],
+          "recognized": {
+            "word": "Release",
+            "point": [
+              250.5,
+              1083.0
+            ],
+            "recognized": {
+              "level": "5",
+              "page_num": "1",
+              "block_num": "1",
+              "par_num": "5",
+              "line_num": "1",
+              "word_num": "2",
+              "left": "202",
+              "top": "1014",
+              "width": "97",
+              "height": "22",
+              "conf": "90.814804",
+              "text": "Release"
+            },
+            "crop_top": 58,
+            "scale": 1,
+            "variant": "crop",
+            "mode": 6,
+            "attempts": [
+              {
+                "variant": "crop",
+                "mode": 3,
+                "matches": []
+              },
+              {
+                "variant": "crop",
+                "mode": 6,
+                "matches": [
+                  {
+                    "level": "5",
+                    "page_num": "1",
+                    "block_num": "1",
+                    "par_num": "5",
+                    "line_num": "1",
+                    "word_num": "2",
+                    "left": "202",
+                    "top": "1014",
+                    "width": "97",
+                    "height": "22",
+                    "conf": "90.814804",
+                    "text": "Release"
+                  }
+                ]
+              }
+            ],
+            "excluded_bounds": null
+          }
+        },
+        {
+          "label": "readd-calculator",
+          "orientation": "normal",
+          "point": [
+            66.66666666666666,
+            182
+          ],
+          "recognized": {
+            "word": "Release",
+            "point": [
+              245.0,
+              1083.0
+            ],
+            "recognized": {
+              "level": "5",
+              "page_num": "1",
+              "block_num": "7",
+              "par_num": "1",
+              "line_num": "1",
+              "word_num": "1",
+              "left": "196",
+              "top": "1014",
+              "width": "98",
+              "height": "22",
+              "conf": "91.622978",
+              "text": "Release"
+            },
+            "crop_top": 58,
+            "scale": 1,
+            "variant": "crop",
+            "mode": 3,
+            "attempts": [
+              {
+                "variant": "crop",
+                "mode": 3,
+                "matches": [
+                  {
+                    "level": "5",
+                    "page_num": "1",
+                    "block_num": "7",
+                    "par_num": "1",
+                    "line_num": "1",
+                    "word_num": "1",
+                    "left": "196",
+                    "top": "1014",
+                    "width": "98",
+                    "height": "22",
+                    "conf": "91.622978",
+                    "text": "Release"
+                  }
+                ]
+              }
+            ],
+            "excluded_bounds": null
+          }
+        },
+        {
+          "label": "remove-delta",
+          "orientation": "normal",
+          "point": [
+            180.0,
+            643.0
+          ],
+          "recognized": {
+            "word": "Release",
+            "point": [
+              250.5,
+              1083.0
+            ],
+            "recognized": {
+              "level": "5",
+              "page_num": "1",
+              "block_num": "1",
+              "par_num": "5",
+              "line_num": "1",
+              "word_num": "2",
+              "left": "202",
+              "top": "1014",
+              "width": "97",
+              "height": "22",
+              "conf": "90.814804",
+              "text": "Release"
+            },
+            "crop_top": 58,
+            "scale": 1,
+            "variant": "crop",
+            "mode": 6,
+            "attempts": [
+              {
+                "variant": "crop",
+                "mode": 3,
+                "matches": []
+              },
+              {
+                "variant": "crop",
+                "mode": 6,
+                "matches": [
+                  {
+                    "level": "5",
+                    "page_num": "1",
+                    "block_num": "1",
+                    "par_num": "5",
+                    "line_num": "1",
+                    "word_num": "2",
+                    "left": "202",
+                    "top": "1014",
+                    "width": "97",
+                    "height": "22",
+                    "conf": "90.814804",
+                    "text": "Release"
+                  }
+                ]
+              }
+            ],
+            "excluded_bounds": null
+          }
+        },
+        {
+          "label": "remove-epsilon",
+          "orientation": "normal",
+          "point": [
+            109.2,
+            643.0
+          ],
+          "recognized": {
+            "word": "Release",
+            "point": [
+              250.5,
+              1083.0
+            ],
+            "recognized": {
+              "level": "5",
+              "page_num": "1",
+              "block_num": "1",
+              "par_num": "5",
+              "line_num": "1",
+              "word_num": "2",
+              "left": "202",
+              "top": "1014",
+              "width": "97",
+              "height": "22",
+              "conf": "90.814804",
+              "text": "Release"
+            },
+            "crop_top": 58,
+            "scale": 1,
+            "variant": "crop",
+            "mode": 6,
+            "attempts": [
+              {
+                "variant": "crop",
+                "mode": 3,
+                "matches": []
+              },
+              {
+                "variant": "crop",
+                "mode": 6,
+                "matches": [
+                  {
+                    "level": "5",
+                    "page_num": "1",
+                    "block_num": "1",
+                    "par_num": "5",
+                    "line_num": "1",
+                    "word_num": "2",
+                    "left": "202",
+                    "top": "1014",
+                    "width": "97",
+                    "height": "22",
+                    "conf": "90.814804",
+                    "text": "Release"
+                  }
+                ]
+              }
+            ],
+            "excluded_bounds": null
+          }
+        },
+        {
+          "label": "oriented-add-normal",
+          "orientation": "normal",
+          "point": [
+            66.66666666666666,
+            182
+          ],
+          "recognized": {
+            "word": "Release",
+            "point": [
+              245.0,
+              1083.5
+            ],
+            "recognized": {
+              "level": "5",
+              "page_num": "1",
+              "block_num": "6",
+              "par_num": "1",
+              "line_num": "1",
+              "word_num": "1",
+              "left": "196",
+              "top": "1014",
+              "width": "98",
+              "height": "23",
+              "conf": "91.622978",
+              "text": "Release"
+            },
+            "crop_top": 58,
+            "scale": 1,
+            "variant": "crop",
+            "mode": 3,
+            "attempts": [
+              {
+                "variant": "crop",
+                "mode": 3,
+                "matches": [
+                  {
+                    "level": "5",
+                    "page_num": "1",
+                    "block_num": "6",
+                    "par_num": "1",
+                    "line_num": "1",
+                    "word_num": "1",
+                    "left": "196",
+                    "top": "1014",
+                    "width": "98",
+                    "height": "23",
+                    "conf": "91.622978",
+                    "text": "Release"
+                  }
+                ]
+              }
+            ],
+            "excluded_bounds": null
+          }
+        },
+        {
+          "label": "oriented-remove-normal",
+          "orientation": "normal",
+          "point": [
+            38.4,
+            643.0
+          ],
+          "recognized": {
+            "word": "Release",
+            "point": [
+              250.5,
+              1083.0
+            ],
+            "recognized": {
+              "level": "5",
+              "page_num": "1",
+              "block_num": "1",
+              "par_num": "5",
+              "line_num": "1",
+              "word_num": "2",
+              "left": "202",
+              "top": "1014",
+              "width": "97",
+              "height": "22",
+              "conf": "90.814804",
+              "text": "Release"
+            },
+            "crop_top": 58,
+            "scale": 1,
+            "variant": "crop",
+            "mode": 6,
+            "attempts": [
+              {
+                "variant": "crop",
+                "mode": 3,
+                "matches": []
+              },
+              {
+                "variant": "crop",
+                "mode": 6,
+                "matches": [
+                  {
+                    "level": "5",
+                    "page_num": "1",
+                    "block_num": "1",
+                    "par_num": "5",
+                    "line_num": "1",
+                    "word_num": "2",
+                    "left": "202",
+                    "top": "1014",
+                    "width": "97",
+                    "height": "22",
+                    "conf": "90.814804",
+                    "text": "Release"
+                  }
+                ]
+              }
+            ],
+            "excluded_bounds": null
+          }
+        },
+        {
+          "label": "oriented-add-left-up",
+          "orientation": "left-up",
+          "point": [
+            126.66666666666667,
+            182
+          ]
+        },
+        {
+          "label": "oriented-remove-left-up",
+          "orientation": "left-up",
+          "point": [
+            74.4,
+            283.0
+          ]
+        },
+        {
+          "label": "oriented-add-bottom-up",
+          "orientation": "bottom-up",
+          "point": [
+            66.66666666666666,
+            182
+          ]
+        },
+        {
+          "label": "oriented-remove-bottom-up",
+          "orientation": "bottom-up",
+          "point": [
+            38.4,
+            643.0
+          ]
+        },
+        {
+          "label": "oriented-add-right-up",
+          "orientation": "right-up",
+          "point": [
+            126.66666666666667,
+            182
+          ]
+        },
+        {
+          "label": "oriented-remove-right-up",
+          "orientation": "right-up",
+          "point": [
+            74.4,
+            283.0
+          ]
+        },
+        {
+          "label": "oriented-add-normal",
+          "orientation": "normal",
+          "point": [
+            66.66666666666666,
+            182
+          ],
+          "recognized": {
+            "word": "Release",
+            "point": [
+              245.0,
+              1083.5
+            ],
+            "recognized": {
+              "level": "5",
+              "page_num": "1",
+              "block_num": "6",
+              "par_num": "1",
+              "line_num": "1",
+              "word_num": "1",
+              "left": "196",
+              "top": "1014",
+              "width": "98",
+              "height": "23",
+              "conf": "91.622978",
+              "text": "Release"
+            },
+            "crop_top": 58,
+            "scale": 1,
+            "variant": "crop",
+            "mode": 3,
+            "attempts": [
+              {
+                "variant": "crop",
+                "mode": 3,
+                "matches": [
+                  {
+                    "level": "5",
+                    "page_num": "1",
+                    "block_num": "6",
+                    "par_num": "1",
+                    "line_num": "1",
+                    "word_num": "1",
+                    "left": "196",
+                    "top": "1014",
+                    "width": "98",
+                    "height": "23",
+                    "conf": "91.622978",
+                    "text": "Release"
+                  }
+                ]
+              }
+            ],
+            "excluded_bounds": null
+          }
+        },
+        {
+          "label": "oriented-remove-normal",
+          "orientation": "normal",
+          "point": [
+            38.4,
+            643.0
+          ],
+          "recognized": {
+            "word": "Release",
+            "point": [
+              250.5,
+              1083.0
+            ],
+            "recognized": {
+              "level": "5",
+              "page_num": "1",
+              "block_num": "1",
+              "par_num": "5",
+              "line_num": "1",
+              "word_num": "2",
+              "left": "202",
+              "top": "1014",
+              "width": "97",
+              "height": "22",
+              "conf": "90.814804",
+              "text": "Release"
+            },
+            "crop_top": 58,
+            "scale": 1,
+            "variant": "crop",
+            "mode": 6,
+            "attempts": [
+              {
+                "variant": "crop",
+                "mode": 3,
+                "matches": []
+              },
+              {
+                "variant": "crop",
+                "mode": 6,
+                "matches": [
+                  {
+                    "level": "5",
+                    "page_num": "1",
+                    "block_num": "1",
+                    "par_num": "5",
+                    "line_num": "1",
+                    "word_num": "2",
+                    "left": "202",
+                    "top": "1014",
+                    "width": "97",
+                    "height": "22",
+                    "conf": "90.814804",
+                    "text": "Release"
+                  }
+                ]
+              }
+            ],
+            "excluded_bounds": null
+          }
+        },
+        {
+          "label": "landscape-keyboard-source",
+          "orientation": "left-up",
+          "point": [
+            126.66666666666667,
+            100
+          ]
+        },
+        {
+          "label": "landscape-restore",
+          "orientation": "left-up",
+          "point": [
+            74.4,
+            283.0
+          ]
+        }
+      ],
+      "orientations": [
+        "normal",
+        "left-up",
+        "bottom-up",
+        "right-up",
+        "normal"
+      ],
+      "full_label": {
+        "word": "full",
+        "point": [
+          466.5,
+          1083.0
+        ],
+        "recognized": {
+          "level": "5",
+          "page_num": "1",
+          "block_num": "5",
+          "par_num": "1",
+          "line_num": "1",
+          "word_num": "4",
+          "left": "447",
+          "top": "1014",
+          "width": "39",
+          "height": "22",
+          "conf": "92.510201",
+          "text": "full"
+        },
+        "crop_top": 58,
+        "scale": 1,
+        "variant": "crop",
+        "mode": 3,
+        "attempts": [
+          {
+            "variant": "crop",
+            "mode": 3,
+            "matches": [
+              {
+                "level": "5",
+                "page_num": "1",
+                "block_num": "5",
+                "par_num": "1",
+                "line_num": "1",
+                "word_num": "4",
+                "left": "447",
+                "top": "1014",
+                "width": "39",
+                "height": "22",
+                "conf": "92.510201",
+                "text": "full"
+              }
+            ]
+          }
+        ],
+        "excluded_bounds": null
+      },
+      "native_kms_and_touch": true,
+      "preview_without_persistence": true,
+      "full_and_fixed_rejection": true,
+      "same_identity_reorder": true,
+      "explicit_removal_preserves_native_card": true,
+      "second_contact_cancellation": true,
+      "protected_cancellation_and_actual_pam": true,
+      "rotation_cancellation": true,
+      "landscape_keyboard_source": true,
+      "original_favorites_and_query_restored": true,
+      "other_preferences_preserved": true
+    },
+    "component_sections": {
+      "favorite_drag": true,
+      "quick_launch": true,
+      "rounded_cards": true,
+      "stack_matrix": true,
+      "gtk_close": true,
+      "hardware_keys": true
+    },
+    "saved_restart_passed": true,
+    "first_session_suspend_cycles": 0,
+    "restart_session_suspend_cycles": 0,
+    "component_archive": {
+      "name": "favorite-component-native-r28-complete-evidence.tar.gz",
+      "bytes": 38267370,
+      "sha256": "566063fe341cb7021bad6e7f0ae3d42ba8ccbd70d78d9cad19a42803bc7c9d7f"
+    },
+    "normal_session_audit": {
+      "boot_id": "c619d191-9a9f-4103-95dd-2df0b9743352",
+      "session_id": "c220",
+      "session_properties": "User=10000\nVTNr=7\nRemote=no\nType=wayland\nClass=user\nActive=yes\n",
+      "roles": [
+        {
+          "pid": 17188,
+          "uid": 10000,
+          "name": "tarot-session",
+          "start": "7271527"
+        },
+        {
+          "pid": 17192,
+          "uid": 10000,
+          "name": "tarot",
+          "start": "7271529"
+        },
+        {
+          "pid": 17201,
+          "uid": 10000,
+          "name": "tarot-lock",
+          "start": "7271575"
+        },
+        {
+          "pid": 17211,
+          "uid": 10000,
+          "name": "tarot-keyboard",
+          "start": "7271576"
+        }
+      ],
+      "loaded_binaries_sha256": {
+        "tarot-session": "0a8ca31bfb23aedbc2f6154f1cc3a93ed87c01c9e8d670d4de610585d627f776",
+        "tarot": "2aa3757cde786bd431f3632aaca6c00ffa1cbf77edfca87f680490a5217663f0",
+        "tarot-lock": "809c57a0c281d6a273597dc50e2868c2a2a1f9fc5d7bace817c4374657bb07e5",
+        "tarot-keyboard": "c131b356bd04605c2f41079c130afceff64f497e2b129d9c099617d33c6b4c70"
+      },
+      "greeter_settings": {
+        "last-session": "tarot",
+        "last-user": "user"
+      },
+      "services": {
+        "greetd": 0,
+        "polkit": 0,
+        "modemmanager": 0,
+        "networkmanager": 0,
+        "sshd": 0,
+        "iio-sensor-proxy": 0
+      },
+      "policies_sha256": {
+        "/etc/phrog/greetd-config.toml": "85dde819880207b66bf9f2b7b4a7ffe094fd5768b57ee372ca1ff2c252c3c8bb",
+        "/etc/pam.d/greetd": "c7fa524a268fa31921847d673bceecb131f1b83e612a4d689cd1b0706356597f",
+        "/etc/pam.d/tarot-lock": "f6d73ceeca2acf86ce428709a8ff21ddf5923efb26fe3f6614e61878b8ad2012",
+        "/etc/elogind/logind.conf": "7a4a52186148dfae039b99e6d49ea314bf68e8be56ca048d41297355316a6233"
+      },
+      "development_input_devices": [],
+      "rtc_alarm": "",
+      "settings_metadata": {
+        "uid": 10000,
+        "gid": 10000,
+        "mode": 384
+      },
+      "settings_absent": false,
+      "validation": {
+        "passed": true,
+        "normal_tarot_without_diagnostics": true,
+        "hardware_keys_enabled": true,
+        "exact_audited_payloads_loaded": true,
+        "active_local_ordinary_user_vt7": true,
+        "persisted_default_tarot": true,
+        "phosh_not_running": true,
+        "test_input_and_alarm_absent": true,
+        "original_settings_preserved": true
+      }
+    },
+    "gpu_audit": {
+      "pid": 17192,
+      "start": "7271529",
+      "fds": [
+        {
+          "fd": 13,
+          "target": "/dev/dri/card1",
+          "fdinfo": "pos:\t0\nflags:\t02404002\nmnt_id:\t30\nino:\t242\n"
+        },
+        {
+          "fd": 14,
+          "target": "/dev/dri/card1",
+          "fdinfo": "pos:\t0\nflags:\t02404002\nmnt_id:\t30\nino:\t242\n"
+        },
+        {
+          "fd": 15,
+          "target": "/dev/dri/card1",
+          "fdinfo": "pos:\t0\nflags:\t02404002\nmnt_id:\t30\nino:\t242\n"
+        },
+        {
+          "fd": 16,
+          "target": "/dev/dri/renderD128",
+          "fdinfo": "pos:\t0\nflags:\t0400002\nmnt_id:\t30\nino:\t137\ndrm-driver:\tpanfrost\ndrm-client-id:\t1976\ndrm-maxfreq-fragment:\t600000000 Hz\ndrm-curfreq-fragment:\t200000000 Hz\ndrm-maxfreq-vertex-tiler:\t600000000 Hz\ndrm-curfreq-vertex-tiler:\t200000000 Hz\ndrm-total-memory:\t149068 KiB\ndrm-shared-memory:\t16600 KiB\ndrm-resident-memory:\t9692 KiB\ndrm-purgeable-memory:\t264 KiB\n"
+        },
+        {
+          "fd": 17,
+          "target": "/dev/dri/renderD128",
+          "fdinfo": "pos:\t0\nflags:\t02400002\nmnt_id:\t30\nino:\t137\ndrm-driver:\tpanfrost\ndrm-client-id:\t1976\ndrm-maxfreq-fragment:\t600000000 Hz\ndrm-curfreq-fragment:\t200000000 Hz\ndrm-maxfreq-vertex-tiler:\t600000000 Hz\ndrm-curfreq-vertex-tiler:\t200000000 Hz\ndrm-total-memory:\t149068 KiB\ndrm-shared-memory:\t16600 KiB\ndrm-resident-memory:\t9692 KiB\ndrm-purgeable-memory:\t264 KiB\n"
+        },
+        {
+          "fd": 18,
+          "target": "/dev/dri/renderD128",
+          "fdinfo": "pos:\t0\nflags:\t02400002\nmnt_id:\t30\nino:\t137\ndrm-driver:\tpanfrost\ndrm-client-id:\t1977\ndrm-maxfreq-fragment:\t600000000 Hz\ndrm-curfreq-fragment:\t200000000 Hz\ndrm-maxfreq-vertex-tiler:\t600000000 Hz\ndrm-curfreq-vertex-tiler:\t200000000 Hz\ndrm-total-memory:\t0\ndrm-shared-memory:\t0\n"
+        }
+      ],
+      "panfrost_fd_verified": true
+    }
+  },
+  "retained_attempts": [
+    {
+      "archive": "favorite-drag-native-r27-first-evidence.tar.gz",
+      "sha256": "603c4ad7ab4fa6354df4c7fab1cfed5a8bf86db95652151106088e60ca867ce4",
+      "bytes": 35009047,
+      "scope": "Browser observer report ordering; no favorite native check reached"
+    },
+    {
+      "archive": "favorite-drag-native-r27-attempt2-complete-evidence.tar.gz",
+      "sha256": "71eaf2e99e1193f320892fe91b6943459ae0a4cc590a587ccebc54f0cc525851",
+      "bytes": 95847100,
+      "scope": "Fullscreen browser text mismatch; no favorite native check reached"
+    },
+    {
+      "archive": "keyboard-burst-native-r27-complete-evidence.tar.gz",
+      "sha256": "8d26d386a69c69e83383dd87b6e361952b96fba8106197285365ecffbb6bced5",
+      "bytes": 34214221,
+      "scope": "Three queued native taps for caf produce only f"
+    },
+    {
+      "archive": "favorite-drag-native-r28-complete-evidence.tar.gz",
+      "sha256": "e7c6f9b6df6b443965931f0a8604e9e5bf452c2d429ac49c97e5d01adb9311d7",
+      "bytes": 51648463,
+      "scope": "Queued caf passes; later password field stops at demo"
+    },
+    {
+      "archive": "favorite-drag-native-r28-attempt2-complete-evidence.tar.gz",
+      "sha256": "c58d9c3517e1af3bac1726cb57bfdb3f06b5338e8600cf2727d7ecec63de0090",
+      "bytes": 66874854,
+      "scope": "Instrumented browser and native protocol cases pass; GTK fullscreen reopen text check fails"
+    },
+    {
+      "archive": "favorite-drag-native-r28-attempt3-complete-evidence.tar.gz",
+      "sha256": "bb73dfe950afdb6bb2d65aa20c951c435da9607381d21439ea9c1783a30c8862",
+      "bytes": 83034877,
+      "scope": "Uninstrumented browser, native protocol, GTK/Qt, terminal and virtual-key guard/crash pass; 13 native favorite holds pass, then query replacement fails due to replay caret placement"
+    },
+    {
+      "archive": "favorite-drag-native-r28-attempt4-complete-evidence.tar.gz",
+      "sha256": "c1dd79217a432b98485fd82f23694f21f2c994171716e9ae7ffd5c276185f475",
+      "bytes": 90010966,
+      "scope": "26 native favorite holds and four-orientation add/remove pass; rotation dismisses shell search focus before the landscape keyboard case"
+    },
+    {
+      "archive": "favorite-drag-native-r28-attempt5-complete-evidence.tar.gz",
+      "sha256": "b026514684823b6631f52ddf122283e24fdc5b7922d7004961be5a96ac176fd0",
+      "bytes": 51703335,
+      "scope": "Password observer stops at four characters again; recognized-state KMS failure capture shows six masked characters, leaving actual DOM state versus transport unresolved"
+    },
+    {
+      "archive": "favorite-drag-native-r28-attempt6-complete-evidence.tar.gz",
+      "sha256": "65923430fcc3d9620bea46b9a4b24fa81528cffc3844341522495fbcd0fedbad",
+      "bytes": 50676225,
+      "scope": "Hardened observer delivers all six password inputs; parallel heartbeat reports show large receipt/source-timestamp gaps and Next navigation does not complete; followed by bounded report-producer correction"
+    },
+    {
+      "archive": "favorite-drag-native-r28-attempt7-complete-evidence.tar.gz",
+      "sha256": "78f0157073439ee954fb02b87908b67b06be446602688e252f49595ea818572a",
+      "bytes": 50988459,
+      "scope": "Bounded observer reports an unexpected password DOM value with zero reported transport failures; full native/browser acceptance remains open"
+    }
+  ],
+  "stale_gtk_bounds_diagnosis": {
+    "server_readiness_completed": 68583.964108128,
+    "first_subsequent_toolkit_bounds": {
+      "event": "fullscreen-field-bounds",
+      "pid": 18686,
+      "uid": 10000,
+      "monotonic": 68584.272447057,
+      "x": 116,
+      "y": 348,
+      "width": 128,
+      "height": 40,
+      "parent_width": 360,
+      "parent_height": 444
+    },
+    "difference_seconds": 0.30833892899681814,
+    "old_predicate_allowed_historical_bounds": true,
+    "actual_contact_timestamps_not_recorded": true
+  },
+  "limitations": [
+    "Full browser/native acceptance remains open after repeated password-field DOM mismatches; the passing component controller explicitly records full_native_acceptance=false.",
+    "Browser, protocol, toolkit and terminal passes from earlier attempts are separate evidence on the same installed binary hashes, not included in the passing favorite/shell component run.",
+    "No new physical-finger calibration, complete visual conformance, current-binary endurance or complete M0\u2013M6 milestone is claimed.",
+    "QA and documentation changes follow source freezing; compiled inputs, Rust files and installed payload identities are reconciled separately."
+  ],
+  "observer_transport": {
+    "new_real_socket_test_passes_host_and_phone": true,
+    "old_five_entry_backlog_fails_same_burst_test": true,
+    "new_backlog": 128,
+    "http_version": "1.1",
+    "read_only_dom_heartbeat_ms": 500,
+    "native_text_timeout_seconds": 15,
+    "single_report_in_flight": true,
+    "pending_heartbeats_coalesced": true,
+    "input_focus_events_preserved": true,
+    "host_observer_tests": 8,
+    "phone_observer_tests_passed": 7,
+    "phone_optional_node_test_skipped": 1
+  },
+  "compiled_inputs_reconciled_count": 411,
+  "repository_qa_sha256": {
+    "tests/browser_fixture.py": "b308744d4051e995fb8bf52b75aef1ec49d59d4a8468e0d89c0e580e8afd1bfb",
+    "tests/browser_observations.py": "1b6b1efa08b4de6fe919c246e8c579f92cce04f10cbcc4c3ce0e287c728530ad",
+    "tests/capture_motion.py": "295ecf1bffb6a824c8c1fdb5ab2b4c1d997c8bb921b78bd02c359fab572b0f1a",
+    "tests/card_matrix.py": "322769200fba94b171f89b6a84310e781da9fe73ec26f76f569b1425f41d321d",
+    "tests/dialog_button.py": "7044baca5f396188b5fad087ff6fe27a8c564c93984c9c58652ee667b0aaae65",
+    "tests/lock_replay.py": "26ff737a39bfd874c6e7588f43a0fae6f34201566d1f93be05951c7291d908c7",
+    "tests/native_transient_fixture.py": "ba9e3d0f3ee8815d1061e0fc06062a58c708ec07d3c9ea7985598349a9404d12",
+    "tests/notification_replay.py": "214680a5c965a61fde9152336753e07fa508dab490a49f33f10bfe943ad1eb62",
+    "tests/phone_browser_replay.py": "bb835441c03aca2ab2ebe7290cb4ee3da321589af52dea4c84b56b41872a91e5",
+    "tests/phone_favorite_drag_replay.py": "9e61c2ee8185420f93677dbe6d705f315b13fa1e59f5037fa8312dd7ecf12250",
+    "tests/phone_fullscreen_terminal_replay.py": "401d9fb4afd37f1a709d0a0a82a86fcc03c66a7abf08282d6bfa379039f1fba1",
+    "tests/phone_fullscreen_text_replay.py": "1d126019c71fddf0f353c4c01328616547d80b1370ea5cfb02a1e5fa46b40d01",
+    "tests/phone_gesture_replay.py": "a3924439120181758fa314fd604b1e2f8701a1b4fbcd95b9f8d116d0efc15367",
+    "tests/phone_gtk_close_replay.py": "1dd05b9839fc72ef3ccdbf022a4c2e41760cf7e402fe47197906624c3654c214",
+    "tests/phone_hardware_replay.py": "8d7a7c662b3522e4e06ef9b70c06b467d613fee5e88deeca9067a68d4d59ded2",
+    "tests/phone_lock_replay.py": "9353db461273279cbe7b81ca66892d48dce3b882c5d746cc2ac42c96e4660051",
+    "tests/phone_package_switch.py": "68fb6e75a53269799432f2982cc8596a1f049c0d0f478778b12f7f0bc9c7b8f3",
+    "tests/phone_quick_launch_replay.py": "943797227afdd9d3de275f7d69151646cc4e5392aa7607b5f3866d2d42d353fc",
+    "tests/phone_rounded_cards_replay.py": "6fc3e1da4acae3c30a70e3ce13a1d421654333d73509a0f4169ebedfc593c6b5",
+    "tests/phone_sensor_claims.py": "571f2cf575c929c4504c2943bc60ede8c48a41aa47e1e71eea6a356fe09eb55a",
+    "tests/phone_stack_matrix_replay.py": "0801ed9fff4c5493695cf216c82ebdf513592eb638c44d024aad761a25d45034",
+    "tests/phone_stock_login.py": "93a9e14961353fb67cf962ea7a868dad16b774441e89458b7f97495040e3e945",
+    "tests/phone_suspend_probe.py": "9656b38ef382ec89038ed6580e1e4b0d6fdab273befb06f563dc3bf8f01aa7eb",
+    "tests/phone_terminal_clipboard_replay.py": "7eb2f9e7cdd2f0531d566735b5dbda6e7da76acd3b011bad744bfa66bf7445f8",
+    "tests/phone_terminal_controls_replay.py": "e852362585fd9c972835d660a21e6a49e86dce0c218c0a3facf7945f839d5c25",
+    "tests/phone_toolkit_dialog_replay.py": "79982b349daaea89903a5515c2959f9fe432b2af7b075ffa9aeca24dc7488d9b",
+    "tests/phone_touch_keyboard.py": "3b4c73d87d4c474590e970af6dcba54a67dc434f286408bf96c004813af2380d",
+    "tests/phone_transient_replay.py": "5d45f23e3331f8eafd25f4c64488052b18194369b5da913debb3b35b0f97f0a6",
+    "tests/terminal_clipboard_fixture.py": "6c83718fcebb901388b1310f7676876226c1e1f403a8e37b0cd155d2f337cfa7",
+    "tests/test_browser_observations.py": "5648e9569800c68ed06cc45a475bbbb4795eb079e7956f1ff0705b18e21de66f",
+    "tests/test_browser_observer_transport.py": "1a93daeeb5255d755680cc61b4cb494cb2b13ac02f42051b2e8edf1f3fba6e8b",
+    "tests/test_browser_protocol_metadata.py": "44ec8b1dac01cce27a9941928cc39bd92be7713aa2f56dec31cd9a957c7bbb80",
+    "tests/test_browser_report_queue.py": "1169124a49c8863bb01bc89e6b1dab2926de7c4c2c578bf2f6ed406383f08f37",
+    "tests/toolkit_transient_fixture.py": "bdea9f8f51d710248c1e075980d2ccd591fe34a97d5a8aecf5b343af65e6a813",
+    "tests/virtual_keyboard_crash_replay.py": "f5285224f2b24dd5583632ede6449d322ac5e577b3aeefeef622f2631f97fdb1",
+    "tests/virtual_keyboard_lock_replay.py": "777821f4057c069664aa9f871b1fd0ee65513d8fb34bdf393a877bee1c8acaa3"
+  },
+  "separately_collected_support_sha256": {
+    "collect-native-evidence.py": "7e1ad10fa7fc50f2ec419ab8c0c2d29d62c1d0c14c9fdc4ce8ca7158148e1130",
+    "gpu-observe-r28-component.py": "5b47ec74d3eb814b594249ff9000d563d3ecff635b1c9882222c1309bff882ff",
+    "gpu-observe-r28.py": "fbc07ff445116fe0d624fc75a158b7482ebf400e517243fe42c97ac43b7e2bfe",
+    "native-controller-r28-attempt2.py": "42b620d262ae08140b112e5904db42c91891733075c47e5aabfff7080114db94",
+    "native-controller-r28-attempt3.py": "b38a3d6cbde7fc062e026a2691d5ef0d153d052c162a149293b1b34bc29056ad",
+    "native-controller-r28-attempt4.py": "635b4710ae6d1df71d34935b4f8ce920f7e2d8fc52b6b8026f43420f74495f87",
+    "native-controller-r28-attempt5.py": "ab3724d26af43471ab1de5cc05d52765d6d75c8df56acd01b301fd8395fc115f",
+    "native-controller-r28-attempt6.py": "6e246848f7ee3d29f94b49059211f0880790e5a546500580d3ea3340476921d3",
+    "native-controller-r28-attempt7.py": "e85b71e67ecec5c71470703102fa2c6ec2785265f414938bc3d8412d718bb2e7",
+    "native-controller-r28-component.py": "fe0a5ed32f098a20a4cde431e59f0cb941c60c95cf7db55412deda3ff5e195f1",
+    "native-controller-r28.py": "f68057a1fea27f34c52572293891eb36280ad53bc5b8c43d806d23b9c78429bf",
+    "native_virtual_keyboard_lock_fixture_r28.py": "1ccb44b6b0c611ea5836dcd0e1cf6b648d2341f429bf20879402a3a38d17a3a2",
+    "phone_installed_favorites_r28.py": "127c41be7e88d2ccf19b142503c7d1f9a388ad903ed252840c14522405070980",
+    "verify-normal-r28-component.py": "59eccbf375a3f3e30a9f10c6ea7b3dce85a6ddb84bbd33a50943bf606b3b9a2d",
+    "verify-normal-r28.py": "61227437041d49baa1734b19e296249c59223605213534a58a6d2ac1a8a25883"
+  },
+  "installed_replay_byte_identical_to_repository": true,
+  "captures": {
+    "favorite-add-beta-preview.png": {
+      "sha256": "e058b1d0186120da454a3b89f84b6c36308cbee1595dfa753c6a2f7dc980846e",
+      "source_archive": "favorite-component-native-r28-complete-evidence.tar.gz",
+      "source_path": "first-replay/favorite-add-beta-preview.png",
+      "unmodified": true
+    },
+    "favorite-dock-reorder-preview.png": {
+      "sha256": "87edce4ae5831b00266be6a9b78e9c15b878c113302538832dd28ae9574d833c",
+      "source_archive": "favorite-component-native-r28-complete-evidence.tar.gz",
+      "source_path": "first-replay/favorite-dock-reorder-preview.png",
+      "unmodified": true
+    },
+    "favorite-remove-running-shortcut-target.png": {
+      "sha256": "9d7b71d33bdd56de1551e4b5dd419a3868415152e96d7890e410b9d34af80cfc",
+      "source_archive": "favorite-component-native-r28-complete-evidence.tar.gz",
+      "source_path": "first-replay/favorite-remove-running-shortcut-target.png",
+      "unmodified": true
+    },
+    "favorite-landscape-filtered-search.png": {
+      "sha256": "77b821046b1ad8aac2d5cc2352ce6204551c32edd881637bd9a946c9b899fe27",
+      "source_archive": "favorite-component-native-r28-complete-evidence.tar.gz",
+      "source_path": "first-replay/favorite-landscape-filtered-search.png",
+      "unmodified": true,
+      "logical_orientation": "left-up",
+      "raw_panel_pixel_size": [
+        720,
+        1440
+      ],
+      "pixels_rotated_for_publication": false
+    },
+    "favorite-landscape-keyboard-source-preview.png": {
+      "sha256": "9f4e3bfad7b20a9f22cf776254d378c1d3b3cd10198123d6cdb537282eb6c6ec",
+      "source_archive": "favorite-component-native-r28-complete-evidence.tar.gz",
+      "source_path": "first-replay/favorite-landscape-keyboard-source-preview.png",
+      "unmodified": true,
+      "logical_orientation": "left-up",
+      "raw_panel_pixel_size": [
+        720,
+        1440
+      ],
+      "pixels_rotated_for_publication": false
+    },
+    "favorite-after-pam.png": {
+      "sha256": "3c2f35d51b847f7fce5921fcece248222fec925877b8d527c825a59137047e9b",
+      "source_archive": "favorite-component-native-r28-complete-evidence.tar.gz",
+      "source_path": "first-replay/favorite-after-pam.png",
+      "unmodified": true
+    },
+    "browser-observer-discrepancy.png": {
+      "sha256": "221f30470c519f4e3c58f2ff32afd75364f68577935f3f9a6b94c31b6afc8715",
+      "source_archive": "favorite-drag-native-r28-attempt5-complete-evidence.tar.gz",
+      "source_path": "first-replay/browser-exact-state-failure.png",
+      "unmodified": true,
+      "scope": "Retained failure: six masked characters in rendered field while last received report says four; no actual DOM-value conclusion from the image alone"
+    }
+  },
+  "published_historical_qa_sources": {
+    "native-component-controller.py": {
+      "original_name": "native-controller-r28-component.py",
+      "sha256": "fe0a5ed32f098a20a4cde431e59f0cb941c60c95cf7db55412deda3ff5e195f1",
+      "byte_identical_to_collected_source": true
+    },
+    "normal-session-audit.py": {
+      "original_name": "verify-normal-r28-component.py",
+      "sha256": "59eccbf375a3f3e30a9f10c6ea7b3dce85a6ddb84bbd33a50943bf606b3b9a2d",
+      "byte_identical_to_collected_source": true
+    },
+    "gpu-audit.py": {
+      "original_name": "gpu-observe-r28-component.py",
+      "sha256": "5b47ec74d3eb814b594249ff9000d563d3ecff635b1c9882222c1309bff882ff",
+      "byte_identical_to_collected_source": true
+    }
+  }
+}

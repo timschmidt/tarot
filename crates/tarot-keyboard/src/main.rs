@@ -297,7 +297,7 @@ impl Keyboard {
                 egui::Pos2::ZERO,
                 egui::vec2(self.width as f32, self.height as f32),
             )),
-            events: std::mem::take(&mut self.events),
+            events: tarot_ui::keyboard::take_pointer_frame(&mut self.events),
             time: Some(self.start.elapsed().as_secs_f64()),
             focused: true,
             ..Default::default()
@@ -338,7 +338,7 @@ impl Keyboard {
         };
         surface.frame(&self.qh, self.generation);
         self.frame_pending = true;
-        self.dirty = false;
+        self.dirty = !self.events.is_empty();
         self.graphics
             .as_mut()
             .unwrap()

@@ -1,6 +1,6 @@
 # Native browser compatibility
 
-Revision 26 installed and the scoped native replay accepted, October 28, 2026. This advances the development plan's native browser requirement; media, permissions, portals, downloads and broad site compatibility retain separate gates.
+Revision 26 is the last accepted complete scoped native replay, October 28, 2026. The installed phone candidate is revision 28; its ongoing checks and retained input failures are described in [favorite organization and keyboard input](FAVORITE_DRAG.md#native-keyboard-regression-discovered-during-acceptance). This advances the development plan's native browser requirement; media, permissions, portals, downloads and broad site compatibility retain separate gates.
 
 ## Real Firefox baseline
 

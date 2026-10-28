@@ -249,6 +249,13 @@ impl GestureRecognizer {
             Origin::OrdinaryUi
         } else if layout.gesture().contains(x, y) {
             Origin::Strip
+        } else if !matches!(model.view, View::App(_))
+            && presentation.dock > 0.001
+            && (model.view != View::Launcher || model.editing_favorites)
+            && (0..=crate::quick_launch::CAPACITY)
+                .any(|i| crate::quick_launch::slot(layout, i, None).contains(x, y))
+        {
+            Origin::OrdinaryUi
         } else if model.view == View::Overview
             && !model.cards.is_empty()
             && y >= Layout::STATUS
@@ -647,6 +654,20 @@ mod tests {
             model,
             &Presentation::settled(model, layout),
         )
+    }
+
+    #[test]
+    fn the_top_of_the_tray_is_owned_by_controls_instead_of_card_browsing() {
+        let (model, layout, mut recognizer) = fixture(View::Overview);
+        let y = crate::quick_launch::slot(layout, 0, None).y + 1.0;
+        assert_eq!(
+            begin(&mut recognizer, &model, layout, (40.0, y)),
+            Owner::Shell
+        );
+        recognizer.tick_elapsed(Duration::from_secs(1));
+        recognizer.update(1, 250.0, y - 30.0, 1100);
+        assert_eq!(recognizer.preview(), None);
+        assert_eq!(recognizer.finish(1, 1200, &model), Outcome::default());
     }
 
     #[test]
