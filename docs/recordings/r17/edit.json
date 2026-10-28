@@ -1,0 +1,1089 @@
+{
+  "encoded_frame_count": 17,
+  "identical_quantized_frames_may_coalesce": true,
+  "source_trace_sha256": "415216ae82d3cf9e2200092a97a166108f6d1cd97f26c6fd99361b5eb8f3f8cf",
+  "actual_capture_count": 18,
+  "source_capture_seconds": 5.160976842002128,
+  "gif_sha256": "f98fb545a32ee631d7af8d5e0f6697f8064a134946459cf444a86c5425257793",
+  "output_size": [
+    360,
+    720
+  ],
+  "interpolated": false,
+  "capture_intervals_quantized_to_10ms": true,
+  "endpoint_display_hold_ms": 400,
+  "colors_quantized": true,
+  "performance_benchmark": false,
+  "frames": [
+    {
+      "file": "0000.png",
+      "requested_seconds": 0.00011928900130442344,
+      "completed_seconds": 0.2864295260005747,
+      "sha256": "1fb7af71550d94d80818badb0861ae6ebeafcba149a79d6c22eadcf6bbc9e14f",
+      "view": {
+        "App": 9
+      },
+      "selected": 9,
+      "presentation": {
+        "arrange": null,
+        "dock": 0.0,
+        "overview": 0.0,
+        "quick_launch": null,
+        "windows": [
+          {
+            "corner_radius": 6.710000038146973,
+            "id": 1,
+            "opacity": 0.0,
+            "rect": {
+              "height": 374.5326232910156,
+              "width": 219.60000610351562,
+              "x": -185.40000915527344,
+              "y": 160.0
+            },
+            "rotation": 0.0
+          },
+          {
+            "corner_radius": 0.0,
+            "id": 9,
+            "opacity": 1.0,
+            "rect": {
+              "height": 613.9878540039062,
+              "width": 360.0,
+              "x": 0.0,
+              "y": 32.0
+            },
+            "rotation": 0.0
+          }
+        ]
+      },
+      "output": {
+        "orientation": "normal",
+        "physical_height": 1440,
+        "physical_width": 720,
+        "presented_revision": 17,
+        "requested": null,
+        "revision": 17,
+        "scale": 2
+      },
+      "render_metrics": {
+        "cpu_max_us": 168567,
+        "cpu_total_us": 15098295,
+        "dmabuf_imports": 85,
+        "dmabuf_rejections": 0,
+        "drm_presentations": 1368,
+        "rendered_frames": 1369
+      }
+    },
+    {
+      "file": "0001.png",
+      "requested_seconds": 0.312474698999722,
+      "completed_seconds": 0.5430335940000077,
+      "sha256": "8e04e70c90c46092dbff7b6ac9a51e1c51003ba3161fe348022487f54d251565",
+      "view": {
+        "App": 9
+      },
+      "selected": 9,
+      "presentation": {
+        "arrange": null,
+        "dock": 0.0,
+        "overview": 0.0,
+        "quick_launch": null,
+        "windows": [
+          {
+            "corner_radius": 6.710000038146973,
+            "id": 1,
+            "opacity": 0.0,
+            "rect": {
+              "height": 251.3200225830078,
+              "width": 219.60000610351562,
+              "x": -185.40000915527344,
+              "y": 160.0
+            },
+            "rotation": 0.0
+          },
+          {
+            "corner_radius": 0.0,
+            "id": 9,
+            "opacity": 1.0,
+            "rect": {
+              "height": 412.0,
+              "width": 360.0,
+              "x": 0.0,
+              "y": 32.0
+            },
+            "rotation": 0.0
+          }
+        ]
+      },
+      "output": {
+        "orientation": "normal",
+        "physical_height": 1440,
+        "physical_width": 720,
+        "presented_revision": 17,
+        "requested": null,
+        "revision": 17,
+        "scale": 2
+      },
+      "render_metrics": {
+        "cpu_max_us": 168567,
+        "cpu_total_us": 15118707,
+        "dmabuf_imports": 89,
+        "dmabuf_rejections": 0,
+        "drm_presentations": 1373,
+        "rendered_frames": 1374
+      }
+    },
+    {
+      "file": "0002.png",
+      "requested_seconds": 0.5688466480023635,
+      "completed_seconds": 0.8341454670007806,
+      "sha256": "63e1e65b33798045be8f0443c11399ddb69ae580b3073cec446a92d748ab97b3",
+      "view": {
+        "App": 9
+      },
+      "selected": 9,
+      "presentation": {
+        "arrange": null,
+        "dock": 0.0,
+        "overview": 0.0,
+        "quick_launch": null,
+        "windows": [
+          {
+            "corner_radius": 6.710000038146973,
+            "id": 1,
+            "opacity": 0.0,
+            "rect": {
+              "height": 251.3200225830078,
+              "width": 219.60000610351562,
+              "x": -185.40000915527344,
+              "y": 160.0
+            },
+            "rotation": 0.0
+          },
+          {
+            "corner_radius": 0.0,
+            "id": 9,
+            "opacity": 1.0,
+            "rect": {
+              "height": 412.0,
+              "width": 360.0,
+              "x": 0.0,
+              "y": 32.0
+            },
+            "rotation": 0.0
+          }
+        ]
+      },
+      "output": {
+        "orientation": "normal",
+        "physical_height": 1440,
+        "physical_width": 720,
+        "presented_revision": 17,
+        "requested": null,
+        "revision": 17,
+        "scale": 2
+      },
+      "render_metrics": {
+        "cpu_max_us": 168567,
+        "cpu_total_us": 15136628,
+        "dmabuf_imports": 89,
+        "dmabuf_rejections": 0,
+        "drm_presentations": 1381,
+        "rendered_frames": 1382
+      }
+    },
+    {
+      "file": "0003.png",
+      "requested_seconds": 0.8601134330019704,
+      "completed_seconds": 1.1129100500002096,
+      "sha256": "c400b644515f3179d1f5bce1736f6ef970a1d40b063b9495b0c0b1f6e28b0ea5",
+      "view": {
+        "App": 9
+      },
+      "selected": 9,
+      "presentation": {
+        "arrange": null,
+        "dock": 0.0,
+        "overview": 0.0,
+        "quick_launch": null,
+        "windows": [
+          {
+            "corner_radius": 6.710000038146973,
+            "id": 1,
+            "opacity": 0.0,
+            "rect": {
+              "height": 251.3200225830078,
+              "width": 219.60000610351562,
+              "x": -185.40000915527344,
+              "y": 160.0
+            },
+            "rotation": 0.0
+          },
+          {
+            "corner_radius": 0.0,
+            "id": 9,
+            "opacity": 1.0,
+            "rect": {
+              "height": 412.0,
+              "width": 360.0,
+              "x": 0.0,
+              "y": 32.0
+            },
+            "rotation": 0.0
+          }
+        ]
+      },
+      "output": {
+        "orientation": "normal",
+        "physical_height": 1440,
+        "physical_width": 720,
+        "presented_revision": 17,
+        "requested": null,
+        "revision": 17,
+        "scale": 2
+      },
+      "render_metrics": {
+        "cpu_max_us": 168567,
+        "cpu_total_us": 15146902,
+        "dmabuf_imports": 89,
+        "dmabuf_rejections": 0,
+        "drm_presentations": 1386,
+        "rendered_frames": 1387
+      }
+    },
+    {
+      "file": "0004.png",
+      "requested_seconds": 1.1391795510025986,
+      "completed_seconds": 1.4115633690016693,
+      "sha256": "acbdba7b0d0a18cb411c09f0a6d33b9d490a6c914fab2f6fa791aaffd4cc858c",
+      "view": {
+        "App": 9
+      },
+      "selected": 9,
+      "presentation": {
+        "arrange": null,
+        "dock": 0.0,
+        "overview": 0.0,
+        "quick_launch": null,
+        "windows": [
+          {
+            "corner_radius": 6.710000038146973,
+            "id": 1,
+            "opacity": 0.0,
+            "rect": {
+              "height": 251.3200225830078,
+              "width": 219.60000610351562,
+              "x": -185.40000915527344,
+              "y": 160.0
+            },
+            "rotation": 0.0
+          },
+          {
+            "corner_radius": 0.0,
+            "id": 9,
+            "opacity": 1.0,
+            "rect": {
+              "height": 412.0,
+              "width": 360.0,
+              "x": 0.0,
+              "y": 32.0
+            },
+            "rotation": 0.0
+          }
+        ]
+      },
+      "output": {
+        "orientation": "normal",
+        "physical_height": 1440,
+        "physical_width": 720,
+        "presented_revision": 17,
+        "requested": null,
+        "revision": 17,
+        "scale": 2
+      },
+      "render_metrics": {
+        "cpu_max_us": 168567,
+        "cpu_total_us": 15167544,
+        "dmabuf_imports": 89,
+        "dmabuf_rejections": 0,
+        "drm_presentations": 1392,
+        "rendered_frames": 1393
+      }
+    },
+    {
+      "file": "0005.png",
+      "requested_seconds": 1.4375157110007422,
+      "completed_seconds": 1.8841511370010267,
+      "sha256": "51394e33d3d8066e396f2891fb45d2651c4824c047b16d1476fc8fb6de2a7972",
+      "view": {
+        "App": 9
+      },
+      "selected": 9,
+      "presentation": {
+        "arrange": null,
+        "dock": 0.0,
+        "overview": 0.0,
+        "quick_launch": null,
+        "windows": [
+          {
+            "corner_radius": 6.710000038146973,
+            "id": 1,
+            "opacity": 0.0,
+            "rect": {
+              "height": 328.78961181640625,
+              "width": 219.60000610351562,
+              "x": -185.40000915527344,
+              "y": 160.0
+            },
+            "rotation": 0.0
+          },
+          {
+            "corner_radius": 0.0,
+            "id": 9,
+            "opacity": 1.0,
+            "rect": {
+              "height": 538.9993286132812,
+              "width": 360.0,
+              "x": 0.0,
+              "y": 32.0
+            },
+            "rotation": 0.0
+          }
+        ]
+      },
+      "output": {
+        "orientation": "normal",
+        "physical_height": 1440,
+        "physical_width": 720,
+        "presented_revision": 17,
+        "requested": null,
+        "revision": 17,
+        "scale": 2
+      },
+      "render_metrics": {
+        "cpu_max_us": 168567,
+        "cpu_total_us": 15199058,
+        "dmabuf_imports": 94,
+        "dmabuf_rejections": 0,
+        "drm_presentations": 1399,
+        "rendered_frames": 1400
+      }
+    },
+    {
+      "file": "0006.png",
+      "requested_seconds": 1.9102298930010875,
+      "completed_seconds": 2.1130198650025704,
+      "sha256": "a404915388d51234e2909ce2afea8cd9b859dad3db3f59c2b101d8b28cfd0a9c",
+      "view": {
+        "App": 9
+      },
+      "selected": 9,
+      "presentation": {
+        "arrange": null,
+        "dock": 0.0,
+        "overview": 0.0,
+        "quick_launch": null,
+        "windows": [
+          {
+            "corner_radius": 6.710000038146973,
+            "id": 1,
+            "opacity": 0.0,
+            "rect": {
+              "height": 256.7503662109375,
+              "width": 219.60000610351562,
+              "x": -185.40000915527344,
+              "y": 160.0
+            },
+            "rotation": 0.0
+          },
+          {
+            "corner_radius": 0.0,
+            "id": 9,
+            "opacity": 1.0,
+            "rect": {
+              "height": 420.9021911621094,
+              "width": 360.0,
+              "x": 0.0,
+              "y": 32.0
+            },
+            "rotation": 0.0
+          }
+        ]
+      },
+      "output": {
+        "orientation": "normal",
+        "physical_height": 1440,
+        "physical_width": 720,
+        "presented_revision": 17,
+        "requested": null,
+        "revision": 17,
+        "scale": 2
+      },
+      "render_metrics": {
+        "cpu_max_us": 168567,
+        "cpu_total_us": 15243939,
+        "dmabuf_imports": 99,
+        "dmabuf_rejections": 0,
+        "drm_presentations": 1408,
+        "rendered_frames": 1409
+      }
+    },
+    {
+      "file": "0007.png",
+      "requested_seconds": 2.1388157100009266,
+      "completed_seconds": 2.391375291001168,
+      "sha256": "4cf70026f0aa1cb5bdeb439c19ff9ae4c786efa43b4f9e7f2b87cd7bae8358e4",
+      "view": {
+        "App": 9
+      },
+      "selected": 9,
+      "presentation": {
+        "arrange": null,
+        "dock": 0.0,
+        "overview": 0.0,
+        "quick_launch": null,
+        "windows": [
+          {
+            "corner_radius": 6.710000038146973,
+            "id": 1,
+            "opacity": 0.0,
+            "rect": {
+              "height": 251.3200225830078,
+              "width": 219.60000610351562,
+              "x": -185.40000915527344,
+              "y": 160.0
+            },
+            "rotation": 0.0
+          },
+          {
+            "corner_radius": 0.0,
+            "id": 9,
+            "opacity": 1.0,
+            "rect": {
+              "height": 412.0,
+              "width": 360.0,
+              "x": 0.0,
+              "y": 32.0
+            },
+            "rotation": 0.0
+          }
+        ]
+      },
+      "output": {
+        "orientation": "normal",
+        "physical_height": 1440,
+        "physical_width": 720,
+        "presented_revision": 17,
+        "requested": null,
+        "revision": 17,
+        "scale": 2
+      },
+      "render_metrics": {
+        "cpu_max_us": 168567,
+        "cpu_total_us": 15254434,
+        "dmabuf_imports": 99,
+        "dmabuf_rejections": 0,
+        "drm_presentations": 1412,
+        "rendered_frames": 1413
+      }
+    },
+    {
+      "file": "0008.png",
+      "requested_seconds": 2.417373090000183,
+      "completed_seconds": 2.7180184030003147,
+      "sha256": "4cf70026f0aa1cb5bdeb439c19ff9ae4c786efa43b4f9e7f2b87cd7bae8358e4",
+      "view": {
+        "App": 9
+      },
+      "selected": 9,
+      "presentation": {
+        "arrange": null,
+        "dock": 0.0,
+        "overview": 0.0,
+        "quick_launch": null,
+        "windows": [
+          {
+            "corner_radius": 6.710000038146973,
+            "id": 1,
+            "opacity": 0.0,
+            "rect": {
+              "height": 251.3200225830078,
+              "width": 219.60000610351562,
+              "x": -185.40000915527344,
+              "y": 160.0
+            },
+            "rotation": 0.0
+          },
+          {
+            "corner_radius": 0.0,
+            "id": 9,
+            "opacity": 1.0,
+            "rect": {
+              "height": 412.0,
+              "width": 360.0,
+              "x": 0.0,
+              "y": 32.0
+            },
+            "rotation": 0.0
+          }
+        ]
+      },
+      "output": {
+        "orientation": "normal",
+        "physical_height": 1440,
+        "physical_width": 720,
+        "presented_revision": 17,
+        "requested": null,
+        "revision": 17,
+        "scale": 2
+      },
+      "render_metrics": {
+        "cpu_max_us": 168567,
+        "cpu_total_us": 15262241,
+        "dmabuf_imports": 99,
+        "dmabuf_rejections": 0,
+        "drm_presentations": 1415,
+        "rendered_frames": 1416
+      }
+    },
+    {
+      "file": "0009.png",
+      "requested_seconds": 2.7443711100022483,
+      "completed_seconds": 3.044961299001443,
+      "sha256": "ca57b173af701941d5d15bc524d67df06cff3fc0cdd9d62984b0fb4c66d6f7b8",
+      "view": {
+        "App": 9
+      },
+      "selected": 9,
+      "presentation": {
+        "arrange": null,
+        "dock": 0.0,
+        "overview": 0.0,
+        "quick_launch": null,
+        "windows": [
+          {
+            "corner_radius": 6.710000038146973,
+            "id": 1,
+            "opacity": 0.0,
+            "rect": {
+              "height": 251.3200225830078,
+              "width": 219.60000610351562,
+              "x": -185.40000915527344,
+              "y": 160.0
+            },
+            "rotation": 0.0
+          },
+          {
+            "corner_radius": 0.0,
+            "id": 9,
+            "opacity": 1.0,
+            "rect": {
+              "height": 412.0,
+              "width": 360.0,
+              "x": 0.0,
+              "y": 32.0
+            },
+            "rotation": 0.0
+          }
+        ]
+      },
+      "output": {
+        "orientation": "normal",
+        "physical_height": 1440,
+        "physical_width": 720,
+        "presented_revision": 17,
+        "requested": null,
+        "revision": 17,
+        "scale": 2
+      },
+      "render_metrics": {
+        "cpu_max_us": 168567,
+        "cpu_total_us": 15272182,
+        "dmabuf_imports": 99,
+        "dmabuf_rejections": 0,
+        "drm_presentations": 1418,
+        "rendered_frames": 1419
+      }
+    },
+    {
+      "file": "0010.png",
+      "requested_seconds": 3.0707250619998376,
+      "completed_seconds": 3.2911101570025494,
+      "sha256": "4cf70026f0aa1cb5bdeb439c19ff9ae4c786efa43b4f9e7f2b87cd7bae8358e4",
+      "view": {
+        "App": 9
+      },
+      "selected": 9,
+      "presentation": {
+        "arrange": null,
+        "dock": 0.0,
+        "overview": 0.0,
+        "quick_launch": null,
+        "windows": [
+          {
+            "corner_radius": 6.710000038146973,
+            "id": 1,
+            "opacity": 0.0,
+            "rect": {
+              "height": 251.3200225830078,
+              "width": 219.60000610351562,
+              "x": -185.40000915527344,
+              "y": 160.0
+            },
+            "rotation": 0.0
+          },
+          {
+            "corner_radius": 0.0,
+            "id": 9,
+            "opacity": 1.0,
+            "rect": {
+              "height": 412.0,
+              "width": 360.0,
+              "x": 0.0,
+              "y": 32.0
+            },
+            "rotation": 0.0
+          }
+        ]
+      },
+      "output": {
+        "orientation": "normal",
+        "physical_height": 1440,
+        "physical_width": 720,
+        "presented_revision": 17,
+        "requested": null,
+        "revision": 17,
+        "scale": 2
+      },
+      "render_metrics": {
+        "cpu_max_us": 168567,
+        "cpu_total_us": 15282167,
+        "dmabuf_imports": 99,
+        "dmabuf_rejections": 0,
+        "drm_presentations": 1424,
+        "rendered_frames": 1425
+      }
+    },
+    {
+      "file": "0011.png",
+      "requested_seconds": 3.316950626001926,
+      "completed_seconds": 3.577134401002695,
+      "sha256": "d8cd8b1003750698a679abf1edb116e8676e61fd30c28e59c866e73686d5a82b",
+      "view": {
+        "App": 9
+      },
+      "selected": 9,
+      "presentation": {
+        "arrange": null,
+        "dock": 0.0,
+        "overview": 0.0,
+        "quick_launch": null,
+        "windows": [
+          {
+            "corner_radius": 6.710000038146973,
+            "id": 1,
+            "opacity": 0.0,
+            "rect": {
+              "height": 251.3200225830078,
+              "width": 219.60000610351562,
+              "x": -185.40000915527344,
+              "y": 160.0
+            },
+            "rotation": 0.0
+          },
+          {
+            "corner_radius": 0.0,
+            "id": 9,
+            "opacity": 1.0,
+            "rect": {
+              "height": 412.0,
+              "width": 360.0,
+              "x": 0.0,
+              "y": 32.0
+            },
+            "rotation": 0.0
+          }
+        ]
+      },
+      "output": {
+        "orientation": "normal",
+        "physical_height": 1440,
+        "physical_width": 720,
+        "presented_revision": 17,
+        "requested": null,
+        "revision": 17,
+        "scale": 2
+      },
+      "render_metrics": {
+        "cpu_max_us": 168567,
+        "cpu_total_us": 15297859,
+        "dmabuf_imports": 99,
+        "dmabuf_rejections": 0,
+        "drm_presentations": 1430,
+        "rendered_frames": 1431
+      }
+    },
+    {
+      "file": "0012.png",
+      "requested_seconds": 3.603063327002019,
+      "completed_seconds": 3.8790673920011614,
+      "sha256": "e527db1329e1f1a53fe581d8742aa7c84b940a0539d5e994ede2d7b00e9a111b",
+      "view": {
+        "App": 9
+      },
+      "selected": 9,
+      "presentation": {
+        "arrange": null,
+        "dock": 0.0,
+        "overview": 0.0,
+        "quick_launch": null,
+        "windows": [
+          {
+            "corner_radius": 6.710000038146973,
+            "id": 1,
+            "opacity": 0.0,
+            "rect": {
+              "height": 251.3200225830078,
+              "width": 219.60000610351562,
+              "x": -185.40000915527344,
+              "y": 160.0
+            },
+            "rotation": 0.0
+          },
+          {
+            "corner_radius": 0.0,
+            "id": 9,
+            "opacity": 1.0,
+            "rect": {
+              "height": 412.0,
+              "width": 360.0,
+              "x": 0.0,
+              "y": 32.0
+            },
+            "rotation": 0.0
+          }
+        ]
+      },
+      "output": {
+        "orientation": "normal",
+        "physical_height": 1440,
+        "physical_width": 720,
+        "presented_revision": 17,
+        "requested": null,
+        "revision": 17,
+        "scale": 2
+      },
+      "render_metrics": {
+        "cpu_max_us": 168567,
+        "cpu_total_us": 15317508,
+        "dmabuf_imports": 99,
+        "dmabuf_rejections": 0,
+        "drm_presentations": 1437,
+        "rendered_frames": 1438
+      }
+    },
+    {
+      "file": "0013.png",
+      "requested_seconds": 3.9050126090005506,
+      "completed_seconds": 4.201000157001545,
+      "sha256": "e44135174278391fc3c54d9f98eee73d62dab71b7f1dde8c6553e50ee8dd54eb",
+      "view": {
+        "App": 9
+      },
+      "selected": 9,
+      "presentation": {
+        "arrange": null,
+        "dock": 0.0,
+        "overview": 0.0,
+        "quick_launch": null,
+        "windows": [
+          {
+            "corner_radius": 6.710000038146973,
+            "id": 1,
+            "opacity": 0.0,
+            "rect": {
+              "height": 251.3200225830078,
+              "width": 219.60000610351562,
+              "x": -185.40000915527344,
+              "y": 160.0
+            },
+            "rotation": 0.0
+          },
+          {
+            "corner_radius": 0.0,
+            "id": 9,
+            "opacity": 1.0,
+            "rect": {
+              "height": 412.0,
+              "width": 360.0,
+              "x": 0.0,
+              "y": 32.0
+            },
+            "rotation": 0.0
+          }
+        ]
+      },
+      "output": {
+        "orientation": "normal",
+        "physical_height": 1440,
+        "physical_width": 720,
+        "presented_revision": 17,
+        "requested": null,
+        "revision": 17,
+        "scale": 2
+      },
+      "render_metrics": {
+        "cpu_max_us": 168567,
+        "cpu_total_us": 15337698,
+        "dmabuf_imports": 99,
+        "dmabuf_rejections": 0,
+        "drm_presentations": 1446,
+        "rendered_frames": 1447
+      }
+    },
+    {
+      "file": "0014.png",
+      "requested_seconds": 4.226957374001358,
+      "completed_seconds": 4.467174248002266,
+      "sha256": "e02a133d2d9dc5350524dbe4541ff8dad487020f63190817222315fa176b3ef7",
+      "view": {
+        "App": 9
+      },
+      "selected": 9,
+      "presentation": {
+        "arrange": null,
+        "dock": 0.0,
+        "overview": 0.0,
+        "quick_launch": null,
+        "windows": [
+          {
+            "corner_radius": 6.710000038146973,
+            "id": 1,
+            "opacity": 0.0,
+            "rect": {
+              "height": 251.3200225830078,
+              "width": 219.60000610351562,
+              "x": -185.40000915527344,
+              "y": 160.0
+            },
+            "rotation": 0.0
+          },
+          {
+            "corner_radius": 0.0,
+            "id": 9,
+            "opacity": 1.0,
+            "rect": {
+              "height": 412.0,
+              "width": 360.0,
+              "x": 0.0,
+              "y": 32.0
+            },
+            "rotation": 0.0
+          }
+        ]
+      },
+      "output": {
+        "orientation": "normal",
+        "physical_height": 1440,
+        "physical_width": 720,
+        "presented_revision": 17,
+        "requested": null,
+        "revision": 17,
+        "scale": 2
+      },
+      "render_metrics": {
+        "cpu_max_us": 168567,
+        "cpu_total_us": 15357248,
+        "dmabuf_imports": 99,
+        "dmabuf_rejections": 0,
+        "drm_presentations": 1453,
+        "rendered_frames": 1454
+      }
+    },
+    {
+      "file": "0015.png",
+      "requested_seconds": 4.494199980999838,
+      "completed_seconds": 4.738056852002046,
+      "sha256": "c0457a725b8eedcc16134709d3b1e13c76fdeabe96088398d1e571febe7a76a9",
+      "view": {
+        "App": 9
+      },
+      "selected": 9,
+      "presentation": {
+        "arrange": null,
+        "dock": 0.0,
+        "overview": 0.0,
+        "quick_launch": null,
+        "windows": [
+          {
+            "corner_radius": 6.710000038146973,
+            "id": 1,
+            "opacity": 0.0,
+            "rect": {
+              "height": 251.3200225830078,
+              "width": 219.60000610351562,
+              "x": -185.40000915527344,
+              "y": 160.0
+            },
+            "rotation": 0.0
+          },
+          {
+            "corner_radius": 0.0,
+            "id": 9,
+            "opacity": 1.0,
+            "rect": {
+              "height": 412.0,
+              "width": 360.0,
+              "x": 0.0,
+              "y": 32.0
+            },
+            "rotation": 0.0
+          }
+        ]
+      },
+      "output": {
+        "orientation": "normal",
+        "physical_height": 1440,
+        "physical_width": 720,
+        "presented_revision": 17,
+        "requested": null,
+        "revision": 17,
+        "scale": 2
+      },
+      "render_metrics": {
+        "cpu_max_us": 168567,
+        "cpu_total_us": 15372652,
+        "dmabuf_imports": 99,
+        "dmabuf_rejections": 0,
+        "drm_presentations": 1460,
+        "rendered_frames": 1461
+      }
+    },
+    {
+      "file": "0016.png",
+      "requested_seconds": 4.7639731939998455,
+      "completed_seconds": 5.17260964900197,
+      "sha256": "705a93361866e66b30132ea7de94c45d811a2ff6c0654bf2dd836898db5b84a0",
+      "view": {
+        "App": 9
+      },
+      "selected": 9,
+      "presentation": {
+        "arrange": null,
+        "dock": 0.0,
+        "overview": 0.0,
+        "quick_launch": null,
+        "windows": [
+          {
+            "corner_radius": 6.710000038146973,
+            "id": 1,
+            "opacity": 0.0,
+            "rect": {
+              "height": 354.22503662109375,
+              "width": 219.60000610351562,
+              "x": -185.40000915527344,
+              "y": 160.0
+            },
+            "rotation": 0.0
+          },
+          {
+            "corner_radius": 0.0,
+            "id": 9,
+            "opacity": 1.0,
+            "rect": {
+              "height": 580.69677734375,
+              "width": 360.0,
+              "x": 0.0,
+              "y": 32.0
+            },
+            "rotation": 0.0
+          }
+        ]
+      },
+      "output": {
+        "orientation": "normal",
+        "physical_height": 1440,
+        "physical_width": 720,
+        "presented_revision": 17,
+        "requested": null,
+        "revision": 17,
+        "scale": 2
+      },
+      "render_metrics": {
+        "cpu_max_us": 168567,
+        "cpu_total_us": 15397403,
+        "dmabuf_imports": 101,
+        "dmabuf_rejections": 0,
+        "drm_presentations": 1466,
+        "rendered_frames": 1467
+      }
+    },
+    {
+      "file": "0017.png",
+      "requested_seconds": 5.19916064300196,
+      "completed_seconds": 5.447406368002703,
+      "sha256": "a0630426be2995aadc8fcb60d3c49547215ff1f6fcfb0a17628cb0bd3d996001",
+      "view": {
+        "App": 9
+      },
+      "selected": 9,
+      "presentation": {
+        "arrange": null,
+        "dock": 0.0,
+        "overview": 0.0,
+        "quick_launch": null,
+        "windows": [
+          {
+            "corner_radius": 6.710000038146973,
+            "id": 1,
+            "opacity": 0.0,
+            "rect": {
+              "height": 397.7200012207031,
+              "width": 219.60000610351562,
+              "x": -185.40000915527344,
+              "y": 160.0
+            },
+            "rotation": 0.0
+          },
+          {
+            "corner_radius": 0.0,
+            "id": 9,
+            "opacity": 1.0,
+            "rect": {
+              "height": 652.0,
+              "width": 360.0,
+              "x": 0.0,
+              "y": 32.0
+            },
+            "rotation": 0.0
+          }
+        ]
+      },
+      "output": {
+        "orientation": "normal",
+        "physical_height": 1440,
+        "physical_width": 720,
+        "presented_revision": 17,
+        "requested": null,
+        "revision": 17,
+        "scale": 2
+      },
+      "render_metrics": {
+        "cpu_max_us": 168567,
+        "cpu_total_us": 15407435,
+        "dmabuf_imports": 102,
+        "dmabuf_rejections": 0,
+        "drm_presentations": 1469,
+        "rendered_frames": 1470
+      }
+    }
+  ],
+  "source_archive_sha256": "e88ebaa03a7e0a7e094d757267c24c2b813b408732d812c2c0820e5658d5daf6",
+  "package_sha256": "606c467d5d8f4f87299ba3d5f0d54238266a219c306b464ca4403e59375118c1",
+  "binaries_sha256": {
+    "tarot": "177a60c0b6fbe09d3ab2bddd46a69f8f79cbbc3665f8d735a2f992f4b37dab66",
+    "tarot-session": "dd0cf703ec3dbed1b870042b1507384cd563d7d0bc92c07e6984fbeb91613cb9",
+    "tarot-lock": "b9a4904f010dd8c1f1dffc31acf853230ff8283e7242db8b38af85f8782440aa",
+    "tarot-keyboard": "181e37f855df5f9da9bf29138847c3336daeca14020a298b600bde103ff21b89"
+  }
+}

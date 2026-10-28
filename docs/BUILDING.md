@@ -455,6 +455,17 @@ python3 tests/rounded_cards_replay.py --output /absolute/new/rounded-alpha --sca
 
 It stacks two changing native SHM clients through real input, checks pixels and corner selection in every orientation, and verifies cooperative close, refusal and isolated client exit. `phone_installed_session_replay.py --rounded-cards --cycles 0` adds native KMS/touch checks inside an already authenticated diagnostic session. It requires Pillow on the phone (`py3-pillow`), the two temporary catalog entries and exact audited fixture paths described in `phone_rounded_cards_replay.py`. The fixture must launch through Tarot as the ordinary user in its login cgroup. The native wrapper must remove those entries and preserve original preferences on failure as well as success. This option does not request a kernel-suspend test or establish manual physical-finger acceptance.
 
+The larger matrix and real GTK document-close check use their own private display. Build the current `input-probe` example first. The GTK replay also requires GNOME Text Editor, Tesseract with English data, GLib settings tools and `dbus-daemon`:
+
+```sh
+python3 tests/stack_matrix_replay.py --output /absolute/new/stack-matrix --xvfb /path/to/Xvfb
+python3 tests/gtk_close_replay.py --output /absolute/new/gtk-close --xvfb /path/to/Xvfb
+```
+
+The editor uses private HOME/XDG directories, a private session bus and a synthetic file. It checks document readiness, actual card reactivation, rendered Cancel/Save responses, exact saved bytes and cooperative exit. OCR searches the response-button area so the “Save Changes?” title cannot substitute for the Save button. The native `--stack-matrix` and `--gtk-close` options require the five temporary entries and isolated editor home supplied by the audited native wrapper; they preserve the original Calculator and login cgroup. Phone OCR packages are QA dependencies, not Tarot runtime dependencies.
+
+`capture_motion.py` optionally records actual completed compositor PNGs with timestamps, output/pose metadata and hashes. It never interpolates frames and stops on protected capture denial. Readback/encoding perturbs rendering, so these recordings are visual evidence and must not be used as frame-pacing or energy benchmarks. The raw PNGs and timing sidecars remain the source for any smaller published animation. `python3 scripts/export-motion.py /path/to/motion/gtk-minimize --output /path/to/minimize.gif --package-audit /path/to/package-audit.json` verifies every source image hash before export; its JSON preserves the observations, quantization and explicit endpoint display hold.
+
 Other X11 pointer replays can use `tests/with_xvfb.py --xvfb /path/to/Xvfb --log /absolute/new/server.log -- python3 tests/orientation_replay.py --output /absolute/new/evidence`. This keeps host focus changes out of the replay; owned-PID window discovery works without a window manager and keeps its focus guard.
 
 ## Hardware buttons

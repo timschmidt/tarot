@@ -12,7 +12,7 @@ The current Nura/OpenRC/elogind and PulseAudio baseline is independently observe
 
 ## Implemented foundation
 
-Installed revision 16 applies the packet to running Rust/GLES surfaces rather than displaying its screen mockups:
+Installed revision 17 applies the packet to running Rust/GLES surfaces rather than displaying its screen mockups:
 
 - Compile shared geometry, motion and gesture constants from an exact snapshot of `tokens/tarot.tokens.json`. The 360 × 720 portrait baseline has a 32-unit status bar, 36-unit exclusively owned gesture strip and 360 × 652 app area. The resting five-position tray occupies `[3,611,354,69]`.
 - Preserve app aspect ratio at the proposed 0.66 card scale and 139-unit portrait anchor; constrain the same geometry safely in landscape and above keyboards. Shared native corner masks, depth shadows and rounded input now pass on Panfrost. Shared fan poses and inactive scale now apply to live surfaces; native two-client rotation/touch acceptance passes.
@@ -31,7 +31,7 @@ The update also fixes diagnostic preference isolation: native DRM diagnostic ses
 | Packet study | Current live implementation | Remaining application / acceptance |
 | --- | --- | --- |
 | 01 Card view / Nocturne | Wallpaper, shared scale/anchor, live native cards and tray; rounded mask/shadow passes desktop GLES and native Panfrost | Title treatment and continuity comparison |
-| 02 Card stack | Real member identity, grouping, extraction and independent close; native-verified fan angles, shared corner/input mask and shadows | Larger native stacks, lift, gesture calibration and real recordings |
+| 02 Card stack | Real member identity, grouping, extraction and independent close; native-verified fan angles, shared corner/input mask and shadows | Native fan reorder/extraction, lift, gesture calibration and reference comparison |
 | 03 Launcher | Installed catalog, three columns, supplied role icons, no ordinary tray | Named persistent pages, rename/reorder, icon placement, native icon resolution, two-line labels and page/scroll disambiguation |
 | 04 Email | Ordinary native mail clients may run in cards | Cooperative Rust app styling/navigation; do not repaint a foreign client’s content |
 | 05 Banner | Standard service, replacement/actions/expiry and bottom overlay | Packet bottom well: coherently shrink foreground rather than cover it; compact/accessible heights and arrival transitions |
@@ -59,7 +59,7 @@ The update also fixes diagnostic preference isolation: native DRM diagnostic ses
 ## Ordered remaining work
 
 1. The foundation now passes Rust/MSRV/AArch64 checks, actual nested GLES input replays and clean installed-package touch/PAM/keyboard/protected-rotation tests. Keep original attempts and exact sources. A subsequent pixel audit retracts the suspected missing status text: the actual native clock/status regions are identical across captured states. Pixel visibility/comparison checks now guard the host replay. Leave the phone in normal Tarot.
-2. Rounded native clipping, shadow and corner selection now pass on the phone. Fan/input transforms now pass on the phone; record launch → minimize → browse → maximize → dismiss with real changing buffers and an unsaved-document refusal.
+2. Rounded native clipping, shadow and corner selection now pass on the phone. Fan/input transforms and three/five-card browsing now pass on the phone. Actual-frame recordings include launch, typing, minimize, browse, maximize and cooperative dismiss/refusal in a real GTK editor. Compare motion and gestures against the reference; capture overhead prevents frame-pacing conclusions.
 3. Implement everyday shell composition: named Launcher pages, native icons, Just Type, distinct app/device menus and the notification well/rail/dashboard. Establish keyboard-visible and landscape contracts before polish. Reuse light app chrome only for shell-owned or cooperating applications.
 4. Complete the phone/trust paths: locker presentation, privacy policy, authorization agents/portals, Bluetooth, ModemManager phone/SMS and audio routes. No active SIM is available; carrier gates remain explicitly pending.
 5. Run the packet’s A–L capture suite, motion/gesture calibration, text enlargement, reduced-motion and real-panel review. Only then apply Heritage/Vellum and score cross-theme conformance.

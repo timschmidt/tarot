@@ -123,9 +123,11 @@ class X11Input:
         self.frame_window = ancestor
         self.x.XSetInputFocus(self.display, self.window, 2, 0)
         expected = (rx.value + round(x), ry.value + round(y))
-        # A new host window can appear beneath an unmoved XTEST pointer. Emit
-        # a fresh motion through its corner before moving onto app content.
-        assert self.xtest.XTestFakeMotionEvent(self.display, -1, rx.value + 2, ry.value + 2, 0)
+        # A new host window can appear beneath an unmoved XTEST pointer.
+        # Prime hover only before a press: detouring through the corner during
+        # a held drag changes its axis/velocity before the intended motion.
+        if not self.held:
+            assert self.xtest.XTestFakeMotionEvent(self.display, -1, rx.value + 2, ry.value + 2, 0)
         assert self.xtest.XTestFakeMotionEvent(self.display, -1, *expected, 0)
         self.x.XSync(self.display, 0)
         root, child = c.c_ulong(), c.c_ulong()

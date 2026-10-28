@@ -159,34 +159,30 @@ impl Presentation {
     }
 
     fn for_view(model: &ShellModel, layout: Layout, view: View) -> Self {
-        let selected = model
+        let selected_stack = model
             .cards
             .iter()
-            .position(|card| Some(card.id) == model.selected)
-            .unwrap_or(0);
-        let positions = model.card_positions(layout);
-        let selected_position = positions.get(selected).copied().unwrap_or(0.0);
-        let selected_stack = model.cards.get(selected).map(|card| card.stack);
-        let selected_start = model
-            .cards
+            .find(|c| Some(c.id) == model.selected)
+            .map(|c| c.stack);
+        let mut groups: Vec<_> = model.cards.iter().map(|c| c.stack).collect();
+        groups.dedup();
+        let selected_group = groups
             .iter()
-            .position(|c| Some(c.stack) == selected_stack)
+            .position(|stack| Some(*stack) == selected_stack)
             .unwrap_or(0);
         let mut frame = Self {
             windows: model
                 .cards
                 .iter()
                 .map(|card| {
-                    let group_start = model
-                        .cards
+                    let group = groups
                         .iter()
-                        .position(|c| c.stack == card.stack)
+                        .position(|stack| *stack == card.stack)
                         .unwrap();
-                    let group_offset = positions[group_start]
-                        - positions
-                            .get(selected_start)
-                            .copied()
-                            .unwrap_or(selected_position);
+                    // A folded group occupies one deck position regardless of
+                    // its member count. Member browse distances are separate.
+                    let group_offset =
+                        (group as f32 - selected_group as f32) * (layout.card(0, 0).width + 18.0);
                     let mut pose = None;
                     let mut preview_visible = true;
                     let members = model.stack_members(card.id);
@@ -429,6 +425,42 @@ impl Animator {
 mod tests {
     use super::*;
     use crate::Command;
+
+    #[test]
+    fn adjacent_group_previews_remain_visible_after_a_three_or_five_member_stack() {
+        for count in [3, 5] {
+            let (_, layout, _) = fixture();
+            let mut model = ShellModel::default();
+            for id in 1..=count {
+                model.add_window(WindowId(id), id.to_string(), "same.app".into());
+            }
+            model.apply(Command::Overview);
+            for id in 1..count {
+                model.apply(Command::Stack {
+                    card: WindowId(id),
+                    with: WindowId(count),
+                });
+            }
+            let sibling = model.selected.unwrap();
+            model.add_window(WindowId(count + 1), "Neighbor".into(), "other.app".into());
+            model.apply(Command::Overview);
+            let frame = Presentation::settled(&model, layout);
+            assert!(
+                model
+                    .cards
+                    .iter()
+                    .any(|c| c.id != WindowId(count + 1) && frame.visible(c.id, layout)),
+                "Previous group must remain visible beside the selected standalone card"
+            );
+            model.apply(Command::Activate(sibling));
+            model.apply(Command::Overview);
+            let frame = Presentation::settled(&model, layout);
+            assert!(
+                frame.visible(WindowId(count + 1), layout),
+                "Next group must remain visible beside the selected fan"
+            );
+        }
+    }
 
     #[test]
     fn three_member_fan_uses_packet_poses_and_active_app_returns_to_zero_rotation() {

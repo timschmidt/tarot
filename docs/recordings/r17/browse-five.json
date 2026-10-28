@@ -1,0 +1,552 @@
+{
+  "encoded_frame_count": 3,
+  "identical_quantized_frames_may_coalesce": true,
+  "source_trace_sha256": "73c597f8dd0981913e3728aa8f3524bda5575eba4a0dc5982a0c803cb5dbd4e2",
+  "actual_capture_count": 5,
+  "source_capture_seconds": 1.9853422739979578,
+  "gif_sha256": "42054dc418c939813f208a5cdac1a6a50c00ae75326f23cc8692fa96d389dae6",
+  "output_size": [
+    360,
+    720
+  ],
+  "interpolated": false,
+  "capture_intervals_quantized_to_10ms": true,
+  "endpoint_display_hold_ms": 400,
+  "colors_quantized": true,
+  "performance_benchmark": false,
+  "frames": [
+    {
+      "file": "0000.png",
+      "requested_seconds": 0.00015283000175259076,
+      "completed_seconds": 0.49312769700190984,
+      "sha256": "f22d17913a2d6417b2879554443bc32abf58fd38b26f5ca18d51694942019201",
+      "view": "Overview",
+      "selected": 8,
+      "presentation": {
+        "arrange": null,
+        "dock": 1.0,
+        "overview": 1.0,
+        "quick_launch": null,
+        "windows": [
+          {
+            "corner_radius": 6.710000038146973,
+            "id": 1,
+            "opacity": 1.0,
+            "rect": {
+              "height": 397.7200012207031,
+              "width": 219.60000610351562,
+              "x": -137.40000915527344,
+              "y": 160.0
+            },
+            "rotation": 0.0
+          },
+          {
+            "corner_radius": 7.039999961853027,
+            "id": 4,
+            "opacity": 0.0,
+            "rect": {
+              "height": 417.2799987792969,
+              "width": 230.39999389648438,
+              "x": 91.0,
+              "y": 151.0
+            },
+            "rotation": -5.0
+          },
+          {
+            "corner_radius": 7.039999961853027,
+            "id": 5,
+            "opacity": 0.0,
+            "rect": {
+              "height": 417.2799987792969,
+              "width": 230.39999389648438,
+              "x": 91.0,
+              "y": 151.0
+            },
+            "rotation": -5.0
+          },
+          {
+            "corner_radius": 7.039999961853027,
+            "id": 6,
+            "opacity": 1.0,
+            "rect": {
+              "height": 417.2799987792969,
+              "width": 230.39999389648438,
+              "x": 91.0,
+              "y": 151.0
+            },
+            "rotation": -5.0
+          },
+          {
+            "corner_radius": 7.039999961853027,
+            "id": 7,
+            "opacity": 1.0,
+            "rect": {
+              "height": 417.2799987792969,
+              "width": 230.39999389648438,
+              "x": 110.0,
+              "y": 145.0
+            },
+            "rotation": 0.0
+          },
+          {
+            "corner_radius": 7.039999961853027,
+            "id": 8,
+            "opacity": 1.0,
+            "rect": {
+              "height": 417.2799987792969,
+              "width": 230.39999389648438,
+              "x": 129.0,
+              "y": 151.0
+            },
+            "rotation": 5.0
+          }
+        ]
+      },
+      "output": {
+        "orientation": "normal",
+        "physical_height": 1440,
+        "physical_width": 720,
+        "presented_revision": 17,
+        "requested": null,
+        "revision": 17,
+        "scale": 2
+      },
+      "render_metrics": {
+        "cpu_max_us": 168567,
+        "cpu_total_us": 12190166,
+        "dmabuf_imports": 67,
+        "dmabuf_rejections": 0,
+        "drm_presentations": 1080,
+        "rendered_frames": 1081
+      }
+    },
+    {
+      "file": "0001.png",
+      "requested_seconds": 0.5197084819992597,
+      "completed_seconds": 0.9668832710012794,
+      "sha256": "f22d17913a2d6417b2879554443bc32abf58fd38b26f5ca18d51694942019201",
+      "view": "Overview",
+      "selected": 8,
+      "presentation": {
+        "arrange": null,
+        "dock": 1.0,
+        "overview": 1.0,
+        "quick_launch": null,
+        "windows": [
+          {
+            "corner_radius": 6.710000038146973,
+            "id": 1,
+            "opacity": 1.0,
+            "rect": {
+              "height": 397.7200012207031,
+              "width": 219.60000610351562,
+              "x": -137.40000915527344,
+              "y": 160.0
+            },
+            "rotation": 0.0
+          },
+          {
+            "corner_radius": 7.039999961853027,
+            "id": 4,
+            "opacity": 0.0,
+            "rect": {
+              "height": 417.2799987792969,
+              "width": 230.39999389648438,
+              "x": 91.0,
+              "y": 151.0
+            },
+            "rotation": -5.0
+          },
+          {
+            "corner_radius": 7.039999961853027,
+            "id": 5,
+            "opacity": 0.0,
+            "rect": {
+              "height": 417.2799987792969,
+              "width": 230.39999389648438,
+              "x": 91.0,
+              "y": 151.0
+            },
+            "rotation": -5.0
+          },
+          {
+            "corner_radius": 7.039999961853027,
+            "id": 6,
+            "opacity": 1.0,
+            "rect": {
+              "height": 417.2799987792969,
+              "width": 230.39999389648438,
+              "x": 91.0,
+              "y": 151.0
+            },
+            "rotation": -5.0
+          },
+          {
+            "corner_radius": 7.039999961853027,
+            "id": 7,
+            "opacity": 1.0,
+            "rect": {
+              "height": 417.2799987792969,
+              "width": 230.39999389648438,
+              "x": 110.0,
+              "y": 145.0
+            },
+            "rotation": 0.0
+          },
+          {
+            "corner_radius": 7.039999961853027,
+            "id": 8,
+            "opacity": 1.0,
+            "rect": {
+              "height": 417.2799987792969,
+              "width": 230.39999389648438,
+              "x": 129.0,
+              "y": 151.0
+            },
+            "rotation": 5.0
+          }
+        ]
+      },
+      "output": {
+        "orientation": "normal",
+        "physical_height": 1440,
+        "physical_width": 720,
+        "presented_revision": 17,
+        "requested": null,
+        "revision": 17,
+        "scale": 2
+      },
+      "render_metrics": {
+        "cpu_max_us": 168567,
+        "cpu_total_us": 12200395,
+        "dmabuf_imports": 67,
+        "dmabuf_rejections": 0,
+        "drm_presentations": 1082,
+        "rendered_frames": 1083
+      }
+    },
+    {
+      "file": "0002.png",
+      "requested_seconds": 0.9933782250009244,
+      "completed_seconds": 1.5757152180012781,
+      "sha256": "1ee3e8d90c7f795ff97c7e26049ad863753d5f1ca3ff0dfafd7e3019f77c8ceb",
+      "view": "Overview",
+      "selected": 7,
+      "presentation": {
+        "arrange": null,
+        "dock": 1.0,
+        "overview": 1.0,
+        "quick_launch": null,
+        "windows": [
+          {
+            "corner_radius": 6.710000038146973,
+            "id": 1,
+            "opacity": 1.0,
+            "rect": {
+              "height": 397.7200012207031,
+              "width": 219.60000610351562,
+              "x": -185.40000915527344,
+              "y": 160.0
+            },
+            "rotation": 0.0
+          },
+          {
+            "corner_radius": 7.039999961853027,
+            "id": 4,
+            "opacity": 0.0,
+            "rect": {
+              "height": 417.2799987792969,
+              "width": 230.39999389648438,
+              "x": 43.0,
+              "y": 151.0
+            },
+            "rotation": -5.0
+          },
+          {
+            "corner_radius": 7.039999961853027,
+            "id": 5,
+            "opacity": 0.0,
+            "rect": {
+              "height": 417.2799987792969,
+              "width": 230.39999389648438,
+              "x": 43.0,
+              "y": 151.0
+            },
+            "rotation": -5.0
+          },
+          {
+            "corner_radius": 7.039999961853027,
+            "id": 6,
+            "opacity": 1.0,
+            "rect": {
+              "height": 417.2799987792969,
+              "width": 230.39999389648438,
+              "x": 43.0,
+              "y": 151.0
+            },
+            "rotation": -5.0
+          },
+          {
+            "corner_radius": 7.039999961853027,
+            "id": 8,
+            "opacity": 1.0,
+            "rect": {
+              "height": 417.2799987792969,
+              "width": 230.39999389648438,
+              "x": 62.0,
+              "y": 145.0
+            },
+            "rotation": 0.0
+          },
+          {
+            "corner_radius": 7.039999961853027,
+            "id": 7,
+            "opacity": 1.0,
+            "rect": {
+              "height": 417.2799987792969,
+              "width": 230.39999389648438,
+              "x": 81.0,
+              "y": 151.0
+            },
+            "rotation": 5.0
+          }
+        ]
+      },
+      "output": {
+        "orientation": "normal",
+        "physical_height": 1440,
+        "physical_width": 720,
+        "presented_revision": 17,
+        "requested": null,
+        "revision": 17,
+        "scale": 2
+      },
+      "render_metrics": {
+        "cpu_max_us": 168567,
+        "cpu_total_us": 12239444,
+        "dmabuf_imports": 67,
+        "dmabuf_rejections": 0,
+        "drm_presentations": 1087,
+        "rendered_frames": 1088
+      }
+    },
+    {
+      "file": "0003.png",
+      "requested_seconds": 1.6021633810014464,
+      "completed_seconds": 2.049618080000073,
+      "sha256": "e00fab8852a010fa46396a0d8e89508e262f9c2c0111cba4f7675d4580054155",
+      "view": "Overview",
+      "selected": 7,
+      "presentation": {
+        "arrange": null,
+        "dock": 1.0,
+        "overview": 1.0,
+        "quick_launch": null,
+        "windows": [
+          {
+            "corner_radius": 6.710000038146973,
+            "id": 1,
+            "opacity": 1.0,
+            "rect": {
+              "height": 397.7200012207031,
+              "width": 219.60000610351562,
+              "x": -185.40000915527344,
+              "y": 160.0
+            },
+            "rotation": 0.0
+          },
+          {
+            "corner_radius": 7.039999961853027,
+            "id": 4,
+            "opacity": 0.0,
+            "rect": {
+              "height": 417.2799987792969,
+              "width": 230.39999389648438,
+              "x": 43.0,
+              "y": 151.0
+            },
+            "rotation": -5.0
+          },
+          {
+            "corner_radius": 7.039999961853027,
+            "id": 5,
+            "opacity": 0.0,
+            "rect": {
+              "height": 417.2799987792969,
+              "width": 230.39999389648438,
+              "x": 43.0,
+              "y": 151.0
+            },
+            "rotation": -5.0
+          },
+          {
+            "corner_radius": 7.039999961853027,
+            "id": 6,
+            "opacity": 1.0,
+            "rect": {
+              "height": 417.2799987792969,
+              "width": 230.39999389648438,
+              "x": 43.0,
+              "y": 151.0
+            },
+            "rotation": -5.0
+          },
+          {
+            "corner_radius": 7.039999961853027,
+            "id": 8,
+            "opacity": 1.0,
+            "rect": {
+              "height": 417.2799987792969,
+              "width": 230.39999389648438,
+              "x": 62.0,
+              "y": 145.0
+            },
+            "rotation": 0.0
+          },
+          {
+            "corner_radius": 7.039999961853027,
+            "id": 7,
+            "opacity": 1.0,
+            "rect": {
+              "height": 417.2799987792969,
+              "width": 230.39999389648438,
+              "x": 81.0,
+              "y": 151.0
+            },
+            "rotation": 5.0
+          }
+        ]
+      },
+      "output": {
+        "orientation": "normal",
+        "physical_height": 1440,
+        "physical_width": 720,
+        "presented_revision": 17,
+        "requested": null,
+        "revision": 17,
+        "scale": 2
+      },
+      "render_metrics": {
+        "cpu_max_us": 168567,
+        "cpu_total_us": 12244400,
+        "dmabuf_imports": 67,
+        "dmabuf_rejections": 0,
+        "drm_presentations": 1088,
+        "rendered_frames": 1089
+      }
+    },
+    {
+      "file": "0004.png",
+      "requested_seconds": 2.076332237000315,
+      "completed_seconds": 2.4784699709998677,
+      "sha256": "e00fab8852a010fa46396a0d8e89508e262f9c2c0111cba4f7675d4580054155",
+      "view": "Overview",
+      "selected": 7,
+      "presentation": {
+        "arrange": null,
+        "dock": 1.0,
+        "overview": 1.0,
+        "quick_launch": null,
+        "windows": [
+          {
+            "corner_radius": 6.710000038146973,
+            "id": 1,
+            "opacity": 1.0,
+            "rect": {
+              "height": 397.7200012207031,
+              "width": 219.60000610351562,
+              "x": -185.40000915527344,
+              "y": 160.0
+            },
+            "rotation": 0.0
+          },
+          {
+            "corner_radius": 7.039999961853027,
+            "id": 4,
+            "opacity": 0.0,
+            "rect": {
+              "height": 417.2799987792969,
+              "width": 230.39999389648438,
+              "x": 43.0,
+              "y": 151.0
+            },
+            "rotation": -5.0
+          },
+          {
+            "corner_radius": 7.039999961853027,
+            "id": 5,
+            "opacity": 0.0,
+            "rect": {
+              "height": 417.2799987792969,
+              "width": 230.39999389648438,
+              "x": 43.0,
+              "y": 151.0
+            },
+            "rotation": -5.0
+          },
+          {
+            "corner_radius": 7.039999961853027,
+            "id": 6,
+            "opacity": 1.0,
+            "rect": {
+              "height": 417.2799987792969,
+              "width": 230.39999389648438,
+              "x": 43.0,
+              "y": 151.0
+            },
+            "rotation": -5.0
+          },
+          {
+            "corner_radius": 7.039999961853027,
+            "id": 8,
+            "opacity": 1.0,
+            "rect": {
+              "height": 417.2799987792969,
+              "width": 230.39999389648438,
+              "x": 62.0,
+              "y": 145.0
+            },
+            "rotation": 0.0
+          },
+          {
+            "corner_radius": 7.039999961853027,
+            "id": 7,
+            "opacity": 1.0,
+            "rect": {
+              "height": 417.2799987792969,
+              "width": 230.39999389648438,
+              "x": 81.0,
+              "y": 151.0
+            },
+            "rotation": 5.0
+          }
+        ]
+      },
+      "output": {
+        "orientation": "normal",
+        "physical_height": 1440,
+        "physical_width": 720,
+        "presented_revision": 17,
+        "requested": null,
+        "revision": 17,
+        "scale": 2
+      },
+      "render_metrics": {
+        "cpu_max_us": 168567,
+        "cpu_total_us": 12249589,
+        "dmabuf_imports": 67,
+        "dmabuf_rejections": 0,
+        "drm_presentations": 1089,
+        "rendered_frames": 1090
+      }
+    }
+  ],
+  "source_archive_sha256": "e88ebaa03a7e0a7e094d757267c24c2b813b408732d812c2c0820e5658d5daf6",
+  "package_sha256": "606c467d5d8f4f87299ba3d5f0d54238266a219c306b464ca4403e59375118c1",
+  "binaries_sha256": {
+    "tarot": "177a60c0b6fbe09d3ab2bddd46a69f8f79cbbc3665f8d735a2f992f4b37dab66",
+    "tarot-session": "dd0cf703ec3dbed1b870042b1507384cd563d7d0bc92c07e6984fbeb91613cb9",
+    "tarot-lock": "b9a4904f010dd8c1f1dffc31acf853230ff8283e7242db8b38af85f8782440aa",
+    "tarot-keyboard": "181e37f855df5f9da9bf29138847c3336daeca14020a298b600bde103ff21b89"
+  }
+}

@@ -183,6 +183,12 @@ def run(args, password):
         if getattr(args, 'rounded_cards', False):
             from phone_rounded_cards_replay import replay as cards_replay
             records['rounded_cards'] = cards_replay(socket, screen, state, tap, capture, before, args.output, cgroup)
+        if getattr(args, 'stack_matrix', False):
+            from phone_stack_matrix_replay import replay as matrix_replay
+            records['stack_matrix'] = matrix_replay(socket, screen, state, capture, before, args.output, cgroup)
+        if getattr(args, 'gtk_close', False):
+            from phone_gtk_close_replay import replay as gtk_replay
+            records['gtk_close'] = gtk_replay(socket, screen, guard, tap, state, capture, before, args.output, cgroup)
         if getattr(args, 'hardware_keys', False):
             from phone_hardware_replay import replay
             records['hardware_keys'] = replay(socket, pid, screen, guard, tap, state, authenticate,
@@ -416,6 +422,8 @@ def main():
     parser.add_argument('--hardware-keys', action='store_true')
     parser.add_argument('--quick-launch', action='store_true')
     parser.add_argument('--rounded-cards', action='store_true')
+    parser.add_argument('--stack-matrix', action='store_true')
+    parser.add_argument('--gtk-close', action='store_true')
     parser.add_argument('--detach', action='store_true')
     args = parser.parse_args()
     assert not args.panel_off or args.observe_sensors

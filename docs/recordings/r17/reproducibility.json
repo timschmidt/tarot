@@ -1,0 +1,19 @@
+{
+  "validation": {
+    "passed": true,
+    "four_payloads_bit_identical": true,
+    "signed_apk_bit_identical": true
+  },
+  "original_package_sha256": "606c467d5d8f4f87299ba3d5f0d54238266a219c306b464ca4403e59375118c1",
+  "repeat_package_sha256": "606c467d5d8f4f87299ba3d5f0d54238266a219c306b464ca4403e59375118c1",
+  "binaries_sha256": {
+    "tarot": "177a60c0b6fbe09d3ab2bddd46a69f8f79cbbc3665f8d735a2f992f4b37dab66",
+    "tarot-session": "dd0cf703ec3dbed1b870042b1507384cd563d7d0bc92c07e6984fbeb91613cb9",
+    "tarot-lock": "b9a4904f010dd8c1f1dffc31acf853230ff8283e7242db8b38af85f8782440aa",
+    "tarot-keyboard": "181e37f855df5f9da9bf29138847c3336daeca14020a298b600bde103ff21b89"
+  },
+  "original_source_sha256": "e88ebaa03a7e0a7e094d757267c24c2b813b408732d812c2c0820e5658d5daf6",
+  "scope": "Two clean builds in the same pinned Alpine/SDK builder, final QA/docs snapshot; no cross-machine reproducibility claim",
+  "repeat_source_sha256": "102aaa51b65b0dd99a391b8891ff06ffa06eb98490e58b1a4739714d34bec26b",
+  "rust_and_cargo_sources_identical": true
+}
