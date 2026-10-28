@@ -4,7 +4,7 @@ Tarot is a Rust phone shell in development for Nura on the PinePhone Pro, recrea
 
 The intended result is a complete Wayland session that runs native Linux applications: cards and stacks, a launcher and quick-launch dock, gestures, notifications, system controls, and eventually Rust phone applications. Tarot-owned application code will be Rust; standard Linux services, drivers, and native libraries are part of the platform.
 
-The original [Nocturne design packet](docs/Tarot_Design_Packet/README.txt) now guides the shell’s appearance and Pre 2-era interaction model. Its wallpaper, original icons, Lato typography and shared geometry now run in installed revision 14 on the phone. [Design coverage and remaining work](docs/DESIGN_APPLICATION.md) distinguish implemented foundations from the full design.
+The original [Nocturne design packet](docs/Tarot_Design_Packet/README.txt) now guides the shell’s appearance and Pre 2-era interaction model. Its wallpaper, original icons, Lato typography and shared geometry run in the installed phone session. [Design coverage and remaining work](docs/DESIGN_APPLICATION.md) distinguish implemented foundations from the full design.
 
 ## Project status
 
@@ -13,6 +13,8 @@ Implementation is underway. The workspace contains a Smithay compositor with sha
 M0 remains in progress. The phone has been upgraded through supported releases to 26.06; build reproduction, recovery, and the remaining hardware baseline are being recorded. Most planned phone-shell features are still outstanding. See [implementation status](docs/IMPLEMENTATION_STATUS.md) for evidence and limitations.
 
 Tarot is now the default login session on the development phone, with the normal installed entry running and diagnostics disabled. The retained revision 8 → 5 → 8 package round trip passes real PAM, native app/audio and cleanup checks on both revisions.
+
+The current installed revision 21 supports native transient families, popup overflow and [explicit maximize/fullscreen negotiation](docs/WINDOW_STATES.md). Fullscreen retains gesture navigation and returns to rounded, black-backed cards. All five native protocol cases and real GTK/Qt dialog/menu/state controls pass with fresh PAM, saved restart and independent cleanup. [Native captures and identities](docs/recordings/r21/README.md) retain the exact scope. Fullscreen IME, broader application coverage and the remaining plan gates stay open.
 
 Revision 14 adds the live local Calendar icon date and retained KMS power-off evidence, with native touch/PAM, favorite persistence, protected rotation and power/volume checks. Visual conformance remains open; isolated captures include pixel checks for status visibility. The phone remains in normal Tarot with diagnostics disabled.
 

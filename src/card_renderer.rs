@@ -1,14 +1,21 @@
 //! Native surface clipping. No app snapshots or wallpaper-painted corner covers.
 use smithay::{
-    backend::renderer::{
-        Frame,
-        element::{Element, Id, Kind, RenderElement, UnderlyingStorage},
-        gles::{
-            GlesError, GlesFrame, GlesPixelProgram, GlesRenderer, GlesTexProgram, Uniform,
-            UniformName, UniformType, element::PixelShaderElement,
+    backend::{
+        allocator::Fourcc,
+        renderer::{
+            Bind, Frame, Offscreen, Renderer,
+            element::{
+                Element, Id, Kind, RenderElement, UnderlyingStorage,
+                texture::{TextureRenderBuffer, TextureRenderElement},
+                utils::RescaleRenderElement,
+            },
+            gles::{
+                GlesError, GlesFrame, GlesPixelProgram, GlesRenderer, GlesTexProgram, GlesTexture,
+                Uniform, UniformName, UniformType, element::PixelShaderElement,
+            },
+            glow::{GlowFrame, GlowRenderer},
+            utils::{CommitCounter, DamageSet, OpaqueRegions},
         },
-        glow::{GlowFrame, GlowRenderer},
-        utils::{CommitCounter, DamageSet, OpaqueRegions},
     },
     utils::{Buffer, Logical, Physical, Rectangle, Scale, Size, Transform},
 };
@@ -45,12 +52,18 @@ struct Shadow {
     alpha: f32,
     used: bool,
 }
+struct Fill {
+    texture: TextureRenderBuffer<GlesTexture>,
+    used: bool,
+}
+pub type FilledCard = Masked<RescaleRenderElement<TextureRenderElement<GlesTexture>>>;
 #[derive(Default)]
 pub struct Cards {
     mask: Option<GlesTexProgram>,
     shadow: Option<GlesPixelProgram>,
     commits: HashMap<Id, Commit>,
     shadows: HashMap<WindowId, Shadow>,
+    fills: HashMap<WindowId, Fill>,
 }
 impl Cards {
     pub fn begin(&mut self, renderer: &mut GlowRenderer) -> Result<(), GlesError> {
@@ -88,11 +101,66 @@ impl Cards {
         for entry in self.shadows.values_mut() {
             entry.used = false;
         }
+        for entry in self.fills.values_mut() {
+            entry.used = false;
+        }
         Ok(())
     }
     pub fn end(&mut self) {
         self.commits.retain(|_, v| v.used);
         self.shadows.retain(|_, v| v.used);
+        self.fills.retain(|_, v| v.used);
+    }
+    /// A one-pixel black texture follows the same mask/pose as native trees.
+    /// Solid elements bypass the texture-program override used by that mask.
+    pub fn fill(
+        &mut self,
+        renderer: &mut GlowRenderer,
+        visual: WindowVisual,
+        target: Rectangle<i32, Physical>,
+        scene: Size<i32, Physical>,
+        scale: f64,
+    ) -> Result<Option<FilledCard>, GlesError> {
+        if let std::collections::hash_map::Entry::Vacant(entry) = self.fills.entry(visual.id) {
+            let texture = renderer.create_buffer(Fourcc::Abgr8888, (1, 1).into())?;
+            let mut texture =
+                TextureRenderBuffer::from_texture(renderer, texture, 1, Transform::Normal, None);
+            texture.render().draw(|texture| {
+                let mut framebuffer = renderer.bind(texture)?;
+                let mut frame =
+                    renderer.render(&mut framebuffer, (1, 1).into(), Transform::Normal)?;
+                frame.clear(
+                    [0.0, 0.0, 0.0, 1.0].into(),
+                    &[Rectangle::from_size((1, 1).into())],
+                )?;
+                // Subsequent sampling is ordered on this same GL context.
+                let _completion = frame.finish()?;
+                Ok::<_, GlesError>(vec![Rectangle::from_size((1, 1).into())])
+            })?;
+            entry.insert(Fill {
+                texture,
+                used: true,
+            });
+        }
+        let fill = self.fills.get_mut(&visual.id).unwrap();
+        fill.used = true;
+        let texture = TextureRenderElement::from_texture_render_buffer(
+            target.loc.to_f64(),
+            &fill.texture,
+            Some(visual.opacity),
+            None,
+            None,
+            Kind::Unspecified,
+        );
+        let texture = RescaleRenderElement::from_element(
+            texture,
+            target.loc,
+            (
+                f64::from(target.size.w) / scale,
+                f64::from(target.size.h) / scale,
+            ),
+        );
+        Ok(self.mask(texture, target, visual, scene, scale))
     }
     pub fn mask<E: RenderElement<GlowRenderer>>(
         &mut self,

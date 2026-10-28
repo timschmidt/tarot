@@ -78,6 +78,18 @@ pub fn show_with_presentation(
     layout: Layout,
     presentation: &Presentation,
 ) -> Vec<Command> {
+    show_with_native_fullscreen(ctx, model, layout, presentation, false)
+}
+
+/// Native fullscreen hides the status bar while retaining shell navigation.
+/// The compositor decides this only from the client's committed state.
+pub fn show_with_native_fullscreen(
+    ctx: &egui::Context,
+    model: &ShellModel,
+    layout: Layout,
+    presentation: &Presentation,
+    fullscreen: bool,
+) -> Vec<Command> {
     theme::install(ctx);
     theme::prepare_art(ctx);
     let mut commands = Vec::new();
@@ -115,57 +127,60 @@ pub fn show_with_presentation(
         .show(ctx, |ui| {
             ui.set_min_size(full.size());
             let painter = ui.painter().clone();
-            let status = Rect::from_min_size(Pos2::ZERO, Vec2::new(layout.width, Layout::STATUS));
-            painter.rect_filled(status, 0.0, theme::STATUS);
-            let title = match model.view {
-                View::App(id) => model
-                    .cards
-                    .iter()
-                    .find(|card| card.id == id)
-                    .map(|card| card.title.as_str())
-                    .unwrap_or("Tarot"),
-                View::Launcher => "Launcher",
-                _ => "Tarot",
-            };
-            painter
-                .with_clip_rect(Rect::from_min_max(
-                    Pos2::ZERO,
-                    Pos2::new(layout.width / 2.0 - 36.0, Layout::STATUS),
-                ))
-                .text(
-                    Pos2::new(10.0, Layout::STATUS / 2.0),
-                    Align2::LEFT_CENTER,
-                    title,
-                    theme::bold(ctx, 15.0),
-                    Color32::WHITE,
+            if !fullscreen {
+                let status =
+                    Rect::from_min_size(Pos2::ZERO, Vec2::new(layout.width, Layout::STATUS));
+                painter.rect_filled(status, 0.0, theme::STATUS);
+                let title = match model.view {
+                    View::App(id) => model
+                        .cards
+                        .iter()
+                        .find(|card| card.id == id)
+                        .map(|card| card.title.as_str())
+                        .unwrap_or("Tarot"),
+                    View::Launcher => "Launcher",
+                    _ => "Tarot",
+                };
+                painter
+                    .with_clip_rect(Rect::from_min_max(
+                        Pos2::ZERO,
+                        Pos2::new(layout.width / 2.0 - 36.0, Layout::STATUS),
+                    ))
+                    .text(
+                        Pos2::new(10.0, Layout::STATUS / 2.0),
+                        Align2::LEFT_CENTER,
+                        title,
+                        theme::bold(ctx, 15.0),
+                        Color32::WHITE,
+                    );
+                painter.text(
+                    Pos2::new(layout.width / 2.0, Layout::STATUS / 2.0),
+                    Align2::CENTER_CENTER,
+                    if model.clock_label.is_empty() {
+                        "—:—"
+                    } else {
+                        &model.clock_label
+                    },
+                    theme::bold(ctx, 16.0),
+                    theme::TEXT,
                 );
-            painter.text(
-                Pos2::new(layout.width / 2.0, Layout::STATUS / 2.0),
-                Align2::CENTER_CENTER,
-                if model.clock_label.is_empty() {
-                    "—:—"
-                } else {
-                    &model.clock_label
-                },
-                theme::bold(ctx, 16.0),
-                theme::TEXT,
-            );
-            painter.text(
-                Pos2::new(layout.width - 10.0, Layout::STATUS / 2.0),
-                Align2::RIGHT_CENTER,
-                system::status_label(model),
-                FontId::proportional(11.0),
-                Color32::from_gray(185),
-            );
-            let status_button = Rect::from_min_size(
-                Pos2::new(layout.width - 104.0, 0.0),
-                Vec2::new(104.0, Layout::STATUS),
-            );
-            if ui
-                .interact(status_button, ui.id().with("system-status"), Sense::click())
-                .clicked()
-            {
-                commands.push(Command::SystemMenuOpen(!model.system_menu_open));
+                painter.text(
+                    Pos2::new(layout.width - 10.0, Layout::STATUS / 2.0),
+                    Align2::RIGHT_CENTER,
+                    system::status_label(model),
+                    FontId::proportional(11.0),
+                    Color32::from_gray(185),
+                );
+                let status_button = Rect::from_min_size(
+                    Pos2::new(layout.width - 104.0, 0.0),
+                    Vec2::new(104.0, Layout::STATUS),
+                );
+                if ui
+                    .interact(status_button, ui.id().with("system-status"), Sense::click())
+                    .clicked()
+                {
+                    commands.push(Command::SystemMenuOpen(!model.system_menu_open));
+                }
             }
 
             match model.view {

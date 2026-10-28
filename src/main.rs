@@ -28,6 +28,7 @@ mod sensors;
 mod sleep;
 mod state;
 mod text;
+mod window_state;
 mod winit;
 
 use anyhow::{Context, Result};

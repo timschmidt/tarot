@@ -1,6 +1,6 @@
 # Native transient windows
 
-October 28, 2026: revision 20 is installed and native-tested on the PinePhone Pro. Protocol lifecycle, configure/remap history, popup overflow pixels/input, protection and GTK/Qt dialog actions/sizes pass; client window-state hints and broader toolkit gates remain open. This is progress within M2, not completion of M2 or the development plan.
+October 28, 2026: revision 21 is installed and native-tested on the PinePhone Pro. Protocol lifecycle, configure/remap history, popup overflow pixels/input, protection and GTK/Qt dialog actions/sizes pass; the initial window-state/fullscreen cases also pass, while fullscreen IME and broader toolkit/window gates remain open. This is progress within M2, not completion of M2 or the development plan.
 
 ## Card ownership and lifetime
 
@@ -59,5 +59,5 @@ Quick Launch, rounded cards, three/five-member stacks, real GTK editor Save/Canc
 
 ## Next acceptance cases
 
-- Exercise maximize/fullscreen requests before the initial commit and after mapping. Implement an explicit mobile window-state policy and configure replies, including rejected requests, without premature initial configure or focus changes.
+- Revision 21 implements the [explicit window-state/fullscreen policy](WINDOW_STATES.md) and passes the initial/mapped request and native state/input cases. Extend fullscreen IME, min/max constraints, interactive move/resize and fullscreen-dialog/stack combinations.
 - Retain independent toolkit/application exceptions and add clipboard, terminal, browser and accessibility coverage. Passing these dialog fixtures alone does not close the M2 application contract.

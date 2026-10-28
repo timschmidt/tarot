@@ -39,6 +39,7 @@ smithay::backend::renderer::element::render_elements! {
 smithay::backend::renderer::element::render_elements! {
     pub SceneElement<=GlowRenderer>;
     Card=CardElement,
+    Fill=CropRenderElement<crate::card_renderer::FilledCard>,
     Shadow=CropRenderElement<PixelShaderElement>,
     Chrome=TextureRenderElement<GlesTexture>,
     Keyboard=CropRenderElement<WaylandSurfaceRenderElement<GlowRenderer>>,
@@ -369,6 +370,7 @@ pub fn build_scene(
                 model: &state.shell,
                 layout: state.layout,
                 presentation: &state.presentation,
+                fullscreen: state.fullscreen_chrome(),
                 physical: size,
                 scale: state.scale,
                 events: std::mem::take(&mut state.ui_events),
@@ -494,6 +496,12 @@ pub fn build_scene(
         };
         let scale = state.scale as f64;
         let visual = *visual;
+        let fullscreen = state.fullscreen_window(owner);
+        let content_clip = if fullscreen {
+            Rectangle::from_size(size)
+        } else {
+            content_clip
+        };
         let Some(card_geometry) = crate::focus::RenderGeometry::new(
             window.geometry(),
             visual.rect,
@@ -533,6 +541,15 @@ pub fn build_scene(
                 {
                     scene.push(SceneElement::Card(element));
                 }
+            }
+            if id == owner
+                && fullscreen
+                && let Some(fill) = shell
+                    .cards
+                    .fill(renderer, visual, card_target, size, scale)?
+                    .and_then(|fill| CropRenderElement::from_element(fill, scale, content_clip))
+            {
+                scene.push(SceneElement::Fill(fill));
             }
             if id == owner
                 && let Some(shadow) =

@@ -1,0 +1,152 @@
+{
+  "package_revision": 21,
+  "package_sha256": "d9ada87d40c0d2298652624eec3595622f31d659f5213a4910d6301aa91e2745",
+  "binaries_sha256": {
+    "tarot": "ea2d9016d6ad071c3ee46952311a5d9a35ccc8e9d881877b0a8b6d401d8de62d",
+    "tarot-session": "dd0cf703ec3dbed1b870042b1507384cd563d7d0bc92c07e6984fbeb91613cb9",
+    "tarot-lock": "0279df37cc1cc03da46abe93595e261a9639a4d9e3b71f23c9bd707c0f33457a",
+    "tarot-keyboard": "181e37f855df5f9da9bf29138847c3336daeca14020a298b600bde103ff21b89"
+  },
+  "source_archive_sha256": "0a33b3e314a3f9133e9185ebd03f52f280ff0066862db2ecec00a7af9fb22d9c",
+  "packaged_rust_files_matching_manifest": 330,
+  "protocol_fixture_sha256": "dc695f4f4f088760f58741bec6233720e13f246dc5aa30f9f394dea65938c6e4",
+  "protocol_fixture_source_sha256": "b06718e11bce7c0306e25f7325d25340b6d39157b48d67da5f68ec458b26dcdd",
+  "native_protocol_tests_passed": 5,
+  "native_driver_requests": 40,
+  "actual_touch_and_keyboard": true,
+  "actual_pam_protection": true,
+  "physical_finger_tested": false,
+  "toolkits": {
+    "gtk": {
+      "passed": true,
+      "pid": 1619,
+      "version": {
+        "event": "version",
+        "pid": 1619,
+        "uid": 10000,
+        "monotonic": 44132.044509863,
+        "toolkit": "gtk",
+        "version": "3.24.52"
+      },
+      "popup_stability_seconds": 0.35,
+      "popup_keyboard_visible": false,
+      "popup_parent_allocation": {
+        "event": "menu-parent-size",
+        "pid": 1619,
+        "uid": 10000,
+        "monotonic": 44137.969361438,
+        "width": 332,
+        "height": 329
+      },
+      "root_close_callback_observed": false,
+      "cancel_native_size": [
+        332,
+        329
+      ],
+      "apply_native_size": [
+        332,
+        329
+      ],
+      "fullscreen_native_size": [
+        360,
+        720
+      ],
+      "actual_toolkit_maximize_restore": true,
+      "actual_toolkit_fullscreen_restore": true,
+      "separate_xdg_toplevel_with_parent": true,
+      "native_touch_keyboard_exact_text": true,
+      "child_popup_owned_by_root_card": true,
+      "actual_popup_selection": true,
+      "unsaved_close_refused": true,
+      "actual_popup_item_outside_parent_allocation": true,
+      "actual_card_activation_restores_dialog": true,
+      "cancel_and_apply_actual_responses": true,
+      "cooperative_parent_close": true,
+      "same_login_cgroup": true
+    },
+    "qt": {
+      "passed": true,
+      "pid": 1905,
+      "version": {
+        "event": "version",
+        "pid": 1905,
+        "uid": 10000,
+        "monotonic": 44157.178783848,
+        "toolkit": "qt",
+        "version": "6.11.1"
+      },
+      "popup_stability_seconds": 0.35,
+      "popup_keyboard_visible": true,
+      "popup_parent_allocation": {
+        "event": "menu-parent-size",
+        "pid": 1905,
+        "uid": 10000,
+        "monotonic": 44162.474976986,
+        "width": 280,
+        "height": 240
+      },
+      "root_close_callback_observed": false,
+      "cancel_native_size": [
+        280,
+        240
+      ],
+      "apply_native_size": [
+        280,
+        240
+      ],
+      "fullscreen_native_size": [
+        360,
+        720
+      ],
+      "actual_toolkit_maximize_restore": true,
+      "actual_toolkit_fullscreen_restore": true,
+      "separate_xdg_toplevel_with_parent": true,
+      "native_touch_keyboard_exact_text": true,
+      "child_popup_owned_by_root_card": true,
+      "actual_popup_selection": true,
+      "unsaved_close_refused": true,
+      "actual_popup_item_outside_parent_allocation": true,
+      "actual_card_activation_restores_dialog": true,
+      "cancel_and_apply_actual_responses": true,
+      "cooperative_parent_close": true,
+      "same_login_cgroup": true
+    }
+  },
+  "regressions": {
+    "quick_launch": true,
+    "rounded_cards": true,
+    "stack_matrix": true,
+    "gtk_close": true,
+    "hardware_keys": true
+  },
+  "saved_restart_passed": true,
+  "normal_session_audit_passed": true,
+  "panfrost_fd_verified": true,
+  "kernel_suspend_cycles": 0,
+  "host_ordinary_tests_each_compiler": 142,
+  "host_scales": [
+    1,
+    2
+  ],
+  "images_sha256": {
+    "gtk-fullscreen.png": "115cdb674d79a81772deb9e9faaf73d0f245e8ac90466422581fb21f69c15701",
+    "qt-fullscreen.png": "d9f9d56742def1d571ef5a12e5fcfbb950ab59e911ac8a32fa87b4062bcc9e90",
+    "fullscreen-card.png": "c7fa3bb1c77e680057c4e2a69ba1648f2d0b076902a7b6fe4c4a63eb9f565194",
+    "fullscreen-alpha.png": "eabf73a8e109afd615a0fcc2ea361a831b181381e606a61d9025f8c6be020126",
+    "host-square-backing-failure.png": "cae8daa20ed3175c66f8e0ed556c7e33a3865da2f3f364ab943ef156fdd088cb"
+  },
+  "executed_qa_sha256": {
+    "native_transient_fixture.py": "ba9e3d0f3ee8815d1061e0fc06062a58c708ec07d3c9ea7985598349a9404d12",
+    "phone_transient_replay.py": "a48a1183dd400781d2620b601c77cfafb030f3a7feacfe01e34bd1543b422fda",
+    "toolkit_transient_fixture.py": "8978dff15203c5bfb133e9ad82bb8dd2d37b10a32554aeba080e8a9c1948f70b",
+    "phone_toolkit_dialog_replay.py": "c649a27ac944695e0fdfdcffc4544d5ef11e7f50af380263bc463df75643ab5c",
+    "dialog_button.py": "c516bb61312f5a4575642b57a77456bf2cca52175f1d6f673589fb819e1b3abe"
+  },
+  "native_evidence_archive_sha256": "de6d424881a96fe2f5b60dd4a5758954d8c7938b154c863de4031aa3e705869f",
+  "remaining": [
+    "Fullscreen IME and text-field occlusion",
+    "Broader window constraints, interactive move/resize, fullscreen dialogs and application cases",
+    "Terminal, clipboard, browser and accessibility coverage",
+    "Full M2 and development-plan gates"
+  ]
+}

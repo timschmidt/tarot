@@ -233,7 +233,7 @@ impl crate::Compositor {
             return card;
         };
         let size = window.geometry().size;
-        transient_rect(card, self.layout.content(), size.w, size.h)
+        transient_rect(card, self.window_area(id), size.w, size.h)
     }
     pub fn reconcile_families(&mut self, previous: Families, new_mapping: Option<WindowId>) {
         use smithay::wayland::{compositor::with_states, shell::xdg::XdgToplevelSurfaceData};

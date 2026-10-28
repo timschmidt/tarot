@@ -30,6 +30,8 @@ struct Client {
     dialogs: Option<xdg_wm_dialog_v1::XdgWmDialogV1>,
     configures: usize,
     sizes: Vec<(xdg_toplevel::XdgToplevel, i32, i32)>,
+    states: Vec<(xdg_toplevel::XdgToplevel, Vec<u32>)>,
+    capabilities: HashMap<xdg_toplevel::XdgToplevel, Vec<u32>>,
     close_requests: usize,
     close_targets: Vec<xdg_toplevel::XdgToplevel>,
     frames: Vec<u32>,
@@ -253,6 +255,140 @@ fn initial_configure_waits_for_parent_hints_and_fresh_remap_commit() {
     sync(&mut queue, &mut client);
     assert_eq!(status()["cards"], json!([]));
     println!("Root/parented initial configure, zero natural sizes and remap handshake verified");
+}
+
+#[test]
+#[ignore = "requires an empty running Tarot session; see docs/BUILDING.md"]
+fn window_state_hints_preserve_initial_commit_and_reply_to_rejections() {
+    let initial = status();
+    assert_eq!(initial["cards"], json!([]));
+    let socket = PathBuf::from(std::env::var_os("XDG_RUNTIME_DIR").unwrap())
+        .join(initial["wayland_display"].as_str().unwrap());
+    let connection = Connection::from_socket(UnixStream::connect(socket).unwrap()).unwrap();
+    let mut queue = connection.new_event_queue();
+    let qh = queue.handle();
+    let mut client = Client::default();
+    connection.display().get_registry(&qh, ());
+    sync(&mut queue, &mut client);
+    let root = client.window(&qh, "State hint parent");
+    sync(&mut queue, &mut client);
+    root.map();
+    sync(&mut queue, &mut client);
+    let original_view = status()["view"].clone();
+    for request in 0..4 {
+        let child = client.uncommitted_window(&qh, "State hint dialog", None);
+        match request {
+            0 => child.toplevel.set_maximized(),
+            1 => child.toplevel.unset_maximized(),
+            2 => child.toplevel.set_fullscreen(None),
+            _ => child.toplevel.unset_fullscreen(),
+        }
+        sync(&mut queue, &mut client);
+        child.toplevel.set_parent(Some(&root.toplevel));
+        sync(&mut queue, &mut client);
+        assert!(
+            client
+                .sizes
+                .iter()
+                .all(|(top, _, _)| top != &child.toplevel),
+            "window-state request {request} sent a premature initial configure"
+        );
+        assert_eq!(status()["view"], original_view);
+        child.surface.commit();
+        sync(&mut queue, &mut client);
+        assert!(
+            client
+                .sizes
+                .iter()
+                .any(|(top, w, h)| top == &child.toplevel && *w == 0 && *h == 0)
+        );
+        assert!(
+            client.capabilities[&child.toplevel].is_empty(),
+            "transient state controls are not advertised"
+        );
+        child.map();
+        sync(&mut queue, &mut client);
+        let mapped_view = status()["view"].clone();
+        for request in 0..4 {
+            let before = client.sizes.len();
+            match request {
+                0 => child.toplevel.set_maximized(),
+                1 => child.toplevel.unset_maximized(),
+                2 => child.toplevel.set_fullscreen(None),
+                _ => child.toplevel.unset_fullscreen(),
+            }
+            sync(&mut queue, &mut client);
+            let reply: Vec<_> = client.sizes[before..]
+                .iter()
+                .filter(|(top, _, _)| top == &child.toplevel)
+                .collect();
+            assert!(
+                !reply.is_empty(),
+                "mapped state request {request} needs a configure, including a rejection"
+            );
+            assert!(
+                reply.iter().all(|(_, w, h)| *w == 0 && *h == 0),
+                "a transient keeps its natural size: {reply:?}"
+            );
+            let states = &client
+                .states
+                .iter()
+                .rev()
+                .find(|(top, _)| top == &child.toplevel)
+                .unwrap()
+                .1;
+            assert!(
+                !states.contains(&(xdg_toplevel::State::Maximized as u32))
+                    && !states.contains(&(xdg_toplevel::State::Fullscreen as u32))
+            );
+            assert_eq!(
+                status()["view"],
+                mapped_view,
+                "a state hint cannot change focus/view"
+            );
+            assert_eq!(status()["cards"].as_array().unwrap().len(), 1);
+        }
+        child.destroy();
+        sync(&mut queue, &mut client);
+    }
+    let startup = client.uncommitted_window(&qh, "Initial fullscreen hints", None);
+    startup.toplevel.set_fullscreen(None);
+    sync(&mut queue, &mut client);
+    assert!(
+        client
+            .sizes
+            .iter()
+            .all(|(top, _, _)| top != &startup.toplevel)
+    );
+    assert_eq!(status()["view"], original_view);
+    startup.surface.commit();
+    sync(&mut queue, &mut client);
+    assert!(latest_states(&client, &startup).contains(&(xdg_toplevel::State::Fullscreen as u32)));
+    startup.map();
+    sync(&mut queue, &mut client);
+    let parent_id = status()["cards"][0]["id"].clone();
+    control(json!({"command":"activate","id":parent_id}));
+    sync(&mut queue, &mut client);
+    let view = status()["view"].clone();
+    startup.toplevel.unset_fullscreen();
+    startup.toplevel.set_maximized();
+    sync(&mut queue, &mut client);
+    startup.surface.commit();
+    sync(&mut queue, &mut client);
+    assert_eq!(
+        status()["view"],
+        view,
+        "hidden window state requests cannot activate its card"
+    );
+    assert_eq!(client.focus.as_ref(), Some(&root.surface));
+    startup.destroy();
+    sync(&mut queue, &mut client);
+    root.destroy();
+    sync(&mut queue, &mut client);
+    assert_eq!(status()["cards"], json!([]));
+    println!(
+        "All four pre-commit hints defer configure; natural transients receive rejection replies without focus changes"
+    );
 }
 
 impl Window {
@@ -782,6 +918,252 @@ fn transient_native_input_and_pixels() {
     parent.destroy();
     sync(&mut queue, &mut client);
     assert_eq!(status()["cards"], json!([]));
+    fullscreen_input_and_pixels(&mut queue, &mut client, &qh);
+}
+
+fn paint_fullscreen(
+    window: &mut Window,
+    client: &Client,
+    qh: &QueueHandle<Client>,
+    width: i32,
+    height: i32,
+) {
+    let buffer = client.buffer(qh, width, height, [0x60, 0x40, 0x20, 0x80]);
+    window.buffer.destroy();
+    window.buffer = buffer;
+    window.xdg.set_window_geometry(0, 0, width, height);
+    window.surface.attach(Some(&window.buffer), 0, 0);
+    window.surface.damage(0, 0, width, height);
+    window.surface.commit();
+}
+
+fn latest_states<'a>(client: &'a Client, window: &Window) -> &'a [u32] {
+    &client
+        .states
+        .iter()
+        .rev()
+        .find(|(top, _)| top == &window.toplevel)
+        .unwrap()
+        .1
+}
+
+fn fullscreen_input_and_pixels(
+    queue: &mut EventQueue<Client>,
+    client: &mut Client,
+    qh: &QueueHandle<Client>,
+) {
+    control(json!({"command":"rotate","orientation":"normal"}));
+    let mut root = client.uncommitted_window(qh, "Fullscreen alpha fixture", None);
+    root.toplevel.set_maximized();
+    sync(queue, client);
+    assert!(client.sizes.iter().all(|(top, _, _)| top != &root.toplevel));
+    root.surface.commit();
+    sync(queue, client);
+    assert!(latest_states(client, &root).contains(&(xdg_toplevel::State::Maximized as u32)));
+    let caps = &client.capabilities[&root.toplevel];
+    assert!(
+        caps.contains(&(xdg_toplevel::WmCapabilities::Fullscreen as u32))
+            && !caps.contains(&(xdg_toplevel::WmCapabilities::WindowMenu as u32))
+    );
+    let (_, width, height) = client
+        .sizes
+        .iter()
+        .rev()
+        .find(|(top, _, _)| top == &root.toplevel)
+        .unwrap();
+    let (width, height) = (*width, *height);
+    paint_fullscreen(&mut root, client, qh, width, height);
+    sync(queue, client);
+    let id = status()["cards"][0]["id"].clone();
+    std::thread::sleep(Duration::from_millis(450));
+    root.toplevel.set_fullscreen(None);
+    sync(queue, client); // The fixture acknowledges, but has not committed.
+    assert!(latest_states(client, &root).contains(&(xdg_toplevel::State::Fullscreen as u32)));
+    let s = status();
+    assert_eq!(
+        s["presentation"]["windows"][0]["rect"], s["app_area"],
+        "acknowledging fullscreen without a surface commit cannot resize presentation"
+    );
+    assert_ne!(
+        captured_pixel("fullscreen-before-commit", &s, (2.0, 2.0)),
+        [32, 64, 96, 255]
+    );
+    for orientation in ["normal", "left-up", "bottom-up", "right-up"] {
+        control(json!({"command":"rotate","orientation":orientation}));
+        sync(queue, client);
+        let (_, width, height) = client
+            .sizes
+            .iter()
+            .rev()
+            .find(|(top, _, _)| top == &root.toplevel)
+            .unwrap();
+        let (width, height) = (*width, *height);
+        let s = status();
+        let output = &s["output"];
+        let landscape = matches!(orientation, "left-up" | "right-up");
+        let scale = output["scale"].as_i64().unwrap();
+        let expected_width = output[if landscape {
+            "physical_height"
+        } else {
+            "physical_width"
+        }]
+        .as_i64()
+        .unwrap()
+            / scale;
+        let expected_height = output[if landscape {
+            "physical_width"
+        } else {
+            "physical_height"
+        }]
+        .as_i64()
+        .unwrap()
+            / scale;
+        assert_eq!(
+            (width as i64, height as i64),
+            (expected_width, expected_height)
+        );
+        paint_fullscreen(&mut root, client, qh, width, height);
+        sync(queue, client);
+        std::thread::sleep(Duration::from_millis(420));
+        let s = status();
+        for (label, point) in [
+            ("top", (f64::from(width) / 2.0, 12.0)),
+            ("bottom", (f64::from(width) / 2.0, f64::from(height) - 48.0)),
+        ] {
+            assert_eq!(
+                captured_pixel(&format!("fullscreen-{orientation}-{label}"), &s, point),
+                [32, 64, 96, 255],
+                "fullscreen alpha must blend over black, with no wallpaper or status bar"
+            );
+            let before = client.presses.len();
+            drive(
+                json!({"command":"click","x":point.0,"y":point.1,"output":s["output"],"key":true}),
+            );
+            sync(queue, client);
+            assert_eq!(client.presses.len(), before + 1);
+            let (surface, x, y) = client.presses.last().unwrap();
+            assert_eq!(surface, &root.surface);
+            assert!(
+                (*x - point.0).abs() < 1.5 && (*y - point.1).abs() < 1.5,
+                "fullscreen input {point:?} arrived at {x},{y}"
+            );
+        }
+        drive(
+            json!({"command":"click","x":f64::from(width)/2.0,"y":f64::from(height)-18.0,"output":s["output"],"key":false}),
+        );
+        std::thread::sleep(Duration::from_millis(450));
+        let s = status();
+        assert_eq!(s["view"], "Overview");
+        let rect = &s["presentation"]["windows"][0]["rect"];
+        let center = (
+            rect["x"].as_f64().unwrap() + rect["width"].as_f64().unwrap() / 2.0,
+            rect["y"].as_f64().unwrap() + rect["height"].as_f64().unwrap() / 2.0,
+        );
+        assert_eq!(
+            captured_pixel(&format!("fullscreen-{orientation}-overview"), &s, center),
+            [32, 64, 96, 255]
+        );
+        assert_ne!(
+            captured_pixel(
+                &format!("fullscreen-{orientation}-corner"),
+                &s,
+                (
+                    rect["x"].as_f64().unwrap() + 0.5,
+                    rect["y"].as_f64().unwrap() + 0.5
+                )
+            ),
+            [0, 0, 0, 255],
+            "the black fullscreen backing must share the rounded card mask"
+        );
+        drive(json!({"command":"click","x":center.0,"y":center.1,"output":s["output"],"key":true}));
+        sync(queue, client);
+        std::thread::sleep(Duration::from_millis(450));
+        assert_eq!(status()["view"], json!({"App":id}));
+        println!(
+            "{orientation}: full-output alpha pixels, top/bottom input and actual gesture-strip/card navigation passed"
+        );
+    }
+    drive(json!({"command":"lock"}));
+    sync(queue, client);
+    assert!(client.focus.is_none());
+    assert_eq!(status().as_object().unwrap().len(), 3);
+    drive(json!({"command":"unlock"}));
+    sync(queue, client);
+    assert_eq!(client.focus.as_ref(), Some(&root.surface));
+    assert_eq!(status()["view"], json!({"App":id}));
+    let (_, width, height) = client
+        .sizes
+        .iter()
+        .rev()
+        .find(|(top, _, _)| top == &root.toplevel)
+        .unwrap();
+    let (width, height) = (*width, *height);
+    paint_fullscreen(&mut root, client, qh, width, height);
+    sync(queue, client);
+    let restored = status();
+    assert_eq!(
+        captured_pixel(
+            "fullscreen-restored",
+            &restored,
+            (f64::from(width) / 2.0, 12.0)
+        ),
+        [32, 64, 96, 255]
+    );
+    // Maximization requested during fullscreen changes the state restored later.
+    for maximized in [false, true] {
+        if maximized {
+            root.toplevel.set_maximized();
+        } else {
+            root.toplevel.unset_maximized();
+        }
+        let before = client.sizes.len();
+        sync(queue, client);
+        assert!(client.sizes.len() > before);
+        assert!(latest_states(client, &root).contains(&(xdg_toplevel::State::Fullscreen as u32)));
+    }
+    root.toplevel.unset_fullscreen();
+    sync(queue, client);
+    assert!(latest_states(client, &root).contains(&(xdg_toplevel::State::Maximized as u32)));
+    assert!(!latest_states(client, &root).contains(&(xdg_toplevel::State::Fullscreen as u32)));
+    assert_eq!(
+        status()["presentation"]["windows"][0]["rect"]["y"],
+        0.0,
+        "unfullscreen presentation also waits for the client's surface commit"
+    );
+    let (_, width, height) = client
+        .sizes
+        .iter()
+        .rev()
+        .find(|(top, _, _)| top == &root.toplevel)
+        .unwrap();
+    let (width, height) = (*width, *height);
+    paint_fullscreen(&mut root, client, qh, width, height);
+    sync(queue, client);
+    std::thread::sleep(Duration::from_millis(450));
+    let s = status();
+    assert_ne!(
+        captured_pixel("fullscreen-exited", &s, (2.0, 2.0)),
+        [32, 64, 96, 255]
+    );
+    root.toplevel.set_minimized();
+    sync(queue, client);
+    std::thread::sleep(Duration::from_millis(450));
+    assert_eq!(status()["view"], "Overview");
+    root.unmap();
+    sync(queue, client);
+    root.surface.commit();
+    sync(queue, client);
+    assert!(
+        !latest_states(client, &root).contains(&(xdg_toplevel::State::Maximized as u32))
+            && !latest_states(client, &root).contains(&(xdg_toplevel::State::Fullscreen as u32)),
+        "unmapping discards requested state"
+    );
+    root.destroy();
+    sync(queue, client);
+    assert_eq!(status()["cards"], json!([]));
+    println!(
+        "Fullscreen protection/focus, restored maximization, cooperative minimization and unmap state reset passed"
+    );
 }
 
 #[test]
@@ -1011,7 +1393,7 @@ impl Dispatch<wl_registry::WlRegistry, ()> for Client {
             match interface.as_str() {
                 "wl_compositor" => state.compositor = Some(registry.bind(name, 1, qh, ())),
                 "wl_shm" => state.shm = Some(registry.bind(name, 1, qh, ())),
-                "xdg_wm_base" => state.shell = Some(registry.bind(name, 1, qh, ())),
+                "xdg_wm_base" => state.shell = Some(registry.bind(name, 6, qh, ())),
                 "xdg_wm_dialog_v1" => state.dialogs = Some(registry.bind(name, 1, qh, ())),
                 "wl_seat" => state.seat = Some(registry.bind(name, 1, qh, ())),
                 _ => {}
@@ -1065,8 +1447,32 @@ impl Dispatch<xdg_toplevel::XdgToplevel, ()> for Client {
                 state.close_requests += 1;
                 state.close_targets.push(toplevel.clone());
             }
-            xdg_toplevel::Event::Configure { width, height, .. } => {
-                state.sizes.push((toplevel.clone(), width, height))
+            xdg_toplevel::Event::Configure {
+                width,
+                height,
+                states,
+            } => {
+                state.sizes.push((toplevel.clone(), width, height));
+                state.states.push((
+                    toplevel.clone(),
+                    states
+                        .as_chunks::<4>()
+                        .0
+                        .iter()
+                        .map(|b| u32::from_ne_bytes(*b))
+                        .collect(),
+                ));
+            }
+            xdg_toplevel::Event::WmCapabilities { capabilities } => {
+                state.capabilities.insert(
+                    toplevel.clone(),
+                    capabilities
+                        .as_chunks::<4>()
+                        .0
+                        .iter()
+                        .map(|b| u32::from_ne_bytes(*b))
+                        .collect(),
+                );
             }
             _ => {}
         }

@@ -38,6 +38,10 @@ def run_gtk(emit):
     label=Gtk.Label(label='GTK transient fixture');box.pack_start(label,False,False,0)
     button=Gtk.Button(label='Open');box.pack_start(button,False,False,0);window.add(box)
     active=[None]
+    window.connect('window-state-event',lambda w,e:emit('window-mode',fullscreen=bool(e.new_window_state&Gdk.WindowState.FULLSCREEN),maximized=bool(e.new_window_state&Gdk.WindowState.MAXIMIZED)))
+    window.connect('size-allocate',lambda w,a:emit('allocation',width=a.width,height=a.height))
+    for title,action in [('Fullscreen',window.fullscreen),('Maximize',window.maximize),('Restore',lambda:(window.unfullscreen(),window.unmaximize()))]:
+        control=Gtk.Button(label=title);control.connect('clicked',lambda _,action=action:action());box.pack_start(control,False,False,0)
     def opened(_):
         if active[0] is not None:return
         dialog=Gtk.Dialog(title='GTK child',transient_for=window,modal=True)
@@ -71,12 +75,22 @@ def run_qt(emit):
     app=QtWidgets.QApplication([]);app.setApplicationName('Tarot Qt fixture');app.setDesktopFileName('test.tarot.QtDialog');app.setFont(QtGui.QFont('Lato',16))
     active=[None]
     class Parent(QtWidgets.QWidget):
+        def changeEvent(self,event):
+            super().changeEvent(event)
+            if event.type()==QtCore.QEvent.Type.WindowStateChange:
+                emit('window-mode',fullscreen=self.isFullScreen(),maximized=self.isMaximized())
+        def resizeEvent(self,event):
+            super().resizeEvent(event)
+            emit('allocation',width=event.size().width(),height=event.size().height())
         def closeEvent(self,event):
             if active[0] is not None:emit('root-close-refused');event.ignore()
             else:emit('root-close');event.accept()
     window=Parent();window.setWindowTitle('Tarot Qt fixture');window.resize(340,580)
     layout=QtWidgets.QVBoxLayout(window);layout.addStretch();label=QtWidgets.QLabel('Qt transient fixture');label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter);layout.addWidget(label)
-    button=QtWidgets.QPushButton('Open');button.setMinimumHeight(44);layout.addWidget(button);layout.addStretch()
+    button=QtWidgets.QPushButton('Open');button.setMinimumHeight(44);layout.addWidget(button)
+    for title,action in [('Fullscreen',window.showFullScreen),('Maximize',window.showMaximized),('Restore',window.showNormal)]:
+        control=QtWidgets.QPushButton(title);control.setMinimumHeight(44);control.clicked.connect(action);layout.addWidget(control)
+    layout.addStretch()
     def opened():
         if active[0] is not None:return
         dialog=QtWidgets.QDialog(window);active[0]=dialog;dialog.setWindowTitle('Qt child');dialog.resize(280,240)

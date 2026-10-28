@@ -129,7 +129,8 @@ impl Compositor {
         let dh = display.handle();
 
         let compositor_state = CompositorState::new::<Self>(&dh);
-        let xdg_shell_state = XdgShellState::new::<Self>(&dh);
+        // Capabilities are assigned per window after effective parent hints.
+        let xdg_shell_state = XdgShellState::new_with_capabilities::<Self>(&dh, Vec::new());
         let xdg_dialog_state =
             smithay::wayland::shell::xdg::dialog::XdgDialogState::new::<Self>(&dh);
         let shm_state = ShmState::new::<Self>(&dh, vec![]);
@@ -385,7 +386,9 @@ impl Compositor {
             return Some(focus);
         }
         if !matches!(self.shell.view, View::App(_))
-            || !self.layout.content().contains(pos.x as f32, pos.y as f32)
+            || !self
+                .active_input_area()
+                .contains(pos.x as f32, pos.y as f32)
         {
             return None;
         }
@@ -496,12 +499,13 @@ impl Compositor {
             let deadline = Instant::now() + delay;
             self.repaint_at = Some(self.repaint_at.map_or(deadline, |old| old.min(deadline)));
         }
-        let (frame, moving) = self.animation.advance(
+        let (mut frame, moving) = self.animation.advance(
             &self.shell,
             self.layout,
             self.gestures.preview(),
             self.start_time.elapsed(),
         );
+        self.expand_fullscreen_frame(&mut frame);
         if frame != self.presentation {
             self.presentation = frame;
             self.ui_dirty = true;
@@ -679,20 +683,12 @@ impl Compositor {
     pub fn configure_windows(&mut self) {
         self.configure_keyboard();
         let content = self.layout.content();
-        let size = (content.width as i32, content.height as i32).into();
         let windows: Vec<_> = self.space.elements().cloned().collect();
         for window in windows {
             self.space
                 .map_element(window.clone(), (content.x as i32, content.y as i32), false);
+            self.configure_window_state(&window);
             if let Some(toplevel) = window.toplevel() {
-                toplevel.with_pending_state(|state| {
-                    let transient = window
-                        .user_data()
-                        .get::<WindowId>()
-                        .is_some_and(|id| self.families.parent(*id).is_some());
-                    state.size = if transient { None } else { Some(size) };
-                    state.bounds = Some(size);
-                });
                 // Parent/size hints arrive between role creation and the
                 // initial bufferless commit. Sending here earlier can make a
                 // natural Qt dialog adopt the app's fullscreen dimensions.

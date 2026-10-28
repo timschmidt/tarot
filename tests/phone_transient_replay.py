@@ -70,7 +70,7 @@ def replay(control,screen,guard,state,authenticate,out,session_cgroup):
                     raise
         result=json.loads((folder/'fixture-result.json').read_text());record['fixture_result']=result
         assert result['passed'] and result['test_exit']==0
-        assert len(record['input'])==22 and record['protected_actual_kms'] and record['actual_pam_unlock']
+        assert len(record['input'])==40 and record['protected_actual_kms'] and record['actual_pam_unlock']
         state('transient-all-windows-gone',lambda s:not s['cards'] and s['lock']['phase']=='Unlocked')
         await_value(lambda:all(not Path('/proc',str(p)).exists() for p in [started['runner_pid'],started['fixture_pid']]),bool,seconds=10)
         record.update(passed=True,native_panfrost_kms=True,actual_touch_and_keyboard=True,same_login_cgroup=True,fixture_processes_gone=True)

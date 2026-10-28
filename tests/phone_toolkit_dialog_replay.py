@@ -18,9 +18,12 @@ def replay(control,tap,state,capture,out,session_cgroup):
         prefix='toolkit-'+toolkit
         def observe(event,condition=lambda e:True):
             return await_value(lambda:[e for e in events(report) if e['event']==event and condition(e)],bool,seconds=15)[-1]
-        def button(label,word):
+        def button(label,word,fullscreen=False):
+            def target(s):
+                if fullscreen:return dict(x=0.0,y=0.0,width=s['output']['physical_width']/2,height=s['output']['physical_height']/2)
+                return s['app_area']
             state(prefix+'-'+label+'-settled',lambda s:s['view']=={'App':identifier}
-                and window(s,identifier)['rect']==s['app_area'] and window(s,identifier)['opacity']==1.0
+                and window(s,identifier)['rect']==target(s) and window(s,identifier)['opacity']==1.0
                 and s['presentation']['overview']==0.0 and s['presentation']['dock']==0.0)
             capture(prefix+'-'+label)
             found=locate(out/(prefix+'-'+label+'.png'),word,vertical=(.08,.91));result['buttons'].append(found)
@@ -93,6 +96,18 @@ def replay(control,tap,state,capture,out,session_cgroup):
         result['apply_native_size']=[applied['width'],applied['height']]
         state(prefix+'-applied',lambda s:len(s['cards'])==1 and not any(n['mapped'] and n['parent']==identifier for n in s['native_windows']))
         capture(prefix+'-saved-parent')
+        started=time.monotonic();button('maximize','Maximize')
+        observe('window-mode',lambda e:e['monotonic']>=started and e['maximized'] and not e['fullscreen'])
+        restored=time.monotonic();button('restore-maximized','Restore')
+        observe('window-mode',lambda e:e['monotonic']>=restored and not e['maximized'] and not e['fullscreen'])
+        started=time.monotonic();button('fullscreen','Fullscreen')
+        observe('window-mode',lambda e:e['monotonic']>=started and e['fullscreen'])
+        allocation=observe('allocation',lambda e:e['monotonic']>=started and e['width']==360 and e['height']==720)
+        restored=time.monotonic();button('restore-fullscreen','Restore',fullscreen=True)
+        observe('window-mode',lambda e:e['monotonic']>=restored and not e['fullscreen'])
+        state(prefix+'-normal-after-fullscreen',lambda s:window(s,identifier)['rect']==s['app_area'])
+        result['fullscreen_native_size']=[allocation['width'],allocation['height']]
+        result['actual_toolkit_maximize_restore']=True;result['actual_toolkit_fullscreen_restore']=True
         request(control,'close',id=identifier);observe('root-close');observe('exit')
         state(prefix+'-closed',lambda s:not s['cards'])
         await_value(lambda:not Path('/proc',str(pid)).exists(),bool,seconds=12)

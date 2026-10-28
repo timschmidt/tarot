@@ -69,10 +69,12 @@ impl CompositorHandler for Compositor {
                             if let Some(top) = window.toplevel() {
                                 top.reset_initial_configure_sent();
                             }
+                            self.reset_window_state(id);
                             self.families.unmap(id);
                         }
                         self.reconcile_families(previous, mapped.then_some(id));
                     }
+                    self.commit_window_state(id);
                 }
             }
         };

@@ -44,6 +44,9 @@ impl XdgShellHandler for Compositor {
         let id = tarot_core::WindowId(self.next_window_id);
         self.families.register(id);
         window.user_data().insert_if_missing(|| id);
+        window.user_data().insert_if_missing(|| {
+            std::cell::RefCell::new(crate::window_state::WindowState::default())
+        });
         self.space.map_element(window, (0, 28), false);
         self.configure_windows();
         self.ui_dirty = true;
@@ -82,7 +85,30 @@ impl XdgShellHandler for Compositor {
         let parent = surface.parent().and_then(|parent| self.native_id(&parent));
         let previous = self.families.clone();
         self.families.set_parent(id, parent);
+        if self.families.parent(id).is_some() {
+            self.reset_window_state(id);
+        }
         self.reconcile_families(previous, None);
+    }
+
+    fn maximize_request(&mut self, surface: ToplevelSurface) {
+        self.window_state_request(surface, crate::window_state::Request::Maximize(true));
+    }
+    fn unmaximize_request(&mut self, surface: ToplevelSurface) {
+        self.window_state_request(surface, crate::window_state::Request::Maximize(false));
+    }
+    fn fullscreen_request(
+        &mut self,
+        surface: ToplevelSurface,
+        _output: Option<smithay::reexports::wayland_server::protocol::wl_output::WlOutput>,
+    ) {
+        self.window_state_request(surface, crate::window_state::Request::Fullscreen(true));
+    }
+    fn unfullscreen_request(&mut self, surface: ToplevelSurface) {
+        self.window_state_request(surface, crate::window_state::Request::Fullscreen(false));
+    }
+    fn minimize_request(&mut self, surface: ToplevelSurface) {
+        self.minimize_window(surface);
     }
 
     fn new_popup(&mut self, surface: PopupSurface, _positioner: PositionerState) {
@@ -327,11 +353,24 @@ impl Compositor {
             return;
         };
 
-        let content = self.layout.content();
+        let id = *window.user_data().get::<tarot_core::WindowId>().unwrap();
+        let card_area = self.window_area(id);
+        let content = if self
+            .families
+            .owner(id)
+            .is_some_and(|owner| self.fullscreen_window(owner))
+        {
+            tarot_core::Rect {
+                height: self.layout.keyboard().y,
+                ..self.fullscreen_area()
+            }
+        } else {
+            self.layout.content()
+        };
         let target = window
             .user_data()
             .get::<tarot_core::WindowId>()
-            .map_or(content, |id| self.native_rect(*id, content));
+            .map_or(card_area, |id| self.native_rect(*id, card_area));
         let Some(fit) = crate::focus::RenderGeometry::new(
             window.geometry(),
             target,

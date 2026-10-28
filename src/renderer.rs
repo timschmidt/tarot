@@ -23,6 +23,7 @@ pub struct ShellFrame<'a> {
     pub model: &'a ShellModel,
     pub layout: Layout,
     pub presentation: &'a tarot_core::motion::Presentation,
+    pub fullscreen: bool,
     pub physical: Size<i32, Physical>,
     pub scale: i32,
     pub events: Vec<egui::Event>,
@@ -106,6 +107,7 @@ impl ShellRenderer {
             model,
             layout,
             presentation,
+            fullscreen,
             physical,
             scale,
             events,
@@ -154,7 +156,8 @@ impl ShellRenderer {
         let mut commands = Vec::new();
         let output = self.context.run(input, |ctx| {
             // Only retain the final pass. Effects are applied after Context::run.
-            commands = tarot_ui::show_with_presentation(ctx, model, layout, presentation);
+            commands =
+                tarot_ui::show_with_native_fullscreen(ctx, model, layout, presentation, fullscreen);
         });
         let repaint = output
             .viewport_output

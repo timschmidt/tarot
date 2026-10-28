@@ -559,8 +559,7 @@ impl Compositor {
         }
         !matches!(self.shell.view, View::App(_))
             || !self
-                .layout
-                .content()
+                .active_input_area()
                 .contains(position.x as f32, position.y as f32)
     }
 
