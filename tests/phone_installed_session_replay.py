@@ -159,6 +159,14 @@ def run(args, password):
         authenticate('startup')
         if args.require_audio:
             state('audio-ready', lambda s: s['audio']['available'] and bool(s['audio']['outputs']))
+        if getattr(args, 'transients', False):
+            from phone_transient_replay import replay as transient_replay
+            records['transients'] = transient_replay(socket, screen, guard, state,
+                authenticate, args.output, cgroup)
+        if getattr(args, 'toolkit_dialogs', False):
+            from phone_toolkit_dialog_replay import replay as toolkit_replay
+            records['toolkit_dialogs'] = toolkit_replay(socket, tap, state, capture,
+                args.output, cgroup)
         catalog = request(socket, 'applications')['applications']
         # The GTK demo deliberately has NoDisplay=true and is correctly absent
         # from the normal launcher. Exercise an actual visible installed app.
@@ -424,6 +432,8 @@ def main():
     parser.add_argument('--rounded-cards', action='store_true')
     parser.add_argument('--stack-matrix', action='store_true')
     parser.add_argument('--gtk-close', action='store_true')
+    parser.add_argument('--transients', action='store_true')
+    parser.add_argument('--toolkit-dialogs', action='store_true')
     parser.add_argument('--detach', action='store_true')
     args = parser.parse_args()
     assert not args.panel_off or args.observe_sensors

@@ -9,12 +9,13 @@ import subprocess
 from PIL import Image,ImageOps
 
 
-def locate(image_path,word,program='tesseract'):
+def locate(image_path,word,program='tesseract',vertical=(.45,.9)):
     image_path=Path(image_path)
     with Image.open(image_path) as source:source.load();image=source.convert('RGB')
     # The tested narrow GTK layouts put dialog responses below the document
     # list. Never let a title such as "Save Changes?" satisfy a Save response.
-    top=round(image.height*.45);bottom=round(image.height*.9)
+    assert 0<=vertical[0]<vertical[1]<=1
+    top=round(image.height*vertical[0]);bottom=round(image.height*vertical[1])
     crop=image.crop((0,top,image.width,bottom));attempts=[]
     for variant,picture in [('crop',crop),('contrast',ImageOps.grayscale(crop).point(lambda value:0 if value>200 else 255))]:
         path=image_path.with_name(image_path.stem+'-buttons-'+variant+'.png');picture.save(path)

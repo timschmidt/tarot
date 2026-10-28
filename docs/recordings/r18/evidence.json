@@ -1,0 +1,80 @@
+{
+  "package_revision": 18,
+  "package_sha256": "53d0623765b4f75e5d5f818694265c1c83074d022dba17ee1f5ad3e0024adb06",
+  "binaries_sha256": {
+    "tarot": "db0939338f95b271e34140fb42d44999e7fc713a71f6fc869a1edde1312f1104",
+    "tarot-session": "dd0cf703ec3dbed1b870042b1507384cd563d7d0bc92c07e6984fbeb91613cb9",
+    "tarot-lock": "b9a4904f010dd8c1f1dffc31acf853230ff8283e7242db8b38af85f8782440aa",
+    "tarot-keyboard": "181e37f855df5f9da9bf29138847c3336daeca14020a298b600bde103ff21b89"
+  },
+  "initial_source_archive_sha256": "5c7e181f2e01bb8e62e7a6645b1b4e7ab33d09765112b54077bab3ccc8ed92db",
+  "protocol_fixture_sha256": "b83391e28233d2d50bde9d85ff98d47ddfa81405de7cbd98a762a3aa3d904d96",
+  "native_protocol_passed": true,
+  "actual_touch_and_keyboard": true,
+  "actual_pam_protected_arrival": true,
+  "physical_finger_tested": false,
+  "toolkits": {
+    "gtk": {
+      "passed": true,
+      "pid": 29579,
+      "version": {
+        "event": "version",
+        "pid": 29579,
+        "uid": 10000,
+        "monotonic": 34995.073394055,
+        "toolkit": "gtk",
+        "version": "3.24.52"
+      },
+      "root_close_callback_observed": false,
+      "separate_xdg_toplevel_with_parent": true,
+      "native_touch_keyboard_exact_text": true,
+      "child_popup_owned_by_root_card": true,
+      "actual_popup_selection": true,
+      "unsaved_close_refused": true,
+      "actual_card_activation_restores_dialog": true,
+      "cancel_and_apply_actual_responses": true,
+      "cooperative_parent_close": true,
+      "same_login_cgroup": true
+    },
+    "qt": {
+      "passed": true,
+      "pid": 29730,
+      "version": {
+        "event": "version",
+        "pid": 29730,
+        "uid": 10000,
+        "monotonic": 35011.705606764,
+        "toolkit": "qt",
+        "version": "6.11.1"
+      },
+      "root_close_callback_observed": false,
+      "separate_xdg_toplevel_with_parent": true,
+      "native_touch_keyboard_exact_text": true,
+      "child_popup_owned_by_root_card": true,
+      "actual_popup_selection": true,
+      "unsaved_close_refused": true,
+      "actual_card_activation_restores_dialog": true,
+      "cancel_and_apply_actual_responses": true,
+      "cooperative_parent_close": true,
+      "same_login_cgroup": true
+    }
+  },
+  "regressions": {
+    "quick_launch": true,
+    "rounded_cards": true,
+    "stack_matrix": true,
+    "gtk_close": true,
+    "hardware_keys": true
+  },
+  "normal_session_audit_passed": true,
+  "kernel_suspend_cycles": 0,
+  "images_sha256": {
+    "gtk-dialog.png": "ec90fe174142f88ff7fcb54cb0004d62604877aef3b523c9c734f47fd7a42fd4",
+    "qt-dialog.png": "2dd009d316df26c6aeda38de9e78d6b7e4a92a33cacf632342dff3482728a307"
+  },
+  "limitations": [
+    "Qt dialog natural sizing requires initial-configure correction",
+    "Popup overflow beyond a fitted transient target needs a dedicated renderer regression",
+    "This does not complete M2 or the full plan"
+  ]
+}

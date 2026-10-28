@@ -13,7 +13,7 @@ use wayland_client::{
     Connection, Dispatch, EventQueue, QueueHandle, delegate_noop,
     protocol::{
         wl_buffer, wl_callback, wl_compositor, wl_keyboard, wl_pointer, wl_registry, wl_seat,
-        wl_shm, wl_shm_pool, wl_surface,
+        wl_shm, wl_shm_pool, wl_surface, wl_touch,
     },
 };
 use wayland_protocols::xdg::dialog::v1::client::{xdg_dialog_v1, xdg_wm_dialog_v1};
@@ -345,7 +345,7 @@ fn drive(request: Value) {
     )
     .unwrap();
     stream
-        .set_read_timeout(Some(Duration::from_secs(5)))
+        .set_read_timeout(Some(Duration::from_secs(30)))
         .unwrap();
     serde_json::to_writer(&mut stream, &request).unwrap();
     stream.write_all(b"\n").unwrap();
@@ -864,6 +864,9 @@ impl Dispatch<wl_seat::WlSeat, ()> for Client {
             if caps.contains(wl_seat::Capability::Pointer) {
                 seat.get_pointer(qh, ());
             }
+            if caps.contains(wl_seat::Capability::Touch) {
+                seat.get_touch(qh, ());
+            }
         }
     }
 }
@@ -929,6 +932,21 @@ impl Dispatch<wl_pointer::WlPointer, ()> for Client {
                 }
             }
             _ => {}
+        }
+    }
+}
+
+impl Dispatch<wl_touch::WlTouch, ()> for Client {
+    fn event(
+        state: &mut Self,
+        _: &wl_touch::WlTouch,
+        event: wl_touch::Event,
+        _: &(),
+        _: &Connection,
+        _: &QueueHandle<Self>,
+    ) {
+        if let wl_touch::Event::Down { surface, x, y, .. } = event {
+            state.presses.push((surface, x, y));
         }
     }
 }
