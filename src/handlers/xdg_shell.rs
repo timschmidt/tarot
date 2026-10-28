@@ -42,6 +42,7 @@ impl XdgShellHandler for Compositor {
         let window = Window::new_wayland_window(surface);
         self.next_window_id += 1;
         let id = tarot_core::WindowId(self.next_window_id);
+        self.families.register(id);
         window.user_data().insert_if_missing(|| id);
         self.space.map_element(window, (0, 28), false);
         self.configure_windows();
@@ -58,12 +59,10 @@ impl XdgShellHandler for Compositor {
         if let Some(window) = window
             && let Some(id) = window.user_data().get::<tarot_core::WindowId>().copied()
         {
-            if !self.protected() {
-                self.cancel_input_sequences();
-            }
-            let effects = self.shell.remove_window(id);
+            let previous = self.families.clone();
+            self.families.remove(id);
             self.space.unmap_elem(&window);
-            self.apply_effects(effects);
+            self.reconcile_families(previous, None);
         }
         self.ui_dirty = true;
         self.redraw = true;
@@ -74,6 +73,16 @@ impl XdgShellHandler for Compositor {
     }
     fn app_id_changed(&mut self, surface: ToplevelSurface) {
         self.update_metadata(&surface);
+    }
+
+    fn parent_changed(&mut self, surface: ToplevelSurface) {
+        let Some(id) = self.native_id(surface.wl_surface()) else {
+            return;
+        };
+        let parent = surface.parent().and_then(|parent| self.native_id(&parent));
+        let previous = self.families.clone();
+        self.families.set_parent(id, parent);
+        self.reconcile_families(previous, None);
     }
 
     fn new_popup(&mut self, surface: PopupSurface, _positioner: PositionerState) {
@@ -211,6 +220,17 @@ impl XdgShellHandler for Compositor {
 // Xdg Shell
 delegate_xdg_shell!(Compositor);
 
+impl smithay::wayland::shell::xdg::dialog::XdgDialogHandler for Compositor {
+    fn modal_changed(&mut self, surface: ToplevelSurface, modal: bool) {
+        if let Some(id) = self.native_id(surface.wl_surface()) {
+            let previous = self.families.clone();
+            self.families.set_modal(id, modal);
+            self.reconcile_families(previous, None);
+        }
+    }
+}
+smithay::delegate_xdg_dialog!(Compositor);
+
 fn check_grab(
     seat: &Seat<Compositor>,
     surface: &WlSurface,
@@ -301,9 +321,13 @@ impl Compositor {
         };
 
         let content = self.layout.content();
+        let target = window
+            .user_data()
+            .get::<tarot_core::WindowId>()
+            .map_or(content, |id| self.native_rect(*id, content));
         let Some(fit) = crate::focus::RenderGeometry::new(
             window.geometry(),
-            content,
+            target,
             1.0,
             f64::from(self.scale),
         ) else {
@@ -336,7 +360,7 @@ impl Compositor {
     }
 }
 
-pub(super) fn metadata(surface: &ToplevelSurface) -> (String, String) {
+pub(crate) fn metadata(surface: &ToplevelSurface) -> (String, String) {
     with_states(surface.wl_surface(), |states| {
         let attributes = states
             .data_map

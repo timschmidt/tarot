@@ -48,11 +48,13 @@ pub struct Compositor {
     pub display_handle: DisplayHandle,
 
     pub space: Space<Window>,
+    pub families: crate::families::Families,
     pub loop_signal: LoopSignal,
 
     // Smithay State
     pub compositor_state: CompositorState,
     pub xdg_shell_state: XdgShellState,
+    pub xdg_dialog_state: smithay::wayland::shell::xdg::dialog::XdgDialogState,
     pub shm_state: ShmState,
     pub dmabuf_state: DmabufState,
     pub dmabuf_global: Option<DmabufGlobal>,
@@ -128,6 +130,8 @@ impl Compositor {
 
         let compositor_state = CompositorState::new::<Self>(&dh);
         let xdg_shell_state = XdgShellState::new::<Self>(&dh);
+        let xdg_dialog_state =
+            smithay::wayland::shell::xdg::dialog::XdgDialogState::new::<Self>(&dh);
         let shm_state = ShmState::new::<Self>(&dh, vec![]);
         let output_manager_state = OutputManagerState::new_with_xdg_output::<Self>(&dh);
         let mut seat_state = SeatState::new();
@@ -189,11 +193,13 @@ impl Compositor {
             display_handle: dh,
 
             space,
+            families: Default::default(),
             loop_signal,
             socket_name,
 
             compositor_state,
             xdg_shell_state,
+            xdg_dialog_state,
             shm_state,
             dmabuf_state: DmabufState::new(),
             dmabuf_global: None,
@@ -393,11 +399,16 @@ impl Compositor {
         {
             return None;
         }
-        self.space
-            .elements()
-            .find(|window| window.user_data().get::<WindowId>() == Some(&active))
-            .and_then(|window| {
-                let local = self.presented_windows.get(&active)?.to_window(pos);
+        self.families
+            .members(active)
+            .into_iter()
+            .rev()
+            .find_map(|id| {
+                if !self.families.accepts(id) {
+                    return None;
+                }
+                let window = self.native_window(id)?;
+                let local = self.presented_windows.get(&id)?.to_window(pos);
                 window
                     .surface_under(local, WindowSurfaceType::ALL)
                     .map(|(surface, _)| (surface.into(), (0.0, 0.0).into()))
@@ -612,12 +623,7 @@ impl Compositor {
                         id
                     };
                     let windows: Vec<_> = self.space.elements().cloned().collect();
-                    let focused = id.and_then(|id| {
-                        windows
-                            .iter()
-                            .find(|window| window.user_data().get::<WindowId>() == Some(&id))
-                            .cloned()
-                    });
+                    let focused = id.and_then(|id| self.focused_window(id));
                     for window in &windows {
                         window.set_activated(focused.as_ref() == Some(window));
                         if let Some(toplevel) = window.toplevel() {
@@ -678,7 +684,11 @@ impl Compositor {
                 .map_element(window.clone(), (content.x as i32, content.y as i32), false);
             if let Some(toplevel) = window.toplevel() {
                 toplevel.with_pending_state(|state| {
-                    state.size = Some(size);
+                    let transient = window
+                        .user_data()
+                        .get::<WindowId>()
+                        .is_some_and(|id| self.families.parent(*id).is_some());
+                    state.size = if transient { None } else { Some(size) };
                     state.bounds = Some(size);
                 });
                 toplevel.send_pending_configure();

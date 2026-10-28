@@ -3,7 +3,7 @@
 // See third-party/Smithay-MIT.txt for the license.
 
 mod compositor;
-mod xdg_shell;
+pub(crate) mod xdg_shell;
 
 use crate::Compositor;
 

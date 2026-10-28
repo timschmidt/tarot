@@ -5,6 +5,7 @@ mod clock;
 mod control;
 #[cfg(feature = "drm")]
 mod drm;
+mod families;
 mod focus;
 mod grabs;
 mod handlers;

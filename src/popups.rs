@@ -22,16 +22,14 @@ pub struct UserInput {
 
 impl Compositor {
     fn root_for_window(&self, id: WindowId) -> Option<WlSurface> {
-        self.space
-            .elements()
-            .find(|window| window.user_data().get::<WindowId>() == Some(&id))
-            .and_then(|window| window.toplevel())
+        self.focused_window(id)
+            .and_then(|window| window.toplevel().cloned())
             .map(|top| top.wl_surface().clone())
     }
 
     fn owner_of_surface(&self, surface: &WlSurface) -> Option<WindowId> {
         if let Some(placement) = self.presented_surfaces.get(surface) {
-            return Some(placement.window);
+            return self.families.owner(placement.window);
         }
         let root = self
             .popups
@@ -46,12 +44,14 @@ impl Compositor {
                     .is_some_and(|top| top.wl_surface() == &root)
             })
             .and_then(|window| window.user_data().get::<WindowId>().copied())
+            .and_then(|id| self.families.owner(id))
     }
 
     pub fn remember_popup_input(&mut self, serial: Serial, surface: &WlSurface) {
         if self.protected() {
             return;
         }
+        self.focus_native_surface(surface);
         let Some(owner) = self.owner_of_surface(surface) else {
             return;
         };
@@ -189,7 +189,9 @@ impl Compositor {
             return;
         }
         let target = match self.shell.view {
-            View::App(id) => self.root_for_window(id),
+            View::App(id) if !self.shell.system_menu_open && !self.shell.notifications_open => {
+                self.root_for_window(id)
+            }
             _ => None,
         };
         if let Some(keyboard) = self.seat.get_keyboard() {

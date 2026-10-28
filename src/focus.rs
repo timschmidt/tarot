@@ -27,6 +27,7 @@ pub struct RenderGeometry {
     pub reference: Rectangle<i32, Physical>,
     pub opacity: f32,
     pub rotation: f32,
+    pub rotation_center: Option<Point<f64, Physical>>,
     pub output_scale: f64,
 }
 
@@ -58,6 +59,7 @@ impl RenderGeometry {
             reference,
             opacity,
             rotation: 0.0,
+            rotation_center: None,
             output_scale,
         })
     }
@@ -71,11 +73,13 @@ impl RenderGeometry {
     /// the alignment/reference offset once, exactly as pinned Smithay does.
     pub fn to_window(self, position: Point<f64, Logical>) -> Point<f64, Logical> {
         let (sin, cos) = f64::from(self.rotation).to_radians().sin_cos();
-        let center: Point<f64, Physical> = (
-            f64::from(self.target.loc.x) + f64::from(self.target.size.w) * 0.5,
-            f64::from(self.target.loc.y) + f64::from(self.target.size.h) * 0.5,
-        )
-            .into();
+        let center: Point<f64, Physical> = self.rotation_center.unwrap_or_else(|| {
+            (
+                f64::from(self.target.loc.x) + f64::from(self.target.size.w) * 0.5,
+                f64::from(self.target.loc.y) + f64::from(self.target.size.h) * 0.5,
+            )
+                .into()
+        });
         let dx = position.x * self.output_scale - center.x;
         let dy = position.y * self.output_scale - center.y;
         let position: Point<f64, Logical> = (
@@ -115,13 +119,28 @@ mod tests {
         };
         for scale in [1.0, 2.0] {
             let base = RenderGeometry::new(reference, target, 1.0, scale).unwrap();
-            for rotation in [-5.0_f32, 0.0, 5.0] {
-                let posed = RenderGeometry { rotation, ..base };
+            for (rotation, rotation_center) in
+                [-5.0_f32, 0.0, 5.0].into_iter().flat_map(|rotation| {
+                    [None, Some((217.5, 419.0).into())]
+                        .into_iter()
+                        .map(move |center| (rotation, center))
+                })
+            {
+                let posed = RenderGeometry {
+                    rotation,
+                    rotation_center,
+                    ..base
+                };
                 let original: Point<f64, Logical> = (100.0, 230.0).into();
-                let cx =
-                    (f64::from(base.target.loc.x) + f64::from(base.target.size.w) * 0.5) / scale;
-                let cy =
-                    (f64::from(base.target.loc.y) + f64::from(base.target.size.h) * 0.5) / scale;
+                let center = rotation_center.unwrap_or_else(|| {
+                    (
+                        f64::from(base.target.loc.x) + f64::from(base.target.size.w) * 0.5,
+                        f64::from(base.target.loc.y) + f64::from(base.target.size.h) * 0.5,
+                    )
+                        .into()
+                });
+                let cx = center.x / scale;
+                let cy = center.y / scale;
                 let (sin, cos) = f64::from(rotation).to_radians().sin_cos();
                 let output = (
                     cx + cos * (original.x - cx) - sin * (original.y - cy),

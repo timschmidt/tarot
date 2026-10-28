@@ -78,7 +78,12 @@ impl Compositor {
             let Some(placement) = self.presented_surfaces.get(surface) else {
                 return false;
             };
-            if placement.direct || !self.presentation.visible(placement.window, self.layout) {
+            if placement.direct
+                || !self
+                    .families
+                    .owner(placement.window)
+                    .is_some_and(|owner| self.presentation.visible(owner, self.layout))
+            {
                 return false;
             }
             if !self

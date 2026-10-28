@@ -18,6 +18,8 @@ This is an execution record, not a promise that every application works. The ini
 
 ## Installed-app launching
 
+The new [transient family policy](TRANSIENT_WINDOWS.md) has nested GLES protocol acceptance: mapped-parent ownership, modal hints, nested focus, late attach/detach, orphan/remap semantics and actual scale-1/2 input/pixels in every orientation. Protected mapping uses a trusted protocol-lock probe. These results do not upgrade the separate GTK/Qt dialog rows or the phone's revision-17 compatibility claims; native package, keyboard/popup and toolkit acceptance remain required.
+
 The catalog applies XDG directory priority before visibility filtering, so a hidden user entry suppresses the corresponding system entry. Nested IDs remain stable. It retains localized metadata and reports missing executables or unsupported launch requirements. The first phone scan found 29 entries; the inspected host found 442. Counts depend on the installed applications and desktop visibility rules.
 
 The metadata decoder is pinned `freedesktop-desktop-entry` 0.8.4 with gettext disabled. Tarot parses Exec into argv separately, expands name/path/icon and literal-percent fields, removes absent file/URI arguments, rejects unsupported or ambiguous codes, and passes arguments directly to `std::process::Command`. Shell syntax is literal unless the desktop entry explicitly selects a shell executable. `Terminal=true` entries use a typed foot command wrapper when available. D-Bus-only activation and live catalog refresh remain incomplete. [Desktop Exec specification](https://xdg.pages.freedesktop.org/xdg-specs/desktop-entry/latest/exec-variables.html), [decoder package](https://docs.rs/crate/freedesktop-desktop-entry/0.8.4/source/Cargo.toml)

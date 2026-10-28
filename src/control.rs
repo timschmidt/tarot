@@ -233,6 +233,7 @@ pub fn start(path: &Path, handle: &LoopHandle<'_, CalloopData>) -> Result<Contro
                 "selected": state.shell.selected,
                 "presentation": state.presentation,
                 "cards": state.shell.cards,
+                "native_windows": state.families.nodes(),
                 "capture_pending": state.snapshot.is_some(),
                 "capture_error": state.snapshot_error,
                 "render_metrics": state.metrics,

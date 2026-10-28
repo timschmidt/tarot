@@ -56,30 +56,14 @@ impl CompositorHandler for Compositor {
                     let mapped =
                         with_renderer_surface_state(&root, |state| state.buffer().is_some())
                             .unwrap_or(false);
-                    let listed = self.shell.cards.iter().any(|card| card.id == id);
-                    if mapped
-                        && !listed
-                        && let Some(toplevel) = window.toplevel()
-                    {
-                        let (title, app_id) = xdg_shell::metadata(toplevel);
-                        if !self.protected() {
-                            self.cancel_input_sequences();
-                        }
-                        let effects = if self.protected() {
-                            self.shell.add_window_in_background(id, title, app_id);
-                            Vec::new()
+                    if mapped != self.families.mapped(id) {
+                        let previous = self.families.clone();
+                        if mapped {
+                            self.families.map(id);
                         } else {
-                            self.shell.add_window(id, title, app_id)
-                        };
-                        self.apply_effects(effects);
-                        self.ui_dirty = true;
-                    } else if !mapped && listed {
-                        if !self.protected() {
-                            self.cancel_input_sequences();
+                            self.families.unmap(id);
                         }
-                        let effects = self.shell.remove_window(id);
-                        self.apply_effects(effects);
-                        self.ui_dirty = true;
+                        self.reconcile_families(previous, mapped.then_some(id));
                     }
                 }
             }

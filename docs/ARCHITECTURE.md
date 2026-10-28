@@ -131,6 +131,8 @@ The locker and an external Tarot keyboard need client-side Wayland integrations 
 
 ## Wayland compatibility contract
 
+The implemented [transient-window policy](TRANSIENT_WINDOWS.md) separates native toplevel identity from root-card ownership. Parented members share the card's pose and clipping, retain individual native geometry/input, and use the optional xdg-dialog modal hint separately from parenting. Effective relationships account for mapped-parent and orphan/remap semantics. Nested protocol, input/pixel and protection acceptance is recorded separately from pending device/toolkit acceptance.
+
 Advertise only interfaces and versions whose lifecycle is implemented. This list is an implementation target, not a claim that the blank project supports these protocols.
 
 | Stage | Protocol capabilities | Required behavior |

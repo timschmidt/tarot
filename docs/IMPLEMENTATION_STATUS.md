@@ -15,6 +15,14 @@ The installed package is revision 17 with the Nocturne foundation, live Calendar
 
 M4–M6 remain incomplete, including service/permission agents, visual/accessibility refinement, authentication-failure policy, phone applications, carrier tests and release/soak gates. No active SIM is available. The new read-only resource sampler has three passing host accounting tests and a short native Phosh smoke pass; matched five-minute measurements are in progress. [Full criteria](DEVELOPMENT_PLAN.md#milestone-sequence) · [Application matrix](APPLICATION_COMPATIBILITY.md) · [Sampler procedure](BUILDING.md#read-only-resource-sampling)
 
+## Native transient development checkpoint
+
+The worktree now keeps parented xdg toplevels inside their root card while retaining separate native geometry, buffers and focus. Nested dialogs follow the card through overview and rendering; natural-size fitting shares its exact rotation/clipping center. Optional xdg-dialog modal hints block the rest of the family, while nonmodal parent clicks receive focus and typing. Cooperative card close targets the root; child disappearance restores surviving focus. Late parenting retains the focused native window; orphan inheritance and remapping follow the effective mapped-parent graph.
+
+All 141 ordinary Rust tests pass on the current compiler and Rust 1.89. Strict host/AArch64 DRM Clippy and minimum-compiler AArch64 all-target checking pass. Real Wayland lifecycle tests retain a failing pre-change extra-card case and the corrected late-parent focus regression. Scoped actual pointer/key and native-pixel acceptance passes at scale 1/2 in every orientation; managed protocol-lock coverage verifies protected mapping/redaction and restoration. Existing stack, rounded-card, Quick Launch/keyboard, idle, lock-policy and orientation replays pass. Captures were inspected. Retained failures include a pixel sample outside the deliberately letterboxed fixture; that test sample is corrected without changing fit behavior.
+
+These are nested GLES results. The phone remains on native-validated revision 17; the transient implementation is not yet packaged or accepted on Panfrost/KMS or in separate GTK/Qt dialogs. It does not close M2. [Policy, evidence and next native gate](TRANSIENT_WINDOWS.md) · [Reproduction](BUILDING.md#native-transient-regressions). Local evidence is under ignored `artifacts/m2/transients/`.
+
 ## Original Nocturne design packet
 
 The owner’s October 28 packet is committed with the existing implementation in `5ee7671`. Its PDF, studies, tokens, motion notes and handoff are consumed; Nocturne and the Pre 2/webOS 2.x phone model now supersede the scaffold’s provisional appearance. The exact historical firmware capture remains missing. [Application map](DESIGN_APPLICATION.md) records all 25 studies, implemented foundations, remaining work and deviations.

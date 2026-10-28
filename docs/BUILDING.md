@@ -43,15 +43,33 @@ TAROT_SOFTWARE_RENDERER=1 ./scripts/run-nested.sh \
   --exit-after-ms 90000 --control-socket /tmp/tarot-control/lifecycle.sock
 # Second terminal, while the session is running:
 TAROT_TEST_CONTROL_SOCKET=/tmp/tarot-control/lifecycle.sock \
-  cargo test --test wayland_lifecycle -- --ignored --nocapture
+  cargo test --test wayland_lifecycle -- --ignored --nocapture \
+    --test-threads=1 --skip transient_native_input_and_pixels
 target/debug/tarotctl --socket /tmp/tarot-control/lifecycle.sock exit
 ```
 
-The test resolves Tarot's display from its private control socket; no `WAYLAND_DISPLAY` override is required. `XDG_RUNTIME_DIR` must match the running session. Ordinary `cargo test --workspace` leaves this test ignored and runs the independent model/UI/metadata tests.
+The tests resolve Tarot's display from its private control socket; no `WAYLAND_DISPLAY` override is required. `XDG_RUNTIME_DIR` must match the running session. Run these cases serially because each requires an empty session. The skipped input case has its own driver below. Ordinary `cargo test --workspace` leaves these tests ignored and runs the independent model/UI/metadata tests.
 
 The expanded case caches a small SHM texture, commits a larger buffer and then a smaller buffer while hidden, returns to the app, and verifies fresh pixels. `tests/lifecycle_session_replay.py --output /absolute/new/lifecycle-evidence` starts the isolated Mesa session and also rejects GL error diagnostics; debug rendering can consume a GL error before a later capture sees it, so capture success alone is insufficient. Build the compositor first with `cargo build --bin tarot`.
 
 Tarot carries Smithay 0.7.0 as a local Cargo patch with the upstream accumulated-SHM-damage bounds fix. Source, original MIT notice, exact upstream revision and the two-line diff are retained under [third-party attribution](../third-party/README.md#smithay-gles-damage-backport). Do not replace this with a moving upstream branch or ignore GL upload errors. The unpatched release produced an out-of-bounds upload in this regression and on the phone after keyboard/launcher transitions.
+
+## Native transient regressions
+
+The lifecycle suite now also checks actual xdg parent/modal requests, nested focus, close refusal, hidden-family mapping, late attach/detach and orphan/remap semantics. The separate input driver checks painted native dialog pixels and actual pointer/key delivery, including nonzero client origins, all output orientations, overview, modal blocking and protected mapping. It owns its Xvfb, private input socket and managed protocol-lock probe; it never injects input into the host desktop. This is nested-backend acceptance, not native KMS or PAM acceptance.
+
+```sh
+cargo build --workspace --bins --examples
+python3 tests/with_xvfb.py --xvfb /absolute/path/to/Xvfb \
+  --log /absolute/new/lifecycle-xvfb.log -- \
+  python3 tests/lifecycle_session_replay.py --output /absolute/new/lifecycle
+python3 tests/transient_session_replay.py --xvfb /absolute/path/to/Xvfb \
+  --scale 1 --output /absolute/new/transients-scale1
+python3 tests/transient_session_replay.py --xvfb /absolute/path/to/Xvfb \
+  --scale 2 --output /absolute/new/transients-scale2
+```
+
+Python needs the same X11/XTEST libraries as the existing private-display replays. The lifecycle and transient runners invoke Cargo internally; run them after other Cargo jobs finish. [Policy and current evidence](TRANSIENT_WINDOWS.md).
 
 ## Compositor captures
 

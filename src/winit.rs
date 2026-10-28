@@ -449,16 +449,38 @@ pub fn build_scene(
         )
             .into(),
     );
-    let mut visible_windows: Vec<_> = state.space.elements().cloned().collect();
+    let mut visible_windows: Vec<_> = state
+        .space
+        .elements()
+        .filter(|window| {
+            window
+                .user_data()
+                .get::<WindowId>()
+                .is_some_and(|id| state.families.mapped(*id))
+        })
+        .cloned()
+        .collect();
     // Native elements use the reverse of the chrome's back-to-front order.
     visible_windows.sort_by_key(|window| {
-        std::cmp::Reverse(
-            state
-                .presentation
-                .windows
-                .iter()
-                .position(|visual| Some(&visual.id) == window.user_data().get::<WindowId>())
-                .unwrap_or(0),
+        let id = window.user_data().get::<WindowId>().copied().unwrap();
+        let owner = state.families.owner(id).unwrap();
+        (
+            std::cmp::Reverse(
+                state
+                    .presentation
+                    .windows
+                    .iter()
+                    .position(|visual| visual.id == owner)
+                    .unwrap_or(0),
+            ),
+            std::cmp::Reverse(
+                state
+                    .families
+                    .members(owner)
+                    .iter()
+                    .position(|member| *member == id)
+                    .unwrap_or(0),
+            ),
         )
     });
     shell.cards.begin(renderer)?;
@@ -466,17 +488,38 @@ pub fn build_scene(
         let Some(id) = window.user_data().get::<WindowId>().copied() else {
             continue;
         };
-        if !state.presentation.visible(id, state.layout) {
+        let Some(owner) = state.families.owner(id) else {
+            continue;
+        };
+        if !state.presentation.visible(owner, state.layout) {
             continue;
         }
-        let Some(visual) = state.presentation.window(id) else {
+        let Some(visual) = state.presentation.window(owner) else {
             continue;
         };
         let scale = state.scale as f64;
+        let visual = *visual;
+        let Some(card_geometry) = crate::focus::RenderGeometry::new(
+            window.geometry(),
+            visual.rect,
+            visual.opacity,
+            scale,
+        ) else {
+            continue;
+        };
+        let card_target = card_geometry.target;
+        let native_rect = state.native_rect(id, visual.rect);
         if let Some(mut geometry) =
-            crate::focus::RenderGeometry::new(window.geometry(), visual.rect, visual.opacity, scale)
+            crate::focus::RenderGeometry::new(window.geometry(), native_rect, visual.opacity, scale)
         {
             geometry.rotation = visual.rotation;
+            geometry.rotation_center = Some(
+                (
+                    f64::from(card_target.loc.x) + f64::from(card_target.size.w) * 0.5,
+                    f64::from(card_target.loc.y) + f64::from(card_target.size.h) * 0.5,
+                )
+                    .into(),
+            );
             state.presented_windows.insert(id, geometry);
             crate::focus::cache_surface_placements(window, id, &mut state.presented_surfaces);
             let target = geometry.target;
@@ -494,7 +537,7 @@ pub fn build_scene(
             ) {
                 if let Some(element) = shell
                     .cards
-                    .mask(element, target, *visual, size, scale)
+                    .mask(element, card_target, visual, size, scale)
                     .and_then(|element| {
                         CropRenderElement::from_element(element, scale, content_clip)
                     })
@@ -502,10 +545,14 @@ pub fn build_scene(
                     scene.push(SceneElement::Card(element));
                 }
             }
-            if let Some(shadow) = shell
-                .cards
-                .shadow(*visual, target, scale)
-                .and_then(|element| CropRenderElement::from_element(element, scale, content_clip))
+            if id == owner
+                && let Some(shadow) =
+                    shell
+                        .cards
+                        .shadow(visual, card_target, scale)
+                        .and_then(|element| {
+                            CropRenderElement::from_element(element, scale, content_clip)
+                        })
             {
                 scene.push(SceneElement::Shadow(shadow));
             }
@@ -540,7 +587,8 @@ pub fn complete_frame(state: &mut Compositor, output: &Output, commands: Vec<tar
             window
                 .user_data()
                 .get::<WindowId>()
-                .is_some_and(|id| state.presentation.visible(*id, state.layout))
+                .and_then(|id| state.families.owner(*id))
+                .is_some_and(|owner| state.presentation.visible(owner, state.layout))
         };
         let visible_surfaces: Vec<_> = windows
             .iter()
