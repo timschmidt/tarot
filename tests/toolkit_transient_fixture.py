@@ -10,6 +10,8 @@ import os
 from pathlib import Path
 import time
 
+CHOICES=['Choice','Alpha','Beta','Gamma','Delta','Echo','Foxtrot','Golf','Hotel','India','Juliet','Other']
+
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
@@ -43,7 +45,10 @@ def run_gtk(emit):
         dialog.add_button('Cancel',Gtk.ResponseType.CANCEL);dialog.add_button('Apply',Gtk.ResponseType.APPLY)
         content=dialog.get_content_area();content.set_border_width(16);content.set_spacing(12)
         entry=Gtk.Entry();entry.set_width_chars(10);content.pack_start(entry,False,False,0)
-        combo=Gtk.ComboBoxText();combo.append_text('Choice');combo.append_text('Other');combo.set_active(0);content.pack_start(combo,False,False,0)
+        combo=Gtk.ComboBoxText()
+        for text in CHOICES:combo.append_text(text)
+        combo.set_active(0);content.pack_start(combo,False,False,0)
+        combo.connect('notify::popup-shown',lambda w,_:emit('menu-parent-size',width=dialog.get_allocated_width(),height=dialog.get_allocated_height()) if w.get_property('popup-shown') else None)
         entry.connect('changed',lambda w:emit('text',field='dialog',text=w.get_text()))
         combo.connect('changed',lambda w:emit('choice',value=w.get_active_text()))
         def response(d,value):
@@ -76,7 +81,11 @@ def run_qt(emit):
         if active[0] is not None:return
         dialog=QtWidgets.QDialog(window);active[0]=dialog;dialog.setWindowTitle('Qt child');dialog.resize(280,240)
         content=QtWidgets.QVBoxLayout(dialog);entry=QtWidgets.QLineEdit();content.addWidget(entry)
-        combo=QtWidgets.QComboBox();combo.addItems(['Choice','Other']);content.addWidget(combo)
+        class Combo(QtWidgets.QComboBox):
+            def showPopup(self):
+                emit('menu-parent-size',width=dialog.width(),height=dialog.height())
+                super().showPopup()
+        combo=Combo();combo.addItems(CHOICES);content.addWidget(combo)
         buttons=QtWidgets.QDialogButtonBox();cancel=buttons.addButton('Cancel',QtWidgets.QDialogButtonBox.ButtonRole.RejectRole);apply=buttons.addButton('Apply',QtWidgets.QDialogButtonBox.ButtonRole.AcceptRole)
         for b in [cancel,apply]:b.setMinimumHeight(44)
         content.addWidget(buttons)

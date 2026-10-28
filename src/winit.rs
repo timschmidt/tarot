@@ -6,12 +6,8 @@ use smithay::{
             ImportDma,
             damage::OutputDamageTracker,
             element::{
-                surface::WaylandSurfaceRenderElement,
-                texture::TextureRenderElement,
-                utils::{
-                    ConstrainAlign, ConstrainScaleBehavior, CropRenderElement,
-                    RelocateRenderElement, RescaleRenderElement, constrain_as_render_elements,
-                },
+                AsRenderElements, surface::WaylandSurfaceRenderElement,
+                texture::TextureRenderElement, utils::CropRenderElement,
             },
             gles::{GlesTexture, element::PixelShaderElement},
             glow::GlowRenderer,
@@ -33,9 +29,8 @@ use smithay::{
 use std::{cell::RefCell, rc::Rc, time::Duration};
 use tarot_core::WindowId;
 
-type TransformedCardElement = CropRenderElement<
-    RelocateRenderElement<RescaleRenderElement<WaylandSurfaceRenderElement<GlowRenderer>>>,
->;
+type TransformedCardElement =
+    crate::focus::FittedElement<WaylandSurfaceRenderElement<GlowRenderer>>;
 type CardElement = CropRenderElement<crate::card_renderer::Masked<TransformedCardElement>>;
 smithay::backend::renderer::element::render_elements! {
     pub RecoveryElement<=GlowRenderer>;
@@ -522,19 +517,13 @@ pub fn build_scene(
             );
             state.presented_windows.insert(id, geometry);
             crate::focus::cache_surface_placements(window, id, &mut state.presented_surfaces);
-            let target = geometry.target;
-            let reference = geometry.reference;
-            for element in constrain_as_render_elements::<GlowRenderer, _, TransformedCardElement>(
-                window,
+            let native: Vec<WaylandSurfaceRenderElement<GlowRenderer>> = window.render_elements(
                 renderer,
-                target.loc - reference.loc,
+                geometry.render_location(),
+                scale.into(),
                 geometry.opacity,
-                target,
-                reference,
-                ConstrainScaleBehavior::Fit,
-                ConstrainAlign::CENTER,
-                scale,
-            ) {
+            );
+            for element in geometry.fit_elements(native, card_target) {
                 if let Some(element) = shell
                     .cards
                     .mask(element, card_target, visual, size, scale)

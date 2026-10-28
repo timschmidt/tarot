@@ -44,7 +44,32 @@ def replay(control,tap,state,capture,out,session_cgroup):
         dialog_mapped('dialog');typed('first')
         button('combo','Choice')
         state(prefix+'-child-popup',lambda s:s['popup_grab_active'] and s['popup_owner']==identifier)
-        button('popup','Other');observe('choice',lambda e:e['value']=='Other')
+        dimensions=observe('menu-parent-size')
+        quiet=[None,None]
+        def popup_settled(s):
+            # Qt can asynchronously reopen its input panel when the combo
+            # takes focus. A captured row moves while the app area animates.
+            # Keep the real keyboard behavior; wait for stable final geometry.
+            visual=window(s,identifier)
+            signature=(s['app_area'],s['keyboard_visible'],visual,s['output'])
+            ready=s['popup_grab_active'] and s['popup_owner']==identifier and visual['rect']==s['app_area'] and visual['opacity']==1.0 and s['presentation']['dock']==0.0
+            now=time.monotonic()
+            if not ready or signature!=quiet[0]:quiet[:]=[signature,now];return False
+            return now-quiet[1]>=.35
+        s=state(prefix+'-popup-parent-size',popup_settled)
+        result['popup_stability_seconds']=.35
+        result['popup_keyboard_visible']=s['keyboard_visible']
+        assert 100<=dimensions['height']<=400,dimensions
+        area=s['app_area'];cx=(area['x']+area['width']/2)*2;cy=(area['y']+area['height']/2)*2
+        # The actual allocation includes toolkit decorations/shadows and is
+        # conservative relative to xdg geometry; add ten logical pixels too.
+        exclude=(cx-dimensions['width']-20,cy-dimensions['height']-20,
+            dimensions['width']*2+40,dimensions['height']*2+40)
+        capture(prefix+'-popup')
+        found=locate(out/(prefix+'-popup.png'),'Other',vertical=(.045,.95),
+            alternatives=('Alpha','Beta','Gamma','Delta','Echo','Foxtrot','Golf','Hotel','India','Juliet'),exclude=exclude)
+        result['buttons'].append(found);result['overflow_selection']=found;result['popup_parent_allocation']=dimensions
+        tap(found['point'][0]/2,found['point'][1]/2);observe('choice',lambda e:e['value']==found['word'])
         state(prefix+'-popup-dismissed',lambda s:not s['popup_grab_active'])
         request(control,'overview')
         s=state(prefix+'-overview',lambda s:s['view']=='Overview' and s['presentation']['overview']==1.0)
@@ -73,6 +98,7 @@ def replay(control,tap,state,capture,out,session_cgroup):
         await_value(lambda:not Path('/proc',str(pid)).exists(),bool,seconds=12)
         result.update(passed=True,separate_xdg_toplevel_with_parent=True,native_touch_keyboard_exact_text=True,
             child_popup_owned_by_root_card=True,actual_popup_selection=True,unsaved_close_refused=True,
+            actual_popup_item_outside_parent_allocation=True,
             actual_card_activation_restores_dialog=True,cancel_and_apply_actual_responses=True,cooperative_parent_close=True,same_login_cgroup=True)
     record.update(passed=all(r['passed'] for r in record['toolkits'].values()),native_panfrost_kms=True)
     (out/'toolkit-dialog-validation.json').write_text(json.dumps(record,indent=2)+'\n')

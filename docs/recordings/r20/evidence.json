@@ -1,0 +1,295 @@
+{
+  "package_revision": 20,
+  "package_sha256": "aea8a94d690bc819c3653584ec32d18df537a929ccc98aee5304d02a0556b7f1",
+  "binaries_sha256": {
+    "tarot": "0def218f130b616ff4ed9265a703d1ecafb9722981c992950a761a7bc01cb7cf",
+    "tarot-session": "dd0cf703ec3dbed1b870042b1507384cd563d7d0bc92c07e6984fbeb91613cb9",
+    "tarot-lock": "b9a4904f010dd8c1f1dffc31acf853230ff8283e7242db8b38af85f8782440aa",
+    "tarot-keyboard": "181e37f855df5f9da9bf29138847c3336daeca14020a298b600bde103ff21b89"
+  },
+  "source_archive_sha256": "b8ac9078e0e6e322b3b97b21c100c943fcaba05db1e7c507392a8d41d88f5009",
+  "packaged_rust_files_matching_manifest": 329,
+  "protocol_fixture_sha256": "48ffae8b8f6d7d27beb7b8476a7866ef32f68966536b4dc2258200e755718a62",
+  "protocol_fixture_source_sha256": "36bad03a06ad402ed87b979d4bc2bde8b4125ed3648877d6a8b2929d940bf3e4",
+  "native_protocol_tests_passed": 4,
+  "native_driver_requests": 22,
+  "actual_touch_and_keyboard": true,
+  "actual_pam_protected_arrival": true,
+  "physical_finger_tested": false,
+  "toolkits": {
+    "gtk": {
+      "passed": true,
+      "pid": 23452,
+      "version": {
+        "event": "version",
+        "pid": 23452,
+        "uid": 10000,
+        "monotonic": 41303.059052974,
+        "toolkit": "gtk",
+        "version": "3.24.52"
+      },
+      "popup_stability_seconds": 0.35,
+      "popup_keyboard_visible": false,
+      "overflow_selection": {
+        "word": "Hotel",
+        "point": [
+          177.5,
+          1266.0
+        ],
+        "recognized": {
+          "level": "5",
+          "page_num": "1",
+          "block_num": "5",
+          "par_num": "1",
+          "line_num": "6",
+          "word_num": "1",
+          "left": "132",
+          "top": "1186",
+          "width": "91",
+          "height": "30",
+          "conf": "91.933876",
+          "text": "Hotel"
+        },
+        "crop_top": 65,
+        "variant": "crop",
+        "mode": 3,
+        "attempts": [
+          {
+            "variant": "crop",
+            "mode": 3,
+            "matches": [
+              {
+                "level": "5",
+                "page_num": "1",
+                "block_num": "5",
+                "par_num": "1",
+                "line_num": "4",
+                "word_num": "1",
+                "left": "132",
+                "top": "1043",
+                "width": "125",
+                "height": "29",
+                "conf": "92.664749",
+                "text": "Foxtrot"
+              },
+              {
+                "level": "5",
+                "page_num": "1",
+                "block_num": "5",
+                "par_num": "1",
+                "line_num": "5",
+                "word_num": "1",
+                "left": "130",
+                "top": "1113",
+                "width": "75",
+                "height": "31",
+                "conf": "90.334244",
+                "text": "Golf"
+              },
+              {
+                "level": "5",
+                "page_num": "1",
+                "block_num": "5",
+                "par_num": "1",
+                "line_num": "6",
+                "word_num": "1",
+                "left": "132",
+                "top": "1186",
+                "width": "91",
+                "height": "30",
+                "conf": "91.933876",
+                "text": "Hotel"
+              }
+            ]
+          }
+        ],
+        "excluded_bounds": [
+          8.0,
+          367.0,
+          704,
+          698
+        ]
+      },
+      "popup_parent_allocation": {
+        "event": "menu-parent-size",
+        "pid": 23452,
+        "uid": 10000,
+        "monotonic": 41308.570184274,
+        "width": 332,
+        "height": 329
+      },
+      "root_close_callback_observed": false,
+      "cancel_native_size": [
+        332,
+        329
+      ],
+      "apply_native_size": [
+        332,
+        329
+      ],
+      "separate_xdg_toplevel_with_parent": true,
+      "native_touch_keyboard_exact_text": true,
+      "child_popup_owned_by_root_card": true,
+      "actual_popup_selection": true,
+      "unsaved_close_refused": true,
+      "actual_popup_item_outside_parent_allocation": true,
+      "actual_card_activation_restores_dialog": true,
+      "cancel_and_apply_actual_responses": true,
+      "cooperative_parent_close": true,
+      "same_login_cgroup": true
+    },
+    "qt": {
+      "passed": true,
+      "pid": 23613,
+      "version": {
+        "event": "version",
+        "pid": 23613,
+        "uid": 10000,
+        "monotonic": 41320.354896209,
+        "toolkit": "qt",
+        "version": "6.11.1"
+      },
+      "popup_stability_seconds": 0.35,
+      "popup_keyboard_visible": true,
+      "overflow_selection": {
+        "word": "Golf",
+        "point": [
+          158.5,
+          837.5
+        ],
+        "recognized": {
+          "level": "5",
+          "page_num": "1",
+          "block_num": "2",
+          "par_num": "1",
+          "line_num": "7",
+          "word_num": "1",
+          "left": "120",
+          "top": "756",
+          "width": "77",
+          "height": "33",
+          "conf": "91.025406",
+          "text": "Golf"
+        },
+        "crop_top": 65,
+        "variant": "crop",
+        "mode": 3,
+        "attempts": [
+          {
+            "variant": "crop",
+            "mode": 3,
+            "matches": [
+              {
+                "level": "5",
+                "page_num": "1",
+                "block_num": "2",
+                "par_num": "1",
+                "line_num": "6",
+                "word_num": "1",
+                "left": "122",
+                "top": "694",
+                "width": "130",
+                "height": "31",
+                "conf": "91.732597",
+                "text": "Foxtrot"
+              },
+              {
+                "level": "5",
+                "page_num": "1",
+                "block_num": "2",
+                "par_num": "1",
+                "line_num": "7",
+                "word_num": "1",
+                "left": "120",
+                "top": "756",
+                "width": "77",
+                "height": "33",
+                "conf": "91.025406",
+                "text": "Golf"
+              }
+            ]
+          }
+        ],
+        "excluded_bounds": [
+          60.0,
+          216.0,
+          600,
+          520
+        ]
+      },
+      "popup_parent_allocation": {
+        "event": "menu-parent-size",
+        "pid": 23613,
+        "uid": 10000,
+        "monotonic": 41325.479381011,
+        "width": 280,
+        "height": 240
+      },
+      "root_close_callback_observed": false,
+      "cancel_native_size": [
+        280,
+        240
+      ],
+      "apply_native_size": [
+        280,
+        240
+      ],
+      "separate_xdg_toplevel_with_parent": true,
+      "native_touch_keyboard_exact_text": true,
+      "child_popup_owned_by_root_card": true,
+      "actual_popup_selection": true,
+      "unsaved_close_refused": true,
+      "actual_popup_item_outside_parent_allocation": true,
+      "actual_card_activation_restores_dialog": true,
+      "cancel_and_apply_actual_responses": true,
+      "cooperative_parent_close": true,
+      "same_login_cgroup": true
+    }
+  },
+  "regressions": {
+    "quick_launch": true,
+    "rounded_cards": true,
+    "stack_matrix": true,
+    "gtk_close": true,
+    "hardware_keys": true
+  },
+  "saved_restart_passed": true,
+  "normal_session_audit_passed": true,
+  "panfrost_fd_verified": true,
+  "kernel_suspend_cycles": 0,
+  "host_ordinary_tests_each_compiler": 142,
+  "host_transient_scales": [
+    1,
+    2
+  ],
+  "host_lifecycle_passed": true,
+  "images_sha256": {
+    "gtk-popup.png": "d920bb1d9ea226574340c94138718bf16f799f38360d64d916e83d830e617e87",
+    "qt-popup.png": "a7174bd730bc88388c53ead095897031c5fe32668c7b16ddbfe219da34520902",
+    "protocol-overflow.png": "f2cfdd81bcde27d64ec466c8e048f27ecc81340a2f6a170b5359d95b55ccddfc",
+    "host-before-overflow.png": "98a7a8aad394b1454cf23a3c322c7e9bf1adde49ec293379bf958cc6efeae2c6"
+  },
+  "executed_qa_sha256": {
+    "native_transient_fixture.py": "ba9e3d0f3ee8815d1061e0fc06062a58c708ec07d3c9ea7985598349a9404d12",
+    "phone_transient_replay.py": "4c6e45a256583fe2d809aba28ae0140549459527a803bb3a9daf8fcce44f0527",
+    "toolkit_transient_fixture.py": "62239117b736b5cec0efb6c56a89354dd6f4e433f1c289f25557b80c222e8bc9",
+    "phone_toolkit_dialog_replay.py": "df522010f8d53f411619a554dce8129a6b4d2efa4349cebcc60f4cf18615b77d",
+    "dialog_button.py": "c516bb61312f5a4575642b57a77456bf2cca52175f1d6f673589fb819e1b3abe"
+  },
+  "native_archives_sha256": {
+    "popup-r20-first-evidence.tar.gz": "fba07b3f0938fa24872bd36b5c6f7ae6de84021add2c2d46bd3e5b80da4703a6",
+    "popup-r20-final-evidence.tar.gz": "9b8fadb9d408edd8d61b388e63bbcd8bce59ff9b0a379808b82086e0ea8bca53"
+  },
+  "retained_failure": {
+    "expected_word": "Foxtrot",
+    "actual_word": "Golf",
+    "target_app_height": 412,
+    "captured_presented_height": 463.82574462890625,
+    "correction": "QA waits 350 ms for final app geometry before capture; installed payload unchanged"
+  },
+  "remaining": [
+    "Client maximize/fullscreen initial-hint policy and coverage",
+    "Broader toolkit, clipboard, terminal, browser and accessibility checks",
+    "Full M2 and development-plan gates"
+  ]
+}

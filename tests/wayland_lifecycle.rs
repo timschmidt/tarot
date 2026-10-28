@@ -2,6 +2,7 @@
 //! See BUILDING.md; this deliberately does not connect during ordinary unit tests.
 
 use std::{
+    collections::HashMap,
     io::{BufRead, BufReader, Write},
     os::{fd::AsFd, unix::net::UnixStream},
     path::PathBuf,
@@ -17,7 +18,9 @@ use wayland_client::{
     },
 };
 use wayland_protocols::xdg::dialog::v1::client::{xdg_dialog_v1, xdg_wm_dialog_v1};
-use wayland_protocols::xdg::shell::client::{xdg_surface, xdg_toplevel, xdg_wm_base};
+use wayland_protocols::xdg::shell::client::{
+    xdg_popup, xdg_positioner, xdg_surface, xdg_toplevel, xdg_wm_base,
+};
 
 #[derive(Default)]
 struct Client {
@@ -35,6 +38,9 @@ struct Client {
     pointer_position: (f64, f64),
     presses: Vec<(wl_surface::WlSurface, f64, f64)>,
     keys: Vec<wl_surface::WlSurface>,
+    seat: Option<wl_seat::WlSeat>,
+    press_serial: Option<u32>,
+    popup_rects: HashMap<xdg_popup::XdgPopup, (i32, i32, i32, i32)>,
 }
 
 struct Window {
@@ -44,7 +50,63 @@ struct Window {
     buffer: wl_buffer::WlBuffer,
 }
 
+struct Popup {
+    surface: wl_surface::WlSurface,
+    xdg: xdg_surface::XdgSurface,
+    popup: xdg_popup::XdgPopup,
+    buffer: wl_buffer::WlBuffer,
+}
+
+impl Popup {
+    fn map(&self) {
+        self.surface.attach(Some(&self.buffer), 0, 0);
+        self.surface.damage(0, 0, 500, 500);
+        self.surface.commit();
+    }
+    fn destroy(self) {
+        self.popup.destroy();
+        self.xdg.destroy();
+        self.surface.destroy();
+        self.buffer.destroy();
+    }
+}
+
 impl Client {
+    fn popup(&self, qh: &QueueHandle<Self>, parent: &Window, grab: bool) -> Popup {
+        let surface = self.compositor.as_ref().unwrap().create_surface(qh, ());
+        let xdg = self
+            .shell
+            .as_ref()
+            .unwrap()
+            .get_xdg_surface(&surface, qh, ());
+        let positioner = self.shell.as_ref().unwrap().create_positioner(qh, ());
+        positioner.set_size(140, 100);
+        positioner.set_anchor_rect(70, 60, 1, 1);
+        positioner.set_anchor(xdg_positioner::Anchor::BottomRight);
+        positioner.set_gravity(xdg_positioner::Gravity::BottomRight);
+        positioner.set_constraint_adjustment(
+            xdg_positioner::ConstraintAdjustment::SlideX
+                | xdg_positioner::ConstraintAdjustment::SlideY
+                | xdg_positioner::ConstraintAdjustment::FlipX
+                | xdg_positioner::ConstraintAdjustment::FlipY,
+        );
+        let popup = xdg.get_popup(Some(&parent.xdg), &positioner, qh, ());
+        positioner.destroy();
+        if grab {
+            popup.grab(self.seat.as_ref().unwrap(), self.press_serial.unwrap());
+        }
+        // Deliberate extra buffer content outside the declared popup geometry
+        // stresses the outer card clip as well as ordinary menu overflow.
+        xdg.set_window_geometry(0, 0, 140, 100);
+        surface.commit();
+        let buffer = self.buffer(qh, 500, 500, [0xdd, 0x55, 0x22, 0xff]);
+        Popup {
+            surface,
+            xdg,
+            popup,
+            buffer,
+        }
+    }
     fn window(&self, qh: &QueueHandle<Self>, title: &str) -> Window {
         let window = self.uncommitted_window(qh, title, None);
         window.surface.commit();
@@ -582,6 +644,53 @@ fn transient_native_input_and_pixels() {
         drive(json!({"command":"click","x":cx,"y":cy,"output":s["output"],"key":true}));
         sync(&mut queue, &mut client);
         assert_eq!(client.focus.as_ref(), Some(&child.surface));
+        let popup = client.popup(&qh, &child, true);
+        sync(&mut queue, &mut client);
+        let (px, py, pw, ph) = client.popup_rects[&popup.popup];
+        assert_eq!((pw, ph), (140, 100));
+        popup.map();
+        sync(&mut queue, &mut client);
+        std::thread::sleep(Duration::from_millis(80));
+        assert!(status()["popup_grab_active"].as_bool().unwrap());
+        assert_eq!(status()["popup_owner"], id);
+        let (mx, my) = [(15.0, 15.0), (125.0, 15.0), (15.0, 85.0), (125.0, 85.0)]
+            .into_iter()
+            .find(|(x, y)| {
+                let x = f64::from(px) + x;
+                let y = f64::from(py) + y;
+                !(-20.0..=80.0).contains(&x) || !(-30.0..=130.0).contains(&y)
+            })
+            .expect("the popup extends outside its parent's actual buffer");
+        let point = (
+            cx - 40.0 + f64::from(px) + mx,
+            cy - 60.0 + f64::from(py) + my,
+        );
+        assert_eq!(
+            captured_pixel(&format!("{orientation}-popup-overflow"), &s, point),
+            [34, 85, 221, 255],
+            "a popup must render outside its dialog target"
+        );
+        drive(json!({"command":"click","x":point.0,"y":point.1,"output":s["output"],"key":true}));
+        sync(&mut queue, &mut client);
+        let (target, x, y) = client.presses.last().unwrap();
+        assert_eq!(target, &popup.surface);
+        assert!(
+            (*x - mx).abs() < 1.5 && (*y - my).abs() < 1.5,
+            "popup coordinates {x},{y} expected {mx},{my}"
+        );
+        assert_eq!(client.keys.last(), Some(&popup.surface));
+        popup.destroy();
+        let until = Instant::now() + Duration::from_secs(3);
+        loop {
+            sync(&mut queue, &mut client);
+            if client.focus.as_ref() == Some(&child.surface)
+                && status()["popup_grab_active"] == false
+            {
+                break;
+            }
+            assert!(Instant::now() < until, "popup focus not restored");
+            std::thread::sleep(Duration::from_millis(10));
+        }
         control(json!({"command":"overview"}));
         std::thread::sleep(Duration::from_millis(420));
         let overview = status();
@@ -598,10 +707,50 @@ fn transient_native_input_and_pixels() {
         control(json!({"command":"activate","id":id}));
         sync(&mut queue, &mut client);
         assert_eq!(client.focus.as_ref(), Some(&child.surface));
+        // A non-grabbing popup deliberately survives overview in this fixture
+        // so actual native pixels can check the rounded outer family boundary.
+        let preview = client.popup(&qh, &child, false);
+        sync(&mut queue, &mut client);
+        preview.map();
+        sync(&mut queue, &mut client);
+        control(json!({"command":"overview"}));
+        std::thread::sleep(Duration::from_millis(420));
+        let overview = status();
+        let r = &overview["presentation"]["windows"][0]["rect"];
+        let right = r["x"].as_f64().unwrap() + r["width"].as_f64().unwrap();
+        let bottom = r["y"].as_f64().unwrap() + r["height"].as_f64().unwrap();
+        assert_eq!(
+            captured_pixel(
+                &format!("{orientation}-popup-preview-inside"),
+                &overview,
+                (right - 20.0, bottom - 20.0)
+            ),
+            [34, 85, 221, 255]
+        );
+        assert_ne!(
+            captured_pixel(
+                &format!("{orientation}-popup-preview-corner"),
+                &overview,
+                (right - 0.5, bottom - 0.5)
+            ),
+            [34, 85, 221, 255]
+        );
+        assert_ne!(
+            captured_pixel(
+                &format!("{orientation}-popup-preview-outside"),
+                &overview,
+                (right + 3.0, bottom - 20.0)
+            ),
+            [34, 85, 221, 255]
+        );
+        preview.destroy();
+        sync(&mut queue, &mut client);
+        control(json!({"command":"activate","id":id}));
+        sync(&mut queue, &mut client);
         modal.set_modal();
         sync(&mut queue, &mut client);
         println!(
-            "{orientation}: native dialog and overview pixels, nonzero-origin input, modal block, nonmodal focus and typing passed"
+            "{orientation}: native dialog/popup overflow and outer mask pixels, nonzero-origin input, modal/nonmodal focus and typing passed"
         );
     }
     drive(json!({"command":"lock"}));
@@ -864,9 +1013,7 @@ impl Dispatch<wl_registry::WlRegistry, ()> for Client {
                 "wl_shm" => state.shm = Some(registry.bind(name, 1, qh, ())),
                 "xdg_wm_base" => state.shell = Some(registry.bind(name, 1, qh, ())),
                 "xdg_wm_dialog_v1" => state.dialogs = Some(registry.bind(name, 1, qh, ())),
-                "wl_seat" => {
-                    registry.bind::<wl_seat::WlSeat, _, _>(name, 1, qh, ());
-                }
+                "wl_seat" => state.seat = Some(registry.bind(name, 1, qh, ())),
                 _ => {}
             }
         }
@@ -948,6 +1095,30 @@ delegate_noop!(Client: ignore wl_surface::WlSurface);
 delegate_noop!(Client: ignore wl_buffer::WlBuffer);
 delegate_noop!(Client: ignore xdg_wm_dialog_v1::XdgWmDialogV1);
 delegate_noop!(Client: ignore xdg_dialog_v1::XdgDialogV1);
+delegate_noop!(Client: ignore xdg_positioner::XdgPositioner);
+
+impl Dispatch<xdg_popup::XdgPopup, ()> for Client {
+    fn event(
+        state: &mut Self,
+        popup: &xdg_popup::XdgPopup,
+        event: xdg_popup::Event,
+        _: &(),
+        _: &Connection,
+        _: &QueueHandle<Self>,
+    ) {
+        if let xdg_popup::Event::Configure {
+            x,
+            y,
+            width,
+            height,
+        } = event
+        {
+            state
+                .popup_rects
+                .insert(popup.clone(), (x, y, width, height));
+        }
+    }
+}
 
 impl Dispatch<wl_seat::WlSeat, ()> for Client {
     fn event(
@@ -1023,9 +1194,12 @@ impl Dispatch<wl_pointer::WlPointer, ()> for Client {
                 ..
             } => state.pointer_position = (surface_x, surface_y),
             wl_pointer::Event::Leave { .. } => state.pointer_focus = None,
-            wl_pointer::Event::Button { state: pressed, .. }
-                if matches!(pressed.into_result(), Ok(wl_pointer::ButtonState::Pressed)) =>
-            {
+            wl_pointer::Event::Button {
+                state: pressed,
+                serial,
+                ..
+            } if matches!(pressed.into_result(), Ok(wl_pointer::ButtonState::Pressed)) => {
+                state.press_serial = Some(serial);
                 if let Some(surface) = state.pointer_focus.as_ref() {
                     state.presses.push((
                         surface.clone(),
@@ -1048,7 +1222,15 @@ impl Dispatch<wl_touch::WlTouch, ()> for Client {
         _: &Connection,
         _: &QueueHandle<Self>,
     ) {
-        if let wl_touch::Event::Down { surface, x, y, .. } = event {
+        if let wl_touch::Event::Down {
+            surface,
+            x,
+            y,
+            serial,
+            ..
+        } = event
+        {
+            state.press_serial = Some(serial);
             state.presses.push((surface, x, y));
         }
     }

@@ -150,7 +150,7 @@ def main():
         record['compositor_exit'] = session.wait(timeout=6)
         record['graphics_errors'] = [line for line in (out/'compositor.log').read_text().splitlines() if any(e in line for e in ['GL_INVALID', 'GL_OUT_OF_MEMORY', 'GL error'])]
         assert record['test_exit'] == record['compositor_exit'] == 0 and 'input_error' not in record and not record['graphics_errors'], record
-        assert len(record['input']) == 18, record
+        assert len(record['input']) == 22, record
         record['passed'] = True
         print('PASS: native dialog pixels and actual input in four orientations, scale', args.scale, out)
     finally:

@@ -1,8 +1,12 @@
-//! Convert compositor coordinates at the final input target, including held grabs.
+//! Shared native rendering and final-target input placement, including held grabs.
 //! Smithay keeps the original target during a grab; its origin remains zero here.
 
 use crate::Compositor;
 use smithay::{
+    backend::renderer::element::{
+        Element,
+        utils::{CropRenderElement, Relocate, RelocateRenderElement, RescaleRenderElement},
+    },
     backend::renderer::utils::RendererSurfaceStateUserData,
     desktop::{PopupManager, Window},
     input::{
@@ -20,7 +24,9 @@ use smithay::{
 use std::borrow::Cow;
 use tarot_core::{Rect, WindowId};
 
-/// The exact physical rectangles passed to Smithay's Fit/CENTER render transform.
+pub type FittedElement<E> = CropRenderElement<RelocateRenderElement<RescaleRenderElement<E>>>;
+
+/// Exact physical reference and target rectangles for shared Fit/CENTER placement.
 #[derive(Clone, Copy, Debug)]
 pub struct RenderGeometry {
     pub target: Rectangle<i32, Physical>,
@@ -69,6 +75,43 @@ impl RenderGeometry {
             .min(f64::from(self.target.size.h) / f64::from(self.reference.size.h))
     }
 
+    pub fn render_location(self) -> Point<i32, Physical> {
+        self.target.loc - self.reference.loc
+    }
+
+    fn fit_offset(self) -> Point<i32, Physical> {
+        // Match pinned Smithay's Fit/CENTER operation order and single round.
+        let reference = self.reference.to_f64().upscale(self.factor());
+        let offset = self.reference.loc.to_f64() - reference.loc;
+        let align: Point<f64, Physical> = (
+            (f64::from(self.target.size.w) - reference.size.w) / 2.0,
+            (f64::from(self.target.size.h) - reference.size.h) / 2.0,
+        )
+            .into();
+        (offset + align).to_i32_round()
+    }
+
+    /// Fit the native tree using this window's geometry, then clip to the
+    /// family card. Popup and decoration pixels may extend beyond the window.
+    pub fn fit_elements<E: Element>(
+        self,
+        elements: impl IntoIterator<Item = E>,
+        clip: Rectangle<i32, Physical>,
+    ) -> impl Iterator<Item = FittedElement<E>> {
+        let origin = self.render_location();
+        let factor = self.factor();
+        let offset = self.fit_offset();
+        elements
+            .into_iter()
+            .map(move |element| RescaleRenderElement::from_element(element, origin, factor))
+            .map(move |element| {
+                RelocateRenderElement::from_element(element, offset, Relocate::Relative)
+            })
+            .filter_map(move |element| {
+                CropRenderElement::from_element(element, self.output_scale, clip)
+            })
+    }
+
     /// Inverse of constrain_render_elements: scale around location, then round
     /// the alignment/reference offset once, exactly as pinned Smithay does.
     pub fn to_window(self, position: Point<f64, Logical>) -> Point<f64, Logical> {
@@ -88,15 +131,7 @@ impl RenderGeometry {
         )
             .into();
         let factor = self.factor();
-        let location = self.target.loc - self.reference.loc;
-        let offset: Point<f64, Physical> = (
-            f64::from(self.reference.loc.x) * (1.0 - factor)
-                + (f64::from(self.target.size.w) - f64::from(self.reference.size.w) * factor) / 2.0,
-            f64::from(self.reference.loc.y) * (1.0 - factor)
-                + (f64::from(self.target.size.h) - f64::from(self.reference.size.h) * factor) / 2.0,
-        )
-            .into();
-        let origin = location + offset.to_i32_round();
+        let origin = self.render_location() + self.fit_offset();
         (
             (position.x * self.output_scale - f64::from(origin.x)) / (factor * self.output_scale),
             (position.y * self.output_scale - f64::from(origin.y)) / (factor * self.output_scale),
@@ -108,6 +143,94 @@ impl RenderGeometry {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn fitted_roots_match_pinned_geometry_source_and_opacity_at_both_scales() {
+        use smithay::backend::renderer::{
+            element::{
+                Id, Kind,
+                solid::SolidColorRenderElement,
+                utils::{ConstrainAlign, ConstrainScaleBehavior, constrain_render_elements},
+            },
+            utils::CommitCounter,
+        };
+        for (scale, alpha) in [1.0, 2.0]
+            .into_iter()
+            .flat_map(|s| [1.0_f32, 0.5].into_iter().map(move |a| (s, a)))
+        {
+            for (loc, size) in [
+                ((20, 30), (80, 120)),
+                ((19, 37), (601, 997)),
+                ((0, 0), (360, 652)),
+            ] {
+                let reference = Rectangle::new(loc.into(), size.into());
+                let geometry = RenderGeometry::new(
+                    reference,
+                    Rect {
+                        x: 61.25,
+                        y: 139.25,
+                        width: 237.5,
+                        height: 430.5,
+                    },
+                    1.0,
+                    scale,
+                )
+                .unwrap();
+                let origin = geometry.render_location();
+                let elements = [
+                    Rectangle::new(origin + geometry.reference.loc, geometry.reference.size),
+                    Rectangle::new(
+                        origin
+                            + Point::<i32, Logical>::from((loc.0 + 71, loc.1 + 61))
+                                .to_physical_precise_round(scale),
+                        (280, 200).into(),
+                    ),
+                ]
+                .map(|rect| {
+                    SolidColorRenderElement::new(
+                        Id::new(),
+                        rect,
+                        CommitCounter::default(),
+                        [0.2 * alpha, 0.4 * alpha, 0.6 * alpha, alpha],
+                        Kind::Unspecified,
+                    )
+                });
+                let expected: Vec<_> = constrain_render_elements(
+                    elements.clone(),
+                    origin,
+                    geometry.target,
+                    geometry.reference,
+                    ConstrainScaleBehavior::Fit,
+                    ConstrainAlign::CENTER,
+                    scale,
+                )
+                .collect();
+                let actual: Vec<_> = geometry.fit_elements(elements, geometry.target).collect();
+                assert_eq!(expected.len(), actual.len());
+                for (a, b) in actual.iter().zip(&expected) {
+                    assert_eq!(a.geometry(scale.into()), b.geometry(scale.into()));
+                    assert_eq!(a.src(), b.src());
+                    assert_eq!(a.transform(), b.transform());
+                    assert_eq!(a.alpha(), b.alpha());
+                    assert_eq!(
+                        a.opaque_regions(scale.into())
+                            .into_iter()
+                            .collect::<Vec<_>>(),
+                        b.opaque_regions(scale.into())
+                            .into_iter()
+                            .collect::<Vec<_>>()
+                    );
+                    assert_eq!(
+                        a.damage_since(scale.into(), None)
+                            .into_iter()
+                            .collect::<Vec<_>>(),
+                        b.damage_since(scale.into(), None)
+                            .into_iter()
+                            .collect::<Vec<_>>()
+                    );
+                }
+            }
+        }
+    }
     #[test]
     fn held_native_input_inverts_rotation_before_fit_and_buffer_origin() {
         let reference = Rectangle::new((20, 30).into(), (600, 1000).into());
