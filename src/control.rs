@@ -204,6 +204,7 @@ pub fn start(path: &Path, handle: &LoopHandle<'_, CalloopData>) -> Result<Contro
                 "popup_grab_active": state.popup_grab.is_some(),
                 "popup_owner": state.popup_owner,
                 "keyboard_visible": state.keyboard_visible(),
+                "keyboard_owner": state.keyboard.as_ref().and_then(|keyboard| keyboard.owner),
                 "input_method": state.input_method.as_ref().map(|managed| managed.status()),
                 "shell_text_focus": state.shell.shell_text_focus,
                 "card_menu_open": state.shell.card_menu_open,
@@ -241,6 +242,12 @@ pub fn start(path: &Path, handle: &LoopHandle<'_, CalloopData>) -> Result<Contro
                 "dmabuf_enabled": state.dmabuf_global.is_some(),
                 "launch_feedback": state.shell.launch_feedback,
             });
+            response["native_geometry"] = json!(state.space.elements().filter_map(|window| {
+                let id = window.user_data().get::<tarot_core::WindowId>()?;
+                let geometry = window.geometry();
+                Some(json!({"id":id,"fullscreen":state.fullscreen_window(*id),
+                    "geometry":{"x":geometry.loc.x,"y":geometry.loc.y,"width":geometry.size.w,"height":geometry.size.h}}))
+            }).collect::<Vec<_>>());
             response["hardware_keys"] = json!(state.hardware.enabled);
             response["volume_feedback"] = json!(state.shell.volume_feedback);
             response["favorites"] = json!(state.shell.favorites);

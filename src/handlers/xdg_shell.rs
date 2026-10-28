@@ -355,15 +355,10 @@ impl Compositor {
 
         let id = *window.user_data().get::<tarot_core::WindowId>().unwrap();
         let card_area = self.window_area(id);
-        let content = if self
-            .families
-            .owner(id)
-            .is_some_and(|owner| self.fullscreen_window(owner))
+        let content = if let Some(owner) = self.families.owner(id)
+            && self.fullscreen_window(owner)
         {
-            tarot_core::Rect {
-                height: self.layout.keyboard().y,
-                ..self.fullscreen_area()
-            }
+            self.fullscreen_input_area(owner)
         } else {
             self.layout.content()
         };

@@ -36,10 +36,29 @@ def run_gtk(emit):
     window=Gtk.Window(title='Tarot GTK fixture');window.set_default_size(340,580)
     box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=18);box.set_halign(Gtk.Align.CENTER);box.set_valign(Gtk.Align.CENTER)
     label=Gtk.Label(label='GTK transient fixture');box.pack_start(label,False,False,0)
-    button=Gtk.Button(label='Open');box.pack_start(button,False,False,0);window.add(box)
+    button=Gtk.Button(label='Open');box.pack_start(button,False,False,0)
+    body=Gtk.Box(orientation=Gtk.Orientation.VERTICAL);body.pack_start(box,True,True,0);window.add(body)
     active=[None]
-    window.connect('window-state-event',lambda w,e:emit('window-mode',fullscreen=bool(e.new_window_state&Gdk.WindowState.FULLSCREEN),maximized=bool(e.new_window_state&Gdk.WindowState.MAXIMIZED)))
-    window.connect('size-allocate',lambda w,a:emit('allocation',width=a.width,height=a.height))
+    footer=Gtk.Box(orientation=Gtk.Orientation.VERTICAL);footer.set_margin_bottom(56)
+    entry_full=Gtk.Entry();entry_full.set_placeholder_text('Type here');entry_full.set_width_chars(10)
+    entry_full.set_halign(Gtk.Align.CENTER);entry_full.set_size_request(-1,40);footer.pack_start(entry_full,False,False,0)
+    body.pack_end(footer,False,False,0);footer.show_all();footer.set_no_show_all(True);footer.hide()
+    def full_bounds(*_):
+        if footer.get_visible():
+            x,y=entry_full.translate_coordinates(window,0,0)
+            emit('fullscreen-field-bounds',x=x,y=y,width=entry_full.get_allocated_width(),height=entry_full.get_allocated_height(),parent_width=window.get_allocated_width(),parent_height=window.get_allocated_height())
+        return False
+    def mode(w,e):
+        fullscreen=bool(e.new_window_state&Gdk.WindowState.FULLSCREEN);footer.set_visible(fullscreen)
+        emit('window-mode',fullscreen=fullscreen,maximized=bool(e.new_window_state&Gdk.WindowState.MAXIMIZED))
+    window.connect('window-state-event',mode)
+    entry_full.connect('size-allocate',full_bounds)
+    entry_full.connect('focus-in-event',lambda *_:(full_bounds(),False)[1])
+    entry_full.connect('changed',lambda w:emit('text',field='fullscreen',text=w.get_text()))
+    def allocation(w,a):
+        emit('allocation',width=a.width,height=a.height)
+        GLib.idle_add(full_bounds)
+    window.connect('size-allocate',allocation)
     for title,action in [('Fullscreen',window.fullscreen),('Maximize',window.maximize),('Restore',lambda:(window.unfullscreen(),window.unmaximize()))]:
         control=Gtk.Button(label=title);control.connect('clicked',lambda _,action=action:action());box.pack_start(control,False,False,0)
     def opened(_):
@@ -78,10 +97,12 @@ def run_qt(emit):
         def changeEvent(self,event):
             super().changeEvent(event)
             if event.type()==QtCore.QEvent.Type.WindowStateChange:
+                if hasattr(self,'footer'):self.footer.setVisible(self.isFullScreen())
                 emit('window-mode',fullscreen=self.isFullScreen(),maximized=self.isMaximized())
         def resizeEvent(self,event):
             super().resizeEvent(event)
             emit('allocation',width=event.size().width(),height=event.size().height())
+            if hasattr(self,'full_bounds'):QtCore.QTimer.singleShot(0,self.full_bounds)
         def closeEvent(self,event):
             if active[0] is not None:emit('root-close-refused');event.ignore()
             else:emit('root-close');event.accept()
@@ -91,6 +112,20 @@ def run_qt(emit):
     for title,action in [('Fullscreen',window.showFullScreen),('Maximize',window.showMaximized),('Restore',window.showNormal)]:
         control=QtWidgets.QPushButton(title);control.setMinimumHeight(44);control.clicked.connect(action);layout.addWidget(control)
     layout.addStretch()
+    window.footer=QtWidgets.QWidget();footer_layout=QtWidgets.QVBoxLayout(window.footer);footer_layout.setContentsMargins(0,0,0,56)
+    entry_full=QtWidgets.QLineEdit();entry_full.setPlaceholderText('Type here');entry_full.setMinimumHeight(40);footer_layout.addWidget(entry_full)
+    layout.addWidget(window.footer);window.footer.hide()
+    def full_bounds():
+        if window.footer.isVisible():
+            point=entry_full.mapTo(window,QtCore.QPoint(0,0))
+            emit('fullscreen-field-bounds',x=point.x(),y=point.y(),width=entry_full.width(),height=entry_full.height(),parent_width=window.width(),parent_height=window.height())
+    window.full_bounds=full_bounds
+    class FieldEvents(QtCore.QObject):
+        def eventFilter(self,watched,event):
+            if event.type() in [QtCore.QEvent.Type.FocusIn,QtCore.QEvent.Type.Resize,QtCore.QEvent.Type.Show]:QtCore.QTimer.singleShot(0,full_bounds)
+            return False
+    field_events=FieldEvents(window);entry_full.installEventFilter(field_events)
+    entry_full.textChanged.connect(lambda text:emit('text',field='fullscreen',text=text))
     def opened():
         if active[0] is not None:return
         dialog=QtWidgets.QDialog(window);active[0]=dialog;dialog.setWindowTitle('Qt child');dialog.resize(280,240)

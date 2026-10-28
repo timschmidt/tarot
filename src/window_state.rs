@@ -40,15 +40,39 @@ impl Compositor {
         }
     }
 
+    pub fn fullscreen_viewport(&self, owner: WindowId) -> Rect {
+        // The input panel reserves space only for its owning card family.
+        // Hidden fullscreen clients keep their full-output configuration.
+        let reserved = self.native_keyboard_visible()
+            && self
+                .keyboard
+                .as_ref()
+                .is_some_and(|keyboard| keyboard.owner == Some(owner));
+        Rect {
+            height: if reserved {
+                self.layout.keyboard().y
+            } else {
+                self.layout.height
+            },
+            ..self.fullscreen_area()
+        }
+    }
+
     pub fn window_area(&self, id: WindowId) -> Rect {
-        if self
-            .families
-            .owner(id)
-            .is_some_and(|root| self.fullscreen_window(root))
+        if let Some(root) = self.families.owner(id)
+            && self.fullscreen_window(root)
         {
-            self.fullscreen_area()
+            self.fullscreen_viewport(root)
         } else {
             self.layout.content()
+        }
+    }
+
+    pub fn fullscreen_input_area(&self, owner: WindowId) -> Rect {
+        let viewport = self.fullscreen_viewport(owner);
+        Rect {
+            height: viewport.height.min(self.layout.gesture().y),
+            ..viewport
         }
     }
 
@@ -56,10 +80,7 @@ impl Compositor {
         if let View::App(id) = self.shell.view
             && self.fullscreen_window(id)
         {
-            Rect {
-                height: self.layout.keyboard().y,
-                ..self.fullscreen_area()
-            }
+            self.fullscreen_input_area(id)
         } else {
             self.layout.content()
         }
@@ -80,7 +101,8 @@ impl Compositor {
             if self.fullscreen_window(visual.id) {
                 let ratio = visual.rect.height / content.height.max(1.0);
                 visual.rect.y -= Layout::STATUS * ratio * amount;
-                visual.rect.height += (self.layout.height - content.height) * ratio * amount;
+                visual.rect.height +=
+                    (self.fullscreen_viewport(visual.id).height - content.height) * ratio * amount;
             }
         }
     }
@@ -96,7 +118,9 @@ impl Compositor {
             .borrow();
         let fullscreen = requested.fullscreen && !transient;
         let area = if fullscreen {
-            self.fullscreen_area()
+            self.fullscreen_viewport(id)
+        } else if transient {
+            self.window_area(id)
         } else {
             self.layout.content()
         };

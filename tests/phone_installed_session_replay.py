@@ -166,7 +166,7 @@ def run(args, password):
         if getattr(args, 'toolkit_dialogs', False):
             from phone_toolkit_dialog_replay import replay as toolkit_replay
             records['toolkit_dialogs'] = toolkit_replay(socket, tap, state, capture,
-                args.output, cgroup)
+                args.output, cgroup, authenticate)
         catalog = request(socket, 'applications')['applications']
         # The GTK demo deliberately has NoDisplay=true and is correctly absent
         # from the normal launcher. Exercise an actual visible installed app.

@@ -1,12 +1,12 @@
 # Native window-state policy
 
-Installed and native-validated revision 21, October 28, 2026. This work extends the [transient policy](TRANSIENT_WINDOWS.md); it does not close M2.
+Installed and native-validated revision 22, October 28, 2026. This work extends the [transient policy](TRANSIENT_WINDOWS.md); it does not close M2.
 
 ## Requests and presentation
 
 Each native toplevel keeps requested maximize/fullscreen state separately from the committed server state. Requests before the initial bufferless commit update pending configuration without sending a premature configure. After that handshake, every maximize/unmaximize/fullscreen/unfullscreen request receives a configure, including repeated requests and rejected changes. Only the client's acknowledged surface commit changes fullscreen presentation. Requests do not activate a hidden card or replace shell/protected focus.
 
-Independent roots accept maximization within the ordinary app work area. Unmaximizing clears that state while retaining the mobile shell's app-area placement; this does not create a freely positioned desktop window. Root fullscreen uses the entire selected output in logical coordinates. The single-output backend chooses its active output; a client's output preference does not move focus. Maximization requested during fullscreen determines the state restored afterward.
+Independent roots accept maximization within the ordinary app work area. Unmaximizing clears that state while retaining the mobile shell's app-area placement; this does not create a freely positioned desktop window. Root fullscreen uses the selected output in logical coordinates, reserving space for its own trusted input panel while that panel is visible. The single-output backend chooses its active output; a client's output preference does not move focus. Maximization requested during fullscreen determines the state restored afterward.
 
 Effective parented windows keep natural dialog sizing and reject maximize/fullscreen with an explicit configure after the handshake. Becoming a transient or unmapping clears retained requests. A remapping surface waits for a fresh initial commit and starts without the previous state. Supported capabilities are assigned per window: maximize, fullscreen and minimize for roots, none for transients. The unimplemented compositor window menu is not advertised.
 
@@ -16,7 +16,7 @@ The [xdg-shell specification](https://raw.githubusercontent.com/wayland-mirror/w
 
 ## Fullscreen rendering and navigation
 
-Fullscreen hides the ordinary status bar. The visible gesture strip remains a shell overlay with exclusive input ownership; hiding it requires the separate edge-reveal design. The trusted keyboard and notification/system overlays also remain under shell control. The normal app viewport still resizes for the keyboard; fullscreen currently retains its full-output viewport beneath the keyboard. Fullscreen text-field occlusion and broader IME accommodation remain follow-up work.
+Fullscreen hides the ordinary status bar. The visible gesture strip remains a shell overlay with exclusive input ownership; hiding it requires the separate edge-reveal design. The trusted keyboard and notification/system overlays also remain under shell control. Normal and fullscreen app viewports resize for their owning keyboard. Revision 22 keeps fullscreen set while the owning input panel reserves space: portrait 360×720 becomes 360×444, and hiding the keyboard restores 720. A hidden fullscreen family retains its full-output configuration. Natural children and popup constraints follow the owning family. [Bottom-field evidence and remaining IME cases](FULLSCREEN_TEXT_INPUT.md).
 
 Native trees and inverse input use the same per-window geometry. Fullscreen cards expand toward the full output as they activate and return to the normal card pose in overview. A black backing prevents transparent client pixels and letterboxing from exposing wallpaper or unrelated clients. It must share the card's rounded/rotated texture mask, opacity and output clipping. A solid-color element cannot use that mask's texture-program override; the first prototype exposes square black corners. A failing pixel assertion reproduces this. The corrected backing uses a cached one-pixel black texture through the same rounded/rotated mask, and the assertion passes.
 
@@ -32,9 +32,11 @@ The clean-built, signed revision-21 package passes all five ARM protocol cases o
 
 Independent final audit verifies exact loaded hashes, ordinary UID 10000/VT7, default Tarot, hardware keys, diagnostics disabled, original settings/policies, no fixture/input/RTC alarms and a live Panfrost descriptor. All 330 packaged Rust files match the frozen source manifest; exact executed QA hashes match the native archive. [Curated native captures and identities](recordings/r21/README.md). Full local evidence and the separate earlier failures remain under ignored `artifacts/m2/window-state-r21/`.
 
+Revision 22 reproduces GTK bottom-field obstruction on the installed revision-21 payload before correcting the viewport policy. The new package passes the same five protocol cases and 40 requests, then real GTK3/Qt6 fullscreen bottom-field bounds and exact native-keyboard text, hide/reopen, overview/return and fresh actual PAM. The fullscreen flag remains committed throughout. Existing shell checks, saved restart, independent normal-session cleanup and Panfrost verification pass again. [Revision-22 captures and exact identities](recordings/r22/README.md) distinguish this current evidence from the revision-21 results above. No new kernel-suspend endurance is claimed.
+
 ## Remaining cases
 
-- Fullscreen IME accommodation, text-field occlusion, purpose/candidate behavior and additional keyboard layouts.
+- Broader fullscreen IME: landscape/min-size constraints, cursor/candidate behavior, additional layouts and focus during family attach/orphan changes.
 - Broader min/max-size constraints, interactive move/resize requests, dialogs/popups within fullscreen families, fullscreen stack combinations and output changes.
 - Real terminal, clipboard, browser and accessibility coverage, plus independent per-application exceptions.
 - Current-binary device endurance and all remaining M0–M6 gates. This checkpoint does not complete M2 or the development plan.

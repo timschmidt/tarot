@@ -9,7 +9,7 @@ from phone_gesture_replay import request
 from phone_touch_keyboard import Keyboard
 
 
-def replay(control,tap,state,capture,out,session_cgroup):
+def replay(control,tap,state,capture,out,session_cgroup,authenticate):
     record={'passed':False,'physical_finger_tested':False,'toolkits':{}}
     def window(s,identifier):return next(w for w in s['presentation']['windows'] if w['id']==identifier)
     for toolkit in ['gtk','qt']:
@@ -103,6 +103,8 @@ def replay(control,tap,state,capture,out,session_cgroup):
         started=time.monotonic();button('fullscreen','Fullscreen')
         observe('window-mode',lambda e:e['monotonic']>=started and e['fullscreen'])
         allocation=observe('allocation',lambda e:e['monotonic']>=started and e['width']==360 and e['height']==720)
+        from phone_fullscreen_text_replay import replay as fullscreen_text
+        result['fullscreen_text']=fullscreen_text(control,tap,state,capture,observe,window,identifier,prefix,authenticate)
         restored=time.monotonic();button('restore-fullscreen','Restore',fullscreen=True)
         observe('window-mode',lambda e:e['monotonic']>=restored and not e['fullscreen'])
         state(prefix+'-normal-after-fullscreen',lambda s:window(s,identifier)['rect']==s['app_area'])

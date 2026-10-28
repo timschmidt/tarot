@@ -1,0 +1,406 @@
+{
+  "package_revision": 22,
+  "package_sha256": "7c105de1bcc1c12811d64de99e5c21c97a6f07b0af2a4a77435e92c58d1fe5ab",
+  "binaries_sha256": {
+    "tarot": "c5be5e1662992f0f019a180579ab5932ad14f241fa028c55267e0e3f47e0f443",
+    "tarot-session": "dd0cf703ec3dbed1b870042b1507384cd563d7d0bc92c07e6984fbeb91613cb9",
+    "tarot-lock": "0279df37cc1cc03da46abe93595e261a9639a4d9e3b71f23c9bd707c0f33457a",
+    "tarot-keyboard": "181e37f855df5f9da9bf29138847c3336daeca14020a298b600bde103ff21b89"
+  },
+  "source_archive_sha256": "59a07c0cd03c3eee3f251911d07319f5157f4d10fa8e04a6fb9a44d581614458",
+  "packaged_rust_files_matching_manifest": 330,
+  "protocol_fixture_sha256": "dc695f4f4f088760f58741bec6233720e13f246dc5aa30f9f394dea65938c6e4",
+  "protocol_fixture_source_sha256": "b06718e11bce7c0306e25f7325d25340b6d39157b48d67da5f68ec458b26dcdd",
+  "native_protocol_tests_passed": 5,
+  "native_driver_requests": 40,
+  "actual_touch_and_keyboard": true,
+  "actual_pam_protection": true,
+  "physical_finger_tested": false,
+  "toolkits": {
+    "gtk": {
+      "passed": true,
+      "version": {
+        "event": "version",
+        "pid": 16835,
+        "uid": 10000,
+        "monotonic": 47473.130842287,
+        "toolkit": "gtk",
+        "version": "3.24.52"
+      },
+      "cancel_native_size": [
+        332,
+        329
+      ],
+      "apply_native_size": [
+        332,
+        329
+      ],
+      "fullscreen_native_size": [
+        360,
+        720
+      ],
+      "fullscreen_text": {
+        "passed": true,
+        "physical_finger_tested": false,
+        "initial_field": {
+          "event": "fullscreen-field-bounds",
+          "pid": 16835,
+          "uid": 10000,
+          "monotonic": 47495.580195378,
+          "x": 116,
+          "y": 624,
+          "width": 128,
+          "height": 40,
+          "parent_width": 360,
+          "parent_height": 720
+        },
+        "first-reserved": {
+          "field": {
+            "event": "fullscreen-field-bounds",
+            "pid": 16835,
+            "uid": 10000,
+            "monotonic": 47495.844279343,
+            "x": 116,
+            "y": 348,
+            "width": 128,
+            "height": 40,
+            "parent_width": 360,
+            "parent_height": 444
+          },
+          "viewport": {
+            "height": 444.0,
+            "width": 360.0,
+            "x": 0.0,
+            "y": 0.0
+          },
+          "keyboard": {
+            "height": 240.0,
+            "width": 360.0,
+            "x": 0.0,
+            "y": 444.0
+          }
+        },
+        "reopened": {
+          "field": {
+            "event": "fullscreen-field-bounds",
+            "pid": 16835,
+            "uid": 10000,
+            "monotonic": 47498.614657681,
+            "x": 116,
+            "y": 348,
+            "width": 128,
+            "height": 40,
+            "parent_width": 360,
+            "parent_height": 444
+          },
+          "viewport": {
+            "height": 444.0,
+            "width": 360.0,
+            "x": 0.0,
+            "y": 0.0
+          },
+          "keyboard": {
+            "height": 240.0,
+            "width": 360.0,
+            "x": 0.0,
+            "y": 444.0
+          }
+        },
+        "returned": {
+          "field": {
+            "event": "fullscreen-field-bounds",
+            "pid": 16835,
+            "uid": 10000,
+            "monotonic": 47500.280848513,
+            "x": 116,
+            "y": 348,
+            "width": 128,
+            "height": 40,
+            "parent_width": 360,
+            "parent_height": 444
+          },
+          "viewport": {
+            "height": 444.0,
+            "width": 360.0,
+            "x": 0.0,
+            "y": 0.0
+          },
+          "keyboard": {
+            "height": 240.0,
+            "width": 360.0,
+            "x": 0.0,
+            "y": 444.0
+          }
+        },
+        "after-pam": {
+          "field": {
+            "event": "fullscreen-field-bounds",
+            "pid": 16835,
+            "uid": 10000,
+            "monotonic": 47503.296582223,
+            "x": 116,
+            "y": 348,
+            "width": 128,
+            "height": 40,
+            "parent_width": 360,
+            "parent_height": 444
+          },
+          "viewport": {
+            "height": 444.0,
+            "width": 360.0,
+            "x": 0.0,
+            "y": 0.0
+          },
+          "keyboard": {
+            "height": 240.0,
+            "width": 360.0,
+            "x": 0.0,
+            "y": 444.0
+          }
+        },
+        "actual_bottom_field_visible": true,
+        "exact_text": "tarotxza",
+        "hide_reopen_restores_viewport": true,
+        "overview_restores_same_field": true,
+        "actual_pam_restores_field": true
+      }
+    },
+    "qt": {
+      "passed": true,
+      "version": {
+        "event": "version",
+        "pid": 17159,
+        "uid": 10000,
+        "monotonic": 47507.548227157,
+        "toolkit": "qt",
+        "version": "6.11.1"
+      },
+      "cancel_native_size": [
+        280,
+        240
+      ],
+      "apply_native_size": [
+        280,
+        240
+      ],
+      "fullscreen_native_size": [
+        360,
+        720
+      ],
+      "fullscreen_text": {
+        "passed": true,
+        "physical_finger_tested": false,
+        "initial_field": {
+          "event": "fullscreen-field-bounds",
+          "pid": 17159,
+          "uid": 10000,
+          "monotonic": 47529.605630263,
+          "x": 11,
+          "y": 613,
+          "width": 338,
+          "height": 40,
+          "parent_width": 360,
+          "parent_height": 720
+        },
+        "first-reserved": {
+          "field": {
+            "event": "fullscreen-field-bounds",
+            "pid": 17159,
+            "uid": 10000,
+            "monotonic": 47529.837924198,
+            "x": 11,
+            "y": 337,
+            "width": 338,
+            "height": 40,
+            "parent_width": 360,
+            "parent_height": 444
+          },
+          "viewport": {
+            "height": 444.0,
+            "width": 360.0,
+            "x": 0.0,
+            "y": 0.0
+          },
+          "keyboard": {
+            "height": 240.0,
+            "width": 360.0,
+            "x": 0.0,
+            "y": 444.0
+          }
+        },
+        "reopened": {
+          "field": {
+            "event": "fullscreen-field-bounds",
+            "pid": 17159,
+            "uid": 10000,
+            "monotonic": 47532.736172847,
+            "x": 11,
+            "y": 337,
+            "width": 338,
+            "height": 40,
+            "parent_width": 360,
+            "parent_height": 444
+          },
+          "viewport": {
+            "height": 444.0,
+            "width": 360.0,
+            "x": 0.0,
+            "y": 0.0
+          },
+          "keyboard": {
+            "height": 240.0,
+            "width": 360.0,
+            "x": 0.0,
+            "y": 444.0
+          }
+        },
+        "returned": {
+          "field": {
+            "event": "fullscreen-field-bounds",
+            "pid": 17159,
+            "uid": 10000,
+            "monotonic": 47534.225797285,
+            "x": 11,
+            "y": 337,
+            "width": 338,
+            "height": 40,
+            "parent_width": 360,
+            "parent_height": 444
+          },
+          "viewport": {
+            "height": 444.0,
+            "width": 360.0,
+            "x": 0.0,
+            "y": 0.0
+          },
+          "keyboard": {
+            "height": 240.0,
+            "width": 360.0,
+            "x": 0.0,
+            "y": 444.0
+          }
+        },
+        "after-pam": {
+          "field": {
+            "event": "fullscreen-field-bounds",
+            "pid": 17159,
+            "uid": 10000,
+            "monotonic": 47537.372142824,
+            "x": 11,
+            "y": 337,
+            "width": 338,
+            "height": 40,
+            "parent_width": 360,
+            "parent_height": 444
+          },
+          "viewport": {
+            "height": 444.0,
+            "width": 360.0,
+            "x": 0.0,
+            "y": 0.0
+          },
+          "keyboard": {
+            "height": 240.0,
+            "width": 360.0,
+            "x": 0.0,
+            "y": 444.0
+          }
+        },
+        "actual_bottom_field_visible": true,
+        "exact_text": "tarotxza",
+        "hide_reopen_restores_viewport": true,
+        "overview_restores_same_field": true,
+        "actual_pam_restores_field": true
+      }
+    }
+  },
+  "regressions": {
+    "quick_launch": true,
+    "rounded_cards": true,
+    "stack_matrix": true,
+    "gtk_close": true,
+    "hardware_keys": true
+  },
+  "saved_restart_passed": true,
+  "normal_session_audit_passed": true,
+  "panfrost_fd_verified": true,
+  "kernel_suspend_cycles": 0,
+  "host_ordinary_tests_each_compiler": 142,
+  "host_fullscreen_protocol_scale": 2,
+  "host_rounded_scales": [
+    1,
+    2
+  ],
+  "baseline_revision_21": {
+    "expected_failure": true,
+    "exception_type": "AssertionError",
+    "field_bounds": {
+      "event": "fullscreen-field-bounds",
+      "pid": 8719,
+      "uid": 10000,
+      "monotonic": 45867.718813225,
+      "x": 116,
+      "y": 624,
+      "width": 128,
+      "height": 40,
+      "parent_width": 360,
+      "parent_height": 720
+    },
+    "keyboard_rect": {
+      "height": 240.0,
+      "width": 360.0,
+      "x": 0.0,
+      "y": 444.0
+    },
+    "loaded_main_sha256": "ea2d9016d6ad071c3ee46952311a5d9a35ccc8e9d881877b0a8b6d401d8de62d",
+    "original_settings_restored": true,
+    "normal_audit_passed": true,
+    "panfrost_fd_verified": true,
+    "archive_sha256": "081c2f08d143cbdb62d574fc36bee50dc63e12466b1cff18480c08ea5e528a7b"
+  },
+  "images_sha256": {
+    "gtk-before-keyboard-arrival.png": "3b08c445f4b6220aca7feeba941852fe65cb4b6c68a1c3694fc571db93233618",
+    "gtk-typed.png": "965bc51d1697d136c6de006913a7cb12f5bfa6c0acce97d2cac52fa20962f690",
+    "gtk-after-pam.png": "6f0a8b89d959ff28eeeeef769a16c71935bfd5f578bd7fff199571caf828bbca",
+    "qt-typed.png": "79d8e3019e0c6f3bf5d75a4bd04ef0e43b8134b2ecf432b3003b2e7862ddc10d",
+    "qt-after-pam.png": "e0ebd272ef3c80b7262b82462d462e23ab97b0f0f2798d76d95ebedd4e8260ac"
+  },
+  "executed_qa_sha256": {
+    "native_transient_fixture.py": "ba9e3d0f3ee8815d1061e0fc06062a58c708ec07d3c9ea7985598349a9404d12",
+    "phone_transient_replay.py": "a48a1183dd400781d2620b601c77cfafb030f3a7feacfe01e34bd1543b422fda",
+    "toolkit_transient_fixture.py": "bdea9f8f51d710248c1e075980d2ccd591fe34a97d5a8aecf5b343af65e6a813",
+    "phone_toolkit_dialog_replay.py": "79982b349daaea89903a5515c2959f9fe432b2af7b075ffa9aeca24dc7488d9b",
+    "phone_fullscreen_text_replay.py": "dbe11ef9cb568aeaca768223f62b5fabb0feb69ead1bafdd5ad7b5a1ab16e5ac",
+    "dialog_button.py": "c516bb61312f5a4575642b57a77456bf2cca52175f1d6f673589fb819e1b3abe"
+  },
+  "executed_replay_sha256": "65995a06b3e98c4f9a626d704d6cac049543ef54c68c801f9b8290097b270a56",
+  "qa_after_package_freeze": "Final caret-safe field-touch adjustment; compiled Rust still matches all frozen Rust inputs. Executed QA hashes are checked separately.",
+  "native_evidence_archive_sha256": "fedb4f03225ee8930a8f91e92c20ab5563af609a1f1cc874d083468619ed028e",
+  "supplemental_field_ocr": {
+    "gtk-typed": {
+      "matched": false,
+      "word": null,
+      "confidence": null,
+      "note": "Exact native widget text and actual field bounds remain the replay acceptance; OCR is additional offline observation."
+    },
+    "gtk-after-pam": {
+      "matched": true,
+      "word": "tarotxza",
+      "confidence": "92.646942",
+      "note": "Exact native widget text and actual field bounds remain the replay acceptance; OCR is additional offline observation."
+    },
+    "qt-typed": {
+      "matched": true,
+      "word": "tarot",
+      "confidence": "96.712494",
+      "note": "Exact native widget text and actual field bounds remain the replay acceptance; OCR is additional offline observation."
+    }
+  },
+  "remaining": [
+    "Landscape/min-size and family-focus transitions",
+    "Cursor/candidates, purpose and additional layouts",
+    "Fullscreen dialogs/stacks and broader window constraints",
+    "Terminal, clipboard, browser and accessibility coverage",
+    "Current-binary endurance and full M0\u2013M6 gates"
+  ]
+}
