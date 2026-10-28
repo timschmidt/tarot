@@ -20,6 +20,8 @@ Revision 14 adds the live local Calendar icon date and retained KMS power-off ev
 
 Revision 9 introduced [hardware power and volume buttons](docs/BUILDING.md#hardware-buttons), with native protected panel off/wake and real PAM-worker cancellation tests. The owner confirms the physical buttons and volume indicator work. Revision 8's longer login/suspend results remain scoped to that earlier package.
 
+Real foot/ash [terminal and clipboard acceptance](docs/TERMINAL_CLIPBOARD.md) now covers native touch typing, Backspace/Enter, exact UTF-8 output and Unicode/newline exchange with GTK through real PAM restoration. Clipboard paste uses physical Ctrl+Shift+V; touch-only terminal modifiers/navigation remain open.
+
 ## Build and run
 
 On Linux with Rust, a C linker, libxkbcommon development files, and Wayland/EGL/GLES runtimes for the native keyboard:

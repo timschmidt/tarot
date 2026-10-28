@@ -1,0 +1,110 @@
+{
+  "passed": true,
+  "package_revision": 22,
+  "package_sha256": "7c105de1bcc1c12811d64de99e5c21c97a6f07b0af2a4a77435e92c58d1fe5ab",
+  "binaries_sha256": {
+    "tarot": "c5be5e1662992f0f019a180579ab5932ad14f241fa028c55267e0e3f47e0f443",
+    "tarot-session": "dd0cf703ec3dbed1b870042b1507384cd563d7d0bc92c07e6984fbeb91613cb9",
+    "tarot-lock": "0279df37cc1cc03da46abe93595e261a9639a4d9e3b71f23c9bd707c0f33457a",
+    "tarot-keyboard": "181e37f855df5f9da9bf29138847c3336daeca14020a298b600bde103ff21b89"
+  },
+  "source_archive_sha256": "59a07c0cd03c3eee3f251911d07319f5157f4d10fa8e04a6fb9a44d581614458",
+  "packaged_rust_files_matching_manifest": 330,
+  "foot_version": "foot version: 1.27.0 +pgo +ime +graphemes +toplevel-tag +blur -assertions",
+  "acceptance": {
+    "passed": true,
+    "physical_finger_tested": false,
+    "clipboard_paste_uses_physical_modifiers": true,
+    "mobile_modifier_controls_tested": false,
+    "foot_sha256": "70badc271015d8293e04da87438a382cfb3308c6b5f38143ef692bde56fc03bd",
+    "shell": {
+      "pid": 22025,
+      "foot_pid": 22024,
+      "uid": 10000,
+      "cgroup": "0::/c132\n",
+      "shell": "/bin/sh"
+    },
+    "received_files": {
+      "typed.txt": {
+        "utf8": "terminal",
+        "hex": "7465726d696e616c"
+      },
+      "unicode.txt": {
+        "utf8": "caf\u00e9",
+        "hex": "636166c3a9"
+      },
+      "from-gtk.txt": {
+        "utf8": "Tarot GTK caf\u00e9 \u2192 foot\nsecond line",
+        "hex": "5461726f742047544b20636166c3a920e2869220666f6f740a7365636f6e64206c696e65"
+      },
+      "after-pam.txt": {
+        "utf8": "after-pam",
+        "hex": "61667465722d70616d"
+      }
+    },
+    "gtk": {
+      "event": "ready",
+      "pid": 22159,
+      "uid": 10000,
+      "monotonic": 48195.543885031,
+      "version": "3.24.52"
+    },
+    "actual_interactive_shell": true,
+    "native_touch_text_and_backspace": true,
+    "unicode_commit": true,
+    "hide_reopen": true,
+    "gtk_to_foot_exact": true,
+    "foot_to_gtk_exact": true,
+    "same_login_cgroup": true,
+    "actual_pam_restoration": true,
+    "cooperative_exit": true
+  },
+  "clipboard_paste_events": [
+    {
+      "event": "paste",
+      "pid": 22159,
+      "uid": 10000,
+      "monotonic": 48233.959731651,
+      "text": "Tarot foot caf\u00e9 \u2192 GTK\nsecond line"
+    },
+    {
+      "event": "paste",
+      "pid": 22159,
+      "uid": 10000,
+      "monotonic": 48238.042284129,
+      "text": "Tarot foot caf\u00e9 \u2192 GTK\nsecond line"
+    }
+  ],
+  "executed_qa_sha256": {
+    "lock_replay.py": "26ff737a39bfd874c6e7588f43a0fae6f34201566d1f93be05951c7291d908c7",
+    "phone_gesture_replay.py": "a3924439120181758fa314fd604b1e2f8701a1b4fbcd95b9f8d116d0efc15367",
+    "phone_lock_replay.py": "9353db461273279cbe7b81ca66892d48dce3b882c5d746cc2ac42c96e4660051",
+    "phone_terminal_clipboard_replay.py": "aac906b1d1c9653be733ac10cb228595631caba084487152bd0377842cc93f72",
+    "terminal_clipboard_fixture.py": "6c83718fcebb901388b1310f7676876226c1e1f403a8e37b0cd155d2f337cfa7",
+    "notification_replay.py": "214680a5c965a61fde9152336753e07fa508dab490a49f33f10bfe943ad1eb62",
+    "phone_touch_keyboard.py": "3b4c73d87d4c474590e970af6dcba54a67dc434f286408bf96c004813af2380d",
+    "dialog_button.py": "c516bb61312f5a4575642b57a77456bf2cca52175f1d6f673589fb819e1b3abe",
+    "phone_suspend_probe.py": "9656b38ef382ec89038ed6580e1e4b0d6fdab273befb06f563dc3bf8f01aa7eb",
+    "phone_stock_login.py": "93a9e14961353fb67cf962ea7a868dad16b774441e89458b7f97495040e3e945"
+  },
+  "executed_replay_sha256": "367023f375a43a743f70036cae78bbd1d311181b76e5e1433dc11c44fb20b635",
+  "controller_sha256": "ec2f54e1315222fda53d06ab6cd3c3aab779351b842aab96efae96221425d3a4",
+  "saved_restart_passed": true,
+  "normal_session_audit_passed": true,
+  "panfrost_fd_verified": true,
+  "kernel_suspend_cycles": 0,
+  "native_archive_sha256": "361fd2419c68dc28d9286661f52210e2fb3e7d562a7c6cd2da6d39aceb9b4f41",
+  "images_sha256": {
+    "after-pam.png": "1dfe3d4422be31d540fd445c516426f23bd559d89dec5b4093a14263ff6e4ef1",
+    "gtk-received.png": "85050d9c10711e524be637df0351d5b04e18c248f27fa67a449253827300c426",
+    "touch-input.png": "dae57fe89f338089b2a46468088ea66c6579014a880e458c0ede822d58c437f8"
+  },
+  "compiled_code_changed": false,
+  "host_checks": "Reuse the separately recorded revision-22 compiler/protocol/fullscreen acceptance; no new Cargo run is represented here.",
+  "remaining": [
+    "Touch-only terminal modifiers/navigation and clipboard paste",
+    "Selection gestures and primary selection",
+    "Broader clipboard formats, applications and source lifetime policy",
+    "Browser/accessibility, current-binary endurance and remaining M0\u2013M6 gates"
+  ]
+}

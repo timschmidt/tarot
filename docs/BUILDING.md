@@ -79,6 +79,8 @@ Revision 22 also stages `phone_fullscreen_text_replay.py` and passes the existin
 
 The native wrapper preserves settings and login policies, runs the hooks before its Calculator checks, performs actual PAM through the normal locker, and finally restores the normal default Tarot entry with diagnostics disabled. The exact revision-specific controller and all attempts are retained in ignored local evidence. [Latest native acceptance, captures and remaining gates](recordings/r22/README.md).
 
+`--terminal-clipboard --cycles 0` adds real foot/ash touch typing and an external GTK clipboard peer to the installed-session replay. [Staging, commands, acceptance and limits](TERMINAL_CLIPBOARD.md) distinguish native touch typing from the physical Ctrl+Shift+V clipboard shortcut. Use fresh evidence directories and preserve existing preferences/policies. The exact executed helpers and independent normal/Panfrost audits accompany the [native captures](recordings/terminal-clipboard-r22/README.md). This follow-up uses the unchanged revision-22 package.
+
 ## Compositor captures
 
 The capture flag reads Tarot's own composed framebuffer, after a configurable delay. It does not capture another application's desktop session. A failed capture records `capture_error` in development status and keeps the session alive. A new capture clears the previous error. Exiting with an unresolved capture error returns a failure status, so a diagnostic smoke test cannot report success without its requested artifact.
