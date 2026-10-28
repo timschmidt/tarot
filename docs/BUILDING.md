@@ -44,11 +44,12 @@ TAROT_SOFTWARE_RENDERER=1 ./scripts/run-nested.sh \
 # Second terminal, while the session is running:
 TAROT_TEST_CONTROL_SOCKET=/tmp/tarot-control/lifecycle.sock \
   cargo test --test wayland_lifecycle -- --ignored --nocapture \
-    --test-threads=1 --skip transient_native_input_and_pixels
+    --test-threads=1 --skip transient_native_input_and_pixels \
+    --skip viewport_crop_scale_commit_and_subsurface_input
 target/debug/tarotctl --socket /tmp/tarot-control/lifecycle.sock exit
 ```
 
-The tests resolve Tarot's display from its private control socket; no `WAYLAND_DISPLAY` override is required. `XDG_RUNTIME_DIR` must match the running session. Run these cases serially because each requires an empty session. The skipped input case has its own driver below. Ordinary `cargo test --workspace` leaves these tests ignored and runs the independent model/UI/metadata tests.
+The tests resolve Tarot's display from its private control socket; no `WAYLAND_DISPLAY` override is required. `XDG_RUNTIME_DIR` must match the running session. Run these cases serially because each requires an empty session. The two skipped input cases have their own driver below. Ordinary `cargo test --workspace` leaves these tests ignored and runs the independent model/UI/metadata tests.
 
 The expanded case caches a small SHM texture, commits a larger buffer and then a smaller buffer while hidden, returns to the app, and verifies fresh pixels. `tests/lifecycle_session_replay.py --output /absolute/new/lifecycle-evidence` starts the isolated Mesa session and also rejects GL error diagnostics; debug rendering can consume a GL error before a later capture sees it, so capture success alone is insufficient. Build the compositor first with `cargo build --bin tarot`.
 
@@ -70,6 +71,8 @@ python3 tests/transient_session_replay.py --xvfb /absolute/path/to/Xvfb \
 ```
 
 Python needs the same X11/XTEST libraries as the existing private-display replays. The lifecycle and transient runners invoke Cargo internally; run them after other Cargo jobs finish. [Policy and current evidence](TRANSIENT_WINDOWS.md).
+
+`transient_session_replay.py --case viewport --scale 1` (and `--scale 2`) selects the separate viewport crop/scale, parent-only subsurface move, local input, protected commit and malformed-client isolation case. Give each invocation a fresh `--output` directory and the same private `--xvfb` argument. It requires seven driver requests; the default transient case requires forty. The native fixture runs all six integration cases and requires forty-seven requests. [Browser and viewport scope](BROWSER_COMPATIBILITY.md).
 
 Native acceptance uses `--transients` and `--toolkit-dialogs` integration hooks in `phone_installed_session_replay.py`. Revision 19 adds the initial/remap configure-history case and actual widget-size assertions; revision 20 extends the pixel/input case to popup overflow. Revision 21 adds a fifth state-hint case and expands the input/pixel case to fullscreen alpha, rounded backing, top/bottom delivery, gesture navigation and protection (40 driver requests including two protection/unlock pairs). A wrapper stages the cross-built `wayland_lifecycle` test executable at `/home/user/tarot-dev/bin/transient-protocol-test`, records its SHA-256 in `transient-probe-audit.json`, and launches `native_transient_fixture.py` through a temporary `test.tarot.Transients.desktop` entry. Its `--output` directory must be `<replay-output>/transients`, already owned by UID 10000. The root replay owns only the private driver socket and temporary input; the test executable, graphics, keyboard, dialogs and PAM remain in the ordinary login session. The fixture's socket peer is checked against UID, executable hash and login cgroup.
 

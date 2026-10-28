@@ -34,6 +34,7 @@ use smithay::{
         shm::ShmState,
         socket::ListeningSocketSource,
         text_input::TextInputManagerState,
+        viewporter::ViewporterState,
         virtual_keyboard::VirtualKeyboardManagerState,
     },
 };
@@ -56,6 +57,7 @@ pub struct Compositor {
     pub xdg_shell_state: XdgShellState,
     pub xdg_dialog_state: smithay::wayland::shell::xdg::dialog::XdgDialogState,
     pub shm_state: ShmState,
+    pub viewporter_state: ViewporterState,
     pub dmabuf_state: DmabufState,
     pub dmabuf_global: Option<DmabufGlobal>,
     pub dmabuf_importer: Option<DmabufImporter>,
@@ -134,6 +136,7 @@ impl Compositor {
         let xdg_dialog_state =
             smithay::wayland::shell::xdg::dialog::XdgDialogState::new::<Self>(&dh);
         let shm_state = ShmState::new::<Self>(&dh, vec![]);
+        let viewporter_state = ViewporterState::new::<Self>(&dh);
         let output_manager_state = OutputManagerState::new_with_xdg_output::<Self>(&dh);
         let mut seat_state = SeatState::new();
         let data_device_state = DataDeviceState::new::<Self>(&dh);
@@ -202,6 +205,7 @@ impl Compositor {
             xdg_shell_state,
             xdg_dialog_state,
             shm_state,
+            viewporter_state,
             dmabuf_state: DmabufState::new(),
             dmabuf_global: None,
             dmabuf_importer: None,

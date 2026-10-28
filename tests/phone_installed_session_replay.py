@@ -159,6 +159,9 @@ def run(args, password):
         authenticate('startup')
         if args.require_audio:
             state('audio-ready', lambda s: s['audio']['available'] and bool(s['audio']['outputs']))
+        if getattr(args, 'browser', False):
+            from phone_browser_replay import replay as browser_replay
+            records['browser'] = browser_replay(socket,tap,state,capture,args.output,cgroup,authenticate,getattr(args,'browser_inspect',False))
         if getattr(args, 'transients', False):
             from phone_transient_replay import replay as transient_replay
             records['transients'] = transient_replay(socket, screen, guard, state,
@@ -451,6 +454,8 @@ def main():
     parser.add_argument('--transients', action='store_true')
     parser.add_argument('--toolkit-dialogs', action='store_true')
     parser.add_argument('--terminal-clipboard', action='store_true')
+    parser.add_argument('--browser', action='store_true')
+    parser.add_argument('--browser-inspect', action='store_true')
     parser.add_argument('--fullscreen-terminal', action='store_true')
     parser.add_argument('--virtual-keyboard-lock', action='store_true')
     parser.add_argument('--detach', action='store_true')

@@ -1,0 +1,961 @@
+{
+  "package_revision": 26,
+  "package_sha256": "92f0ca5a4c192727f29ec4dd0f0f16d3c6e237a43dddc52ff5e1c997720686c2",
+  "binaries_sha256": {
+    "tarot": "20e0857c694b8256146a8212beba5b991f82765a8c0a3a6c6ad007a21cddcf2e",
+    "tarot-session": "0a8ca31bfb23aedbc2f6154f1cc3a93ed87c01c9e8d670d4de610585d627f776",
+    "tarot-lock": "3c8a5ac4517b75b6ff699a552dc9969e351445b01e111dcf6d746f2b58da6beb",
+    "tarot-keyboard": "be21283d10484c56158a884dd7657d0e2b2530d5065ea5d048059f11456a7164"
+  },
+  "source_archive_sha256": "b600010b3e2c78d6b2cb012352a282640c86bd32c1d2f7b0193bd282dcd1a548",
+  "packaged_rust_files_matching_manifest": 333,
+  "local_parent_position_patch": {
+    "passed": true,
+    "files": [
+      "src/wayland/compositor/cache.rs",
+      "src/wayland/compositor/handlers.rs",
+      "src/wayland/compositor/transaction.rs"
+    ],
+    "patch_sha256": "6bf489757bc27c24169edc6b5a2725583c4e01150c1eff610a36e06c8538f9c7",
+    "upstream_pr": "https://github.com/Smithay/smithay/pull/2141",
+    "upstream_head": "e96548206bdb134c272ec302cb1e0f32fa580836",
+    "upstream_merged": false,
+    "adaptation": "Production cache/handler/transaction changes only; adapt old Dispatch data.surface API. Upstream delayed-transaction test ported through public Smithay API in tests/subsurface_transactions.rs, with bounded deadline."
+  },
+  "host_validation": {
+    "ordinary_tests": 146,
+    "compilers": [
+      "1.98 current",
+      "1.89 minimum"
+    ],
+    "strict_host_and_arm_checks": true,
+    "host-viewport-scale1": {
+      "passed": true,
+      "case": "viewport",
+      "scale": 1,
+      "test_exit": 0,
+      "compositor_exit": 0,
+      "compositor_sha256": "785b67c938ab808a3b34737c214cb651dcd1fb71865ffc7633bb33f96a347491",
+      "fixture_source_sha256": "659f47406d3dc8f35c4a35ca94e7fdf66387a206e5589713c39c97699f80c1f1",
+      "graphics_errors": [],
+      "driver_requests": 7
+    },
+    "host-viewport-scale2": {
+      "passed": true,
+      "case": "viewport",
+      "scale": 2,
+      "test_exit": 0,
+      "compositor_exit": 0,
+      "compositor_sha256": "8249dbf1f65b2190fc0c7b836d2f978687565177738fce4abb3e32c5a5b90d02",
+      "fixture_source_sha256": "659f47406d3dc8f35c4a35ca94e7fdf66387a206e5589713c39c97699f80c1f1",
+      "graphics_errors": [],
+      "driver_requests": 7
+    },
+    "host-transient-scale2": {
+      "passed": true,
+      "case": "transient",
+      "scale": 2,
+      "test_exit": 0,
+      "compositor_exit": 0,
+      "compositor_sha256": "785b67c938ab808a3b34737c214cb651dcd1fb71865ffc7633bb33f96a347491",
+      "fixture_source_sha256": "659f47406d3dc8f35c4a35ca94e7fdf66387a206e5589713c39c97699f80c1f1",
+      "graphics_errors": [],
+      "driver_requests": 40
+    },
+    "host-lifecycle": {
+      "passed": true,
+      "test_exit": 0,
+      "compositor_exit": 0,
+      "graphics_errors": []
+    },
+    "host-viewport-scale2-final": {
+      "passed": true,
+      "case": "viewport",
+      "scale": 2,
+      "test_exit": 0,
+      "compositor_exit": 0,
+      "compositor_sha256": "785b67c938ab808a3b34737c214cb651dcd1fb71865ffc7633bb33f96a347491",
+      "fixture_source_sha256": "659f47406d3dc8f35c4a35ca94e7fdf66387a206e5589713c39c97699f80c1f1",
+      "graphics_errors": [],
+      "driver_requests": 7
+    },
+    "viewport_binary_identity_reconciled": "Fresh final scale-2 replay matches the final scale-1 compositor hash; earlier passing scale-2 report retained separately.",
+    "logs_sha256": {
+      "tarot-r26-unit-final.log": "f3a0a1363c42ea296e8b3bc47bd42356921f39ca1a3e8cab2ddff6ad9c80ff72",
+      "tarot-r26-msrv.log": "2ffc8420251c34f7eb534dc54183109dfe9969242369dda9a50a28d1edacbd6c",
+      "tarot-r26-clippy-final.log": "947a36dd246be9e53932af21ddbbb533c6e90f3e164dd0275a88997b4935e6aa",
+      "tarot-r26-arm-clippy.log": "5a83b693405888a3125270ea32c05a17f95bc363d73fd767a268da9fb0e8be61",
+      "tarot-r26-msrv-arm.log": "c68146d6ebe46562a161b3d4d137517ebafdbcfaf92f9735002e2bfab7517479",
+      "tarot-r26-subsurface-transactions.log": "c321c97f35f9b3011bd412e9763ac813f07a02dab5ab03e07f31507c3520dbc6",
+      "tarot-r26-viewport-scale2-final.log": "af2cc753cff78d04aec601ecf5188cab0acba5f17acc4f97d6ee3d70d9166140",
+      "r26-detached-build.log": "d0092f1f80701ccac5dd6455c1d93231ee6afef7fab480adcf1216f87fb6537b"
+    },
+    "other_regressions": {
+      "rounded-2": 0,
+      "rounded-1": 0,
+      "stack": 0,
+      "quick": 0,
+      "gtk-close": 0,
+      "idle": 0,
+      "lock_policy": 0,
+      "orientation": 0,
+      "virtual-lock": 0,
+      "virtual-crash": 0,
+      "terminal": 0
+    },
+    "other_regression_commands_sha256": "3ed2b39c1b8929167a56ffd148e91403e2e58ea53a8c12ad6bafbcc170828732"
+  },
+  "failed_attempts": [
+    {
+      "archive": "browser-native-r26-first-evidence.tar.gz",
+      "reason": "Firefox Save Password popup consumes the first Back tap; ordinary text, overview, PAM and password entry passed before that stop.",
+      "sha256": "a550ba367c0181101c3ebe9fb46fcd32d63b002cdfcef9c3201acca0ddcf8139"
+    },
+    {
+      "archive": "browser-native-r26-attempt2-evidence.tar.gz",
+      "reason": "OCR did not recognize underlined Not now. Original capture retained; a response-region enlargement recognizes the combined word at 86.8% on the phone without lowering the 80% gate.",
+      "sha256": "d9a3a07205d72c716e4fd97523ff32178e72d04999eabe3353cd77dc54e3b07c"
+    }
+  ],
+  "package_audit": {
+    "validation": {
+      "passed": true,
+      "four_unique_revision_26_command_providers": true,
+      "four_root_owned_aarch64_musl_binaries": true,
+      "hardware_flag_in_main_and_launcher": true,
+      "main_changed_for_viewporter": true,
+      "public_repository_url": true,
+      "font_notices_installed": true,
+      "pam_policy_unchanged": true,
+      "install_scripts_absent": true
+    }
+  },
+  "native_browser": {
+    "passed": true,
+    "inspect_only": false,
+    "physical_finger_tested": false,
+    "webdriver_input_used": false,
+    "target_pixels": [
+      {
+        "name": "primary",
+        "capture": "browser-primary-0",
+        "bounds": [
+          29,
+          200,
+          692,
+          283
+        ],
+        "count": 54996,
+        "point": [
+          180.25,
+          120.75
+        ]
+      },
+      {
+        "name": "primary",
+        "capture": "browser-refocus-0",
+        "bounds": [
+          29,
+          199,
+          692,
+          283
+        ],
+        "count": 54637,
+        "point": [
+          180.25,
+          120.5
+        ]
+      },
+      {
+        "name": "primary",
+        "capture": "browser-after-pam-field-0",
+        "bounds": [
+          29,
+          199,
+          692,
+          283
+        ],
+        "count": 54438,
+        "point": [
+          180.25,
+          120.5
+        ]
+      },
+      {
+        "name": "password",
+        "capture": "browser-private-field-0",
+        "bounds": [
+          29,
+          350,
+          692,
+          433
+        ],
+        "count": 54994,
+        "point": [
+          180.25,
+          195.75
+        ]
+      },
+      {
+        "name": "navigate",
+        "capture": "browser-navigate-0",
+        "bounds": [
+          27,
+          460,
+          184,
+          543
+        ],
+        "count": 12175,
+        "point": [
+          52.75,
+          250.75
+        ]
+      },
+      {
+        "name": "back",
+        "capture": "browser-back-0",
+        "bounds": [
+          27,
+          242,
+          118,
+          325
+        ],
+        "count": 6695,
+        "point": [
+          36.25,
+          141.75
+        ]
+      },
+      {
+        "name": "popup",
+        "capture": "browser-popup-button-0",
+        "bounds": [
+          197,
+          460,
+          354,
+          543
+        ],
+        "count": 11925,
+        "point": [
+          137.75,
+          250.75
+        ]
+      },
+      {
+        "name": "popup-input",
+        "capture": "browser-popup-field-0",
+        "bounds": [
+          29,
+          236,
+          692,
+          319
+        ],
+        "count": 54994,
+        "point": [
+          180.25,
+          138.75
+        ]
+      },
+      {
+        "name": "close-popup",
+        "capture": "browser-popup-close-0",
+        "bounds": [
+          27,
+          329,
+          128,
+          409
+        ],
+        "count": 7237,
+        "point": [
+          38.75,
+          184.5
+        ]
+      },
+      {
+        "name": "fullscreen",
+        "capture": "browser-fullscreen-button-0",
+        "bounds": [
+          366,
+          460,
+          524,
+          543
+        ],
+        "count": 12424,
+        "point": [
+          222.5,
+          250.75
+        ]
+      },
+      {
+        "name": "bottom",
+        "capture": "browser-fullscreen-bottom-0",
+        "bounds": [
+          29,
+          1257,
+          692,
+          1340
+        ],
+        "count": 54996,
+        "point": [
+          180.25,
+          649.25
+        ]
+      },
+      {
+        "name": "bottom",
+        "capture": "browser-fullscreen-reserved-field-0",
+        "bounds": [
+          29,
+          704,
+          692,
+          788
+        ],
+        "count": 55467,
+        "point": [
+          180.25,
+          373.0
+        ]
+      },
+      {
+        "name": "exit-fullscreen",
+        "capture": "browser-leave-fullscreen-0",
+        "bounds": [
+          537,
+          395,
+          694,
+          479
+        ],
+        "count": 12270,
+        "point": [
+          307.75,
+          218.5
+        ]
+      }
+    ],
+    "card": 1,
+    "browser": {
+      "event": "started",
+      "monotonic": 61617.897290152,
+      "uid": 10000,
+      "pid": 13549,
+      "browser_pid": 13551,
+      "cgroup": "0::/c170\n",
+      "browser_sha256": "8eb25071c946e7f490cc8a3455eec70e1d0e01849303576aec4bef83bc108db4",
+      "profile": "/home/user/tarot-dev/artifacts/browser-native-r26-attempt3/first-replay/browser/home/profile",
+      "port": 43833,
+      "command": [
+        "/usr/lib/firefox-esr/firefox-esr",
+        "--no-remote",
+        "--profile",
+        "/home/user/tarot-dev/artifacts/browser-native-r26-attempt3/first-replay/browser/home/profile",
+        "--new-window",
+        "http://127.0.0.1:43833/"
+      ],
+      "exe": "/usr/lib/firefox-esr/firefox-esr",
+      "loaded_sha256": "8eb25071c946e7f490cc8a3455eec70e1d0e01849303576aec4bef83bc108db4"
+    },
+    "password_save_prompt_dismissal": {
+      "word": "notnow",
+      "point": [
+        389.75,
+        1228.0
+      ],
+      "recognized": {
+        "level": "5",
+        "page_num": "1",
+        "block_num": "1",
+        "par_num": "1",
+        "line_num": "1",
+        "word_num": "1",
+        "left": "662",
+        "top": "66",
+        "width": "235",
+        "height": "56",
+        "conf": "86.768753",
+        "text": "Notnow"
+      },
+      "crop_top": 1181,
+      "scale": 2,
+      "variant": "crop",
+      "mode": 11,
+      "attempts": [
+        {
+          "variant": "crop",
+          "mode": 3,
+          "matches": []
+        },
+        {
+          "variant": "crop",
+          "mode": 6,
+          "matches": []
+        },
+        {
+          "variant": "crop",
+          "mode": 11,
+          "matches": [
+            {
+              "level": "5",
+              "page_num": "1",
+              "block_num": "1",
+              "par_num": "1",
+              "line_num": "1",
+              "word_num": "1",
+              "left": "662",
+              "top": "66",
+              "width": "235",
+              "height": "56",
+              "conf": "86.768753",
+              "text": "Notnow"
+            }
+          ]
+        }
+      ],
+      "excluded_bounds": null
+    },
+    "history_returned_fields": {
+      "primary": {
+        "state": 0,
+        "length": 0,
+        "focused": false,
+        "x": 12,
+        "y": 65.5,
+        "width": 336,
+        "height": 46
+      },
+      "password": {
+        "state": 0,
+        "length": 0,
+        "focused": false,
+        "x": 12,
+        "y": 140.5,
+        "width": 336,
+        "height": 46
+      },
+      "bottom": {
+        "state": 0,
+        "length": 0,
+        "focused": false,
+        "x": 12,
+        "y": 473.5,
+        "width": 336,
+        "height": 46
+      }
+    },
+    "popup_windows": [
+      {
+        "fullscreen": false,
+        "geometry": {
+          "height": 652,
+          "width": 360,
+          "x": 0,
+          "y": 0
+        },
+        "id": 1
+      },
+      {
+        "fullscreen": false,
+        "geometry": {
+          "height": 652,
+          "width": 360,
+          "x": 26,
+          "y": 23
+        },
+        "id": 2
+      }
+    ],
+    "native_browser_launch_and_text": true,
+    "unicode_and_backspace": true,
+    "overview_and_actual_pam": true,
+    "password_field": true,
+    "navigation_and_back": true,
+    "popup_input_and_cooperative_close": true,
+    "fullscreen_bottom_field": true
+  },
+  "native_replay": {
+    "browser": true,
+    "transients": true,
+    "toolkit_dialogs": true,
+    "terminal_clipboard": true,
+    "virtual_keyboard_lock": true,
+    "quick_launch": true,
+    "rounded_cards": true,
+    "stack_matrix": true,
+    "gtk_close": true,
+    "hardware_keys": true
+  },
+  "native_protocol": {
+    "cases": 6,
+    "driver_requests": 47,
+    "binary_sha256": "6536086caa5e950dc8627d9c6cb75460f17cad8b3de97906d9d36d91ec13ce2c",
+    "fixture": {
+      "passed": true,
+      "runner_pid": 14336,
+      "uid": 10000,
+      "cgroup": "0::/c170\n",
+      "binary_sha256": "6536086caa5e950dc8627d9c6cb75460f17cad8b3de97906d9d36d91ec13ce2c",
+      "fixture_pid": 14337,
+      "test_exit": 0,
+      "completed_monotonic": 61760.568337361
+    },
+    "actual_pam_unlock": true,
+    "protected_actual_kms": true
+  },
+  "native_virtual_keyboard": {
+    "uid": 10000,
+    "pid": 16454,
+    "cgroup": "0::/c170\n",
+    "audit": {
+      "text": "9e2722c1473baadb8416a5030a3842a5844edc171f74ad0cd1767f8c819145d4",
+      "lock": "f05adced3c62467628bbaf0606629e669fc79c9a50f4d8d7621ccc67e7141e88",
+      "compositor": "20e0857c694b8256146a8212beba5b991f82765a8c0a3a6c6ad007a21cddcf2e",
+      "source_sha256": {
+        "examples/text-probe.rs": "48d524f5ad62487199d21b12d15111a87375961c3e088a1021980ad99640eb4b",
+        "examples/lock-probe.rs": "638511bec566c72947e725b5561756221a53103005df352805726d816566b476"
+      }
+    },
+    "scope": "Installed binary nested Wayland/EGL protocol guard; physical KMS/PAM verified by separate outer session replay.",
+    "passed": true,
+    "exit": 0,
+    "held_key_crash_passed": true,
+    "crash_exit": 0
+  },
+  "native_terminal": {
+    "controls_passed": true,
+    "fullscreen": {
+      "passed": true,
+      "shell": {
+        "pid": 16272,
+        "foot_pid": 16271,
+        "uid": 10000,
+        "cgroup": "0::/c170\n",
+        "shell": "/bin/sh"
+      },
+      "keyboard_height": 288,
+      "fullscreen_height": 396,
+      "hidden_height": 720,
+      "exact_text": "fullscreen",
+      "actual_overview_and_pam": true,
+      "pending_modifier_and_tools_reset": true,
+      "cooperative_exit": true,
+      "rendered_keyboard_samples": {
+        "terminal-fullscreen-ready": [
+          {
+            "capture": "terminal-fullscreen-ready-visible-0",
+            "samples": [
+              [
+                220,
+                221,
+                224
+              ],
+              [
+                220,
+                221,
+                224
+              ],
+              [
+                220,
+                221,
+                224
+              ],
+              [
+                220,
+                221,
+                224
+              ],
+              [
+                220,
+                221,
+                224
+              ]
+            ]
+          }
+        ],
+        "terminal-fullscreen-reopened": [
+          {
+            "capture": "terminal-fullscreen-reopened-visible-0",
+            "samples": [
+              [
+                220,
+                221,
+                224
+              ],
+              [
+                220,
+                221,
+                224
+              ],
+              [
+                220,
+                221,
+                224
+              ],
+              [
+                220,
+                221,
+                224
+              ],
+              [
+                220,
+                221,
+                224
+              ]
+            ]
+          }
+        ],
+        "terminal-fullscreen-after-pam": [
+          {
+            "capture": "terminal-fullscreen-after-pam-visible-0",
+            "samples": [
+              [
+                220,
+                221,
+                224
+              ],
+              [
+                220,
+                221,
+                224
+              ],
+              [
+                220,
+                221,
+                224
+              ],
+              [
+                220,
+                221,
+                224
+              ],
+              [
+                220,
+                221,
+                224
+              ]
+            ]
+          }
+        ]
+      }
+    },
+    "clipboard_passed": true
+  },
+  "controller": {
+    "controller_pid": 12773,
+    "boot_id": "c619d191-9a9f-4103-95dd-2df0b9743352",
+    "validation": {
+      "passed": true,
+      "password_logged": false
+    },
+    "controller_sha256": "78b7ce795937c9ea3a39265353ae7bb2f4f5d6dfd785f6cc87113b62354bbf8d",
+    "replay_sha256": "c42016b0c36d9aff91f6ee3e6b2f6b4e3ecb56d94e6169a07155cf6b00e6174d",
+    "quick_replay_sha256": "943797227afdd9d3de275f7d69151646cc4e5392aa7607b5f3866d2d42d353fc",
+    "stage": "terminal",
+    "package_reinstalled": false,
+    "original_install_evidence": "artifacts/browser-native-r26/install/status.json",
+    "original_settings_metadata": {
+      "uid": 10000,
+      "gid": 10000,
+      "mode": 384
+    },
+    "original_settings_absent": false,
+    "gtk_editor_version": "Text Editor 50.1 (50.1)\n\n            GTK: 4.22.4 (Compiled against 4.22.4)\n  GtkSourceView: 5.20.0 (Compiled against 5.20.0)\n\nCopyright 2020-2025 Christian Hergert, et al.\nThis is free software; see the source for copying conditions. There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n",
+    "tesseract_version": "tesseract 5.5.2",
+    "native_quick_and_hardware_passed": true,
+    "native_rounded_cards_passed": true,
+    "native_stack_matrix_passed": true,
+    "native_gtk_close_passed": true,
+    "native_transients_passed": true,
+    "native_toolkit_dialogs_passed": true,
+    "native_browser_passed": true,
+    "native_touch_terminal_passed": true,
+    "native_virtual_keyboard_lock_passed": true,
+    "restart_persistence_passed": true,
+    "original_settings_restored": true,
+    "temporary_entry_removed": true,
+    "card_entries_removed": true,
+    "normal_tarot_restored": true
+  },
+  "sessions": {
+    "first": {
+      "passed": true,
+      "packaged_greetd_session": true,
+      "root_seatd_used": false,
+      "protected_startup_and_actual_pam": true,
+      "native_app_in_same_login_session": true,
+      "actual_kernel_suspend_cycles": 0,
+      "audio_ready_checked": true,
+      "compositor_killed": false,
+      "returned_to_phrog": true,
+      "login_cgroup_empty": true,
+      "diagnostic_socket_removed": true,
+      "native_panel_off_sensor_release_reclaim": false,
+      "manual_sensor_tested": false,
+      "password_logged": false
+    },
+    "restart": {
+      "passed": true,
+      "packaged_greetd_session": true,
+      "root_seatd_used": false,
+      "protected_startup_and_actual_pam": true,
+      "native_app_in_same_login_session": true,
+      "actual_kernel_suspend_cycles": 0,
+      "audio_ready_checked": true,
+      "compositor_killed": false,
+      "returned_to_phrog": true,
+      "login_cgroup_empty": true,
+      "diagnostic_socket_removed": true,
+      "native_panel_off_sensor_release_reclaim": false,
+      "manual_sensor_tested": false,
+      "password_logged": false
+    }
+  },
+  "normal_session": {
+    "boot_id": "c619d191-9a9f-4103-95dd-2df0b9743352",
+    "session_id": "c174",
+    "session_properties": "User=10000\nVTNr=7\nRemote=no\nType=wayland\nClass=user\nActive=yes\n",
+    "roles": [
+      {
+        "pid": 18632,
+        "uid": 10000,
+        "name": "tarot-session",
+        "start": "6225254"
+      },
+      {
+        "pid": 18636,
+        "uid": 10000,
+        "name": "tarot",
+        "start": "6225256"
+      },
+      {
+        "pid": 18649,
+        "uid": 10000,
+        "name": "tarot-lock",
+        "start": "6225338"
+      },
+      {
+        "pid": 18659,
+        "uid": 10000,
+        "name": "tarot-keyboard",
+        "start": "6225340"
+      }
+    ],
+    "loaded_binaries_sha256": {
+      "tarot-session": "0a8ca31bfb23aedbc2f6154f1cc3a93ed87c01c9e8d670d4de610585d627f776",
+      "tarot": "20e0857c694b8256146a8212beba5b991f82765a8c0a3a6c6ad007a21cddcf2e",
+      "tarot-lock": "3c8a5ac4517b75b6ff699a552dc9969e351445b01e111dcf6d746f2b58da6beb",
+      "tarot-keyboard": "be21283d10484c56158a884dd7657d0e2b2530d5065ea5d048059f11456a7164"
+    },
+    "greeter_settings": {
+      "last-session": "tarot",
+      "last-user": "user"
+    },
+    "services": {
+      "greetd": 0,
+      "polkit": 0,
+      "modemmanager": 0,
+      "networkmanager": 0,
+      "sshd": 0,
+      "iio-sensor-proxy": 0
+    },
+    "policies_sha256": {
+      "/etc/phrog/greetd-config.toml": "85dde819880207b66bf9f2b7b4a7ffe094fd5768b57ee372ca1ff2c252c3c8bb",
+      "/etc/pam.d/greetd": "c7fa524a268fa31921847d673bceecb131f1b83e612a4d689cd1b0706356597f",
+      "/etc/pam.d/tarot-lock": "f6d73ceeca2acf86ce428709a8ff21ddf5923efb26fe3f6614e61878b8ad2012",
+      "/etc/elogind/logind.conf": "7a4a52186148dfae039b99e6d49ea314bf68e8be56ca048d41297355316a6233"
+    },
+    "development_input_devices": [],
+    "rtc_alarm": "",
+    "settings_absent": false,
+    "validation": {
+      "passed": true,
+      "normal_tarot_without_diagnostics": true,
+      "hardware_keys_enabled": true,
+      "exact_audited_payloads_loaded": true,
+      "active_local_ordinary_user_vt7": true,
+      "persisted_default_tarot": true,
+      "phosh_not_running": true,
+      "test_input_and_alarm_absent": true,
+      "original_settings_preserved": true
+    }
+  },
+  "gpu_observation": {
+    "pid": 18636,
+    "start": "6225256",
+    "fds": [
+      {
+        "fd": 13,
+        "target": "/dev/dri/card1",
+        "fdinfo": "pos:\t0\nflags:\t02404002\nmnt_id:\t30\nino:\t242\n"
+      },
+      {
+        "fd": 14,
+        "target": "/dev/dri/card1",
+        "fdinfo": "pos:\t0\nflags:\t02404002\nmnt_id:\t30\nino:\t242\n"
+      },
+      {
+        "fd": 15,
+        "target": "/dev/dri/card1",
+        "fdinfo": "pos:\t0\nflags:\t02404002\nmnt_id:\t30\nino:\t242\n"
+      },
+      {
+        "fd": 16,
+        "target": "/dev/dri/renderD128",
+        "fdinfo": "pos:\t0\nflags:\t0400002\nmnt_id:\t30\nino:\t137\ndrm-driver:\tpanfrost\ndrm-client-id:\t1538\ndrm-maxfreq-fragment:\t600000000 Hz\ndrm-curfreq-fragment:\t200000000 Hz\ndrm-maxfreq-vertex-tiler:\t600000000 Hz\ndrm-curfreq-vertex-tiler:\t200000000 Hz\ndrm-total-memory:\t149068 KiB\ndrm-shared-memory:\t16600 KiB\ndrm-resident-memory:\t9692 KiB\ndrm-purgeable-memory:\t264 KiB\n"
+      },
+      {
+        "fd": 17,
+        "target": "/dev/dri/renderD128",
+        "fdinfo": "pos:\t0\nflags:\t02400002\nmnt_id:\t30\nino:\t137\ndrm-driver:\tpanfrost\ndrm-client-id:\t1538\ndrm-maxfreq-fragment:\t600000000 Hz\ndrm-curfreq-fragment:\t200000000 Hz\ndrm-maxfreq-vertex-tiler:\t600000000 Hz\ndrm-curfreq-vertex-tiler:\t200000000 Hz\ndrm-total-memory:\t149068 KiB\ndrm-shared-memory:\t16600 KiB\ndrm-resident-memory:\t9692 KiB\ndrm-purgeable-memory:\t264 KiB\n"
+      },
+      {
+        "fd": 18,
+        "target": "/dev/dri/renderD128",
+        "fdinfo": "pos:\t0\nflags:\t02400002\nmnt_id:\t30\nino:\t137\ndrm-driver:\tpanfrost\ndrm-client-id:\t1539\ndrm-maxfreq-fragment:\t600000000 Hz\ndrm-curfreq-fragment:\t200000000 Hz\ndrm-maxfreq-vertex-tiler:\t600000000 Hz\ndrm-curfreq-vertex-tiler:\t200000000 Hz\ndrm-total-memory:\t0\ndrm-shared-memory:\t0\n"
+      }
+    ],
+    "panfrost_fd_verified": true
+  },
+  "qa_reconciliation": {
+    "passed": true,
+    "collected_sources": 38,
+    "matching_repository_sources": [
+      "tests/phone_fullscreen_terminal_replay.py",
+      "tests/phone_terminal_controls_replay.py",
+      "tests/virtual_keyboard_crash_replay.py",
+      "tests/native_transient_fixture.py",
+      "tests/browser_fixture.py",
+      "tests/phone_terminal_clipboard_replay.py",
+      "tests/phone_touch_keyboard.py",
+      "tests/phone_stock_login.py",
+      "tests/phone_browser_replay.py",
+      "tests/dialog_button.py",
+      "tests/virtual_keyboard_lock_replay.py",
+      "tests/native_virtual_keyboard_lock_fixture.py",
+      "tests/lock_replay.py",
+      "tests/notification_replay.py",
+      "tests/phone_quick_launch_replay.py",
+      "tests/toolkit_transient_fixture.py",
+      "tests/phone_transient_replay.py",
+      "tests/phone_rounded_cards_replay.py",
+      "tests/phone_suspend_probe.py",
+      "tests/phone_gesture_replay.py",
+      "tests/terminal_clipboard_fixture.py",
+      "tests/phone_gtk_close_replay.py",
+      "tests/phone_lock_replay.py",
+      "tests/phone_stack_matrix_replay.py",
+      "tests/phone_sensor_claims.py",
+      "tests/phone_hardware_replay.py",
+      "tests/capture_motion.py",
+      "tests/phone_toolkit_dialog_replay.py",
+      "tests/card_matrix.py",
+      "tests/phone_fullscreen_text_replay.py"
+    ],
+    "special_sources": [
+      "verify-normal-r26.py",
+      "verify-normal-r26-attempt3.py",
+      "collect-r26-attempt3.py",
+      "gpu-observe-r26.py",
+      "phone_installed_browser_r26.py",
+      "native-controller-r26.py",
+      "native-controller-r26-attempt3.py",
+      "verify-first-normal-r26.py"
+    ],
+    "installed_replay_run_ast_matches": true
+  },
+  "qa_sources_sha256": {
+    "phone_fullscreen_terminal_replay.py": "401d9fb4afd37f1a709d0a0a82a86fcc03c66a7abf08282d6bfa379039f1fba1",
+    "verify-normal-r26.py": "70ed3064e407438677796cc55e7bd9024b4774fb34fc658c2f60f52867cb0d28",
+    "phone_terminal_controls_replay.py": "e852362585fd9c972835d660a21e6a49e86dce0c218c0a3facf7945f839d5c25",
+    "virtual_keyboard_crash_replay.py": "f5285224f2b24dd5583632ede6449d322ac5e577b3aeefeef622f2631f97fdb1",
+    "native_transient_fixture.py": "ba9e3d0f3ee8815d1061e0fc06062a58c708ec07d3c9ea7985598349a9404d12",
+    "browser_fixture.py": "a103c7da081010d9f306d4b91d8c82144b2d0966eb5b2296d21d92e27b0a3b0a",
+    "verify-normal-r26-attempt3.py": "9db55bb421681a45644674924c0dd4e55a47d197340faeaeef56f1a1e0f2d69a",
+    "phone_terminal_clipboard_replay.py": "7eb2f9e7cdd2f0531d566735b5dbda6e7da76acd3b011bad744bfa66bf7445f8",
+    "phone_touch_keyboard.py": "3b4c73d87d4c474590e970af6dcba54a67dc434f286408bf96c004813af2380d",
+    "phone_stock_login.py": "93a9e14961353fb67cf962ea7a868dad16b774441e89458b7f97495040e3e945",
+    "phone_browser_replay.py": "f14de4ddaba8fdf622f01dba72d95961c5fb28278fe0ba2527636f050159834f",
+    "dialog_button.py": "7044baca5f396188b5fad087ff6fe27a8c564c93984c9c58652ee667b0aaae65",
+    "virtual_keyboard_lock_replay.py": "777821f4057c069664aa9f871b1fd0ee65513d8fb34bdf393a877bee1c8acaa3",
+    "native_virtual_keyboard_lock_fixture_r26.py": "1ccb44b6b0c611ea5836dcd0e1cf6b648d2341f429bf20879402a3a38d17a3a2",
+    "collect-r26-attempt3.py": "e349a045789ad8f4d0911d1df19c11cfe49c44afded58b8b9b29a99521e76c5c",
+    "gpu-observe-r26.py": "b60eef364d07aaf36d04caa514624ef45827ef1f5fbff43a9c926c27ad890acd",
+    "phone_installed_browser_r26.py": "c42016b0c36d9aff91f6ee3e6b2f6b4e3ecb56d94e6169a07155cf6b00e6174d",
+    "native-controller-r26.py": "ffbedac63ddf33f5c1b34d96c9a78d6daf6457f7b0839efac5635159a247c70d",
+    "native-controller-r26-attempt3.py": "78b7ce795937c9ea3a39265353ae7bb2f4f5d6dfd785f6cc87113b62354bbf8d",
+    "lock_replay.py": "26ff737a39bfd874c6e7588f43a0fae6f34201566d1f93be05951c7291d908c7",
+    "notification_replay.py": "214680a5c965a61fde9152336753e07fa508dab490a49f33f10bfe943ad1eb62",
+    "phone_quick_launch_replay.py": "943797227afdd9d3de275f7d69151646cc4e5392aa7607b5f3866d2d42d353fc",
+    "toolkit_transient_fixture.py": "bdea9f8f51d710248c1e075980d2ccd591fe34a97d5a8aecf5b343af65e6a813",
+    "phone_transient_replay.py": "5d45f23e3331f8eafd25f4c64488052b18194369b5da913debb3b35b0f97f0a6",
+    "phone_rounded_cards_replay.py": "6fc3e1da4acae3c30a70e3ce13a1d421654333d73509a0f4169ebedfc593c6b5",
+    "phone_suspend_probe.py": "9656b38ef382ec89038ed6580e1e4b0d6fdab273befb06f563dc3bf8f01aa7eb",
+    "phone_gesture_replay.py": "a3924439120181758fa314fd604b1e2f8701a1b4fbcd95b9f8d116d0efc15367",
+    "verify-first-normal-r26.py": "77152a0e40db1e0aafc511c2e593e10674eee4a0952f79ed6f92d233300eebdf",
+    "terminal_clipboard_fixture.py": "6c83718fcebb901388b1310f7676876226c1e1f403a8e37b0cd155d2f337cfa7",
+    "phone_gtk_close_replay.py": "1dd05b9839fc72ef3ccdbf022a4c2e41760cf7e402fe47197906624c3654c214",
+    "phone_lock_replay.py": "9353db461273279cbe7b81ca66892d48dce3b882c5d746cc2ac42c96e4660051",
+    "phone_stack_matrix_replay.py": "0801ed9fff4c5493695cf216c82ebdf513592eb638c44d024aad761a25d45034",
+    "phone_sensor_claims.py": "571f2cf575c929c4504c2943bc60ede8c48a41aa47e1e71eea6a356fe09eb55a",
+    "phone_hardware_replay.py": "8d7a7c662b3522e4e06ef9b70c06b467d613fee5e88deeca9067a68d4d59ded2",
+    "capture_motion.py": "295ecf1bffb6a824c8c1fdb5ab2b4c1d997c8bb921b78bd02c359fab572b0f1a",
+    "phone_toolkit_dialog_replay.py": "79982b349daaea89903a5515c2959f9fe432b2af7b075ffa9aeca24dc7488d9b",
+    "card_matrix.py": "322769200fba94b171f89b6a84310e781da9fe73ec26f76f569b1425f41d321d",
+    "phone_fullscreen_text_replay.py": "dbe11ef9cb568aeaca768223f62b5fabb0feb69ead1bafdd5ad7b5a1ab16e5ac"
+  },
+  "probe_audits": {
+    "transient-probe-audit-r26.json": {
+      "binary_sha256": "6536086caa5e950dc8627d9c6cb75460f17cad8b3de97906d9d36d91ec13ce2c",
+      "source_sha256": "659f47406d3dc8f35c4a35ca94e7fdf66387a206e5589713c39c97699f80c1f1",
+      "protocol_tests": 6,
+      "driver_requests": 47
+    },
+    "virtual-keyboard-probe-audit-r26.json": {
+      "text": "9e2722c1473baadb8416a5030a3842a5844edc171f74ad0cd1767f8c819145d4",
+      "lock": "f05adced3c62467628bbaf0606629e669fc79c9a50f4d8d7621ccc67e7141e88",
+      "compositor": "20e0857c694b8256146a8212beba5b991f82765a8c0a3a6c6ad007a21cddcf2e",
+      "source_sha256": {
+        "examples/text-probe.rs": "48d524f5ad62487199d21b12d15111a87375961c3e088a1021980ad99640eb4b",
+        "examples/lock-probe.rs": "638511bec566c72947e725b5561756221a53103005df352805726d816566b476"
+      }
+    }
+  },
+  "final_archive": {
+    "name": "browser-native-r26-attempt3-evidence.tar.gz",
+    "sha256": "ddea352179e1567ad80fab5497f24c8098b79387b264dd84d6ebe6929a882c7e"
+  },
+  "scope_limits": [
+    "All remaining M0\u2013M6 gates remain open",
+    "No new kernel suspend/endurance or manual physical-finger claim",
+    "Browser media, downloads, camera/microphone, permissions/portals and broad sites remain untested",
+    "Accessibility and broader viewport/IME/window constraints remain open",
+    "Unmerged parent-position proposal is a separately attributed local adaptation",
+    "Final QA and documentation follow source freezing; all 333 Rust files remain exact"
+  ],
+  "captures_sha256": {
+    "browser-private-typed.png": "05532089aa8c059603668b2674805bf76bb6b6b37c0bcbb52a3a3e91a02c2517",
+    "browser-fullscreen-typed.png": "870e4c33fb333c78aea8bc27c5aa75c801d2a701b6d833a1a22c67f98820639f",
+    "browser-r25-scale-mismatch.png": "1de5ca4d5f024070df31a667b4b5e5e0df5f6e6f3ad73e663f377513dab65e6f"
+  },
+  "package_signature": {
+    "passed": true,
+    "exit": 0,
+    "stdout": "/home/user/tarot-dev/tarot-0.1.0-r26.apk: OK\n",
+    "stderr": "",
+    "package_sha256": "92f0ca5a4c192727f29ec4dd0f0f16d3c6e237a43dddc52ff5e1c997720686c2",
+    "public_key_sha256": "eb2f2c10ab2b5d94d528296cd27c9511ce6a3a9dcdd787cbfe1a2730ee7bc920",
+    "system_trust_changed": false,
+    "prior_attempt": "Relative --keys-dir returned UNTRUSTED. The same key and APK verify with an absolute directory; original failed report retained."
+  },
+  "original_install": {
+    "target_version": "0.1.0-r26",
+    "apk_sha256": "92f0ca5a4c192727f29ec4dd0f0f16d3c6e237a43dddc52ff5e1c997720686c2",
+    "simulation_exit": 0,
+    "transaction_exit": 0,
+    "validation": {
+      "passed": true,
+      "only_tarot_package_changed": true,
+      "audited_payloads_installed": true,
+      "policies_and_settings_unchanged": true,
+      "session_behavior_tested": false
+    }
+  }
+}

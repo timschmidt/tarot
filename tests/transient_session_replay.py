@@ -21,6 +21,7 @@ from hardware_replay import PrivateInput
 from notification_replay import await_value
 from phone_gesture_replay import request
 from lock_replay import append, events
+from with_xvfb import read_display_number
 
 
 def main():
@@ -28,11 +29,12 @@ def main():
     p.add_argument('--output', type=Path, required=True)
     p.add_argument('--xvfb', default='Xvfb')
     p.add_argument('--scale', type=int, choices=[1, 2], default=2)
+    p.add_argument('--case', choices=['transient','viewport'],default='transient')
     args = p.parse_args()
     out = args.output.resolve()
     out.mkdir(mode=0o700, parents=True, exist_ok=False)
     root = Path.cwd()
-    record = {'passed': False, 'scale': args.scale, 'input': []}
+    record = {'passed': False, 'scale': args.scale, 'case':args.case,'input': []}
     record['compositor_sha256'] = hashlib.sha256((root/'target/debug/tarot').read_bytes()).hexdigest()
     record['fixture_source_sha256'] = hashlib.sha256((root/'tests/wayland_lifecycle.rs').read_bytes()).hexdigest()
     temporary = tempfile.TemporaryDirectory(prefix='tarot-transient-')
@@ -57,8 +59,7 @@ def main():
             processes.append(server)
             os.close(write)
             write = None
-            assert select.select([read], [], [], 8)[0], 'Xvfb did not announce its display'
-            number = os.read(read, 32).decode().strip()
+            number = read_display_number(read)
             assert number.isdigit() and server.poll() is None
         finally:
             os.close(read)
@@ -144,15 +145,15 @@ def main():
         worker = threading.Thread(target=serve, name='transient-private-input')
         worker.start()
         with (out/'test.log').open('w') as test_log:
-            test = subprocess.run(['cargo', 'test', '--offline', '--locked', '--test', 'wayland_lifecycle', 'transient_native_input_and_pixels', '--', '--ignored', '--nocapture'], env=env, stdout=test_log, stderr=subprocess.STDOUT, timeout=120)
+            test = subprocess.run(['cargo', 'test', '--offline', '--locked', '--test', 'wayland_lifecycle', ('viewport_crop_scale_commit_and_subsurface_input' if args.case=='viewport' else 'transient_native_input_and_pixels'), '--', '--ignored', '--nocapture'], env=env, stdout=test_log, stderr=subprocess.STDOUT, timeout=120)
         record['test_exit'] = test.returncode
         request(control, 'exit')
         record['compositor_exit'] = session.wait(timeout=6)
         record['graphics_errors'] = [line for line in (out/'compositor.log').read_text().splitlines() if any(e in line for e in ['GL_INVALID', 'GL_OUT_OF_MEMORY', 'GL error'])]
         assert record['test_exit'] == record['compositor_exit'] == 0 and 'input_error' not in record and not record['graphics_errors'], record
-        assert len(record['input']) == 40, record
+        assert len(record['input']) == (7 if args.case=='viewport' else 40), record
         record['passed'] = True
-        print('PASS: native dialog pixels and actual input in four orientations, scale', args.scale, out)
+        print('PASS:',args.case,'native pixels and actual input, scale', args.scale, out)
     finally:
         stop.set()
         if worker is not None:

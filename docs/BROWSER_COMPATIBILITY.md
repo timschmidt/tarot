@@ -1,0 +1,33 @@
+# Native browser compatibility
+
+Revision 26 installed and the scoped native replay accepted, October 28, 2026. This advances the development plan's native browser requirement; media, permissions, portals, downloads and broad site compatibility retain separate gates.
+
+## Real Firefox baseline
+
+The phone already has Firefox ESR 140.12.0-r0 and mobile-config-firefox 5.4.1-r0. The fixture launches the actual installed executable as the ordinary login user, with a separate profile/HOME/XDG directories and a loopback HTTP site. `--profile` and `--no-remote` select that isolated instance. Startup preferences suppress first-run/default-browser pages; the browser sandbox is retained. [Mozilla command-line documentation](https://firefox-source-docs.mozilla.org/browser/CommandLineParameters.html).
+
+The revision-25 native inspection reproduces a rendering/input mismatch: tapping the rendered Text field focuses the Private field. Actual browser-side DOM events confirm the wrong target. The protocol trace shows a 720×1304 EGL/DMABUF buffer on a separate desynchronized surface, while Tarot does not advertise `wp_viewporter`. Mozilla's ESR-140 surface code creates a viewport through that global when available. Revision 26 advertises that standard capability and the native field receives the intended tap and text. [Inspected Mozilla source](https://github.com/mozilla-firefox/firefox/blob/esr140/widget/gtk/WaylandSurface.cpp).
+
+Both original inspections, exact sources, browser/profile logs and captures are preserved under ignored `artifacts/m2/browser-r25/`. Each controller restores original preferences, removes its temporary desktop entry and returns the phone to normal Tarot. No package change occurs between the two baseline inspections.
+
+## Standard surface viewports and parent commits
+
+Tarot now initializes/delegates Smithay's standard `wp_viewporter` implementation. Its double-buffered crop/destination state is validated by the existing buffer-commit handler and used by the renderer's surface view. No per-browser buffer-scale inheritance is introduced.
+
+The new real-protocol regression uses independently colored SHM regions to check root and subsurface source crops, destination scaling, local input coordinates, source/destination commits without new buffers, viewport destruction and malformed-client isolation. It also changes a viewport while protected, requires diagnostic redaction and verifies the new pixels only after valid unlock. Duplicate viewport and out-of-bounds source requests disconnect only their offending clients.
+
+That regression first exposes a separate pinned-Smithay defect: a desynchronized child remains at its old position after a parent-only commit. This matches upstream issue #1894. The local three-file adaptation of proposal #2141 at `e96548206bdb134c272ec302cb1e0f32fa580836` stages positions in parent transaction state, avoids stale child snapshots and applies all transaction state before callbacks. The proposal is unmerged; it is recorded separately from the existing damage backport and session-protection patch. [Issue](https://github.com/Smithay/smithay/issues/1894), [proposal](https://github.com/Smithay/smithay/pull/2141), [local attribution](../third-party/README.md).
+
+The delayed-parent transaction test passes through Smithay's public server/client API, including a blocker and desync-to-sync transition, with a bounded deadline. Both scale-1/2 pixel/input replays pass. All 146 ordinary tests pass on current/minimum compilers, strict host/ARM checks pass, and existing lifecycle/transient, rounded cards, stacks, launcher, editor, terminal, helper-crash, lock/idle and rotation regressions pass. The three-file proposal patch independently applies to the published 0.7.0 source and matches the vendored files.
+
+## Native acceptance
+
+The final Firefox case uses native touchscreen/libinput input, without WebDriver input or DOM editing. A local page observes actual DOM changes using known-state indices, lengths and geometry; it never reports entered strings. Captures are suppressed if any field has unknown content. Targets are located from actual rendered control colors after card geometry settles.
+
+The final native case passes ordinary text and Backspace, the same field through overview and real PAM, a masked password field, page navigation/history, popup input/cooperative close, and a fullscreen bottom field above the native keyboard with Unicode entry. The wider native protocol suite passes all six cases/47 input-driver requests, including the viewport case. Real GTK/Qt, terminal/clipboard, nested virtual-key guard/crash, shell/card/stack/editor/hardware checks, saved restart and independent normal-session/Panfrost audits pass on this package. Both outer sessions request zero suspend cycles; no manual physical-finger acceptance is added.
+
+Use `tests/transient_session_replay.py --case viewport --scale 1` and `--scale 2` with a private Xvfb to run the isolated viewport case. The lifecycle-only harness skips both input-driven cases. Native staging uses `browser_fixture.py`, `phone_browser_replay.py` and their existing installed-session helpers, a private `browser` output directory and a temporary `test.tarot.Browser.desktop` entry. `--browser --cycles 0` requests the full case; `--browser --browser-inspect --cycles 0` limits a diagnosis to first native entry and cooperative close. Preserve failed runs and their executed sources, use fresh output paths, and restore original preferences/entries afterward.
+
+The first revision-26 replay stops at history navigation because Firefox’s actual Save Password popup consumes the first Back tap. A second replay adds a native “Not now” tap but its OCR fails on the underlined mnemonic. Both attempts and executed replay sources remain preserved. The final no-reinstall replay enlarges the response region, recognizes “Notnow” at 86.8% confidence on the phone while retaining the 80% gate, and passes. The password manager and browser sandbox remain enabled. These are QA corrections on the same installed payloads.
+
+[Native captures and exact identities](recordings/r26/README.md) retain package/source hashes and the final scope. All 333 frozen Rust files match the build manifest; final QA/documentation changes follow freezing. Media, camera/microphone, downloads, permission agents/portals, accessibility, broader sites/window constraints and current-binary endurance remain open. No milestone or complete development-plan gate is claimed complete.

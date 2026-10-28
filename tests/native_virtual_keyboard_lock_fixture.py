@@ -18,7 +18,7 @@ def main():
     args=parser.parse_args();out=args.output.resolve()
     assert os.geteuid()==10000 and out.is_dir() and out.stat().st_uid==10000
     audit=json.loads(args.audit.read_text())
-    compositor=Path('/usr/bin/tarot');text=Path('/home/user/tarot-dev/bin/text-probe-r25');lock=Path('/home/user/tarot-dev/bin/lock-probe-r25')
+    compositor=Path('/usr/bin/tarot');text=Path('/home/user/tarot-dev/bin/text-probe-r26');lock=Path('/home/user/tarot-dev/bin/lock-probe-r26')
     for key,path in [('compositor',compositor),('text',text),('lock',lock)]:
         assert hashlib.sha256(path.read_bytes()).hexdigest()==audit[key]
     display=Path(os.environ['WAYLAND_DISPLAY'])

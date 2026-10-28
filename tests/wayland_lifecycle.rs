@@ -14,9 +14,10 @@ use wayland_client::{
     Connection, Dispatch, EventQueue, QueueHandle, delegate_noop,
     protocol::{
         wl_buffer, wl_callback, wl_compositor, wl_keyboard, wl_pointer, wl_registry, wl_seat,
-        wl_shm, wl_shm_pool, wl_surface, wl_touch,
+        wl_shm, wl_shm_pool, wl_subcompositor, wl_subsurface, wl_surface, wl_touch,
     },
 };
+use wayland_protocols::wp::viewporter::client::{wp_viewport, wp_viewporter};
 use wayland_protocols::xdg::dialog::v1::client::{xdg_dialog_v1, xdg_wm_dialog_v1};
 use wayland_protocols::xdg::shell::client::{
     xdg_popup, xdg_positioner, xdg_surface, xdg_toplevel, xdg_wm_base,
@@ -28,6 +29,8 @@ struct Client {
     shm: Option<wl_shm::WlShm>,
     shell: Option<xdg_wm_base::XdgWmBase>,
     dialogs: Option<xdg_wm_dialog_v1::XdgWmDialogV1>,
+    viewporter: Option<wp_viewporter::WpViewporter>,
+    subcompositor: Option<wl_subcompositor::WlSubcompositor>,
     configures: usize,
     sizes: Vec<(xdg_toplevel::XdgToplevel, i32, i32)>,
     states: Vec<(xdg_toplevel::XdgToplevel, Vec<u32>)>,
@@ -150,9 +153,19 @@ impl Client {
         height: i32,
         color: [u8; 4],
     ) -> wl_buffer::WlBuffer {
+        self.pixel_buffer(qh, width, height, &color.repeat((width * height) as usize))
+    }
+
+    fn pixel_buffer(
+        &self,
+        qh: &QueueHandle<Self>,
+        width: i32,
+        height: i32,
+        pixels: &[u8],
+    ) -> wl_buffer::WlBuffer {
+        assert_eq!(pixels.len(), (width * height * 4) as usize);
         let mut file = tempfile::tempfile().unwrap();
-        file.write_all(&color.repeat((width * height) as usize))
-            .unwrap();
+        file.write_all(pixels).unwrap();
         let pool = self
             .shm
             .as_ref()
@@ -697,6 +710,243 @@ fn captured_pixel(label: &str, s: &Value, point: (f64, f64)) -> [u8; 4] {
     let (x, y) = output_point(s, point.0, point.1);
     let offset = ((y * info.width + x) * 4) as usize;
     bytes[offset..offset + 4].try_into().unwrap()
+}
+
+#[test]
+#[ignore = "requires scoped input driver; run tests/transient_session_replay.py --case viewport"]
+fn viewport_crop_scale_commit_and_subsurface_input() {
+    assert_eq!(status()["cards"], json!([]));
+    control(json!({"command":"rotate","orientation":"normal"}));
+    let initial = status();
+    let socket = PathBuf::from(std::env::var_os("XDG_RUNTIME_DIR").unwrap())
+        .join(initial["wayland_display"].as_str().unwrap());
+    let connection = Connection::from_socket(UnixStream::connect(&socket).unwrap()).unwrap();
+    let mut queue = connection.new_event_queue();
+    let qh = queue.handle();
+    let mut client = Client::default();
+    connection.display().get_registry(&qh, ());
+    sync(&mut queue, &mut client);
+    let manager = client
+        .viewporter
+        .as_ref()
+        .expect("wp_viewporter global")
+        .clone();
+    let root = client.uncommitted_window(&qh, "Viewport crop and input", None);
+    let area = &initial["app_area"];
+    let (w, h) = (
+        area["width"].as_f64().unwrap() as i32,
+        area["height"].as_f64().unwrap() as i32,
+    );
+    root.xdg.set_window_geometry(0, 0, w, h);
+    root.surface.commit();
+    sync(&mut queue, &mut client);
+    let (bw, bh) = (2 * w + 32, 2 * h + 40);
+    let mut pixels = Vec::with_capacity((bw * bh * 4) as usize);
+    for y in 0..bh {
+        for x in 0..bw {
+            pixels.extend_from_slice(
+                if (16..16 + 2 * w).contains(&x) && (20..20 + 2 * h).contains(&y) {
+                    &[0x48, 0x80, 0x20, 0xff]
+                } else {
+                    &[0xc0, 0x20, 0xc0, 0xff]
+                },
+            );
+        }
+    }
+    let root_buffer = client.pixel_buffer(&qh, bw, bh, &pixels);
+    let root_view = manager.get_viewport(&root.surface, &qh, ());
+    root_view.set_source(16.0, 20.0, (2 * w).into(), (2 * h).into());
+    root_view.set_destination(w, h);
+    root.surface.attach(Some(&root_buffer), 0, 0);
+    root.surface.damage(0, 0, w, h);
+    root.surface.commit();
+    sync(&mut queue, &mut client);
+    std::thread::sleep(Duration::from_millis(450));
+    let point = |x: f64, y: f64| (x, y + area["y"].as_f64().unwrap());
+    assert_eq!(
+        captured_pixel("viewport-root-cropped", &status(), point(5.0, 5.0)),
+        [32, 128, 72, 255]
+    );
+
+    let child = client.compositor.as_ref().unwrap().create_surface(&qh, ());
+    let sub = client
+        .subcompositor
+        .as_ref()
+        .unwrap()
+        .get_subsurface(&child, &root.surface, &qh, ());
+    sub.set_desync();
+    sub.set_position(30, 55);
+    let child_view = manager.get_viewport(&child, &qh, ());
+    child_view.set_source(20.0, 30.0, 100.0, 80.0);
+    child_view.set_destination(50, 40);
+    let mut pixels = Vec::with_capacity(160 * 160 * 4);
+    for y in 0..160 {
+        for x in 0..160 {
+            pixels.extend_from_slice(if !(20..120).contains(&x) || !(30..110).contains(&y) {
+                &[0x18, 0xc0, 0xe0, 0xff]
+            } else if x < 70 {
+                &[0x38, 0x38, 0xd8, 0xff]
+            } else {
+                &[0xd8, 0x58, 0x28, 0xff]
+            });
+        }
+    }
+    let child_buffer = client.pixel_buffer(&qh, 160, 160, &pixels);
+    child.attach(Some(&child_buffer), 0, 0);
+    child.damage(0, 0, 160, 160);
+    child.commit();
+    root.surface.commit();
+    sync(&mut queue, &mut client);
+    assert_eq!(
+        captured_pixel("viewport-child-left", &status(), point(42.5, 75.0)),
+        [216, 56, 56, 255]
+    );
+    assert_eq!(
+        captured_pixel("viewport-child-right", &status(), point(67.5, 75.0)),
+        [40, 88, 216, 255]
+    );
+    assert_eq!(
+        captured_pixel("viewport-child-outside", &status(), point(28.0, 75.0)),
+        [32, 128, 72, 255]
+    );
+    let click = |queue: &mut EventQueue<Client>,
+                 client: &mut Client,
+                 global: (f64, f64),
+                 local: (f64, f64)| {
+        let before = client.presses.len();
+        drive(
+            json!({"command":"click","x":global.0,"y":global.1,"output":status()["output"],"key":false}),
+        );
+        sync(queue, client);
+        assert_eq!(client.presses.len(), before + 1);
+        let (surface, x, y) = client.presses.last().unwrap();
+        assert_eq!(surface, &child);
+        assert!(
+            (*x - local.0).abs() < 1.5 && (*y - local.1).abs() < 1.5,
+            "viewport input: {x},{y}, wanted {local:?}"
+        );
+    };
+    click(&mut queue, &mut client, point(42.5, 75.0), (12.5, 20.0));
+    // Cropping and destination changes commit without a new buffer.
+    child_view.set_source(70.0, 30.0, 50.0, 80.0);
+    child.commit();
+    sync(&mut queue, &mut client);
+    assert_eq!(
+        captured_pixel("viewport-source-only", &status(), point(42.5, 75.0)),
+        [40, 88, 216, 255]
+    );
+    click(&mut queue, &mut client, point(42.5, 75.0), (12.5, 20.0));
+    child_view.set_destination(100, 80);
+    child.commit();
+    sync(&mut queue, &mut client);
+    assert_eq!(
+        captured_pixel("viewport-destination-only", &status(), point(105.0, 115.0)),
+        [40, 88, 216, 255]
+    );
+    click(&mut queue, &mut client, point(105.0, 115.0), (75.0, 60.0));
+    // Subsurface position is parent state: no child commit/attachment follows.
+    sub.set_position(80, 120);
+    root.surface.commit();
+    sync(&mut queue, &mut client);
+    assert_eq!(
+        captured_pixel("viewport-parent-position-old", &status(), point(42.5, 75.0)),
+        [32, 128, 72, 255]
+    );
+    assert_eq!(
+        captured_pixel(
+            "viewport-parent-position-new",
+            &status(),
+            point(155.0, 180.0)
+        ),
+        [40, 88, 216, 255]
+    );
+    click(&mut queue, &mut client, point(155.0, 180.0), (75.0, 60.0));
+    child_view.destroy();
+    child.commit();
+    sync(&mut queue, &mut client);
+    assert_eq!(
+        captured_pixel(
+            "viewport-destroy-restores-buffer",
+            &status(),
+            point(85.0, 125.0)
+        ),
+        [224, 192, 24, 255]
+    );
+    click(&mut queue, &mut client, point(85.0, 125.0), (5.0, 5.0));
+    root_view.destroy();
+    root.surface.commit();
+    sync(&mut queue, &mut client);
+    assert_eq!(
+        captured_pixel("viewport-root-destroy", &status(), point(5.0, 5.0)),
+        [192, 32, 192, 255]
+    );
+
+    // Malformed clients must be disconnected without disturbing the valid one.
+    for duplicate in [true, false] {
+        let bad = Connection::from_socket(UnixStream::connect(&socket).unwrap()).unwrap();
+        let mut bad_queue = bad.new_event_queue();
+        let bad_qh = bad_queue.handle();
+        let mut bad_state = Client::default();
+        bad.display().get_registry(&bad_qh, ());
+        sync(&mut bad_queue, &mut bad_state);
+        let surface = bad_state
+            .compositor
+            .as_ref()
+            .unwrap()
+            .create_surface(&bad_qh, ());
+        let view = bad_state
+            .viewporter
+            .as_ref()
+            .unwrap()
+            .get_viewport(&surface, &bad_qh, ());
+        if duplicate {
+            let _duplicate =
+                bad_state
+                    .viewporter
+                    .as_ref()
+                    .unwrap()
+                    .get_viewport(&surface, &bad_qh, ());
+        } else {
+            let buffer = bad_state.buffer(&bad_qh, 16, 16, [0, 0, 0, 255]);
+            view.set_source(0.0, 0.0, 100.0, 100.0);
+            view.set_destination(16, 16);
+            surface.attach(Some(&buffer), 0, 0);
+            surface.commit();
+        }
+        assert!(
+            bad_queue.roundtrip(&mut bad_state).is_err(),
+            "invalid viewport must disconnect its client: duplicate={duplicate}"
+        );
+    }
+    assert_eq!(status()["cards"].as_array().unwrap().len(), 1);
+    sync(&mut queue, &mut client);
+    drive(json!({"command":"lock"}));
+    let protected_view = manager.get_viewport(&root.surface, &qh, ());
+    protected_view.set_source(16.0, 20.0, (2 * w).into(), (2 * h).into());
+    protected_view.set_destination(w, h);
+    root.surface.commit();
+    sync(&mut queue, &mut client);
+    assert_eq!(
+        status().as_object().unwrap().len(),
+        3,
+        "viewport commits must retain protected status redaction"
+    );
+    drive(json!({"command":"unlock"}));
+    assert_eq!(
+        captured_pixel("viewport-after-protection", &status(), point(5.0, 5.0)),
+        [32, 128, 72, 255]
+    );
+    protected_view.destroy();
+    sub.destroy();
+    child.destroy();
+    child_buffer.destroy();
+    root.destroy();
+    root_buffer.destroy();
+    sync(&mut queue, &mut client);
+    assert_eq!(status()["cards"], json!([]));
+    println!(
+        "Viewport root/child source crop, destination scale, state-only commits, parent-only positioning, local input, destruction and malformed-client isolation verified"
+    );
 }
 
 #[test]
@@ -1395,6 +1645,8 @@ impl Dispatch<wl_registry::WlRegistry, ()> for Client {
                 "wl_shm" => state.shm = Some(registry.bind(name, 1, qh, ())),
                 "xdg_wm_base" => state.shell = Some(registry.bind(name, 6, qh, ())),
                 "xdg_wm_dialog_v1" => state.dialogs = Some(registry.bind(name, 1, qh, ())),
+                "wp_viewporter" => state.viewporter = Some(registry.bind(name, 1, qh, ())),
+                "wl_subcompositor" => state.subcompositor = Some(registry.bind(name, 1, qh, ())),
                 "wl_seat" => state.seat = Some(registry.bind(name, 1, qh, ())),
                 _ => {}
             }
@@ -1499,6 +1751,10 @@ delegate_noop!(Client: ignore wl_shm::WlShm);
 delegate_noop!(Client: ignore wl_shm_pool::WlShmPool);
 delegate_noop!(Client: ignore wl_surface::WlSurface);
 delegate_noop!(Client: ignore wl_buffer::WlBuffer);
+delegate_noop!(Client: ignore wl_subcompositor::WlSubcompositor);
+delegate_noop!(Client: ignore wl_subsurface::WlSubsurface);
+delegate_noop!(Client: ignore wp_viewporter::WpViewporter);
+delegate_noop!(Client: ignore wp_viewport::WpViewport);
 delegate_noop!(Client: ignore xdg_wm_dialog_v1::XdgWmDialogV1);
 delegate_noop!(Client: ignore xdg_dialog_v1::XdgDialogV1);
 delegate_noop!(Client: ignore xdg_positioner::XdgPositioner);

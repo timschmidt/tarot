@@ -22,6 +22,12 @@ The two-line GLES change is by Andy Wright, upstream commit [e76b1eece59f0ccf87a
 
 The real lifecycle regression now checks hidden buffer growth/shrink, fresh pixels and GL diagnostics. Before the backport it logged a 480-high upload into a 240-high texture; the phone first exposed a 1432-high upload into a 952-high texture during keyboard/launcher transitions. Keep the local backport until a selected upstream release contains the fix, then verify both nested and native regressions before removing it.
 
+## Smithay parent-commit position adaptation
+
+[smithay-subsurface-parent-commit.patch](smithay-subsurface-parent-commit.patch) adapts the three production changes from [Smithay proposal #2141](https://github.com/Smithay/smithay/pull/2141), pinned to head `e96548206bdb134c272ec302cb1e0f32fa580836`, to the published 0.7.0 dispatch API. The proposal is unmerged and retains Smithay's MIT license. It is separate from the merged GLES backport and Tarot's local session-protection policy.
+
+Positions are staged on the parent, with weak surface/role identities; applying them overrides child snapshots so later transactions cannot restore stale coordinates. Every transaction's state is applied before its commit callbacks. A real viewport regression reproduces the old parent-only position failure. The adapted public-API test in [subsurface_transactions.rs](../tests/subsurface_transactions.rs) derives from the same proposal's MIT-licensed delayed-parent test, adds a bounded deadline and uses the pinned delegate API. It covers a blocker and desync-to-sync transition. The rendering/input case verifies actual old/new positions at both output scales. A private-copy check independently applies all three files and compares the result with the vendored tree. Reassess the proposal and these regressions when upgrading Smithay. [Browser/viewport scope](../docs/BROWSER_COMPATIBILITY.md).
+
 ## Smithay session-protection changes
 
 [smithay-session-protection.patch](smithay-session-protection.patch) records Tarot's local changes against the published 0.7.0 source. These changes retain Smithay's MIT license and are not described as an exact upstream backport. The patch applies independently of the GLES backport; a private-copy application check verifies all ten resulting source files against the vendored tree.

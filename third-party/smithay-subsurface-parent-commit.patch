@@ -1,0 +1,163 @@
+--- a/src/wayland/compositor/cache.rs
++++ b/src/wayland/compositor/cache.rs
+@@ -90,6 +90,19 @@
+     pub fn pending(&mut self) -> &mut T {
+         &mut self.pending
+     }
++
++    /// Override pending, committed and current snapshots of this state.
++    ///
++    /// This is useful when the lifetime of a state is controlled by another
++    /// object's commit, so already committed snapshots must not restore stale
++    /// values when they are applied later.
++    pub(crate) fn override_all(&mut self, mut update: impl FnMut(&mut T)) {
++        update(&mut self.pending);
++        for (_, state) in &mut self.cache {
++            update(state);
++        }
++        update(&mut self.current);
++    }
+ }
+ 
+ trait Cache: Downcast {
+--- a/src/wayland/compositor/handlers.rs
++++ b/src/wayland/compositor/handlers.rs
+@@ -510,6 +510,80 @@
+     pub location: Point<i32, Logical>,
+ }
+ 
++#[derive(Debug, Default)]
++struct ParentCommitSubsurfaceState {
++    positions: Vec<PendingSubsurfacePosition>,
++}
++
++#[derive(Debug)]
++struct PendingSubsurfacePosition {
++    subsurface: wayland_server::Weak<WlSubsurface>,
++    surface: wayland_server::Weak<WlSurface>,
++    parent: wayland_server::Weak<WlSurface>,
++    location: Point<i32, Logical>,
++}
++
++impl ParentCommitSubsurfaceState {
++    fn set_position(
++        &mut self,
++        subsurface: &WlSubsurface,
++        surface: &WlSurface,
++        parent: &WlSurface,
++        location: Point<i32, Logical>,
++    ) {
++        let position = PendingSubsurfacePosition {
++            subsurface: subsurface.downgrade(),
++            surface: surface.downgrade(),
++            parent: parent.downgrade(),
++            location,
++        };
++        if let Some(pending) = self
++            .positions
++            .iter_mut()
++            .find(|pending| pending.surface == *surface)
++        {
++            *pending = position;
++        } else {
++            self.positions.push(position);
++        }
++    }
++}
++
++impl Cacheable for ParentCommitSubsurfaceState {
++    fn commit(&mut self, _dh: &DisplayHandle) -> Self {
++        Self {
++            positions: std::mem::take(&mut self.positions),
++        }
++    }
++
++    fn merge_into(self, _into: &mut Self, _dh: &DisplayHandle) {
++        for position in self.positions {
++            let PendingSubsurfacePosition {
++                subsurface,
++                surface,
++                parent,
++                location,
++            } = position;
++            if subsurface.upgrade().is_err() {
++                continue;
++            }
++            let Ok(surface) = surface.upgrade() else {
++                continue;
++            };
++            let Ok(parent) = parent.upgrade() else {
++                continue;
++            };
++            if PrivateSurfaceData::get_parent(&surface).as_ref() != Some(&parent) {
++                continue;
++            }
++            PrivateSurfaceData::with_states(&surface, |state| {
++                let mut state = state.cached_state.get::<SubsurfaceCachedState>();
++                state.override_all(|state| state.location = location);
++            });
++        }
++    }
++}
++
+ impl Default for SubsurfaceCachedState {
+     fn default() -> Self {
+         SubsurfaceCachedState {
+@@ -579,16 +653,20 @@
+         match request {
+             wl_subsurface::Request::SetPosition { x, y } => {
+                 let client_scale = state.client_compositor_state(client).client_scale();
+-                PrivateSurfaceData::with_states(&data.surface, |state| {
++                let location = Point::<i32, Client>::from((x, y))
++                    .to_f64()
++                    .to_logical(client_scale)
++                    .to_i32_round();
++                let Some(parent) = PrivateSurfaceData::get_parent(&data.surface) else {
++                    return;
++                };
++                PrivateSurfaceData::with_states(&parent, |state| {
+                     state
+                         .cached_state
+-                        .get::<SubsurfaceCachedState>()
++                        .get::<ParentCommitSubsurfaceState>()
+                         .pending()
+-                        .location = Point::<i32, Client>::from((x, y))
+-                        .to_f64()
+-                        .to_logical(client_scale)
+-                        .to_i32_round();
+-                })
++                        .set_position(subsurface, &data.surface, &parent, location);
++                });
+             }
+             wl_subsurface::Request::PlaceAbove { sibling } => {
+                 if let Err(()) = PrivateSurfaceData::reorder(&data.surface, Location::After, &sibling) {
+--- a/src/wayland/compositor/transaction.rs
++++ b/src/wayland/compositor/transaction.rs
+@@ -259,15 +259,19 @@
+     }
+ 
+     pub(crate) fn apply<C: CompositorHandler + 'static>(self, dh: &DisplayHandle, state: &mut C) {
+-        for (surface, id) in self.surfaces {
+-            let Ok(surface) = surface.upgrade() else {
+-                continue;
+-            };
+-
+-            PrivateSurfaceData::with_states(&surface, |states| {
+-                states.cached_state.apply_state(id, dh);
++        let surfaces = self
++            .surfaces
++            .into_iter()
++            .filter_map(|(surface, id)| surface.upgrade().ok().map(|surface| (surface, id)))
++            .collect::<Vec<_>>();
++
++        for (surface, id) in &surfaces {
++            PrivateSurfaceData::with_states(surface, |states| {
++                states.cached_state.apply_state(*id, dh);
+             });
+-
++        }
++
++        for (surface, _) in surfaces {
+             PrivateSurfaceData::invoke_post_commit_hooks::<C>(state, dh, &surface);
+ 
+             tracing::trace!("Calling user implementation for wl_surface.commit");
