@@ -107,6 +107,8 @@ Transient checkpoint, October 28: [native family ownership and dialog policy](TR
 
 Terminal/clipboard follow-up on the unchanged revision-22 package: real foot/ash touch typing, virtual Backspace/Enter and exact UTF-8 command output pass. An independent GTK client exchanges Unicode/newline clipboard text with foot, including real PAM restoration and a fresh saved-settings restart. GTK → foot uses physical Ctrl+Shift+V; touch-only modifiers/paste, primary selection, broader formats and browser/accessibility coverage remain open. [Evidence and scope](TERMINAL_CLIPBOARD.md). This advances the M2 compatibility matrix without closing its full gate.
 
+Protection checkpoint, revision 23: a real protocol test reproduces trusted virtual-key/modifier delivery to the synthetic locker through an already-bound connection. Per-request protected dispatch now blocks it and clears retained modifiers; held-Control and raw post-unlock delivery pass on host and the installed phone binary in a nested Wayland session. The outer session independently retains physical KMS/real PAM, fullscreen-field, terminal/clipboard, native app/card/hardware, restart and cleanup checks. [Evidence and limits](VIRTUAL_KEYBOARD_PROTECTION.md). Touch terminal controls remain next; broader M2 and plan gates stay open.
+
 ## M3 Deliver a native PinePhone Pro session
 
 **Dependency:** M2, building on the M0 device experiment.

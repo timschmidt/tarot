@@ -23,6 +23,9 @@ use wayland_protocols::{
 use wayland_protocols_misc::zwp_input_method_v2::client::{
     zwp_input_method_manager_v2, zwp_input_method_v2,
 };
+use wayland_protocols_misc::zwp_virtual_keyboard_v1::client::{
+    zwp_virtual_keyboard_manager_v1, zwp_virtual_keyboard_v1,
+};
 
 #[derive(Clone, Copy, ValueEnum, PartialEq)]
 enum Role {
@@ -56,6 +59,8 @@ struct Probe {
     method_manager: Option<zwp_input_method_manager_v2::ZwpInputMethodManagerV2>,
     text_input: Option<zwp_text_input_v3::ZwpTextInputV3>,
     method: Option<zwp_input_method_v2::ZwpInputMethodV2>,
+    virtual_manager: Option<zwp_virtual_keyboard_manager_v1::ZwpVirtualKeyboardManagerV1>,
+    virtual_keyboard: Option<zwp_virtual_keyboard_v1::ZwpVirtualKeyboardV1>,
     surface: Option<wl_surface::WlSurface>,
     buffer: Option<wl_buffer::WlBuffer>,
     _xdg: Option<xdg_surface::XdgSurface>,
@@ -102,6 +107,21 @@ impl Probe {
             return Ok(());
         }
         if self.role == Role::Method {
+            if command == "virtual-key" {
+                let keyboard = self.virtual_keyboard.as_ref().unwrap();
+                let raw = value["raw"].as_bool().unwrap_or(false);
+                if !raw {
+                    keyboard.modifiers(value["mods"].as_u64().unwrap_or(0) as u32, 0, 0, 0);
+                }
+                let key = value["key"].as_u64().unwrap() as u32;
+                keyboard.key(0, key, 1);
+                keyboard.key(0, key, 0);
+                if !raw && value["reset"].as_bool().unwrap_or(true) {
+                    keyboard.modifiers(0, 0, 0, 0);
+                }
+                self.record(json!({"event":"method_sent","command":command}));
+                return Ok(());
+            }
             let method = self.method.as_ref().unwrap();
             match command {
                 "preedit" | "stale" => {
@@ -194,6 +214,8 @@ fn main() -> Result<()> {
         method_manager: None,
         text_input: None,
         method: None,
+        virtual_manager: None,
+        virtual_keyboard: None,
         surface: None,
         buffer: None,
         _xdg: None,
@@ -226,6 +248,30 @@ fn main() -> Result<()> {
                     .context("helper has no input-method global")?
                     .get_input_method(state.seat.as_ref().unwrap(), &qh, ()),
             );
+            let keyboard = state
+                .virtual_manager
+                .as_ref()
+                .context("no trusted virtual keyboard")?
+                .create_virtual_keyboard(state.seat.as_ref().unwrap(), &qh, ());
+            let context = xkbcommon::xkb::Context::new(xkbcommon::xkb::CONTEXT_NO_FLAGS);
+            let keymap = xkbcommon::xkb::Keymap::new_from_names(
+                &context,
+                "",
+                "",
+                "us",
+                "",
+                None,
+                xkbcommon::xkb::KEYMAP_COMPILE_NO_FLAGS,
+            )
+            .context("virtual keymap")?;
+            let mut bytes = keymap
+                .get_as_string(xkbcommon::xkb::KEYMAP_FORMAT_TEXT_V1)
+                .into_bytes();
+            bytes.push(0);
+            let mut file = tempfile::tempfile()?;
+            file.write_all(&bytes)?;
+            keyboard.keymap(1, file.as_fd(), bytes.len() as u32);
+            state.virtual_keyboard = Some(keyboard);
         }
         Role::Inspect => {
             ensure!(
@@ -286,7 +332,13 @@ fn main() -> Result<()> {
         queue.roundtrip(&mut state)?;
         let mut line = String::new();
         while commands.read_line(&mut line)? > 0 {
-            state.command(serde_json::from_str(&line)?)?;
+            let value: Value = serde_json::from_str(&line)?;
+            let virtual_key = value["command"] == "virtual-key";
+            state.command(value)?;
+            if virtual_key {
+                queue.roundtrip(&mut state)?;
+                state.record(json!({"event":"virtual-synced"}));
+            }
             line.clear();
         }
         std::thread::sleep(Duration::from_millis(10));
@@ -322,6 +374,9 @@ impl Dispatch<wl_registry::WlRegistry, ()> for Probe {
                 "zwp_input_method_manager_v2" => {
                     state.method_manager = Some(registry.bind(name, 1, qh, ()));
                     state.record(json!({"event":"method_global","name":name}));
+                }
+                "zwp_virtual_keyboard_manager_v1" => {
+                    state.virtual_manager = Some(registry.bind(name, 1, qh, ()));
                 }
                 _ => {}
             }
@@ -468,13 +523,23 @@ impl Dispatch<wl_keyboard::WlKeyboard, ()> for Probe {
         _: &Connection,
         _: &QueueHandle<Self>,
     ) {
-        if let wl_keyboard::Event::Key {
-            key,
-            state: key_state,
-            ..
-        } = event
-        {
-            state.record(json!({"event":"key","key":key,"state":u32::from(key_state)}));
+        match event {
+            wl_keyboard::Event::Key {
+                key,
+                state: key_state,
+                ..
+            } => {
+                state.record(json!({"event":"key","key":key,"state":u32::from(key_state)}));
+            }
+            wl_keyboard::Event::Modifiers {
+                mods_depressed,
+                mods_latched,
+                mods_locked,
+                ..
+            } => {
+                state.record(json!({"event":"modifiers","depressed":mods_depressed,"latched":mods_latched,"locked":mods_locked}));
+            }
+            _ => {}
         }
     }
 }
@@ -487,3 +552,5 @@ delegate_noop!(Probe: ignore wl_surface::WlSurface);
 delegate_noop!(Probe: ignore wl_seat::WlSeat);
 delegate_noop!(Probe: ignore zwp_text_input_manager_v3::ZwpTextInputManagerV3);
 delegate_noop!(Probe: ignore zwp_input_method_manager_v2::ZwpInputMethodManagerV2);
+delegate_noop!(Probe: ignore zwp_virtual_keyboard_manager_v1::ZwpVirtualKeyboardManagerV1);
+delegate_noop!(Probe: ignore zwp_virtual_keyboard_v1::ZwpVirtualKeyboardV1);

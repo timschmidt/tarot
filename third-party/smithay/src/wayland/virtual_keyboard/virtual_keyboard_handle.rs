@@ -86,6 +86,21 @@ where
         _dh: &DisplayHandle,
         _data_init: &mut DataInit<'_, D>,
     ) {
+        if matches!(
+            &request,
+            zwp_virtual_keyboard_v1::Request::Key { .. }
+                | zwp_virtual_keyboard_v1::Request::Modifiers { .. }
+        ) && !user_data.allow_virtual_keyboard_input(&data.seat)
+        {
+            // A previously bound input method is not a protected input source.
+            // Also discard its retained modifiers so they cannot reappear when
+            // ordinary input resumes, even if it omits a release/reset request.
+            if let Some(state) = data.handle.inner.lock().unwrap().state.as_mut() {
+                state.state.update_mask(0, 0, 0, 0, 0, 0);
+                state.mods.update_with(&state.state);
+            }
+            return;
+        }
         match request {
             zwp_virtual_keyboard_v1::Request::Keymap { format, fd, size } => {
                 update_keymap(data, format, fd, size as usize);

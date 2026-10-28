@@ -153,6 +153,12 @@ pub trait SeatHandler: Sized {
     /// [SeatState] getter
     fn seat_state(&mut self) -> &mut SeatState<Self>;
 
+    /// Whether virtual-keyboard keys and modifiers may reach the current focus.
+    /// This is checked for each request, including already-bound keyboards.
+    fn allow_virtual_keyboard_input(&mut self, _seat: &Seat<Self>) -> bool {
+        true
+    }
+
     /// Callback that will be notified whenever the focus of the seat changes.
     fn focus_changed(&mut self, _seat: &Seat<Self>, _focused: Option<&Self::KeyboardFocus>) {}
 

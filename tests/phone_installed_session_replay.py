@@ -171,6 +171,15 @@ def run(args, password):
             from phone_terminal_clipboard_replay import replay as terminal_replay
             records['terminal_clipboard'] = terminal_replay(socket, tap, guard, state,
                 capture, args.output, cgroup, authenticate)
+        if getattr(args, 'virtual_keyboard_lock', False):
+            folder=args.output/'virtual-keyboard-lock'
+            assert not request(socket,'status')['cards']
+            request(socket,'launch',id='test.tarot.VirtualLock.desktop')
+            result=await_value(lambda:json.loads((folder/'result.json').read_text()) if (folder/'result.json').exists() else None,bool,seconds=110)
+            assert result['passed'] and result['uid']==10000 and result['cgroup']==cgroup
+            assert result['audit']['compositor']==binaries['tarot']
+            state('virtual-keyboard-lock-clients-gone',lambda s:not s['cards'])
+            records['virtual_keyboard_lock']=result
         catalog = request(socket, 'applications')['applications']
         # The GTK demo deliberately has NoDisplay=true and is correctly absent
         # from the normal launcher. Exercise an actual visible installed app.
@@ -439,6 +448,7 @@ def main():
     parser.add_argument('--transients', action='store_true')
     parser.add_argument('--toolkit-dialogs', action='store_true')
     parser.add_argument('--terminal-clipboard', action='store_true')
+    parser.add_argument('--virtual-keyboard-lock', action='store_true')
     parser.add_argument('--detach', action='store_true')
     args = parser.parse_args()
     assert not args.panel_off or args.observe_sensors

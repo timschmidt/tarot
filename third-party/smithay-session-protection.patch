@@ -90,3 +90,30 @@
          let dh = DisplayHandle::from(dh.clone());
          if let Ok((resource, request)) = WlDataOffer::parse_request(&dh, msg) {
              handle_server_dnd(handler, &resource, request, &self);
+--- a/src/input/mod.rs
++++ b/src/input/mod.rs
+@@ -155,0 +156,6 @@
++    /// Whether virtual-keyboard keys and modifiers may reach the current focus.
++    /// This is checked for each request, including already-bound keyboards.
++    fn allow_virtual_keyboard_input(&mut self, _seat: &Seat<Self>) -> bool {
++        true
++    }
++
+--- a/src/wayland/virtual_keyboard/virtual_keyboard_handle.rs
++++ b/src/wayland/virtual_keyboard/virtual_keyboard_handle.rs
+@@ -88,0 +89,15 @@
++        if matches!(
++            &request,
++            zwp_virtual_keyboard_v1::Request::Key { .. }
++                | zwp_virtual_keyboard_v1::Request::Modifiers { .. }
++        ) && !user_data.allow_virtual_keyboard_input(&data.seat)
++        {
++            // A previously bound input method is not a protected input source.
++            // Also discard its retained modifiers so they cannot reappear when
++            // ordinary input resumes, even if it omits a release/reset request.
++            if let Some(state) = data.handle.inner.lock().unwrap().state.as_mut() {
++                state.state.update_mask(0, 0, 0, 0, 0, 0);
++                state.mods.update_with(&state.state);
++            }
++            return;
++        }

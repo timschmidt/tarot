@@ -31,6 +31,10 @@ impl SeatHandler for Compositor {
         &mut self.seat_state
     }
 
+    fn allow_virtual_keyboard_input(&mut self, _seat: &Seat<Self>) -> bool {
+        !self.protected()
+    }
+
     fn cursor_image(
         &mut self,
         _seat: &Seat<Self>,

@@ -1,6 +1,6 @@
 # Real terminal and clipboard acceptance
 
-October 28, 2026, on the unchanged installed revision-22 package. This advances the M2 application matrix; it does not complete M2. [Actual captures and exact identities](recordings/terminal-clipboard-r22/README.md).
+Revision-22 acceptance, October 28, 2026. Revision 23 repeats this real shell/clipboard flow alongside its [virtual-key protection](VIRTUAL_KEYBOARD_PROTECTION.md) checks. This advances the M2 application matrix; it does not complete M2. [Actual captures and exact identities](recordings/terminal-clipboard-r22/README.md).
 
 ## Real shell input
 

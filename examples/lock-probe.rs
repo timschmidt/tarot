@@ -121,6 +121,7 @@ impl State {
     }
     fn command(&mut self, action: &str, qh: &QueueHandle<Self>) -> Option<UnixStream> {
         match action {
+            "checkpoint" => self.record("checkpoint", json!({})),
             "defer-next-configure" => {
                 self.wait_resize_frame = true;
                 self.resize_ready = false;
@@ -299,6 +300,17 @@ impl Dispatch<wl_keyboard::WlKeyboard, ()> for State {
             wl_keyboard::Event::Leave { .. } => s.record("keyboard-leave", json!({})),
             wl_keyboard::Event::Key { key, state, .. } => {
                 s.record("key", json!({"code":key,"state":format!("{state:?}")}))
+            }
+            wl_keyboard::Event::Modifiers {
+                mods_depressed,
+                mods_latched,
+                mods_locked,
+                ..
+            } => {
+                s.record(
+                    "modifiers",
+                    json!({"depressed":mods_depressed,"latched":mods_latched,"locked":mods_locked}),
+                );
             }
             _ => {}
         }

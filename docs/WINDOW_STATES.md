@@ -1,6 +1,6 @@
 # Native window-state policy
 
-Installed and native-validated revision 22, October 28, 2026. This work extends the [transient policy](TRANSIENT_WINDOWS.md); it does not close M2.
+Current installed revision 23 retains the native-validated window-state policy introduced in revisions 21–22, October 28, 2026. This work extends the [transient policy](TRANSIENT_WINDOWS.md); it does not close M2.
 
 ## Requests and presentation
 
@@ -33,6 +33,8 @@ The clean-built, signed revision-21 package passes all five ARM protocol cases o
 Independent final audit verifies exact loaded hashes, ordinary UID 10000/VT7, default Tarot, hardware keys, diagnostics disabled, original settings/policies, no fixture/input/RTC alarms and a live Panfrost descriptor. All 330 packaged Rust files match the frozen source manifest; exact executed QA hashes match the native archive. [Curated native captures and identities](recordings/r21/README.md). Full local evidence and the separate earlier failures remain under ignored `artifacts/m2/window-state-r21/`.
 
 Revision 22 reproduces GTK bottom-field obstruction on the installed revision-21 payload before correcting the viewport policy. The new package passes the same five protocol cases and 40 requests, then real GTK3/Qt6 fullscreen bottom-field bounds and exact native-keyboard text, hide/reopen, overview/return and fresh actual PAM. The fullscreen flag remains committed throughout. Existing shell checks, saved restart, independent normal-session cleanup and Panfrost verification pass again. [Revision-22 captures and exact identities](recordings/r22/README.md) distinguish this current evidence from the revision-21 results above. No new kernel-suspend endurance is claimed.
+
+Revision 23 retains these protocol/toolkit/fullscreen checks and adds [per-request virtual-key protection](VIRTUAL_KEYBOARD_PROTECTION.md). Its phone protocol guard runs nested inside the ordinary login; outer physical KMS and fresh actual PAM remain separate acceptance. [Current package and executed-QA identities](recordings/r23/README.md).
 
 ## Remaining cases
 

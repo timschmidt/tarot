@@ -1,6 +1,6 @@
 # Fullscreen text input
 
-Installed and native-validated revision 22, October 28, 2026. This extends the [window-state policy](WINDOW_STATES.md).
+Introduced and native-validated in revision 22, October 28, 2026. Revision 23 retains the same actual GTK/Qt field checks and adds [virtual-key protection](VIRTUAL_KEYBOARD_PROTECTION.md). This extends the [window-state policy](WINDOW_STATES.md).
 
 ## Reproduced obstruction
 
