@@ -35,3 +35,7 @@ The invalid-unlock regression was run with just the early return removed: a reje
 ## Linux-PAM runtime boundary
 
 The trusted lock client's own Rust FFI declarations follow Linux-PAM's public application/conversation ABI; no PAM implementation or helper source was copied into Tarot. The disposable unprivileged worker dynamically loads the system `libpam.so.0` and uses distribution modules/policy. `libloading` and `libc` remain Cargo dependencies with their upstream licenses; the system's PAM libraries/helpers retain their distribution license/notice files. [Public API](https://github.com/linux-pam/linux-pam/blob/master/libpam/include/security/pam_appl.h)
+
+## Native card shader variants
+
+Tarot's [card mask](../src/shaders/card-mask.frag) adapts the sampler, `NO_ALPHA` and `DEBUG_FLAGS` variants from pinned Smithay's `src/backend/renderer/gles/shaders/implicit/texture.frag`. That portion retains the [Smithay MIT notice](Smithay-MIT.txt), also installed with the package. The rounded mask, frame-coordinate mapping and analytic card-shadow material are Tarot additions. Native client buffers remain in the normal surface renderer; the mask does not copy application content into wallpaper or screenshot textures.

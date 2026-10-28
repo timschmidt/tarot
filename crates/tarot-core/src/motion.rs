@@ -13,6 +13,26 @@ pub struct WindowVisual {
     pub id: WindowId,
     pub rect: Rect,
     pub opacity: f32,
+    /// Logical radius, interpolated with the native surface geometry.
+    pub corner_radius: f32,
+}
+
+impl WindowVisual {
+    pub fn contains(self, x: f32, y: f32) -> bool {
+        if !self.rect.contains(x, y) {
+            return false;
+        }
+        let radius = self
+            .corner_radius
+            .max(0.0)
+            .min(self.rect.width.min(self.rect.height) * 0.5);
+        let nearest_x = x.clamp(self.rect.x + radius, self.rect.x + self.rect.width - radius);
+        let nearest_y = y.clamp(
+            self.rect.y + radius,
+            self.rect.y + self.rect.height - radius,
+        );
+        (x - nearest_x).hypot(y - nearest_y) <= radius
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
@@ -79,6 +99,13 @@ impl Presentation {
                     } else {
                         0.0
                     },
+                    corner_radius: if view == View::App(card.id) {
+                        0.0
+                    } else {
+                        let card = layout.card(0, 0);
+                        (crate::design::CARD_RADIUS * card.width / layout.content().width.max(1.0))
+                            .min(card.width.min(card.height) * 0.5)
+                    },
                 })
                 .collect(),
             overview: if view == View::Overview { 1.0 } else { 0.0 },
@@ -102,7 +129,7 @@ impl Presentation {
     }
 
     pub fn card_at(&self, x: f32, y: f32, _selected: Option<WindowId>) -> Option<WindowId> {
-        let hit = |window: &&WindowVisual| window.opacity > 0.01 && window.rect.contains(x, y);
+        let hit = |window: &&WindowVisual| window.opacity > 0.01 && window.contains(x, y);
         self.windows.iter().rev().find(hit).map(|window| window.id)
     }
 
@@ -131,6 +158,7 @@ impl Presentation {
                             height: mix(start.rect.height, end.rect.height),
                         },
                         opacity: mix(start.opacity, end.opacity),
+                        corner_radius: mix(start.corner_radius, end.corner_radius),
                     }
                 })
                 .collect(),
@@ -274,6 +302,40 @@ impl Animator {
 mod tests {
     use super::*;
     use crate::Command;
+
+    #[test]
+    fn a_rounded_corner_selects_the_visible_card_behind_it() {
+        let back = WindowVisual {
+            id: WindowId(1),
+            rect: Rect {
+                x: 0.0,
+                y: 0.0,
+                width: 200.0,
+                height: 200.0,
+            },
+            opacity: 1.0,
+            corner_radius: 0.0,
+        };
+        let front = WindowVisual {
+            id: WindowId(2),
+            rect: Rect {
+                x: 10.0,
+                y: 10.0,
+                width: 100.0,
+                height: 100.0,
+            },
+            opacity: 1.0,
+            corner_radius: 11.0,
+        };
+        let frame = Presentation {
+            windows: vec![back, front],
+            ..Default::default()
+        };
+        assert_eq!(frame.card_at(11.0, 11.0, None), Some(back.id));
+        assert_eq!(frame.card_at(21.0, 11.0, None), Some(front.id));
+        assert_eq!(frame.card_at(60.0, 60.0, None), Some(front.id));
+        assert_eq!(frame.card_at(210.0, 210.0, None), None);
+    }
 
     #[test]
     fn quick_launch_preview_preserves_native_geometry_and_cancels_without_navigation() {

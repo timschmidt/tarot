@@ -446,6 +446,15 @@ python3 tests/quick_launch_replay.py --output /absolute/new/quick-launch-evidenc
 
 It supplies its own display, catalog and config file, exercises real native app/keyboard clients and actual favorite editing, then restarts to check persistence. Captures contain synthetic fixture content only. It does not establish phone KMS/PAM results. Favorites use schema version 3; old versions migrate lazily, but revision 9 cannot load the new schema. Keep rollback/schema acceptance separate from the earlier retained-package test. Read the [current checkpoint](IMPLEMENTATION_STATUS.md#quick-launch-development-checkpoint) before treating local results as installed behavior.
 
+The rounded-card GPU replay uses the same private-display boundary and requires Python Pillow, Xvfb and a built `input-probe` example:
+
+```sh
+python3 tests/rounded_cards_replay.py --output /absolute/new/rounded-opaque --scale 2 --opaque --xvfb /path/to/Xvfb
+python3 tests/rounded_cards_replay.py --output /absolute/new/rounded-alpha --scale 1 --xvfb /path/to/Xvfb
+```
+
+It stacks two changing native SHM clients through real input, checks pixels and corner selection in every orientation, and verifies cooperative close, refusal and isolated client exit. `phone_installed_session_replay.py --rounded-cards --cycles 0` adds native KMS/touch checks inside an already authenticated diagnostic session. It requires Pillow on the phone (`py3-pillow`), the two temporary catalog entries and exact audited fixture paths described in `phone_rounded_cards_replay.py`. The fixture must launch through Tarot as the ordinary user in its login cgroup. The native wrapper must remove those entries and preserve original preferences on failure as well as success. This option does not request a kernel-suspend test or establish manual physical-finger acceptance.
+
 Other X11 pointer replays can use `tests/with_xvfb.py --xvfb /path/to/Xvfb --log /absolute/new/server.log -- python3 tests/orientation_replay.py --output /absolute/new/evidence`. This keeps host focus changes out of the replay; owned-PID window discovery works without a window manager and keeps its focus guard.
 
 ## Hardware buttons

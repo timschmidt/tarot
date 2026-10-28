@@ -375,12 +375,41 @@ fn show_cards(
                     .arrange
                     .is_some_and(|arrange| arrange.id == card.id)
             {
-                painter.rect_stroke(
-                    card_rect.expand(2.0),
-                    8.0,
-                    Stroke::new(2.0_f32, Color32::from_white_alpha(125)),
-                    StrokeKind::Outside,
-                );
+                let width = (visual.corner_radius / tarot_core::design::CARD_RADIUS).max(0.5);
+                let outline = card_rect.expand(width * 0.5);
+                let radius = visual.corner_radius + width * 0.5;
+                // Float paths retain the native mask's subpixel radius; egui's
+                // integer corner-radius rectangle would round it independently.
+                let mut points = Vec::with_capacity(36);
+                for (center, start) in [
+                    (
+                        Pos2::new(outline.left() + radius, outline.top() + radius),
+                        std::f32::consts::PI,
+                    ),
+                    (
+                        Pos2::new(outline.right() - radius, outline.top() + radius),
+                        std::f32::consts::PI * 1.5,
+                    ),
+                    (
+                        Pos2::new(outline.right() - radius, outline.bottom() - radius),
+                        0.0,
+                    ),
+                    (
+                        Pos2::new(outline.left() + radius, outline.bottom() - radius),
+                        std::f32::consts::FRAC_PI_2,
+                    ),
+                ] {
+                    for step in 0..=8 {
+                        let angle = start + step as f32 * std::f32::consts::FRAC_PI_2 / 8.0;
+                        let (sin, cos) = angle.sin_cos();
+                        points.push(center + Vec2::new(cos * radius, sin * radius));
+                    }
+                }
+                painter.add(egui::Shape::convex_polygon(
+                    points,
+                    Color32::TRANSPARENT,
+                    Stroke::new(width, Color32::from_rgb(218, 227, 215)),
+                ));
             }
             let response = ui.interact(card_rect, ui.id().with("activate"), Sense::click());
             response.widget_info(|| {
@@ -390,7 +419,11 @@ fn show_cards(
                     format!("Open {}", card.title),
                 )
             });
-            if response.clicked() {
+            if response.clicked()
+                && response
+                    .interact_pointer_pos()
+                    .is_some_and(|p| visual.contains(p.x, p.y))
+            {
                 commands.push(Command::Activate(card.id));
             }
             let label = if card.closing {

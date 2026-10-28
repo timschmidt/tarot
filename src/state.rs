@@ -386,6 +386,13 @@ impl Compositor {
         let View::App(active) = self.shell.view else {
             return None;
         };
+        if !self
+            .presentation
+            .window(active)?
+            .contains(pos.x as f32, pos.y as f32)
+        {
+            return None;
+        }
         self.space
             .elements()
             .find(|window| window.user_data().get::<WindowId>() == Some(&active))

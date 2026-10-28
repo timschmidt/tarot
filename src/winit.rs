@@ -13,7 +13,7 @@ use smithay::{
                     RelocateRenderElement, RescaleRenderElement, constrain_as_render_elements,
                 },
             },
-            gles::GlesTexture,
+            gles::{GlesTexture, element::PixelShaderElement},
             glow::GlowRenderer,
         },
         winit::{self, WinitEvent, WinitGraphicsBackend},
@@ -36,7 +36,7 @@ use tarot_core::WindowId;
 type TransformedCardElement = CropRenderElement<
     RelocateRenderElement<RescaleRenderElement<WaylandSurfaceRenderElement<GlowRenderer>>>,
 >;
-type CardElement = CropRenderElement<TransformedCardElement>;
+type CardElement = crate::card_renderer::Masked<CropRenderElement<TransformedCardElement>>;
 smithay::backend::renderer::element::render_elements! {
     pub RecoveryElement<=GlowRenderer>;
     Texture=TextureRenderElement<GlesTexture>,
@@ -44,6 +44,7 @@ smithay::backend::renderer::element::render_elements! {
 smithay::backend::renderer::element::render_elements! {
     pub SceneElement<=GlowRenderer>;
     Card=CardElement,
+    Shadow=CropRenderElement<PixelShaderElement>,
     Chrome=TextureRenderElement<GlesTexture>,
     Keyboard=CropRenderElement<WaylandSurfaceRenderElement<GlowRenderer>>,
     Lock=WaylandSurfaceRenderElement<GlowRenderer>,
@@ -460,6 +461,7 @@ pub fn build_scene(
                 .unwrap_or(0),
         )
     });
+    shell.cards.begin(renderer)?;
     for window in &visible_windows {
         let Some(id) = window.user_data().get::<WindowId>().copied() else {
             continue;
@@ -478,23 +480,39 @@ pub fn build_scene(
             crate::focus::cache_surface_placements(window, id, &mut state.presented_surfaces);
             let target = geometry.target;
             let reference = geometry.reference;
-            scene.extend(
-                constrain_as_render_elements::<GlowRenderer, _, TransformedCardElement>(
-                    window,
-                    renderer,
-                    target.loc - reference.loc,
-                    geometry.opacity,
+            for element in constrain_as_render_elements::<GlowRenderer, _, TransformedCardElement>(
+                window,
+                renderer,
+                target.loc - reference.loc,
+                geometry.opacity,
+                target,
+                reference,
+                ConstrainScaleBehavior::Fit,
+                ConstrainAlign::CENTER,
+                scale,
+            )
+            .filter_map(|element| CropRenderElement::from_element(element, scale, content_clip))
+            {
+                if let Some(element) = shell.cards.mask(
+                    element,
                     target,
-                    reference,
-                    ConstrainScaleBehavior::Fit,
-                    ConstrainAlign::CENTER,
+                    visual.corner_radius * scale as f32,
+                    size,
                     scale,
-                )
-                .filter_map(|element| CropRenderElement::from_element(element, scale, content_clip))
-                .map(SceneElement::Card),
-            );
+                ) {
+                    scene.push(SceneElement::Card(element));
+                }
+            }
+            if let Some(shadow) = shell
+                .cards
+                .shadow(*visual, target, scale)
+                .and_then(|element| CropRenderElement::from_element(element, scale, content_clip))
+            {
+                scene.push(SceneElement::Shadow(shadow));
+            }
         }
     }
+    shell.cards.end();
     if let Some(wallpaper) = shell.wallpaper_element() {
         scene.push(SceneElement::Chrome(wallpaper));
     }

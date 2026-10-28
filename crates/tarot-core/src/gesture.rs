@@ -476,6 +476,11 @@ impl GestureRecognizer {
         let (dx, dy) = contact.delta();
         let (vx, vy) = contact.velocity();
         let command = match (contact.origin, contact.axis) {
+            (Origin::Cards(Some(id)), None)
+                if dx.abs().max(dy.abs()) <= crate::design::TAP_SLOP =>
+            {
+                Some(Command::Activate(id))
+            }
             (Origin::Strip, Some(Axis::Vertical)) if dy < -48.0 || (dy < -16.0 && vy < -0.5) => {
                 Some(match contact.view {
                     View::App(_) | View::Launcher => Command::Overview,
@@ -507,7 +512,10 @@ impl GestureRecognizer {
             }
             _ => None,
         };
-        Outcome { consumed, command }
+        Outcome {
+            consumed: consumed || matches!(command.as_ref(), Some(Command::Activate(_))),
+            command,
+        }
     }
 
     pub fn cancel(&mut self) {

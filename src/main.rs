@@ -1,5 +1,6 @@
 mod apps;
 mod audio;
+mod card_renderer;
 mod clock;
 mod control;
 #[cfg(feature = "drm")]

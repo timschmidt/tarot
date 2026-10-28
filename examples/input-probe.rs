@@ -25,6 +25,26 @@ struct Options {
     popups: bool,
     #[arg(long)]
     move_child: bool,
+    #[arg(long, value_parser=parse_color)]
+    solid_color: Option<[u8; 4]>,
+    #[arg(long)]
+    fit_output: bool,
+    #[arg(long)]
+    corner_child: bool,
+    #[arg(long)]
+    opaque: bool,
+    #[arg(long)]
+    refuse_close: bool,
+}
+
+fn parse_color(value: &str) -> std::result::Result<[u8; 4], String> {
+    if value.len() != 6 || !value.bytes().all(|b| b.is_ascii_hexdigit()) {
+        return Err("Expected an RRGGBB color".into());
+    }
+    let r = u8::from_str_radix(&value[0..2], 16).unwrap();
+    let g = u8::from_str_radix(&value[2..4], 16).unwrap();
+    let b = u8::from_str_radix(&value[4..6], 16).unwrap();
+    Ok([b, g, r, 255])
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -65,6 +85,12 @@ struct Window {
 }
 
 struct Probe {
+    refuse_close: bool,
+    opaque: bool,
+    solid_color: Option<[u8; 4]>,
+    fit_output: bool,
+    configured_size: (i32, i32),
+    corner_child: bool,
     compositor: Option<wl_compositor::WlCompositor>,
     subcompositor: Option<wl_subcompositor::WlSubcompositor>,
     shm: Option<wl_shm::WlShm>,
@@ -208,7 +234,9 @@ impl Probe {
         let mut bytes = Vec::with_capacity((width * height * 4) as usize);
         for y in 0..height {
             for x in 0..width {
-                let color = if x % 50 < 2 || y % 50 < 2 {
+                let color = if !child && let Some(color) = self.solid_color {
+                    color
+                } else if x % 50 < 2 || y % 50 < 2 {
                     [30, 30, 30, 255]
                 } else if child {
                     [210, 120, 40, 255]
@@ -230,7 +258,11 @@ impl Probe {
             width,
             height,
             width * 4,
-            wl_shm::Format::Argb8888,
+            if self.opaque {
+                wl_shm::Format::Xrgb8888
+            } else {
+                wl_shm::Format::Argb8888
+            },
             qh,
             (),
         );
@@ -247,7 +279,12 @@ impl Probe {
                 .as_ref()
                 .unwrap()
                 .get_subsurface(&child, &surface, qh, ());
-        subsurface.set_position(100, 150);
+        let (x, y) = if self.corner_child {
+            (-30, -30)
+        } else {
+            (100, 150)
+        };
+        subsurface.set_position(x, y);
         subsurface.set_desync();
         let child_buffer = self.buffer(qh, 200, 200, true);
         child.attach(Some(&child_buffer), 0, 0);
@@ -262,7 +299,9 @@ impl Probe {
         toplevel.set_title("Tarot native input probe".into());
         toplevel.set_app_id("org.tarot.InputProbe".into());
         // The compositor must fit this geometry, rather than assume configured == actual size.
-        xdg.set_window_geometry(20, 30, 600, 1000);
+        if !self.fit_output {
+            xdg.set_window_geometry(20, 30, 600, 1000);
+        }
         let buffer = self.buffer(qh, 640, 1060, false);
         self.window = Some(Window {
             surface,
@@ -287,6 +326,12 @@ fn main() -> Result<()> {
     let mut queue = connection.new_event_queue();
     let qh = queue.handle();
     let mut probe = Probe {
+        refuse_close: options.refuse_close,
+        opaque: options.opaque,
+        solid_color: options.solid_color,
+        fit_output: options.fit_output,
+        configured_size: (360, 652),
+        corner_child: options.corner_child,
         compositor: None,
         subcompositor: None,
         shm: None,
@@ -392,7 +437,7 @@ impl Dispatch<xdg_surface::XdgSurface, u32> for Probe {
         event: xdg_surface::Event,
         level: &u32,
         _: &Connection,
-        _: &QueueHandle<Self>,
+        qh: &QueueHandle<Self>,
     ) {
         if let xdg_surface::Event::Configure { serial } = event {
             surface.ack_configure(serial);
@@ -407,6 +452,18 @@ impl Dispatch<xdg_surface::XdgSurface, u32> for Probe {
                             .grab(state.seat.as_ref().unwrap(), popup.initiating_serial);
                     }
                 }
+            } else if state.fit_output {
+                let (width, height) = state.configured_size;
+                let buffer = state.buffer(qh, width, height, false);
+                let window = state.window.as_mut().unwrap();
+                window._xdg.set_window_geometry(0, 0, width, height);
+                let previous = std::mem::replace(&mut window.buffer, buffer);
+                window.surface.attach(Some(&window.buffer), 0, 0);
+                window.surface.damage(0, 0, width, height);
+                window.surface.commit();
+                previous.destroy();
+                state.mapped = true;
+                state.record(json!({"event":"fit-configured","width":width,"height":height}));
             } else if !state.mapped {
                 let window = state.window.as_ref().unwrap();
                 window.surface.attach(Some(&window.buffer), 0, 0);
@@ -427,8 +484,17 @@ impl Dispatch<xdg_toplevel::XdgToplevel, ()> for Probe {
         _: &Connection,
         _: &QueueHandle<Self>,
     ) {
-        if let xdg_toplevel::Event::Close = event {
-            state.closed = true;
+        match event {
+            xdg_toplevel::Event::Close => {
+                state.record(json!({"event":"close_requested","refused":state.refuse_close}));
+                state.closed = !state.refuse_close;
+            }
+            xdg_toplevel::Event::Configure { width, height, .. }
+                if state.fit_output && width > 0 && height > 0 =>
+            {
+                state.configured_size = (width, height);
+            }
+            _ => {}
         }
     }
 }

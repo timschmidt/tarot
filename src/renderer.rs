@@ -49,6 +49,7 @@ pub fn dmabuf_capabilities(
 }
 
 pub struct ShellRenderer {
+    pub cards: crate::card_renderer::Cards,
     context: egui::Context,
     painter: Option<egui_glow::Painter>,
     texture: Option<TextureRenderBuffer<GlesTexture>>,
@@ -64,6 +65,7 @@ impl ShellRenderer {
         let context = egui::Context::default();
         context.set_visuals(egui::Visuals::dark());
         Self {
+            cards: Default::default(),
             context,
             painter: None,
             texture: None,
@@ -252,6 +254,7 @@ impl ShellRenderer {
         capture_bound(painter, size)
     }
     pub fn destroy(&mut self, renderer: &mut GlowRenderer) {
+        self.cards = Default::default();
         if let Some(recovery) = &mut self.recovery {
             recovery.destroy(renderer);
         }

@@ -15,6 +15,7 @@ fn main() {
         ("ICON", &g["quick_launch_icon_size"]),
         ("LAUNCHER_ICON", &g["launcher_icon_size"]),
         ("CARD_SCALE", &g["card_scale"]),
+        ("CARD_RADIUS", &g["card_radius_before_scale"]),
         ("CARD_Y", &g["card_anchor"][1]),
         ("AXIS_SLOP", &gestures["axis_lock_dp"]),
         ("TAP_SLOP", &gestures["tap_slop_dp"]),
