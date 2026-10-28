@@ -1,0 +1,105 @@
+{
+  "package_revision": 19,
+  "package_sha256": "64568b3f377a8806bebcfa884ae08a40f1cc23d479ff714650bffda69432f5e5",
+  "binaries_sha256": {
+    "tarot": "abd238b0f0b8ebd98f09aea9fbed996ed1aecb2c1143c71f21b6e4d46aa968e5",
+    "tarot-session": "dd0cf703ec3dbed1b870042b1507384cd563d7d0bc92c07e6984fbeb91613cb9",
+    "tarot-lock": "b9a4904f010dd8c1f1dffc31acf853230ff8283e7242db8b38af85f8782440aa",
+    "tarot-keyboard": "181e37f855df5f9da9bf29138847c3336daeca14020a298b600bde103ff21b89"
+  },
+  "initial_source_archive_sha256": "6af43db7964b7e95b95e88fa02c754dfbd3a2d548cf63872c1f86e253e5900b9",
+  "protocol_fixture_sha256": "617c47cf05267b47d96784b571d059a62556769c29ade861aeac01e6ddb14afb",
+  "native_protocol_tests_passed": 4,
+  "actual_touch_and_keyboard": true,
+  "actual_pam_protected_arrival": true,
+  "physical_finger_tested": false,
+  "toolkits": {
+    "gtk": {
+      "passed": true,
+      "pid": 7434,
+      "version": {
+        "event": "version",
+        "pid": 7434,
+        "uid": 10000,
+        "monotonic": 37037.094184503,
+        "toolkit": "gtk",
+        "version": "3.24.52"
+      },
+      "root_close_callback_observed": false,
+      "cancel_native_size": [
+        332,
+        329
+      ],
+      "apply_native_size": [
+        332,
+        329
+      ],
+      "separate_xdg_toplevel_with_parent": true,
+      "native_touch_keyboard_exact_text": true,
+      "child_popup_owned_by_root_card": true,
+      "actual_popup_selection": true,
+      "unsaved_close_refused": true,
+      "actual_card_activation_restores_dialog": true,
+      "cancel_and_apply_actual_responses": true,
+      "cooperative_parent_close": true,
+      "same_login_cgroup": true
+    },
+    "qt": {
+      "passed": true,
+      "pid": 7644,
+      "version": {
+        "event": "version",
+        "pid": 7644,
+        "uid": 10000,
+        "monotonic": 37053.744265189,
+        "toolkit": "qt",
+        "version": "6.11.1"
+      },
+      "root_close_callback_observed": false,
+      "cancel_native_size": [
+        280,
+        240
+      ],
+      "apply_native_size": [
+        280,
+        240
+      ],
+      "separate_xdg_toplevel_with_parent": true,
+      "native_touch_keyboard_exact_text": true,
+      "child_popup_owned_by_root_card": true,
+      "actual_popup_selection": true,
+      "unsaved_close_refused": true,
+      "actual_card_activation_restores_dialog": true,
+      "cancel_and_apply_actual_responses": true,
+      "cooperative_parent_close": true,
+      "same_login_cgroup": true
+    }
+  },
+  "regressions": {
+    "quick_launch": true,
+    "rounded_cards": true,
+    "stack_matrix": true,
+    "gtk_close": true,
+    "hardware_keys": true
+  },
+  "saved_restart_passed": true,
+  "normal_session_audit_passed": true,
+  "panfrost_fd_verified": true,
+  "kernel_suspend_cycles": 0,
+  "images_sha256": {
+    "gtk-dialog.png": "08e6c0e84aec9bfa46a05d1cf0bb20e3cccc0d6c48bf1a75ec7088ff17803443",
+    "qt-dialog.png": "9d29939d14452790baa292022183f72d9809561a18db49276a21bcc595e91112"
+  },
+  "executed_qa_sha256": {
+    "native_transient_fixture.py": "ba9e3d0f3ee8815d1061e0fc06062a58c708ec07d3c9ea7985598349a9404d12",
+    "phone_transient_replay.py": "0b0df77f015b2befd372c77e622fbaa8309f250fe7816f4099c7203d7c05706e",
+    "toolkit_transient_fixture.py": "fc1f84330e181b770763ec4bf89bef860cf687c2b35b8952c0481edaf9456bf5",
+    "phone_toolkit_dialog_replay.py": "7deb67cdd0069bdfbdffc9c8afd2f47f3654b31214d18ca9f40a81332b29dbef",
+    "dialog_button.py": "a1435cda731e85e4cf5422df411f139b309d36998d6e2160f4105e937243c811"
+  },
+  "remaining": [
+    "Transient popup overflow beyond its own target",
+    "Client maximize/fullscreen initial-hint policy and coverage",
+    "Full M2 and development-plan gates"
+  ]
+}

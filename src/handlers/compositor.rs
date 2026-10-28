@@ -37,6 +37,7 @@ impl CompositorHandler for Compositor {
         self.redraw = true;
         on_commit_buffer_handler::<Self>(surface);
         self.commit_keyboard(surface);
+        let mut unmapped_toplevel = false;
         if !is_sync_subsurface(surface) {
             let mut root = surface.clone();
             while let Some(parent) = get_parent(&root) {
@@ -61,6 +62,13 @@ impl CompositorHandler for Compositor {
                         if mapped {
                             self.families.map(id);
                         } else {
+                            unmapped_toplevel = true;
+                            // Smithay's role hook can run before our renderer
+                            // buffer handler sees this null attachment. Reset
+                            // now, before family focus/configure updates.
+                            if let Some(top) = window.toplevel() {
+                                top.reset_initial_configure_sent();
+                            }
                             self.families.unmap(id);
                         }
                         self.reconcile_families(previous, mapped.then_some(id));
@@ -69,7 +77,7 @@ impl CompositorHandler for Compositor {
             }
         };
 
-        xdg_shell::handle_commit(&mut self.popups, &self.space, surface);
+        xdg_shell::handle_commit(&mut self.popups, &self.space, surface, unmapped_toplevel);
         resize_grab::handle_commit(&mut self.space, surface);
     }
 }

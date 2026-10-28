@@ -255,7 +255,12 @@ fn check_grab(
 }
 
 /// Should be called on `WlSurface::commit`
-pub fn handle_commit(popups: &mut PopupManager, space: &Space<Window>, surface: &WlSurface) {
+pub fn handle_commit(
+    popups: &mut PopupManager,
+    space: &Space<Window>,
+    surface: &WlSurface,
+    unmapped_toplevel: bool,
+) {
     // Handle toplevel commits.
     if let Some(window) = space
         .elements()
@@ -272,7 +277,9 @@ pub fn handle_commit(popups: &mut PopupManager, space: &Space<Window>, surface: 
                 .initial_configure_sent
         });
 
-        if !initial_configure_sent {
+        // A null-buffer unmap discards the old mapping. The client must be
+        // able to supply fresh parent/size hints before its next initial commit.
+        if !initial_configure_sent && !unmapped_toplevel {
             window.toplevel().unwrap().send_configure();
         }
     }

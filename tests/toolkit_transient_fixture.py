@@ -47,7 +47,8 @@ def run_gtk(emit):
         entry.connect('changed',lambda w:emit('text',field='dialog',text=w.get_text()))
         combo.connect('changed',lambda w:emit('choice',value=w.get_active_text()))
         def response(d,value):
-            text=entry.get_text();emit('response',action='apply' if value==Gtk.ResponseType.APPLY else 'cancel',text=text)
+            text=entry.get_text();emit('response',action='apply' if value==Gtk.ResponseType.APPLY else 'cancel',text=text,
+                width=d.get_allocated_width(),height=d.get_allocated_height())
             if value==Gtk.ResponseType.APPLY:label.set_text('Saved '+text)
             active[0]=None;d.destroy();button.grab_focus()
         dialog.connect('response',response)
@@ -81,7 +82,8 @@ def run_qt(emit):
         content.addWidget(buttons)
         entry.textChanged.connect(lambda text:emit('text',field='dialog',text=text));combo.currentTextChanged.connect(lambda text:emit('choice',value=text))
         def finished(value):
-            text=entry.text();emit('response',action='apply' if value==QtWidgets.QDialog.DialogCode.Accepted else 'cancel',text=text)
+            text=entry.text();emit('response',action='apply' if value==QtWidgets.QDialog.DialogCode.Accepted else 'cancel',text=text,
+                width=dialog.width(),height=dialog.height())
             if value==QtWidgets.QDialog.DialogCode.Accepted:label.setText('Saved '+text)
             active[0]=None;dialog.deleteLater();button.setFocus()
         buttons.accepted.connect(dialog.accept);buttons.rejected.connect(dialog.reject);dialog.finished.connect(finished)

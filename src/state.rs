@@ -626,7 +626,9 @@ impl Compositor {
                     let focused = id.and_then(|id| self.focused_window(id));
                     for window in &windows {
                         window.set_activated(focused.as_ref() == Some(window));
-                        if let Some(toplevel) = window.toplevel() {
+                        if let Some(toplevel) = window.toplevel()
+                            && toplevel.is_initial_configure_sent()
+                        {
                             toplevel.send_pending_configure();
                         }
                     }
@@ -691,7 +693,12 @@ impl Compositor {
                     state.size = if transient { None } else { Some(size) };
                     state.bounds = Some(size);
                 });
-                toplevel.send_pending_configure();
+                // Parent/size hints arrive between role creation and the
+                // initial bufferless commit. Sending here earlier can make a
+                // natural Qt dialog adopt the app's fullscreen dimensions.
+                if toplevel.is_initial_configure_sent() {
+                    toplevel.send_pending_configure();
+                }
             }
         }
     }

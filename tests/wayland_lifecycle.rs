@@ -26,6 +26,7 @@ struct Client {
     shell: Option<xdg_wm_base::XdgWmBase>,
     dialogs: Option<xdg_wm_dialog_v1::XdgWmDialogV1>,
     configures: usize,
+    sizes: Vec<(xdg_toplevel::XdgToplevel, i32, i32)>,
     close_requests: usize,
     close_targets: Vec<xdg_toplevel::XdgToplevel>,
     frames: Vec<u32>,
@@ -45,6 +46,17 @@ struct Window {
 
 impl Client {
     fn window(&self, qh: &QueueHandle<Self>, title: &str) -> Window {
+        let window = self.uncommitted_window(qh, title, None);
+        window.surface.commit();
+        window
+    }
+
+    fn uncommitted_window(
+        &self,
+        qh: &QueueHandle<Self>,
+        title: &str,
+        parent: Option<&xdg_toplevel::XdgToplevel>,
+    ) -> Window {
         let surface = self.compositor.as_ref().unwrap().create_surface(qh, ());
         let xdg = self
             .shell
@@ -54,9 +66,9 @@ impl Client {
         let toplevel = xdg.get_toplevel(qh, ());
         toplevel.set_title(title.into());
         toplevel.set_app_id("org.tarot.LifecycleProbe".into());
+        toplevel.set_parent(parent);
         // A declared window geometry without a root buffer is still unmapped.
         xdg.set_window_geometry(0, 0, 160, 240);
-        surface.commit();
 
         let buffer = self.buffer(qh, 160, 240, [0x48, 0x80, 0x20, 0xff]);
         Window {
@@ -94,6 +106,91 @@ impl Client {
         pool.destroy();
         buffer
     }
+}
+
+#[test]
+#[ignore = "requires an empty running Tarot session; see docs/BUILDING.md"]
+fn initial_configure_waits_for_parent_hints_and_fresh_remap_commit() {
+    let initial = status();
+    assert_eq!(initial["cards"], json!([]));
+    let socket = PathBuf::from(std::env::var_os("XDG_RUNTIME_DIR").unwrap())
+        .join(initial["wayland_display"].as_str().unwrap());
+    let connection = Connection::from_socket(UnixStream::connect(socket).unwrap()).unwrap();
+    let mut queue = connection.new_event_queue();
+    let qh = queue.handle();
+    let mut client = Client::default();
+    connection.display().get_registry(&qh, ());
+    sync(&mut queue, &mut client);
+    let root = client.uncommitted_window(&qh, "Initial root", None);
+    sync(&mut queue, &mut client);
+    assert!(
+        client.sizes.iter().all(|(top, _, _)| top != &root.toplevel),
+        "do not configure before the initial surface commit"
+    );
+    root.surface.commit();
+    sync(&mut queue, &mut client);
+    assert!(
+        client
+            .sizes
+            .iter()
+            .any(|(top, w, h)| top == &root.toplevel && *w > 0 && *h > 0)
+    );
+    root.map();
+    sync(&mut queue, &mut client);
+    let child = client.uncommitted_window(&qh, "Natural dialog", Some(&root.toplevel));
+    sync(&mut queue, &mut client);
+    assert!(
+        client
+            .sizes
+            .iter()
+            .all(|(top, _, _)| top != &child.toplevel),
+        "parent_changed and focus updates must not send an initial configure early"
+    );
+    child.surface.commit();
+    sync(&mut queue, &mut client);
+    let sizes: Vec<_> = client
+        .sizes
+        .iter()
+        .filter(|(top, _, _)| top == &child.toplevel)
+        .collect();
+    assert!(!sizes.is_empty());
+    assert!(
+        sizes.iter().all(|(_, w, h)| *w == 0 && *h == 0),
+        "a parented dialog must never inherit an earlier fullscreen configure: {sizes:?}"
+    );
+    child.map();
+    sync(&mut queue, &mut client);
+    let before = client.sizes.len();
+    child.unmap();
+    sync(&mut queue, &mut client);
+    child.toplevel.set_parent(Some(&root.toplevel));
+    sync(&mut queue, &mut client);
+    assert!(
+        client.sizes[before..]
+            .iter()
+            .all(|(top, _, _)| top != &child.toplevel),
+        "unmapping is not the next mapping's initial commit: {:?}",
+        &client.sizes[before..]
+    );
+    child.surface.commit();
+    sync(&mut queue, &mut client);
+    let remapped: Vec<_> = client.sizes[before..]
+        .iter()
+        .filter(|(top, _, _)| top == &child.toplevel)
+        .collect();
+    assert!(!remapped.is_empty());
+    assert!(
+        remapped.iter().all(|(_, w, h)| *w == 0 && *h == 0),
+        "{remapped:?}"
+    );
+    child.map();
+    sync(&mut queue, &mut client);
+    assert_eq!(status()["cards"].as_array().unwrap().len(), 1);
+    child.destroy();
+    root.destroy();
+    sync(&mut queue, &mut client);
+    assert_eq!(status()["cards"], json!([]));
+    println!("Root/parented initial configure, zero natural sizes and remap handshake verified");
 }
 
 impl Window {
@@ -816,9 +913,15 @@ impl Dispatch<xdg_toplevel::XdgToplevel, ()> for Client {
         _: &Connection,
         _: &QueueHandle<Self>,
     ) {
-        if let xdg_toplevel::Event::Close = event {
-            state.close_requests += 1;
-            state.close_targets.push(toplevel.clone());
+        match event {
+            xdg_toplevel::Event::Close => {
+                state.close_requests += 1;
+                state.close_targets.push(toplevel.clone());
+            }
+            xdg_toplevel::Event::Configure { width, height, .. } => {
+                state.sizes.push((toplevel.clone(), width, height))
+            }
+            _ => {}
         }
     }
 }

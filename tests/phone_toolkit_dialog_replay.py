@@ -58,10 +58,14 @@ def replay(control,tap,state,capture,out,session_cgroup):
         result['root_close_callback_observed']=any(e['event']=='root-close-refused' for e in events(report))
         r=window(s,identifier)['rect'];tap(r['x']+r['width']/2,r['y']+r['height']/2)
         state(prefix+'-restored',lambda s:s['view']=={'App':identifier} and window(s,identifier)['rect']==s['app_area'])
-        button('cancel','Cancel');observe('response',lambda e:e['action']=='cancel' and e['text']=='tarot')
+        button('cancel','Cancel');cancel=observe('response',lambda e:e['action']=='cancel' and e['text']=='tarot')
+        assert 100<=cancel['height']<=400,cancel
+        result['cancel_native_size']=[cancel['width'],cancel['height']]
         state(prefix+'-cancelled',lambda s:len(s['cards'])==1 and not any(n['mapped'] and n['parent']==identifier for n in s['native_windows']))
         button('reopen','Open');dialog_mapped('second-dialog');typed('second')
-        button('apply','Apply');observe('response',lambda e:e['action']=='apply' and e['text']=='tarot')
+        button('apply','Apply');applied=observe('response',lambda e:e['action']=='apply' and e['text']=='tarot')
+        assert 100<=applied['height']<=400,applied
+        result['apply_native_size']=[applied['width'],applied['height']]
         state(prefix+'-applied',lambda s:len(s['cards'])==1 and not any(n['mapped'] and n['parent']==identifier for n in s['native_windows']))
         capture(prefix+'-saved-parent')
         request(control,'close',id=identifier);observe('root-close');observe('exit')
