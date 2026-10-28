@@ -1,5 +1,6 @@
 //! Native egui keyboard. Privileged protocols require Tarot's inherited connection.
 use tarot_wayland_egui as graphics;
+mod terminal;
 mod ui;
 use anyhow::{Context, Result, ensure};
 use calloop::{EventLoop, Interest, Mode, PostAction, generic::Generic};
@@ -13,6 +14,7 @@ use std::{
     },
     time::{Duration, Instant},
 };
+use tarot_ui::keyboard::terminal::{Controls as TerminalControls, Key as TerminalKey, Modifiers};
 use unicode_segmentation::UnicodeSegmentation;
 use wayland_client::{
     Connection, Dispatch, QueueHandle, WEnum, delegate_noop,
@@ -65,6 +67,8 @@ struct Keyboard {
     graphics: Option<graphics::Graphics>,
     context: egui::Context,
     ui: ui::KeyboardUi,
+    terminal_controls: TerminalControls,
+    terminal_masks: terminal::Masks,
     width: u32,
     height: u32,
     scale: i32,
@@ -94,6 +98,9 @@ struct Keyboard {
 }
 
 impl Keyboard {
+    fn terminal_mode(&self) -> bool {
+        self.purpose == 13 && !self.secure()
+    }
     fn secure(&self) -> bool {
         matches!(self.purpose, 8 | 9) || self.hint & 0xc0 != 0
     }
@@ -114,14 +121,15 @@ impl Keyboard {
             &self.qh,
             (),
         );
-        layer.set_size(0, 240);
+        let height = if self.terminal_mode() { 288 } else { 240 };
+        layer.set_size(0, height);
         layer.set_anchor(
             zwlr_layer_surface_v1::Anchor::Bottom
                 | zwlr_layer_surface_v1::Anchor::Left
                 | zwlr_layer_surface_v1::Anchor::Right,
         );
         layer.set_keyboard_interactivity(zwlr_layer_surface_v1::KeyboardInteractivity::None);
-        layer.set_exclusive_zone(240);
+        layer.set_exclusive_zone(height as i32);
         layer.set_margin(0, 0, 28, 0);
         surface.set_buffer_scale(self.scale);
         surface.commit();
@@ -130,6 +138,7 @@ impl Keyboard {
         self.generation = self.generation.wrapping_add(1);
     }
     fn hide_surface(&mut self) {
+        self.terminal_controls.reset();
         // EGL owns a wl_egl_window wrapping this surface. Destroy it first.
         self.graphics = None;
         if let Some(layer) = self.layer.take() {
@@ -164,9 +173,81 @@ impl Keyboard {
         keyboard.key(time, code, 1);
         keyboard.key(time, code, 0);
     }
+    fn virtual_chord(&self, code: u32, modifiers: Modifiers, shift: bool) {
+        let mask = if modifiers.control {
+            self.terminal_masks.control
+        } else {
+            0
+        } | if modifiers.alt {
+            self.terminal_masks.alt
+        } else {
+            0
+        } | if shift { self.terminal_masks.shift } else { 0 };
+        let keyboard = self.virtual_keyboard.as_ref().unwrap();
+        keyboard.modifiers(mask, 0, 0, 0);
+        self.virtual_key(code);
+        keyboard.modifiers(0, 0, 0, 0);
+    }
+    fn terminal_key(&mut self, key: TerminalKey) {
+        if !self.active || !self.terminal_mode() {
+            return;
+        }
+        let modifiers = self.terminal_controls.take_modifiers();
+        match key {
+            TerminalKey::Paste => self.virtual_chord(
+                47,
+                Modifiers {
+                    control: true,
+                    alt: false,
+                },
+                true,
+            ),
+            other => self.virtual_chord(
+                match other {
+                    TerminalKey::Tab => 15,
+                    TerminalKey::Escape => 1,
+                    TerminalKey::Up => 103,
+                    TerminalKey::Down => 108,
+                    TerminalKey::Left => 105,
+                    TerminalKey::Right => 106,
+                    TerminalKey::Home => 102,
+                    TerminalKey::End => 107,
+                    TerminalKey::Paste => unreachable!(),
+                },
+                modifiers,
+                false,
+            ),
+        }
+        self.dirty = true;
+    }
     fn action(&mut self, action: ui::Action) {
         if !self.active {
             return;
+        }
+        if self.terminal_mode() && !matches!(action, ui::Action::Hide) {
+            let modifiers = self.terminal_controls.take_modifiers();
+            self.dirty = true;
+            if modifiers.any() {
+                match &action {
+                    ui::Action::Text(text) => {
+                        if let Some(keys) = text
+                            .chars()
+                            .map(terminal::stroke)
+                            .collect::<Option<Vec<_>>>()
+                        {
+                            for key in keys {
+                                self.virtual_chord(key.code, modifiers, key.shift);
+                            }
+                        } else {
+                            self.terminal_controls.unsupported();
+                        }
+                    }
+                    ui::Action::Backspace => self.virtual_chord(14, modifiers, false),
+                    ui::Action::Enter => self.virtual_chord(28, modifiers, false),
+                    ui::Action::Hide => unreachable!(),
+                }
+                return;
+            }
         }
         let method = self.method.as_ref().unwrap();
         match action {
@@ -228,10 +309,16 @@ impl Keyboard {
             .native_pixels_per_point = Some(self.scale as f32);
         let numeric = matches!(self.purpose, 2 | 3 | 4 | 9);
         let secure = self.secure();
+        let terminal = self.terminal_mode();
         let mut actions = Vec::new();
+        let mut terminal_keys = Vec::new();
         tarot_ui::theme::install(&self.context);
         let output = self.context.run(input, |ctx| {
-            actions = self.ui.show(ctx, numeric, secure);
+            if terminal {
+                (actions, terminal_keys) = self.ui.show_terminal(ctx, &mut self.terminal_controls);
+            } else {
+                actions = self.ui.show(ctx, numeric, secure);
+            }
         });
         let mut delay = output
             .viewport_output
@@ -256,12 +343,16 @@ impl Keyboard {
             .as_mut()
             .unwrap()
             .paint(&self.context, output)?;
+        for key in terminal_keys {
+            self.terminal_key(key);
+        }
         for action in actions {
             self.action(action);
         }
         Ok(())
     }
     fn done(&mut self) {
+        let previous_terminal = self.terminal_mode();
         self.serial = self.serial.wrapping_add(1);
         if let Some(active) = self.pending_active.take() {
             self.hide_surface();
@@ -275,6 +366,10 @@ impl Keyboard {
         if let Some((hint, purpose)) = self.pending_type.take() {
             self.hint = hint;
             self.purpose = purpose;
+        }
+        if previous_terminal != self.terminal_mode() {
+            self.hide_surface();
+            self.ui.reset();
         }
         if let Some(surrounding) = self.pending_surrounding.take() {
             self.surrounding = Some(surrounding);
@@ -311,6 +406,8 @@ fn main() -> Result<()> {
         graphics: None,
         context: egui::Context::default(),
         ui: ui::KeyboardUi::default(),
+        terminal_controls: TerminalControls::default(),
+        terminal_masks: terminal::Masks::default(),
         width: 360,
         height: 240,
         scale: 1,
@@ -369,6 +466,7 @@ fn main() -> Result<()> {
         xkbcommon::xkb::KEYMAP_COMPILE_NO_FLAGS,
     )
     .context("cannot create virtual keymap")?;
+    state.terminal_masks = terminal::Masks::from_keymap(&keymap)?;
     let mut bytes = keymap
         .get_as_string(xkbcommon::xkb::KEYMAP_FORMAT_TEXT_V1)
         .into_bytes();

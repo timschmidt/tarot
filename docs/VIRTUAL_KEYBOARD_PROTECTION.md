@@ -1,6 +1,6 @@
 # Virtual keyboard protection boundary
 
-Installed and native-validated revision 23, October 28, 2026. This was found while preparing touch terminal modifiers. Terminal controls remain the next input feature; fixing this dispatch path comes first.
+Installed and native-validated revision 23, October 28, 2026. This was found while preparing touch terminal modifiers. Revision 25 later adds [terminal controls and helper-death cleanup](TERMINAL_CONTROLS.md); this document retains the revision-23 dispatch-boundary evidence.
 
 ## Reproduced path
 
@@ -22,4 +22,4 @@ Phone acceptance runs the installed signed binary as a nested Wayland compositor
 
 The exact nine-file protection patch applies independently against published Smithay 0.7.0 and matches the vendored tree. [Attribution](../third-party/README.md#smithay-session-protection-changes). This is a local protection policy, not an upstream release claim. Revisit it with the other local changes when updating Smithay.
 
-The first native product replay passes every case, then its controller fails to serialize a tuple-valued result key before restart/cleanup. That original failed controller and complete first-run evidence remain immutable. A separate completion controller revalidates exact installed/first-run hashes before fresh PAM restart and normal-session restoration; independent final session/Panfrost audits also pass. The original controller failure is not rewritten as a successful run. [Curated results and exact identities](recordings/r23/README.md). Touch-only terminal controls, other clipboard/application cases, broader input combinations, current-binary endurance and all remaining M0–M6 gates remain open. This does not complete the phone's lock/security or development-plan gates.
+The first native product replay passes every case, then its controller fails to serialize a tuple-valued result key before restart/cleanup. That original failed controller and complete first-run evidence remain immutable. A separate completion controller revalidates exact installed/first-run hashes before fresh PAM restart and normal-session restoration; independent final session/Panfrost audits also pass. The original controller failure is not rewritten as a successful run. [Curated results and exact identities](recordings/r23/README.md). Terminal controls now have separate revision-25 evidence. Other clipboard/application cases, broader input combinations, current-binary endurance and all remaining M0–M6 gates remain open. This does not complete the phone's lock/security or development-plan gates.

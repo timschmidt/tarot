@@ -361,6 +361,8 @@ pub(crate) struct KbdRc<D: SeatHandler> {
     pub(crate) span: tracing::Span,
     #[cfg(feature = "wayland_frontend")]
     pub(crate) active_keymap: RwLock<KeymapFileId>,
+    #[cfg(feature = "wayland_frontend")]
+    pub(crate) active_virtual_keyboard: Mutex<Option<(wayland_server::backend::ObjectId, Option<Serial>)>>,
 }
 
 #[cfg(not(feature = "wayland_frontend"))]
@@ -697,6 +699,8 @@ impl<D: SeatHandler + 'static> KeyboardHandle<D> {
                 last_enter: Mutex::new(None),
                 #[cfg(feature = "wayland_frontend")]
                 active_keymap: RwLock::new(active_keymap),
+                #[cfg(feature = "wayland_frontend")]
+                active_virtual_keyboard: Mutex::new(None),
                 span,
             }),
         })
@@ -714,12 +718,12 @@ impl<D: SeatHandler + 'static> KeyboardHandle<D> {
         let mut keymap_file = self.arc.keymap.lock().unwrap();
         keymap_file.change_keymap(keymap);
 
-        self.send_keymap(data, focus, &keymap_file, mods);
+        self.send_keymap(data, focus, &keymap_file, mods, None);
     }
 
     /// Send a new wl_keyboard keymap, without updating the internal keymap.
     ///
-    /// Returns `true` if the keymap changed from the previous keymap.
+    /// Returns `true` if the keymap or input source changed and modifiers were sent.
     #[cfg(feature = "wayland_frontend")]
     #[instrument(parent = &self.arc.span, skip(self, data, keymap_file))]
     pub(crate) fn send_keymap(
@@ -728,33 +732,46 @@ impl<D: SeatHandler + 'static> KeyboardHandle<D> {
         focus: &Option<&mut <D as SeatHandler>::KeyboardFocus>,
         keymap_file: &KeymapFile,
         mods: ModifiersState,
+        virtual_keyboard: Option<wayland_server::backend::ObjectId>,
     ) -> bool {
         use std::os::unix::io::AsFd;
         use tracing::warn;
         use wayland_server::{protocol::wl_keyboard::KeymapFormat, Resource};
 
-        // Ignore request which do not change the keymap.
+        // Equal keymap text does not mean equal input state. A virtual keyboard
+        // can use the physical keymap while holding independent modifiers. A new
+        // focus also needs its modifiers even when the same source stays active.
+        let owner = virtual_keyboard.map(|id| (id, self.last_enter()));
+        let source_changed = {
+            let mut active = self.arc.active_virtual_keyboard.lock().unwrap();
+            let changed = *active != owner;
+            *active = owner;
+            changed
+        };
         let new_id = keymap_file.id();
-        if new_id == *self.arc.active_keymap.read().unwrap() {
+        let keymap_changed = new_id != *self.arc.active_keymap.read().unwrap();
+        if !keymap_changed && !source_changed {
             return false;
         }
-        *self.arc.active_keymap.write().unwrap() = new_id;
+        if keymap_changed {
+            *self.arc.active_keymap.write().unwrap() = new_id;
 
-        // Update keymap for every wl_keyboard.
-        let known_kbds = &self.arc.known_kbds;
-        for kbd in &*known_kbds.lock().unwrap() {
-            let Ok(kbd) = kbd.upgrade() else {
-                continue;
-            };
+            // Update keymap for every wl_keyboard.
+            let known_kbds = &self.arc.known_kbds;
+            for kbd in &*known_kbds.lock().unwrap() {
+                let Ok(kbd) = kbd.upgrade() else {
+                    continue;
+                };
 
-            let res = keymap_file.with_fd(kbd.version() >= 7, |fd, size| {
-                kbd.keymap(KeymapFormat::XkbV1, fd.as_fd(), size as u32)
-            });
-            if let Err(e) = res {
-                warn!(
-                    err = ?e,
-                    "Failed to send keymap to client"
-                );
+                let res = keymap_file.with_fd(kbd.version() >= 7, |fd, size| {
+                    kbd.keymap(KeymapFormat::XkbV1, fd.as_fd(), size as u32)
+                });
+                if let Err(e) = res {
+                    warn!(
+                        err = ?e,
+                        "Failed to send keymap to client"
+                    );
+                }
             }
         }
 
@@ -1281,7 +1298,7 @@ impl<D: SeatHandler + 'static> KeyboardInnerHandle<'_, D> {
         if let Some(keyboard_handle) = self.seat.get_keyboard() {
             let keymap_file = keyboard_handle.arc.keymap.lock().unwrap();
             let mods = self.inner.mods_state;
-            keyboard_handle.send_keymap(data, &Some(focus), &keymap_file, mods);
+            keyboard_handle.send_keymap(data, &Some(focus), &keymap_file, mods, None);
         }
 
         // key event must be sent before modifiers event for libxkbcommon

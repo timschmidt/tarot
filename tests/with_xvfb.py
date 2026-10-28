@@ -5,6 +5,22 @@ import os
 from pathlib import Path
 import select
 import subprocess
+import time
+
+
+def read_display_number(descriptor, seconds=8):
+    # Xvfb may write the digits and newline separately. Closing after the
+    # first read can give its final write EPIPE and kill an otherwise ready X
+    # server. Own the handshake until its complete newline-terminated reply.
+    deadline=time.monotonic()+seconds;data=bytearray()
+    while not data.endswith(b'\n'):
+        remaining=deadline-time.monotonic()
+        assert remaining>0 and select.select([descriptor],[],[],remaining)[0], 'Private X server startup timed out'
+        chunk=os.read(descriptor,32-len(data))
+        assert chunk and len(data)+len(chunk)<=32,'Invalid private X display handshake'
+        data.extend(chunk)
+    assert data[:-1].isdigit(),'Invalid private X display number'
+    return data[:-1].decode()
 
 
 def main():
@@ -21,8 +37,7 @@ def main():
         with args.log.open('x') as log:
             server=subprocess.Popen([args.xvfb,'-displayfd',str(write),'-nolisten','tcp','-noreset','-ac','-screen','0','1200x1200x24'],pass_fds=(write,),stdout=log,stderr=subprocess.STDOUT)
             os.close(write);write=None
-            assert select.select([read],[],[],8)[0],'Private X server startup timed out'
-            number=os.read(read,32).decode().strip()
+            number=read_display_number(read)
             assert number.isdigit() and server.poll() is None
             env=dict(os.environ,DISPLAY=':'+number,WINIT_UNIX_BACKEND='x11',XDG_SESSION_TYPE='x11')
             env.pop('WAYLAND_DISPLAY',None);env.pop('WAYLAND_SOCKET',None)

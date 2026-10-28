@@ -7,7 +7,6 @@ from dialog_button import locate
 from lock_replay import events
 from notification_replay import await_value
 from phone_gesture_replay import request
-from phone_lock_replay import Keyboard as PhysicalKeyboard
 from phone_touch_keyboard import Keyboard
 from terminal_clipboard_fixture import GTK_TEXT, FOOT_TEXT
 
@@ -15,8 +14,7 @@ from terminal_clipboard_fixture import GTK_TEXT, FOOT_TEXT
 def replay(control, tap, guard, state, capture, out, cgroup, authenticate):
     folder=out/'terminal-clipboard'
     result={'passed':False,'physical_finger_tested':False,
-            'clipboard_paste_uses_physical_modifiers':True,'mobile_modifier_controls_tested':False}
-    physical=None
+            'clipboard_paste_uses_physical_modifiers':False,'mobile_modifier_controls_tested':True}
     report=folder/'clipboard-events.jsonl'
     def observe(event, condition=lambda e:True):
         return await_value(lambda:[e for e in events(report) if e['event']==event and condition(e)],bool,seconds=15)[-1]
@@ -44,6 +42,7 @@ def replay(control, tap, guard, state, capture, out, cgroup, authenticate):
         s=state('terminal-first-map',lambda s:len(s['cards'])==1 and s['keyboard_visible'])
         terminal=s['cards'][0]['id']
         activate(terminal,'first-settled',keyboard=True)
+        assert s['keyboard_rect']['height']==288 and s['keyboard_owner']==terminal
         ready=await_value(lambda:json.loads((folder/'shell-ready.json').read_text()) if (folder/'shell-ready.json').exists() else None,bool,seconds=10)
         assert ready['uid']==10000 and ready['cgroup']==cgroup
         assert Path('/proc',str(ready['pid']),'cgroup').read_text()==cgroup
@@ -62,6 +61,8 @@ def replay(control, tap, guard, state, capture, out, cgroup, authenticate):
         keyboard.type_ascii("' > unicode.txt");enter()
         received('unicode.txt','café'.encode())
         capture('terminal-touch-input')
+        from phone_terminal_controls_replay import replay as terminal_controls
+        result['controls']=terminal_controls(tap,folder,ready['pid'],capture,control,state,terminal)
         tap(329,663)
         state('terminal-keyboard-hidden',lambda s:not s['keyboard_visible'])
         tap(329,702)
@@ -75,14 +76,7 @@ def replay(control, tap, guard, state, capture, out, cgroup, authenticate):
         button('Copy');observe('copy',lambda e:e['text']==GTK_TEXT)
         activate(terminal,'paste-target',keyboard=True);keyboard=Keyboard(tap)
         keyboard.type_ascii("printf '%s' '")
-        def ordinary_guard():
-            guard();assert request(control,'status')['lock']['phase']=='Unlocked'
-        physical=PhysicalKeyboard(ordinary_guard)
-        physical.key(29,True)
-        physical.key(42,True)
-        try:physical.tap(47)
-        finally:physical.key(42,False);physical.key(29,False)
-        physical.close();physical=None
+        tap(332,423);tap(269,423)
         keyboard.type_ascii("' > from-gtk.txt");enter()
         received('from-gtk.txt',GTK_TEXT.encode())
         encoded=base64.b64encode(FOOT_TEXT.encode()).decode()
@@ -91,25 +85,33 @@ def replay(control, tap, guard, state, capture, out, cgroup, authenticate):
         keyboard.type_ascii("printf '\\033]52;c;"+encoded+"\\007'");enter()
         button('Paste');observe('paste',lambda e:e['text']==FOOT_TEXT)
         capture('terminal-gtk-received')
+        activate(terminal,'pending-modifier-before-lock',keyboard=True)
+        tap(28,423);tap(332,423)
         request(control,'lock')
         protected=state('terminal-protected',lambda s:s['lock']['phase']=='Locked'
             and s['lock']['last_presented_surface'] and s['lock']['generation']==s['lock']['last_presented_generation'])
         assert set(protected)=={'ok','pid','lock'}
         authenticate('terminal-clipboard-actual-pam')
+        state('terminal-restored-after-pam',lambda s:s['view']=={'App':terminal} and s['keyboard_visible'] and s['keyboard_rect']['height']==288)
+        keyboard=Keyboard(tap)
+        keyboard.type_ascii('cat tarot-completion-o');tap(129,423)
+        keyboard.type_ascii('> after-pam-tab.txt');enter()
+        received('after-pam-tab.txt',b'tab')
+        keyboard.type_ascii("printf '%s' 'after-pam' > after-pam.txt");enter()
+        received('after-pam.txt',b'after-pam');capture('terminal-after-pam')
         before=max(e['monotonic'] for e in events(report) if e['event']=='paste')
         button('Paste');observe('paste',lambda e:e['monotonic']>before and e['text']==FOOT_TEXT)
         activate(terminal,'after-pam',keyboard=True);keyboard=Keyboard(tap)
-        keyboard.type_ascii("printf '%s' 'after-pam' > after-pam.txt");enter()
-        received('after-pam.txt',b'after-pam');capture('terminal-after-pam')
         keyboard.type_ascii('exit');enter()
         state('terminal-shell-exit',lambda s:all(c['id']!=terminal for c in s['cards']))
         request(control,'close',id=peer);observe('close');observe('exit')
         state('terminal-clients-gone',lambda s:not s['cards'])
         await_value(lambda:not Path('/proc',str(ready['pid'])).exists() and not Path('/proc',str(event['pid'])).exists(),bool,seconds=12)
+        from phone_fullscreen_terminal_replay import replay as fullscreen_terminal
+        result['fullscreen']=fullscreen_terminal(control,tap,state,capture,out,cgroup,authenticate)
         result.update(passed=True,actual_interactive_shell=True,native_touch_text_and_backspace=True,
             unicode_commit=True,hide_reopen=True,gtk_to_foot_exact=True,foot_to_gtk_exact=True,
             same_login_cgroup=True,actual_pam_restoration=True,cooperative_exit=True)
     finally:
-        if physical is not None:physical.close()
         (folder/'validation.json').write_text(json.dumps(result,indent=2)+'\n')
     return result

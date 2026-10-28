@@ -17,6 +17,7 @@ import time
 from PIL import Image
 from hardware_replay import PrivateInput
 from notification_replay import await_value
+from with_xvfb import read_display_number
 from phone_gesture_replay import request
 
 
@@ -55,7 +56,7 @@ def main():
         try:
             server=subprocess.Popen([args.xvfb,'-displayfd',str(write),'-nolisten','tcp','-noreset','-ac','-screen','0','1600x1600x24'],pass_fds=(write,),stdout=log('xvfb.log'),stderr=subprocess.STDOUT)
             children.append(server);os.close(write);write=None
-            assert select.select([read],[],[],8)[0];number=os.read(read,32).decode().strip();assert number.isdigit()
+            number=read_display_number(read);assert server.poll() is None
         finally:
             os.close(read)
             if write is not None:os.close(write)

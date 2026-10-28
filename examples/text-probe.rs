@@ -44,6 +44,8 @@ struct Options {
     commands: PathBuf,
     #[arg(long)]
     try_bind: Option<u32>,
+    #[arg(long)]
+    terminal: bool,
     #[arg(long, default_value_t = 90)]
     exit_after_seconds: u64,
 }
@@ -75,6 +77,7 @@ struct Probe {
     pending_commit: Option<String>,
     pending_delete: Option<(usize, usize)>,
     closed: bool,
+    purpose: zwp_text_input_v3::ContentPurpose,
 }
 
 impl Probe {
@@ -89,10 +92,7 @@ impl Probe {
         let input = self.text_input.as_ref().unwrap();
         input.set_surrounding_text(self.text.clone(), self.cursor as i32, self.cursor as i32);
         input.set_text_change_cause(zwp_text_input_v3::ChangeCause::Other);
-        input.set_content_type(
-            zwp_text_input_v3::ContentHint::None,
-            zwp_text_input_v3::ContentPurpose::Normal,
-        );
+        input.set_content_type(zwp_text_input_v3::ContentHint::None, self.purpose);
         input.set_cursor_rectangle(30, 100, 2, 24);
         self.commit_context();
     }
@@ -115,7 +115,9 @@ impl Probe {
                 }
                 let key = value["key"].as_u64().unwrap() as u32;
                 keyboard.key(0, key, 1);
-                keyboard.key(0, key, 0);
+                if value["release"].as_bool().unwrap_or(true) {
+                    keyboard.key(0, key, 0);
+                }
                 if !raw && value["reset"].as_bool().unwrap_or(true) {
                     keyboard.modifiers(0, 0, 0, 0);
                 }
@@ -163,6 +165,15 @@ impl Probe {
                         self.text.is_char_boundary(self.cursor),
                         "cursor must be a UTF-8 boundary"
                     );
+                    self.context();
+                }
+                "purpose" => {
+                    self.purpose = match value["value"].as_str() {
+                        Some("terminal") => zwp_text_input_v3::ContentPurpose::Terminal,
+                        Some("password") => zwp_text_input_v3::ContentPurpose::Password,
+                        Some("normal") => zwp_text_input_v3::ContentPurpose::Normal,
+                        _ => anyhow::bail!("unknown fixture purpose"),
+                    };
                     self.context();
                 }
                 _ => anyhow::bail!("unknown app command"),
@@ -230,6 +241,11 @@ fn main() -> Result<()> {
         pending_commit: None,
         pending_delete: None,
         closed: false,
+        purpose: if options.terminal {
+            zwp_text_input_v3::ContentPurpose::Terminal
+        } else {
+            zwp_text_input_v3::ContentPurpose::Normal
+        },
     };
     queue.roundtrip(&mut state)?;
     state.record(json!({"event":"registry","input_method_visible":state.method_manager.is_some(),"text_input_visible":state.text_manager.is_some()}));

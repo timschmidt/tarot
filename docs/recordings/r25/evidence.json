@@ -1,0 +1,1051 @@
+{
+  "package_revision": 25,
+  "package_sha256": "80bc68697e1b796eaaac440c0bd929cdc83d3fd97eb58e867deec9a99f125d78",
+  "binaries_sha256": {
+    "tarot": "c5bceebb68d99a0a1d9e52be00dc0e2b089da63f4430292c32cd595197ecc598",
+    "tarot-session": "0a8ca31bfb23aedbc2f6154f1cc3a93ed87c01c9e8d670d4de610585d627f776",
+    "tarot-lock": "3c8a5ac4517b75b6ff699a552dc9969e351445b01e111dcf6d746f2b58da6beb",
+    "tarot-keyboard": "be21283d10484c56158a884dd7657d0e2b2530d5065ea5d048059f11456a7164"
+  },
+  "source_archive_sha256": "e88c82a86978ba70c5070fed4d41909dac0c7a5c6b971eaad14ade7dc14f1dcc",
+  "packaged_rust_files_matching_manifest": 332,
+  "local_patch_application": {
+    "passed": true,
+    "files": [
+      "src/wayland/session_lock/lock.rs",
+      "src/wayland/session_lock/surface.rs",
+      "src/wayland/selection/mod.rs",
+      "src/wayland/selection/offer.rs",
+      "src/wayland/selection/data_device/device.rs",
+      "src/wayland/selection/data_device/dnd_grab.rs",
+      "src/wayland/selection/data_device/server_dnd_grab.rs",
+      "src/input/mod.rs",
+      "src/wayland/virtual_keyboard/virtual_keyboard_handle.rs",
+      "src/input/keyboard/mod.rs"
+    ],
+    "output": "patching file src/wayland/session_lock/lock.rs\npatching file src/wayland/session_lock/surface.rs\npatching file src/wayland/selection/mod.rs\npatching file src/wayland/selection/offer.rs\npatching file src/wayland/selection/data_device/device.rs\npatching file src/wayland/selection/data_device/dnd_grab.rs\npatching file src/wayland/selection/data_device/server_dnd_grab.rs\npatching file src/input/mod.rs\npatching file src/wayland/virtual_keyboard/virtual_keyboard_handle.rs\npatching file src/input/keyboard/mod.rs\n",
+    "patch_sha256": "399d41d74ce96f66f702021c8725879e5f96c7c2060144a60901ac2cd7679299"
+  },
+  "uninstalled_revision_24": {
+    "package_sha256": "004c4c4dbcebbf544b2334a3d24d5d559ee7e71a0905fbeda8ca68b1e23a9087",
+    "reason": "Trusted helper death leaves Control active; candidate never installed. Original failure retained locally."
+  },
+  "host_validation": {
+    "passed": true,
+    "ordinary_tests": 145,
+    "compilers": [
+      "1.98 current",
+      "1.89 minimum"
+    ],
+    "strict_host_and_arm_checks": true,
+    "frozen_rust_files": 332,
+    "compositor_sha256": "04e1b17b60603a3294b4001e25c9703a918fe247b827a8544a770064116a98bd",
+    "source_sha256": "e88c82a86978ba70c5070fed4d41909dac0c7a5c6b971eaad14ade7dc14f1dcc",
+    "regressions": {
+      "rounded-2": 0,
+      "rounded-1": 0,
+      "stack": 0,
+      "quick": 0,
+      "gtk-close": 0,
+      "idle": 0,
+      "lock_policy": 0,
+      "orientation": 0,
+      "virtual-lock": 0,
+      "virtual-crash": 0,
+      "terminal": 0
+    },
+    "lifecycle_and_transient_scale2_passed": true,
+    "sandbox_unit_attempt": "The existing Unix socket bind test was denied in the sandbox. The unchanged complete suite passes with local socket permission.",
+    "prior_candidate": "Revision 24 signed but never installed: held Control survives helper death. Failure retained under artifacts/m2/terminal-controls-r24/host-helper-crash.",
+    "partial_cleanup_attempt": "Held-key release alone passes its release observation but still omits modifier reset. Failed host report retained under host-helper-crash-partial-cleanup; the final protocol-object ownership correction passes the complete crash replay."
+  },
+  "host_helper_crash": {
+    "passed": true,
+    "scope": "nested protocol helper death, synthetic held key",
+    "compositor_sha256": "c7cb265b6431ebc6805b7fc2ad50cba9970e02d4f59702a2750c06d4297fc88a",
+    "probe_sha256": "57d2a7e1f6605666e1d282a9b57a2d99ead144597d8be930961dddfbd35e1d3b",
+    "killed_method_pid": 1917709,
+    "before": [
+      {
+        "event": "registry",
+        "input_method_visible": false,
+        "text_input_visible": true
+      },
+      {
+        "event": "ready"
+      },
+      {
+        "event": "enter"
+      },
+      {
+        "depressed": 0,
+        "event": "modifiers",
+        "latched": 0,
+        "locked": 0
+      },
+      {
+        "depressed": 4,
+        "event": "modifiers",
+        "latched": 0,
+        "locked": 0
+      },
+      {
+        "event": "key",
+        "key": 30,
+        "state": 1
+      }
+    ],
+    "after": [
+      {
+        "event": "registry",
+        "input_method_visible": false,
+        "text_input_visible": true
+      },
+      {
+        "event": "ready"
+      },
+      {
+        "event": "enter"
+      },
+      {
+        "depressed": 0,
+        "event": "modifiers",
+        "latched": 0,
+        "locked": 0
+      },
+      {
+        "depressed": 4,
+        "event": "modifiers",
+        "latched": 0,
+        "locked": 0
+      },
+      {
+        "event": "key",
+        "key": 30,
+        "state": 1
+      },
+      {
+        "event": "leave"
+      },
+      {
+        "event": "key",
+        "key": 30,
+        "state": 0
+      },
+      {
+        "depressed": 0,
+        "event": "modifiers",
+        "latched": 0,
+        "locked": 0
+      }
+    ],
+    "replacement_pid": 1917723
+  },
+  "installed_binary_nested_phone_guard": {
+    "passed": true,
+    "scope": "nested protocol lock, synthetic keys only",
+    "compositor_sha256": "c5bceebb68d99a0a1d9e52be00dc0e2b089da63f4430292c32cd595197ecc598",
+    "fixture_sha256": {
+      "text-probe-r25": "9e2722c1473baadb8416a5030a3842a5844edc171f74ad0cd1767f8c819145d4",
+      "lock-probe-r25": "f05adced3c62467628bbaf0606629e669fc79c9a50f4d8d7621ccc67e7141e88"
+    },
+    "ordinary_key_delivered": true,
+    "locker_initial_events": [
+      {
+        "event": "ready",
+        "fields": {
+          "manager_id": 12
+        },
+        "pid": 17179,
+        "role": "locker"
+      },
+      {
+        "event": "lock-requested",
+        "fields": {},
+        "pid": 17179,
+        "role": "locker"
+      },
+      {
+        "event": "configured",
+        "fields": {
+          "height": 1240,
+          "width": 704
+        },
+        "pid": 17179,
+        "role": "locker"
+      },
+      {
+        "event": "locked",
+        "fields": {},
+        "pid": 17179,
+        "role": "locker"
+      },
+      {
+        "event": "keyboard-enter",
+        "fields": {
+          "held_count": 0
+        },
+        "pid": 17179,
+        "role": "locker"
+      },
+      {
+        "event": "modifiers",
+        "fields": {
+          "depressed": 0,
+          "latched": 0,
+          "locked": 0
+        },
+        "pid": 17179,
+        "role": "locker"
+      },
+      {
+        "event": "checkpoint",
+        "fields": {},
+        "pid": 17179,
+        "role": "locker"
+      }
+    ],
+    "protected_events": [
+      {
+        "event": "checkpoint",
+        "fields": {},
+        "pid": 17179,
+        "role": "locker"
+      }
+    ],
+    "protected_keys_and_modifiers_blocked": true,
+    "ordinary_keys_restore_without_stuck_modifiers": true
+  },
+  "installed_binary_nested_phone_helper_crash": {
+    "passed": true,
+    "scope": "nested protocol helper death, synthetic held key",
+    "compositor_sha256": "c5bceebb68d99a0a1d9e52be00dc0e2b089da63f4430292c32cd595197ecc598",
+    "probe_sha256": "9e2722c1473baadb8416a5030a3842a5844edc171f74ad0cd1767f8c819145d4",
+    "killed_method_pid": 17190,
+    "before": [
+      {
+        "event": "registry",
+        "input_method_visible": false,
+        "text_input_visible": true
+      },
+      {
+        "event": "ready"
+      },
+      {
+        "event": "enter"
+      },
+      {
+        "depressed": 0,
+        "event": "modifiers",
+        "latched": 0,
+        "locked": 0
+      },
+      {
+        "depressed": 4,
+        "event": "modifiers",
+        "latched": 0,
+        "locked": 0
+      },
+      {
+        "event": "key",
+        "key": 30,
+        "state": 1
+      }
+    ],
+    "after": [
+      {
+        "event": "registry",
+        "input_method_visible": false,
+        "text_input_visible": true
+      },
+      {
+        "event": "ready"
+      },
+      {
+        "event": "enter"
+      },
+      {
+        "depressed": 0,
+        "event": "modifiers",
+        "latched": 0,
+        "locked": 0
+      },
+      {
+        "depressed": 4,
+        "event": "modifiers",
+        "latched": 0,
+        "locked": 0
+      },
+      {
+        "event": "key",
+        "key": 30,
+        "state": 1
+      },
+      {
+        "event": "leave"
+      },
+      {
+        "event": "key",
+        "key": 30,
+        "state": 0
+      },
+      {
+        "depressed": 0,
+        "event": "modifiers",
+        "latched": 0,
+        "locked": 0
+      }
+    ],
+    "replacement_pid": 17193
+  },
+  "arm_probe_audit": {
+    "text": "9e2722c1473baadb8416a5030a3842a5844edc171f74ad0cd1767f8c819145d4",
+    "lock": "f05adced3c62467628bbaf0606629e669fc79c9a50f4d8d7621ccc67e7141e88",
+    "fixture_sources_sha256": {
+      "examples/text-probe.rs": "48d524f5ad62487199d21b12d15111a87375961c3e088a1021980ad99640eb4b",
+      "examples/lock-probe.rs": "638511bec566c72947e725b5561756221a53103005df352805726d816566b476"
+    },
+    "compositor": "c5bceebb68d99a0a1d9e52be00dc0e2b089da63f4430292c32cd595197ecc598"
+  },
+  "phone_guard_scope": "Installed compositor nested Wayland/EGL inside actual ordinary login; outer KMS and real PAM checked separately.",
+  "terminal_clipboard": {
+    "passed": true,
+    "physical_finger_tested": false,
+    "clipboard_paste_uses_physical_modifiers": false,
+    "mobile_modifier_controls_tested": true,
+    "foot_sha256": "70badc271015d8293e04da87438a382cfb3308c6b5f38143ef692bde56fc03bd",
+    "shell": {
+      "pid": 16267,
+      "foot_pid": 16266,
+      "uid": 10000,
+      "cgroup": "0::/c144\n",
+      "shell": "/bin/sh"
+    },
+    "received_files": {
+      "typed.txt": {
+        "utf8": "terminal",
+        "hex": "7465726d696e616c"
+      },
+      "unicode.txt": {
+        "utf8": "caf\u00e9",
+        "hex": "636166c3a9"
+      },
+      "from-gtk.txt": {
+        "utf8": "Tarot GTK caf\u00e9 \u2192 foot\nsecond line",
+        "hex": "5461726f742047544b20636166c3a920e2869220666f6f740a7365636f6e64206c696e65"
+      },
+      "after-pam-tab.txt": {
+        "utf8": "tab",
+        "hex": "746162"
+      },
+      "after-pam.txt": {
+        "utf8": "after-pam",
+        "hex": "61667465722d70616d"
+      }
+    },
+    "controls": {
+      "passed": true,
+      "physical_keyboard_used": false,
+      "files": {
+        "navigation.txt": "615862",
+        "home-end.txt.ok": "6e6176",
+        "home-end.txt.ok.history": "6e6176",
+        "down.txt": "646f776e",
+        "control.txt.ok": "636f6e74726f6c",
+        "interrupt.txt": "696e74657272757074",
+        "alt.bin": "1b78",
+        "escape.bin": "1b",
+        "completed.txt": "746162",
+        "after-helper-crash.txt": "746162"
+      },
+      "interrupted_child": {
+        "pid": 16511,
+        "start": "5562841"
+      },
+      "helper_recovery": {
+        "passed": true,
+        "killed_pid": 15333,
+        "killed_start": "5540775",
+        "replacement_pid": 16692,
+        "keyboard_sha256": "be21283d10484c56158a884dd7657d0e2b2530d5065ea5d048059f11456a7164",
+        "pending_modifiers_and_page_cleared": true,
+        "terminal_panel_restored": true
+      },
+      "arrows_edit_actual_line": true,
+      "home_end": true,
+      "history_up_down": true,
+      "control_one_shot": true,
+      "foreground_interrupt": true,
+      "alt_escape_exact_pty_bytes": true,
+      "tab_completion": true
+    },
+    "gtk": {
+      "event": "ready",
+      "pid": 16756,
+      "uid": 10000,
+      "monotonic": 55710.428182596,
+      "version": "3.24.52"
+    },
+    "buttons": [
+      {
+        "word": "Copy",
+        "point": [
+          360.5,
+          684.5
+        ],
+        "recognized": {
+          "level": "5",
+          "page_num": "1",
+          "block_num": "2",
+          "par_num": "1",
+          "line_num": "1",
+          "word_num": "1",
+          "left": "316",
+          "top": "550",
+          "width": "89",
+          "height": "39",
+          "conf": "90.722198",
+          "text": "Copy"
+        },
+        "crop_top": 115,
+        "variant": "crop",
+        "mode": 3,
+        "attempts": [
+          {
+            "variant": "crop",
+            "mode": 3,
+            "matches": [
+              {
+                "level": "5",
+                "page_num": "1",
+                "block_num": "2",
+                "par_num": "1",
+                "line_num": "1",
+                "word_num": "1",
+                "left": "316",
+                "top": "550",
+                "width": "89",
+                "height": "39",
+                "conf": "90.722198",
+                "text": "Copy"
+              }
+            ]
+          }
+        ],
+        "excluded_bounds": null
+      },
+      {
+        "word": "Paste",
+        "point": [
+          360.5,
+          823.5
+        ],
+        "recognized": {
+          "level": "5",
+          "page_num": "1",
+          "block_num": "3",
+          "par_num": "1",
+          "line_num": "1",
+          "word_num": "1",
+          "left": "314",
+          "top": "694",
+          "width": "93",
+          "height": "29",
+          "conf": "89.730309",
+          "text": "Paste"
+        },
+        "crop_top": 115,
+        "variant": "crop",
+        "mode": 3,
+        "attempts": [
+          {
+            "variant": "crop",
+            "mode": 3,
+            "matches": [
+              {
+                "level": "5",
+                "page_num": "1",
+                "block_num": "3",
+                "par_num": "1",
+                "line_num": "1",
+                "word_num": "1",
+                "left": "314",
+                "top": "694",
+                "width": "93",
+                "height": "29",
+                "conf": "89.730309",
+                "text": "Paste"
+              }
+            ]
+          }
+        ],
+        "excluded_bounds": null
+      },
+      {
+        "word": "Paste",
+        "point": [
+          360.5,
+          797.5
+        ],
+        "recognized": {
+          "level": "5",
+          "page_num": "1",
+          "block_num": "3",
+          "par_num": "1",
+          "line_num": "1",
+          "word_num": "1",
+          "left": "314",
+          "top": "668",
+          "width": "93",
+          "height": "29",
+          "conf": "89.989670",
+          "text": "Paste"
+        },
+        "crop_top": 115,
+        "variant": "crop",
+        "mode": 3,
+        "attempts": [
+          {
+            "variant": "crop",
+            "mode": 3,
+            "matches": [
+              {
+                "level": "5",
+                "page_num": "1",
+                "block_num": "3",
+                "par_num": "1",
+                "line_num": "1",
+                "word_num": "1",
+                "left": "314",
+                "top": "668",
+                "width": "93",
+                "height": "29",
+                "conf": "89.989670",
+                "text": "Paste"
+              }
+            ]
+          }
+        ],
+        "excluded_bounds": null
+      }
+    ],
+    "fullscreen": {
+      "passed": true,
+      "shell": {
+        "pid": 17077,
+        "foot_pid": 17076,
+        "uid": 10000,
+        "cgroup": "0::/c144\n",
+        "shell": "/bin/sh"
+      },
+      "keyboard_height": 288,
+      "fullscreen_height": 396,
+      "hidden_height": 720,
+      "exact_text": "fullscreen",
+      "actual_overview_and_pam": true,
+      "pending_modifier_and_tools_reset": true,
+      "cooperative_exit": true
+    },
+    "actual_interactive_shell": true,
+    "native_touch_text_and_backspace": true,
+    "unicode_commit": true,
+    "hide_reopen": true,
+    "gtk_to_foot_exact": true,
+    "foot_to_gtk_exact": true,
+    "same_login_cgroup": true,
+    "actual_pam_restoration": true,
+    "cooperative_exit": true
+  },
+  "fullscreen_visual": {
+    "passed": true,
+    "shell": {
+      "pid": 21043,
+      "foot_pid": 21042,
+      "uid": 10000,
+      "cgroup": "0::/c150\n",
+      "shell": "/bin/sh"
+    },
+    "keyboard_height": 288,
+    "fullscreen_height": 396,
+    "hidden_height": 720,
+    "exact_text": "fullscreen",
+    "actual_overview_and_pam": true,
+    "pending_modifier_and_tools_reset": true,
+    "cooperative_exit": true,
+    "rendered_keyboard_samples": {
+      "terminal-fullscreen-ready": [
+        {
+          "capture": "terminal-fullscreen-ready-visible-0",
+          "samples": [
+            [
+              220,
+              221,
+              224
+            ],
+            [
+              220,
+              221,
+              224
+            ],
+            [
+              220,
+              221,
+              224
+            ],
+            [
+              220,
+              221,
+              224
+            ],
+            [
+              220,
+              221,
+              224
+            ]
+          ]
+        }
+      ],
+      "terminal-fullscreen-reopened": [
+        {
+          "capture": "terminal-fullscreen-reopened-visible-0",
+          "samples": [
+            [
+              220,
+              221,
+              224
+            ],
+            [
+              220,
+              221,
+              224
+            ],
+            [
+              220,
+              221,
+              224
+            ],
+            [
+              220,
+              221,
+              224
+            ],
+            [
+              220,
+              221,
+              224
+            ]
+          ]
+        }
+      ],
+      "terminal-fullscreen-after-pam": [
+        {
+          "capture": "terminal-fullscreen-after-pam-visible-0",
+          "samples": [
+            [
+              220,
+              221,
+              224
+            ],
+            [
+              220,
+              221,
+              224
+            ],
+            [
+              220,
+              221,
+              224
+            ],
+            [
+              220,
+              221,
+              224
+            ],
+            [
+              220,
+              221,
+              224
+            ]
+          ]
+        }
+      ]
+    }
+  },
+  "native_transients_passed": true,
+  "native_toolkits_passed": true,
+  "regressions": {
+    "quick_launch": true,
+    "rounded_cards": true,
+    "stack_matrix": true,
+    "gtk_close": true,
+    "hardware_keys": true
+  },
+  "saved_restart_passed": true,
+  "normal_session_audit_passed": true,
+  "normal_session": {
+    "user": 10000,
+    "vt": 7,
+    "default": "tarot",
+    "diagnostics": false,
+    "hardware_keys": true,
+    "exact_loaded_binaries": {
+      "tarot-session": "0a8ca31bfb23aedbc2f6154f1cc3a93ed87c01c9e8d670d4de610585d627f776",
+      "tarot": "c5bceebb68d99a0a1d9e52be00dc0e2b089da63f4430292c32cd595197ecc598",
+      "tarot-lock": "3c8a5ac4517b75b6ff699a552dc9969e351445b01e111dcf6d746f2b58da6beb",
+      "tarot-keyboard": "be21283d10484c56158a884dd7657d0e2b2530d5065ea5d048059f11456a7164"
+    }
+  },
+  "panfrost_fd_verified": true,
+  "kernel_suspend_cycles": 0,
+  "physical_finger_tested": false,
+  "fullscreen_capture_followup": {
+    "first_capture_sha256": "c56634b9710c7078aa3ce10408e83d99b8fa7bdb05ae3309e68f31b92abca36f",
+    "first_model_reported_keyboard": true,
+    "first_image_contains_keyboard": false,
+    "fresh_no_reinstall_visual_replay_passed": true,
+    "pixel_assertions_at_launch_reopen_and_after_pam": true,
+    "product_changed": false,
+    "note": "Initial post-command screenshot omitted keyboard despite functional checks/model visibility. Retained unchanged; fresh QA waits for the post-command viewport and requires actual key pixels. Each fresh capture passes on its first attempt."
+  },
+  "executed_qa_sha256": {
+    "capture_motion.py": "295ecf1bffb6a824c8c1fdb5ab2b4c1d997c8bb921b78bd02c359fab572b0f1a",
+    "card_matrix.py": "322769200fba94b171f89b6a84310e781da9fe73ec26f76f569b1425f41d321d",
+    "dialog_button.py": "c516bb61312f5a4575642b57a77456bf2cca52175f1d6f673589fb819e1b3abe",
+    "lock_replay.py": "26ff737a39bfd874c6e7588f43a0fae6f34201566d1f93be05951c7291d908c7",
+    "native_transient_fixture.py": "ba9e3d0f3ee8815d1061e0fc06062a58c708ec07d3c9ea7985598349a9404d12",
+    "native_virtual_keyboard_lock_fixture.py": "45669dc6ed71ea3a280e544962d8facf80e2f3b6f4b169109aa33939e42ae947",
+    "notification_replay.py": "214680a5c965a61fde9152336753e07fa508dab490a49f33f10bfe943ad1eb62",
+    "phone_fullscreen_terminal_replay.py": "401d9fb4afd37f1a709d0a0a82a86fcc03c66a7abf08282d6bfa379039f1fba1",
+    "phone_fullscreen_text_replay.py": "dbe11ef9cb568aeaca768223f62b5fabb0feb69ead1bafdd5ad7b5a1ab16e5ac",
+    "phone_gesture_replay.py": "a3924439120181758fa314fd604b1e2f8701a1b4fbcd95b9f8d116d0efc15367",
+    "phone_gtk_close_replay.py": "1dd05b9839fc72ef3ccdbf022a4c2e41760cf7e402fe47197906624c3654c214",
+    "phone_hardware_replay.py": "8d7a7c662b3522e4e06ef9b70c06b467d613fee5e88deeca9067a68d4d59ded2",
+    "phone_lock_replay.py": "9353db461273279cbe7b81ca66892d48dce3b882c5d746cc2ac42c96e4660051",
+    "phone_quick_launch_replay.py": "943797227afdd9d3de275f7d69151646cc4e5392aa7607b5f3866d2d42d353fc",
+    "phone_rounded_cards_replay.py": "6fc3e1da4acae3c30a70e3ce13a1d421654333d73509a0f4169ebedfc593c6b5",
+    "phone_stack_matrix_replay.py": "0801ed9fff4c5493695cf216c82ebdf513592eb638c44d024aad761a25d45034",
+    "phone_stock_login.py": "93a9e14961353fb67cf962ea7a868dad16b774441e89458b7f97495040e3e945",
+    "phone_suspend_probe.py": "9656b38ef382ec89038ed6580e1e4b0d6fdab273befb06f563dc3bf8f01aa7eb",
+    "phone_terminal_clipboard_replay.py": "7eb2f9e7cdd2f0531d566735b5dbda6e7da76acd3b011bad744bfa66bf7445f8",
+    "phone_terminal_controls_replay.py": "e852362585fd9c972835d660a21e6a49e86dce0c218c0a3facf7945f839d5c25",
+    "phone_toolkit_dialog_replay.py": "79982b349daaea89903a5515c2959f9fe432b2af7b075ffa9aeca24dc7488d9b",
+    "phone_touch_keyboard.py": "3b4c73d87d4c474590e970af6dcba54a67dc434f286408bf96c004813af2380d",
+    "phone_transient_replay.py": "a48a1183dd400781d2620b601c77cfafb030f3a7feacfe01e34bd1543b422fda",
+    "terminal_clipboard_fixture.py": "6c83718fcebb901388b1310f7676876226c1e1f403a8e37b0cd155d2f337cfa7",
+    "toolkit_transient_fixture.py": "bdea9f8f51d710248c1e075980d2ccd591fe34a97d5a8aecf5b343af65e6a813",
+    "virtual_keyboard_crash_replay.py": "f5285224f2b24dd5583632ede6449d322ac5e577b3aeefeef622f2631f97fdb1",
+    "virtual_keyboard_lock_replay.py": "777821f4057c069664aa9f871b1fd0ee65513d8fb34bdf393a877bee1c8acaa3"
+  },
+  "executed_replay_sha256": {
+    "first": "d2283121df1bdb9843d35a61371ca349e3c4248e11f15cfb8821dec5e58d5270",
+    "visual": "7b7272c16b30b558994e7792e71ea2572b5cdb2af3eb706d1adbb3bbf598df3f"
+  },
+  "qa_after_freeze": "Fuller native crash wrapper and isolated fullscreen visual flag/pixel checks follow freezing. All 332 packaged Rust sources remain exact; 27 collected QA/support files match the final repository. The final run() AST equals the device-executed visual replay; original first-run sources remain immutable.",
+  "native_evidence_archive_sha256": {
+    "terminal-controls-native-r25-first-evidence.tar.gz": "d83374d17b45291509129efb9270ff7e011e0d388d6fb13ac6cbb6d0d5d32a7a",
+    "terminal-controls-visual-native-r25-evidence.tar.gz": "1baa26e74cb8319a7e0adbf4c0c4b95d8e0395bb02e05916042383086667b4a7",
+    "terminal-controls-r25-executed-qa.tar.gz": "19305faf08930708f7ab8d762e57231843de60870819bec99f7cbeefa6c9c028"
+  },
+  "images_sha256": {
+    "terminal-helper-recovered.png": "2822b7143cc3163bb7a6bac6e7097e9c7e67df044a876577fe631b92645a3c02",
+    "fullscreen-terminal-after-pam.png": "c56634b9710c7078aa3ce10408e83d99b8fa7bdb05ae3309e68f31b92abca36f",
+    "host-terminal-tools.png": "552a4d05f97a14c64a511f92af686150e1e8d00a7826a21f078973e2602788ae"
+  },
+  "remaining": [
+    "Broader terminal bindings/applications and international layouts",
+    "Wider clipboard source lifetime, formats and primary selection",
+    "Broader IME/purpose/focus/landscape constraints and accessibility",
+    "Current-binary endurance, service agents, phone applications and carrier tests",
+    "All remaining M0\u2013M6 development-plan gates"
+  ],
+  "native_protocol_tests_passed": [
+    "first_buffer_unmap_remap_close_and_disconnect",
+    "initial_configure_waits_for_parent_hints_and_fresh_remap_commit",
+    "transient_families_preserve_card_and_native_focus",
+    "transient_native_input_and_pixels",
+    "window_state_hints_preserve_initial_commit_and_reply_to_rejections"
+  ],
+  "native_driver_requests": 40,
+  "toolkits": {
+    "gtk": {
+      "version": {
+        "event": "version",
+        "pid": 15772,
+        "uid": 10000,
+        "monotonic": 55489.612167059,
+        "toolkit": "gtk",
+        "version": "3.24.52"
+      },
+      "passed": true,
+      "fullscreen_text": {
+        "passed": true,
+        "physical_finger_tested": false,
+        "initial_field": {
+          "event": "fullscreen-field-bounds",
+          "pid": 15772,
+          "uid": 10000,
+          "monotonic": 55512.10635781,
+          "x": 116,
+          "y": 624,
+          "width": 128,
+          "height": 40,
+          "parent_width": 360,
+          "parent_height": 720
+        },
+        "first-reserved": {
+          "field": {
+            "event": "fullscreen-field-bounds",
+            "pid": 15772,
+            "uid": 10000,
+            "monotonic": 55512.36876213,
+            "x": 116,
+            "y": 348,
+            "width": 128,
+            "height": 40,
+            "parent_width": 360,
+            "parent_height": 444
+          },
+          "viewport": {
+            "height": 444.0,
+            "width": 360.0,
+            "x": 0.0,
+            "y": 0.0
+          },
+          "keyboard": {
+            "height": 240.0,
+            "width": 360.0,
+            "x": 0.0,
+            "y": 444.0
+          }
+        },
+        "reopened": {
+          "field": {
+            "event": "fullscreen-field-bounds",
+            "pid": 15772,
+            "uid": 10000,
+            "monotonic": 55515.136589327,
+            "x": 116,
+            "y": 348,
+            "width": 128,
+            "height": 40,
+            "parent_width": 360,
+            "parent_height": 444
+          },
+          "viewport": {
+            "height": 444.0,
+            "width": 360.0,
+            "x": 0.0,
+            "y": 0.0
+          },
+          "keyboard": {
+            "height": 240.0,
+            "width": 360.0,
+            "x": 0.0,
+            "y": 444.0
+          }
+        },
+        "returned": {
+          "field": {
+            "event": "fullscreen-field-bounds",
+            "pid": 15772,
+            "uid": 10000,
+            "monotonic": 55516.75309151,
+            "x": 116,
+            "y": 348,
+            "width": 128,
+            "height": 40,
+            "parent_width": 360,
+            "parent_height": 444
+          },
+          "viewport": {
+            "height": 444.0,
+            "width": 360.0,
+            "x": 0.0,
+            "y": 0.0
+          },
+          "keyboard": {
+            "height": 240.0,
+            "width": 360.0,
+            "x": 0.0,
+            "y": 444.0
+          }
+        },
+        "after-pam": {
+          "field": {
+            "event": "fullscreen-field-bounds",
+            "pid": 15772,
+            "uid": 10000,
+            "monotonic": 55519.81081588,
+            "x": 116,
+            "y": 348,
+            "width": 128,
+            "height": 40,
+            "parent_width": 360,
+            "parent_height": 444
+          },
+          "viewport": {
+            "height": 444.0,
+            "width": 360.0,
+            "x": 0.0,
+            "y": 0.0
+          },
+          "keyboard": {
+            "height": 240.0,
+            "width": 360.0,
+            "x": 0.0,
+            "y": 444.0
+          }
+        },
+        "actual_bottom_field_visible": true,
+        "exact_text": "tarotxza",
+        "hide_reopen_restores_viewport": true,
+        "overview_restores_same_field": true,
+        "actual_pam_restores_field": true
+      },
+      "fullscreen_native_size": [
+        360,
+        720
+      ]
+    },
+    "qt": {
+      "version": {
+        "event": "version",
+        "pid": 16065,
+        "uid": 10000,
+        "monotonic": 55524.063489318,
+        "toolkit": "qt",
+        "version": "6.11.1"
+      },
+      "passed": true,
+      "fullscreen_text": {
+        "passed": true,
+        "physical_finger_tested": false,
+        "initial_field": {
+          "event": "fullscreen-field-bounds",
+          "pid": 16065,
+          "uid": 10000,
+          "monotonic": 55546.094489435,
+          "x": 11,
+          "y": 613,
+          "width": 338,
+          "height": 40,
+          "parent_width": 360,
+          "parent_height": 720
+        },
+        "first-reserved": {
+          "field": {
+            "event": "fullscreen-field-bounds",
+            "pid": 16065,
+            "uid": 10000,
+            "monotonic": 55546.320485238,
+            "x": 11,
+            "y": 337,
+            "width": 338,
+            "height": 40,
+            "parent_width": 360,
+            "parent_height": 444
+          },
+          "viewport": {
+            "height": 444.0,
+            "width": 360.0,
+            "x": 0.0,
+            "y": 0.0
+          },
+          "keyboard": {
+            "height": 240.0,
+            "width": 360.0,
+            "x": 0.0,
+            "y": 444.0
+          }
+        },
+        "reopened": {
+          "field": {
+            "event": "fullscreen-field-bounds",
+            "pid": 16065,
+            "uid": 10000,
+            "monotonic": 55549.182691128,
+            "x": 11,
+            "y": 337,
+            "width": 338,
+            "height": 40,
+            "parent_width": 360,
+            "parent_height": 444
+          },
+          "viewport": {
+            "height": 444.0,
+            "width": 360.0,
+            "x": 0.0,
+            "y": 0.0
+          },
+          "keyboard": {
+            "height": 240.0,
+            "width": 360.0,
+            "x": 0.0,
+            "y": 444.0
+          }
+        },
+        "returned": {
+          "field": {
+            "event": "fullscreen-field-bounds",
+            "pid": 16065,
+            "uid": 10000,
+            "monotonic": 55550.760508306,
+            "x": 11,
+            "y": 337,
+            "width": 338,
+            "height": 40,
+            "parent_width": 360,
+            "parent_height": 444
+          },
+          "viewport": {
+            "height": 444.0,
+            "width": 360.0,
+            "x": 0.0,
+            "y": 0.0
+          },
+          "keyboard": {
+            "height": 240.0,
+            "width": 360.0,
+            "x": 0.0,
+            "y": 444.0
+          }
+        },
+        "after-pam": {
+          "field": {
+            "event": "fullscreen-field-bounds",
+            "pid": 16065,
+            "uid": 10000,
+            "monotonic": 55553.878679044,
+            "x": 11,
+            "y": 337,
+            "width": 338,
+            "height": 40,
+            "parent_width": 360,
+            "parent_height": 444
+          },
+          "viewport": {
+            "height": 444.0,
+            "width": 360.0,
+            "x": 0.0,
+            "y": 0.0
+          },
+          "keyboard": {
+            "height": 240.0,
+            "width": 360.0,
+            "x": 0.0,
+            "y": 444.0
+          }
+        },
+        "actual_bottom_field_visible": true,
+        "exact_text": "tarotxza",
+        "hide_reopen_restores_viewport": true,
+        "overview_restores_same_field": true,
+        "actual_pam_restores_field": true
+      },
+      "fullscreen_native_size": [
+        360,
+        720
+      ]
+    }
+  }
+}

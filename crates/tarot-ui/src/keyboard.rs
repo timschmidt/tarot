@@ -1,4 +1,5 @@
 pub use tarot_core::KeyboardAction as Action;
+pub mod terminal;
 
 #[derive(Clone, Default)]
 pub struct KeyboardUi {
@@ -31,6 +32,34 @@ impl KeyboardUi {
     }
 
     pub fn show_in_ui(&mut self, ui: &mut egui::Ui, numeric: bool, secure: bool) -> Vec<Action> {
+        self.show_layout(
+            ui,
+            numeric,
+            if secure { "Private entry" } else { "English" },
+        )
+    }
+
+    pub fn show_terminal(
+        &mut self,
+        ctx: &egui::Context,
+        controls: &mut terminal::Controls,
+    ) -> (Vec<Action>, Vec<terminal::Key>) {
+        let mut actions = Vec::new();
+        let mut keys = Vec::new();
+        egui::CentralPanel::default()
+            .frame(
+                egui::Frame::new()
+                    .fill(egui::Color32::from_rgb(38, 40, 44))
+                    .inner_margin(5.0),
+            )
+            .show(ctx, |ui| {
+                keys = controls.show(ui);
+                actions = self.show_layout(ui, false, controls.label());
+            });
+        (actions, keys)
+    }
+
+    fn show_layout(&mut self, ui: &mut egui::Ui, numeric: bool, label: &str) -> Vec<Action> {
         crate::theme::install(ui.ctx());
         let frame = ui.ctx().cumulative_frame_nr();
         if let Some((previous, shift, symbols, symbols_more)) = self
@@ -45,16 +74,9 @@ impl KeyboardUi {
             self.frame_start = Some((frame, self.shift, self.symbols, self.symbols_more));
         }
         let mut actions = Vec::new();
-        ui.spacing_mut().item_spacing = egui::vec2(4.0, 4.0);
-        ui.visuals_mut().widgets.inactive.bg_fill = egui::Color32::from_rgb(220, 221, 224);
-        ui.visuals_mut().widgets.inactive.weak_bg_fill = egui::Color32::from_rgb(220, 221, 224);
-        ui.visuals_mut().widgets.inactive.fg_stroke.color = egui::Color32::from_rgb(20, 23, 26);
-        ui.visuals_mut().widgets.hovered.fg_stroke.color = egui::Color32::BLACK;
-        ui.visuals_mut().widgets.hovered.bg_fill = egui::Color32::from_rgb(245, 246, 248);
-        ui.visuals_mut().widgets.hovered.weak_bg_fill = egui::Color32::from_rgb(245, 246, 248);
-        ui.visuals_mut().widgets.active.bg_fill = egui::Color32::from_rgb(150, 185, 220);
+        key_style(ui);
         ui.label(
-            egui::RichText::new(if secure { "Private entry" } else { "English" })
+            egui::RichText::new(label)
                 .size(12.0)
                 .color(egui::Color32::LIGHT_GRAY),
         );
@@ -189,6 +211,17 @@ impl KeyboardUi {
             }
         });
     }
+}
+
+fn key_style(ui: &mut egui::Ui) {
+    ui.spacing_mut().item_spacing = egui::vec2(4.0, 4.0);
+    ui.visuals_mut().widgets.inactive.bg_fill = egui::Color32::from_rgb(220, 221, 224);
+    ui.visuals_mut().widgets.inactive.weak_bg_fill = egui::Color32::from_rgb(220, 221, 224);
+    ui.visuals_mut().widgets.inactive.fg_stroke.color = egui::Color32::from_rgb(20, 23, 26);
+    ui.visuals_mut().widgets.hovered.fg_stroke.color = egui::Color32::BLACK;
+    ui.visuals_mut().widgets.hovered.bg_fill = egui::Color32::from_rgb(245, 246, 248);
+    ui.visuals_mut().widgets.hovered.weak_bg_fill = egui::Color32::from_rgb(245, 246, 248);
+    ui.visuals_mut().widgets.active.bg_fill = egui::Color32::from_rgb(150, 185, 220);
 }
 
 fn key(ui: &mut egui::Ui, label: &str, width: f32, height: f32) -> bool {

@@ -1,5 +1,6 @@
 use std::os::unix::io::OwnedFd;
 use std::{
+    collections::HashMap,
     fmt,
     sync::{Arc, Mutex},
 };
@@ -11,7 +12,10 @@ use wayland_protocols_misc::zwp_virtual_keyboard_v1::server::zwp_virtual_keyboar
 };
 use wayland_server::{
     backend::ClientId,
-    protocol::wl_keyboard::{KeyState, KeymapFormat},
+    protocol::{
+        wl_keyboard::{KeyState, KeymapFormat},
+        wl_surface::WlSurface,
+    },
     Client, DataInit, Dispatch, DisplayHandle, Resource,
 };
 use xkbcommon::xkb;
@@ -19,7 +23,7 @@ use xkbcommon::xkb;
 use crate::input::keyboard::{KeyboardTarget, KeymapFile, ModifiersState};
 use crate::{
     input::{Seat, SeatHandler},
-    utils::SERIAL_COUNTER,
+    utils::{Serial, SERIAL_COUNTER},
     wayland::seat::{keyboard::for_each_focused_kbds, WaylandFocus},
 };
 
@@ -34,6 +38,7 @@ struct VirtualKeyboardState {
     keymap: KeymapFile,
     mods: ModifiersState,
     state: xkb::State,
+    pressed: HashMap<u32, (WlSurface, Option<Serial>)>,
 }
 
 impl fmt::Debug for VirtualKeyboardState {
@@ -88,8 +93,7 @@ where
     ) {
         if matches!(
             &request,
-            zwp_virtual_keyboard_v1::Request::Key { .. }
-                | zwp_virtual_keyboard_v1::Request::Modifiers { .. }
+            zwp_virtual_keyboard_v1::Request::Key { .. } | zwp_virtual_keyboard_v1::Request::Modifiers { .. }
         ) && !user_data.allow_virtual_keyboard_input(&data.seat)
         {
             // A previously bound input method is not a protected input source.
@@ -98,6 +102,7 @@ where
             if let Some(state) = data.handle.inner.lock().unwrap().state.as_mut() {
                 state.state.update_mask(0, 0, 0, 0, 0, 0);
                 state.mods.update_with(&state.state);
+                state.pressed.clear();
             }
             return;
         }
@@ -120,9 +125,24 @@ where
                 let keyboard_handle = data.seat.get_keyboard().unwrap();
                 let mut internal = keyboard_handle.arc.internal.lock().unwrap();
                 let focus = internal.focus.as_mut().map(|(focus, _)| focus);
-                keyboard_handle.send_keymap(user_data, &focus, &vk_state.keymap, vk_state.mods);
+                keyboard_handle.send_keymap(
+                    user_data,
+                    &focus,
+                    &vk_state.keymap,
+                    vk_state.mods,
+                    Some(virtual_keyboard.id()),
+                );
 
+                if state != 1 {
+                    vk_state.pressed.remove(&key);
+                }
                 if let Some(wl_surface) = focus.and_then(|f| f.wl_surface()) {
+                    if state == 1 {
+                        vk_state.pressed.insert(
+                            key,
+                            (wl_surface.clone().into_owned(), keyboard_handle.last_enter()),
+                        );
+                    }
                     for_each_focused_kbds(&data.seat, &wl_surface, |kbd| {
                         // This should be wl_keyboard::KeyState, but the protocol does not state
                         // the parameter is an enum.
@@ -162,11 +182,16 @@ where
                 let keyboard_handle = data.seat.get_keyboard().unwrap();
                 let mut internal = keyboard_handle.arc.internal.lock().unwrap();
                 let focus = internal.focus.as_mut().map(|(focus, _)| focus);
-                let keymap_changed =
-                    keyboard_handle.send_keymap(user_data, &focus, &state.keymap, state.mods);
+                let state_sent = keyboard_handle.send_keymap(
+                    user_data,
+                    &focus,
+                    &state.keymap,
+                    state.mods,
+                    Some(virtual_keyboard.id()),
+                );
 
                 // Report modifiers change to all keyboards.
-                if !keymap_changed {
+                if !state_sent {
                     if let Some(focus) = focus {
                         focus.modifiers(&data.seat, user_data, state.mods, SERIAL_COUNTER.next_serial());
                     }
@@ -180,11 +205,53 @@ where
     }
 
     fn destroyed(
-        _state: &mut D,
+        state: &mut D,
         _client: ClientId,
-        _virtual_keyboard: &ZwpVirtualKeyboardV1,
-        _data: &VirtualKeyboardUserData<D>,
+        virtual_keyboard: &ZwpVirtualKeyboardV1,
+        data: &VirtualKeyboardUserData<D>,
     ) {
+        let Some(virtual_state) = data.handle.inner.lock().unwrap().state.take() else {
+            return;
+        };
+        let Some(keyboard) = data.seat.get_keyboard() else {
+            return;
+        };
+        // Keymap IDs identify map contents, not the protocol object that owns
+        // the active modifiers. Inactive objects must not reset another source.
+        let owned = keyboard
+            .arc
+            .active_virtual_keyboard
+            .lock()
+            .unwrap()
+            .as_ref()
+            .is_some_and(|(id, _)| id == &virtual_keyboard.id());
+        if !owned {
+            return;
+        }
+        let ordinary = state.allow_virtual_keyboard_input(&data.seat);
+        let mut internal = keyboard.arc.internal.lock().unwrap();
+        let physical_keys = internal.forwarded_pressed_keys.clone();
+        let modifiers = internal.mods_state;
+        let focus = internal.focus.as_mut().map(|(focus, _)| focus);
+        if let Some(surface) = focus.as_ref().and_then(|f| f.wl_surface()).filter(|_| ordinary) {
+            let enter = keyboard.last_enter();
+            for (key, (target, serial)) in virtual_state.pressed {
+                if surface.as_ref() == &target
+                    && enter == serial
+                    && !physical_keys
+                        .iter()
+                        .any(|code| code.raw().checked_sub(8) == Some(key))
+                {
+                    for_each_focused_kbds(&data.seat, &surface, |kbd| {
+                        kbd.key(SERIAL_COUNTER.next_serial().0, 0, key, KeyState::Released);
+                    });
+                }
+            }
+        }
+        // Restore actual physical state, not a fabricated all-zero state.
+        // This also resets a focused client's modifiers without a new key.
+        let keymap = keyboard.arc.keymap.lock().unwrap();
+        keyboard.send_keymap(state, &focus, &keymap, modifiers, None);
     }
 }
 
@@ -230,5 +297,6 @@ where
         mods,
         keymap: KeymapFile::new(&new_keymap),
         state: xkb::State::new(&new_keymap),
+        pressed: HashMap::new(),
     });
 }

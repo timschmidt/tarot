@@ -180,6 +180,9 @@ def run(args, password):
             assert result['audit']['compositor']==binaries['tarot']
             state('virtual-keyboard-lock-clients-gone',lambda s:not s['cards'])
             records['virtual_keyboard_lock']=result
+        if getattr(args, 'fullscreen_terminal', False):
+            from phone_fullscreen_terminal_replay import replay as fullscreen_terminal
+            records['fullscreen_terminal'] = fullscreen_terminal(socket,tap,state,capture,args.output,cgroup,authenticate)
         catalog = request(socket, 'applications')['applications']
         # The GTK demo deliberately has NoDisplay=true and is correctly absent
         # from the normal launcher. Exercise an actual visible installed app.
@@ -448,6 +451,7 @@ def main():
     parser.add_argument('--transients', action='store_true')
     parser.add_argument('--toolkit-dialogs', action='store_true')
     parser.add_argument('--terminal-clipboard', action='store_true')
+    parser.add_argument('--fullscreen-terminal', action='store_true')
     parser.add_argument('--virtual-keyboard-lock', action='store_true')
     parser.add_argument('--detach', action='store_true')
     args = parser.parse_args()
