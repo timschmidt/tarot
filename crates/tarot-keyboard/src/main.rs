@@ -1,5 +1,7 @@
 //! Native egui keyboard. Privileged protocols require Tarot's inherited connection.
 use tarot_wayland_egui as graphics;
+#[cfg(test)]
+mod context_tests;
 mod metadata;
 mod terminal;
 mod ui;
@@ -101,6 +103,53 @@ struct Keyboard {
 }
 
 impl Keyboard {
+    fn new(connection: Connection, qh: QueueHandle<Self>, metadata_enabled: bool) -> Self {
+        Self {
+            metadata_enabled,
+            connection,
+            qh,
+            compositor: None,
+            layer_shell: None,
+            seat: None,
+            method_manager: None,
+            virtual_manager: None,
+            method: None,
+            virtual_keyboard: None,
+            surface: None,
+            layer: None,
+            graphics: None,
+            context: egui::Context::default(),
+            ui: ui::KeyboardUi::default(),
+            terminal_controls: TerminalControls::default(),
+            terminal_masks: terminal::Masks::default(),
+            width: 360,
+            height: 240,
+            scale: 1,
+            configured: false,
+            active: false,
+            hidden: false,
+            serial: 0,
+            pending_active: None,
+            purpose: 0,
+            hint: 0,
+            pending_type: None,
+            surrounding: None,
+            pending_surrounding: None,
+            position: egui::Pos2::ZERO,
+            contacts: HashSet::new(),
+            touch_owner: None,
+            touch_cancelled: false,
+            events: Vec::new(),
+            dirty: false,
+            frame_pending: false,
+            repaint: false,
+            repaint_at: None,
+            warmup_frames: 0,
+            generation: 0,
+            start: Instant::now(),
+            closed: false,
+        }
+    }
     fn metadata(&self, stage: Stage, frame_events: usize, actions: usize) {
         if self.metadata_enabled {
             metadata::Snapshot {
@@ -122,6 +171,26 @@ impl Keyboard {
     }
     fn secure(&self) -> bool {
         matches!(self.purpose, 8 | 9) || self.hint & 0xc0 != 0
+    }
+    fn layout_kind(&self) -> (bool, bool, bool) {
+        (
+            self.terminal_mode(),
+            matches!(self.purpose, 2 | 3 | 4 | 9),
+            self.secure(),
+        )
+    }
+    fn reset_context_input(&mut self) {
+        // Discard old-context clicks, including complete queued taps, and end
+        // egui's held press outside all keys. Keep the surface/frame callback:
+        // remapping an unchanged layout creates a gap in native hit testing.
+        self.events.clear();
+        tarot_ui::cancel_pointer_input(&mut self.events);
+        self.touch_owner = None;
+        self.touch_cancelled = !self.contacts.is_empty();
+        self.terminal_controls.reset();
+        self.ui.reset();
+        self.dirty = true;
+        self.metadata(Stage::ContextReset, 0, 0);
     }
     fn show_surface(&mut self) {
         if self.surface.is_some() || !self.active || self.hidden {
@@ -392,10 +461,14 @@ impl Keyboard {
     }
     fn done(&mut self) {
         self.metadata(Stage::ContextApply, 0, 0);
-        let previous_terminal = self.terminal_mode();
+        let previous_layout = self.layout_kind();
         self.serial = self.serial.wrapping_add(1);
         if let Some(active) = self.pending_active.take() {
-            self.hide_surface();
+            if active {
+                self.reset_context_input();
+            } else {
+                self.hide_surface();
+            }
             self.active = active;
             self.hidden = false;
             self.ui.reset();
@@ -407,7 +480,7 @@ impl Keyboard {
             self.hint = hint;
             self.purpose = purpose;
         }
-        if previous_terminal != self.terminal_mode() {
+        if previous_layout != self.layout_kind() {
             self.hide_surface();
             self.ui.reset();
         }
@@ -437,51 +510,7 @@ fn main() -> Result<()> {
     let mut queue = connection.new_event_queue();
     let qh = queue.handle();
     connection.display().get_registry(&qh, ());
-    let mut state = Keyboard {
-        metadata_enabled,
-        connection: connection.clone(),
-        qh,
-        compositor: None,
-        layer_shell: None,
-        seat: None,
-        method_manager: None,
-        virtual_manager: None,
-        method: None,
-        virtual_keyboard: None,
-        surface: None,
-        layer: None,
-        graphics: None,
-        context: egui::Context::default(),
-        ui: ui::KeyboardUi::default(),
-        terminal_controls: TerminalControls::default(),
-        terminal_masks: terminal::Masks::default(),
-        width: 360,
-        height: 240,
-        scale: 1,
-        configured: false,
-        active: false,
-        hidden: false,
-        serial: 0,
-        pending_active: None,
-        purpose: 0,
-        hint: 0,
-        pending_type: None,
-        surrounding: None,
-        pending_surrounding: None,
-        position: egui::Pos2::ZERO,
-        contacts: HashSet::new(),
-        touch_owner: None,
-        touch_cancelled: false,
-        events: Vec::new(),
-        dirty: false,
-        frame_pending: false,
-        repaint: false,
-        repaint_at: None,
-        warmup_frames: 0,
-        generation: 0,
-        start: Instant::now(),
-        closed: false,
-    };
+    let mut state = Keyboard::new(connection.clone(), qh, metadata_enabled);
     queue.roundtrip(&mut state)?;
     let seat = state.seat.as_ref().context("no seat")?;
     state.method = Some(

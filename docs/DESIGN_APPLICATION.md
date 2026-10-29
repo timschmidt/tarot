@@ -56,6 +56,8 @@ The update also fixes diagnostic preference isolation: native DRM diagnostic ses
 | 24 Launch failed | Recoverable message preserves original app/input | Packet failure composition and retry; truthful application-specific explanation |
 | 25 Locked incoming call | Not implemented | Urgent trusted call surface without exposing app data or bypassing lock; suspend/wake/carrier tests |
 
+Revision 32 now passes the complete scoped native suite and saved restart with stable keyboard activation, including the existing favorite/card/stack/editor tests. [Current acceptance](recordings/r32/README.md) keeps this runtime foundation separate from design conformance.
+
 ## Ordered remaining work
 
 1. The foundation now passes Rust/MSRV/AArch64 checks, actual nested GLES input replays and clean installed-package touch/PAM/keyboard/protected-rotation tests. Keep original attempts and exact sources. A subsequent pixel audit retracts the suspected missing status text: the actual native clock/status regions are identical across captured states. Pixel visibility/comparison checks now guard the host replay. Leave the phone in normal Tarot.

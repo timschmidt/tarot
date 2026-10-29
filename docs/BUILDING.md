@@ -495,6 +495,8 @@ Native browser QA deliberately queues three real touchscreen contacts while only
 
 The activation diagnostic candidate adds `tarot-keyboard --metadata`, normally supplied through `tarot --input-method-arg=--metadata`. An explicit `tarot-session --diagnostics` session supplies it automatically; normal sessions omit it. Fixed `keyboard-metadata` JSON records identify surface creation/configure/hide, context changes, touch/pointer event categories, input-frame/action counts, serial/generation and queue state. The API accepts no entered text, positions, key codes or key identities. A rare compositor warning identifies a touch-down omitted because its target has no presented placement, also without coordinates. These diagnostics locate an open native-input failure; their presence does not establish a fix. `--browser-focus-cycles N` repeats up to twenty additional real overview-return/first-key checks with unchanged input timing and exact-value deadlines.
 
+Revision 32 adds `context-reset` to this fixed schema: a context serial can advance while the same keyboard surface remains mapped. `tests/terminal_keyboard_replay.py --context-reset` extends the private rendered replay with held-pointer cancellation and fresh-input checks across re-enable. The installed-session replay offers `--keyboard-context` for unchanged-layout cases and `--keyboard-reactivation` for explicit purpose-cycling remaps. [Contract, fixture split and acceptance](KEYBOARD_CONTEXT.md). Browser pixel targeting now verifies committed client geometry and recaptures invalidated images; raw device diagnostics remain in ignored local evidence.
+
 The rounded-card GPU replay uses the same private-display boundary and requires Python Pillow, Xvfb and a built `input-probe` example:
 
 ```sh

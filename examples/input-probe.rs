@@ -43,6 +43,9 @@ struct Options {
     /// Re-enable text input on each root touch to exercise keyboard remapping.
     #[arg(long)]
     keyboard_on_touch: bool,
+    /// Alternate normal/terminal purposes to require real keyboard remapping.
+    #[arg(long, requires = "keyboard_on_touch")]
+    keyboard_purpose_cycle: bool,
 }
 
 fn parse_color(value: &str) -> std::result::Result<[u8; 4], String> {
@@ -94,6 +97,8 @@ struct Window {
 
 struct Probe {
     keyboard_on_touch: bool,
+    keyboard_purpose_cycle: bool,
+    keyboard_terminal: bool,
     text_manager: Option<zwp_text_input_manager_v3::ZwpTextInputManagerV3>,
     text_input: Option<zwp_text_input_v3::ZwpTextInputV3>,
     refuse_close: bool,
@@ -129,15 +134,22 @@ impl Probe {
         let Some(input) = &self.text_input else {
             return;
         };
+        if self.keyboard_purpose_cycle && matches!(reason, "touch" | "key") {
+            self.keyboard_terminal = !self.keyboard_terminal;
+        }
+        let purpose = if self.keyboard_terminal {
+            zwp_text_input_v3::ContentPurpose::Terminal
+        } else {
+            zwp_text_input_v3::ContentPurpose::Normal
+        };
         input.enable();
         input.set_surrounding_text(String::new(), 0, 0);
-        input.set_content_type(
-            zwp_text_input_v3::ContentHint::None,
-            zwp_text_input_v3::ContentPurpose::Normal,
-        );
+        input.set_content_type(zwp_text_input_v3::ContentHint::None, purpose);
         input.set_cursor_rectangle(10, 10, 1, 1);
         input.commit();
-        self.record(json!({"event":"keyboard_enable","reason":reason}));
+        self.record(
+            json!({"event":"keyboard_enable","reason":reason,"purpose":u32::from(purpose)}),
+        );
     }
     fn record(&mut self, event: Value) {
         serde_json::to_writer(&mut self.report, &event).unwrap();
@@ -355,6 +367,8 @@ fn main() -> Result<()> {
     let qh = queue.handle();
     let mut probe = Probe {
         keyboard_on_touch: options.keyboard_on_touch,
+        keyboard_purpose_cycle: options.keyboard_purpose_cycle,
+        keyboard_terminal: false,
         text_manager: None,
         text_input: None,
         refuse_close: options.refuse_close,

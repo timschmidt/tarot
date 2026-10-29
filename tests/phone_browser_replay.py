@@ -5,9 +5,9 @@ import os
 from pathlib import Path
 import signal
 import time
-from PIL import Image, ImageChops
 from browser_fixture import COLORS, EXPECTED
 from browser_observations import latest_reports
+from browser_target import painted_target
 from dialog_button import locate
 from lock_replay import events
 from notification_replay import await_value
@@ -20,7 +20,7 @@ def replay(control,tap,state,capture,out,cgroup,authenticate,inspect_only=False,
     assert type(focus_cycles) is int and 0<=focus_cycles<=20
     folder=out/'browser';report=folder/'events.jsonl'
     result={'passed':False,'inspect_only':inspect_only,'physical_finger_tested':False,
-            'webdriver_input_used':False,'target_pixels':[],'overview_cycles':[]}
+            'webdriver_input_used':False,'target_pixels':[],'overview_cycles':[],'discarded_targets':[]}
     def observe(event,condition=lambda e:True,seconds=30):
         return await_value(lambda:[e for e in events(report) if e['event']==event and condition(e)],bool,seconds=seconds)[-1]
     def exact(field,text,page='main'):
@@ -45,37 +45,10 @@ def replay(control,tap,state,capture,out,cgroup,authenticate,inspect_only=False,
         assert not unknown,{'unexpected_content_capture_suppressed':unknown}
         capture(label)
     def target(name,label):
-        def settled(s):
-            if not isinstance(s['view'],dict) or 'App' not in s['view']:return False
-            owner=s['view']['App']
-            native=next((n for n in s['native_geometry'] if n['id']==owner),None)
-            visual=next((w for w in s['presentation']['windows'] if w['id']==owner),None)
-            if native is None or visual is None:return False
-            expected=(dict(x=0.0,y=0.0,width=360.0,height=float(s['keyboard_rect']['y'] if s['keyboard_visible'] else 720))
-                      if native['fullscreen'] else s['app_area'])
-            return visual['rect']==expected and visual['opacity']==1 and s['presentation']['overview']==0 and s['presentation']['dock']==0
-        for attempt in range(5):
-            state('browser-target-settled-'+label+'-'+str(attempt),settled)
-            safe_capture(label+'-'+str(attempt))
-            with Image.open(out/(label+'-'+str(attempt)+'.png')) as source:
-                image=source.convert('RGB');assert image.size==(720,1440)
-                difference=ImageChops.difference(image,Image.new('RGB',image.size,COLORS[name]))
-                red,green,blue=difference.split()
-                mask=ImageChops.lighter(ImageChops.lighter(red,green),blue).point(lambda value:255 if value==0 else 0)
-                bounds=mask.getbbox()
-                if bounds:
-                    left,top,right,bottom=bounds
-                    area=(right-left)*(bottom-top);count=mask.histogram()[255]
-                    if right-left>=60 and bottom-top>=50 and count>area*.6:
-                        point=((left+right)/4,(top+bottom)/4)
-                        s=request(control,'status')
-                        assert s['output']['orientation']=='normal'
-                        assert top>=64
-                        assert bottom <= (s['keyboard_rect']['y']*2 if s['keyboard_visible'] else 1368)
-                        result['target_pixels'].append({'name':name,'capture':label+'-'+str(attempt),'bounds':bounds,'count':count,'point':point})
-                        return point
-            time.sleep(.2)
-        raise AssertionError({'target_not_visible':name,'label':label})
+        value=painted_target(name,label,state,safe_capture,lambda:request(control,'status'),
+                             out,COLORS[name],result['discarded_targets'])
+        result['target_pixels'].append(value)
+        return value['point']
     def click(name,label):tap(*target(name,label))
     def keyboard(label):
         s=state('browser-'+label,lambda s:s['keyboard_visible'] and s['keyboard_rect']['height']==240)

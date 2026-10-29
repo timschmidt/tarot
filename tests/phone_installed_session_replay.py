@@ -159,6 +159,9 @@ def run(args, password):
         authenticate('startup')
         if args.require_audio:
             state('audio-ready', lambda s: s['audio']['available'] and bool(s['audio']['outputs']))
+        if getattr(args, 'keyboard_context', False):
+            from phone_keyboard_reactivation_replay import replay as keyboard_context_replay
+            records['keyboard_context'] = keyboard_context_replay(socket,screen,tap,state,capture,args.output,cgroup,authenticate,require_remap=False)
         if getattr(args, 'keyboard_reactivation', False):
             from phone_keyboard_reactivation_replay import replay as keyboard_reactivation_replay
             records['keyboard_reactivation'] = keyboard_reactivation_replay(socket,screen,tap,state,capture,args.output,cgroup,authenticate)
@@ -468,6 +471,7 @@ def main():
                         help='Additional native overview-return input cycles for browser diagnosis')
     parser.add_argument('--fullscreen-terminal', action='store_true')
     parser.add_argument('--virtual-keyboard-lock', action='store_true')
+    parser.add_argument('--keyboard-context', action='store_true')
     parser.add_argument('--detach', action='store_true')
     args = parser.parse_args()
     assert not args.panel_off or args.observe_sensors

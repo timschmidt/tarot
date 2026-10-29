@@ -18,6 +18,7 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output',type=Path,required=True)
     parser.add_argument('--xvfb',default='Xvfb')
+    parser.add_argument('--context-reset',action='store_true')
     args=parser.parse_args();out=args.output.resolve();out.mkdir(parents=True,exist_ok=False)
     root=Path.cwd();runtime=tempfile.TemporaryDirectory(prefix='tarot-terminal-');work=Path(runtime.name)
     control=work/'control.sock';report=out/'app-events.jsonl';commands=out/'app-commands.jsonl';commands.write_text('')
@@ -59,7 +60,8 @@ def main():
         env=dict(os.environ,DISPLAY=':'+number,WINIT_UNIX_BACKEND='x11',XDG_SESSION_TYPE='x11',XDG_RUNTIME_DIR=str(work),
             XDG_CONFIG_HOME=str(work/'config'),LIBGL_ALWAYS_SOFTWARE='1',__EGL_VENDOR_LIBRARY_FILENAMES='/usr/share/glvnd/egl_vendor.d/50_mesa.json')
         env.pop('WAYLAND_SOCKET',None);env.pop('WAYLAND_DISPLAY',None)
-        session=subprocess.Popen([str(root/'target/debug/tarot'),'--control-socket',str(control),'--input-method',str(root/'target/debug/tarot-keyboard'),'--exit-after-ms','90000'],env=env,stdout=log('compositor.log'),stderr=subprocess.STDOUT);children.append(session)
+        helper_args=['--input-method-arg','--metadata'] if args.context_reset else []
+        session=subprocess.Popen([str(root/'target/debug/tarot'),'--control-socket',str(control),'--input-method',str(root/'target/debug/tarot-keyboard'),*helper_args,'--exit-after-ms','90000'],env=env,stdout=log('compositor.log'),stderr=subprocess.STDOUT);children.append(session)
         await_value(lambda:control.exists() or session.poll() is not None,bool,seconds=8);assert session.poll() is None
         initial=state('initial');mouse=PrivateInput(session.pid,server,env['DISPLAY']);await_value(mouse.find,bool)
         native=dict(env,WAYLAND_DISPLAY=initial['wayland_display']);native.pop('DISPLAY',None)
@@ -98,6 +100,32 @@ def main():
         shortcut('landscape-tab',15,0,lambda:click(258,162))
         request(control,'rotate',orientation='normal')
         state('portrait-again',lambda s:s['output']['orientation']=='normal' and s['output']['requested'] is None and s['keyboard_rect']['height']==288)
+        if args.context_reset:
+            state('context-ready',lambda s:s['output']['orientation']=='normal'
+                  and s['output']['requested'] is None
+                  and s['output']['presented_revision']==s['output']['revision']
+                  and s['keyboard_visible'] and s['keyboard_rect']['height']==288)
+            capture('context-ready')
+            def metadata():
+                return [json.loads(line) for line in (out/'compositor.log').read_text().splitlines() if line.startswith('{"event":"keyboard-metadata"')]
+            before=metadata();generation=max(e['generation'] for e in before);serial=max(e['serial'] for e in before)
+            expected=[e['text'] for e in events(report) if e['event']=='applied'][-1]
+            mouse.move(*physical(request(control,'status'),106,609));time.sleep(.05);mouse.button(True)
+            await_value(metadata,lambda es:any(e['stage']=='pointer-press' for e in es[len(before):]))
+            with commands.open('a') as f:f.write('{"command":"enable"}\n')
+            fresh=await_value(metadata,lambda es:any(e['stage']=='context-done' and e['serial']>serial for e in es))
+            assert max(e['generation'] for e in fresh)==generation
+            assert not any(e['stage']=='surface-hide' for e in fresh[len(before):])
+            assert any(e['stage']=='context-reset' for e in fresh[len(before):])
+            release_start=len(metadata())
+            mouse.button(False)
+            released=await_value(metadata,lambda es:any(e['stage']=='pointer-release' for e in es[release_start:]))
+            release_index=max(i for i,e in enumerate(released) if e['stage']=='pointer-release')
+            drained=await_value(metadata,lambda es:any(e['stage']=='input-frame' and e['queued']==0 for e in es[release_index+1:]))
+            assert not any(e['stage']=='action-text' for e in drained[len(before):])
+            Keyboard(click).type_ascii('x');text(expected+'x')
+            assert [e['text'] for e in events(report) if e['event']=='applied'][-1]==expected+'x'
+            record['context_reset_keeps_surface_and_cancels_held_click']=True
         with commands.open('a') as f:f.write('{"command":"quit"}\n')
         assert app.wait(timeout=5)==0
         state('app-gone',lambda s:not s['cards'] and not s['keyboard_visible']);request(control,'exit')

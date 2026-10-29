@@ -1,6 +1,6 @@
 # Revision 31 keyboard component checkpoint
 
-October 28, 2026. This report contains aggregate development results. Original device/session diagnostics, screenshots, controllers, source ledgers and exact execution evidence remain in ignored local artifacts. This is a verified component checkpoint with a retained broader-run failure. Revision 26 remains the last accepted complete native checkpoint; no M0–M6 milestone closes here.
+October 28, 2026. This report contains aggregate development results. Original device/session diagnostics, screenshots, controllers, source ledgers and exact execution evidence remain in ignored local artifacts. This is a verified component checkpoint with a retained broader-run failure. At that checkpoint, revision 26 remained the last accepted complete native checkpoint; no M0–M6 milestone closes here.
 
 ## Corrected behavior
 
@@ -32,3 +32,5 @@ Both controllers restore normal default Tarot. Independent audits verify exact l
 Both runs request zero suspend cycles. No new physical-finger, visual-conformance, current-binary endurance, carrier/SIM, media/permissions/portal or broad application acceptance is claimed. Earlier suspend and favorite results retain their original binary-specific scope.
 
 The next gate is diagnosing and correcting the remaining card-return activation failure with correlated touch/configure/focus evidence, followed by the complete native replay and saved restart. Keep exact text deadlines, input timing, original failures and independent cleanup audits.
+
+The subsequent [revision-32 checkpoint](../r32/README.md) corrects unchanged-layout activation and passes the complete scoped native suite and saved restart. Revision-31 results above remain historical and its original failures stay retained locally.
