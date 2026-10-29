@@ -8,6 +8,8 @@ October 28 design update: the owner supplied the original [Tarot design packet](
 
 Revision-32 update: unchanged-layout keyboard activation retains its mapped surface while clearing stale context input. The complete scoped native suite and saved restart now pass, including ten keyboard cases, 21 Firefox card returns, native protocol/GTK/Qt/terminal/clipboard, favorite/card/stack/editor/hardware checks and independent cleanup. Geometry-aware capture validation prevents stale target selection. No complete M0–M6 milestone is closed. Next, implement the packet’s named Launcher pages, native icon resolution, Just Type and menu/notification composition while retaining the separate device-endurance and broader compatibility gates. [Current scoped acceptance](recordings/r32/README.md) · [Keyboard contract](KEYBOARD_CONTEXT.md).
 
+Revision-34 update: named Launcher pages now pass their native touch/PAM/rotation/name-management/favorite-link/restart component. The source and installed package include the original packet's page interaction. Physical calibration, native icons, Just Type, menu/notification composition and all remaining milestones retain their existing scope. The broader revision-34 run fails a browser character check on repeat 19; current input reliability and endurance are not certified by the page component. [Current evidence and limits](recordings/r34/README.md).
+
 ## Confirmed direction
 
 | Topic | Owner decision |

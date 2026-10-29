@@ -75,14 +75,19 @@ pub(crate) fn begin(
                             button: egui::PointerButton::Primary,
                             pressed: true,
                             ..
-                        } if crate::launcher::grid_bounds(model, layout, false).contains(pos) => {
+                        } => {
+                            // A new contact owns a new interaction, including
+                            // a header/menu tap while the previous page settles.
                             m.settle = None;
-                            m.swipe.begin(
-                                (pos.x, pos.y),
-                                now,
-                                &model.launcher.settings,
-                                layout.width,
-                            );
+                            m.swipe.cancel();
+                            if crate::launcher::grid_bounds(model, layout, false).contains(pos) {
+                                m.swipe.begin(
+                                    (pos.x, pos.y),
+                                    now,
+                                    &model.launcher.settings,
+                                    layout.width,
+                                );
+                            }
                         }
                         Event::PointerMoved(pos) => m.swipe.motion((pos.x, pos.y)),
                         Event::PointerButton {
@@ -329,5 +334,51 @@ mod tests {
             );
             assert_eq!(m.launcher.settings.selected, PageId(1));
         }
+    }
+    #[test]
+    fn a_fresh_header_press_interrupts_page_settling_and_opens_the_menu() {
+        let ctx = Context::default();
+        let mut m = model();
+        settle(&ctx, &m);
+        render(
+            &ctx,
+            &m,
+            0.1,
+            vec![
+                Event::PointerMoved(Pos2::new(180.0, 150.0)),
+                button(180.0, 150.0, true),
+            ],
+            false,
+        );
+        render(
+            &ctx,
+            &m,
+            0.2,
+            vec![Event::PointerMoved(Pos2::new(70.0, 152.0))],
+            false,
+        );
+        for command in render(&ctx, &m, 0.3, vec![button(70.0, 152.0, false)], false) {
+            m.apply(command);
+        }
+        assert_eq!(m.launcher.settings.selected, PageId(2));
+        render(
+            &ctx,
+            &m,
+            0.31,
+            vec![
+                Event::PointerMoved(Pos2::new(40.0, 16.0)),
+                button(40.0, 16.0, true),
+            ],
+            false,
+        );
+        let commands = render(&ctx, &m, 0.4, vec![button(40.0, 16.0, false)], false);
+        assert_eq!(commands, vec![Command::LauncherAction(Action::Menu(true))]);
+        assert!(
+            ctx.data_mut(|d| d.get_temp::<Memory>(Id::new("launcher_paging")))
+                .unwrap()
+                .result
+                .preview
+                .is_none()
+        );
     }
 }

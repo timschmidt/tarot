@@ -663,4 +663,86 @@ mod tests {
                 .any(|c| matches!(c, Command::LauncherAction(_) | Command::Launch(_)))
         );
     }
+    #[test]
+    fn same_page_reorder_then_edge_drop_keeps_the_empty_page_reachable() {
+        use tarot_core::launcher::{Edit as PageEdit, PageId};
+        let ctx = Context::default();
+        let mut m = model();
+        for n in 5..36 {
+            m.applications.push(Application {
+                id: format!("app{n}.desktop"),
+                name: format!("App {n}"),
+                description: String::new(),
+                icon: None,
+                keywords: vec![],
+                unavailable: None,
+            });
+        }
+        m.launcher
+            .settings
+            .edit(PageEdit::Create("Work".into()), &m.applications)
+            .unwrap();
+        m.launcher
+            .settings
+            .edit(PageEdit::Select(PageId(1)), &m.applications)
+            .unwrap();
+        arm(&ctx, &m);
+        let target = Pos2::new(180.0, 148.0);
+        render(
+            &ctx,
+            &m,
+            0.8,
+            vec![egui::Event::PointerMoved(target)],
+            false,
+        );
+        let commands = render(&ctx, &m, 0.9, vec![button(target, false)], false);
+        assert!(matches!(commands.as_slice(), [Command::LauncherAction(_)]));
+        for command in commands {
+            m.apply(command);
+        }
+        let mut canceled = vec![];
+        crate::cancel_pointer_input(&mut canceled);
+        render(&ctx, &m, 0.95, canceled, false);
+        render(&ctx, &m, 1.0, vec![], false);
+        let at = source(&ctx);
+        render(
+            &ctx,
+            &m,
+            1.1,
+            vec![egui::Event::PointerMoved(at), button(at, true)],
+            false,
+        );
+        render(&ctx, &m, 1.7, vec![], false);
+        render(
+            &ctx,
+            &m,
+            1.8,
+            vec![egui::Event::PointerMoved(Pos2::new(350.0, 300.0))],
+            false,
+        );
+        render(&ctx, &m, 2.41, vec![], false);
+        let memory = ctx.data_mut(|d| d.get_temp::<Memory>(key())).unwrap();
+        assert_eq!(memory.result.preview.as_ref().unwrap().page, PageId(2));
+        assert!(
+            memory
+                .areas
+                .iter()
+                .any(|(page, rect)| *page == PageId(2) && rect.contains(Pos2::new(180.0, 150.0))),
+            "Empty page targets: {:?}",
+            memory.areas
+        );
+        let drop = Pos2::new(180.0, 150.0);
+        render(&ctx, &m, 2.5, vec![egui::Event::PointerMoved(drop)], false);
+        let commands = render(&ctx, &m, 2.6, vec![button(drop, false)], true);
+        assert_eq!(
+            commands,
+            vec![Command::LauncherAction(tarot_core::launcher::Action::Edit(
+                PageEdit::Place {
+                    application: "app2.desktop".into(),
+                    page: PageId(2),
+                    at: 0
+                }
+            ))]
+        );
+    }
 }

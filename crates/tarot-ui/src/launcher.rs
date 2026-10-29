@@ -117,7 +117,7 @@ pub(crate) fn show(
                 "New page"
             });
         painter.text(
-            Pos2::new(20.0, if compact { 53.0 } else { 67.0 }),
+            Pos2::new(20.0, if compact { 58.0 } else { 67.0 }),
             Align2::LEFT_CENTER,
             title,
             FontId::proportional(if model.launcher.notice.is_some() {
@@ -133,7 +133,7 @@ pub(crate) fn show(
             ui,
             model,
             Rect::from_min_size(
-                Pos2::new(20.0, if compact { 74.0 } else { 104.0 }),
+                Pos2::new(20.0, if compact { 88.0 } else { 104.0 }),
                 Vec2::new(layout.width - 40.0, 44.0),
             ),
             &mut text,
@@ -165,11 +165,21 @@ pub(crate) fn show(
             action(commands, Action::AcceptName);
             return true;
         }
-        let y = if compact { 124.0 } else { 164.0 };
-        let width = (layout.width - 48.0) / 2.0;
+        let y = if compact { 36.0 } else { 164.0 };
+        let width = if compact {
+            100.0
+        } else {
+            (layout.width - 48.0) / 2.0
+        };
+        let cancel_x = if compact { layout.width - 232.0 } else { 20.0 };
+        let save_x = if compact {
+            layout.width - 124.0
+        } else {
+            28.0 + width
+        };
         if ui
             .put(
-                Rect::from_min_size(Pos2::new(20.0, y), Vec2::new(width, 44.0)),
+                Rect::from_min_size(Pos2::new(cancel_x, y), Vec2::new(width, 44.0)),
                 egui::Button::new("Cancel"),
             )
             .clicked()
@@ -178,7 +188,7 @@ pub(crate) fn show(
         }
         if ui
             .put(
-                Rect::from_min_size(Pos2::new(28.0 + width, y), Vec2::new(width, 44.0)),
+                Rect::from_min_size(Pos2::new(save_x, y), Vec2::new(width, 44.0)),
                 egui::Button::new("Save name"),
             )
             .clicked()
@@ -717,5 +727,87 @@ pub(crate) fn menu(
                 .is_some_and(|p| p.y >= Layout::STATUS && !area.response.rect.contains(p))
     }) {
         action(commands, Action::Menu(false));
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn landscape_name_controls_stay_above_the_keyboard_and_save_the_actual_field() {
+        let ctx = egui::Context::default();
+        let mut model = ShellModel::default();
+        model.apply(Command::Launcher);
+        model.apply(Command::LauncherAction(Action::BeginName(None)));
+        let layout = Layout {
+            width: 720.0,
+            height: 360.0,
+            keyboard_height: 180.0,
+        };
+        let render = |time, model: &ShellModel, events: Vec<egui::Event>| {
+            crate::prepare_pointer_input(&ctx, &events);
+            let mut commands = vec![];
+            let output = ctx.run(
+                egui::RawInput {
+                    time: Some(time),
+                    screen_rect: Some(Rect::from_min_size(Pos2::ZERO, Vec2::new(720.0, 360.0))),
+                    focused: true,
+                    events,
+                    ..Default::default()
+                },
+                |ctx| {
+                    commands = crate::show(ctx, model, layout);
+                },
+            );
+            (output, commands)
+        };
+        render(0.0, &model, vec![]);
+        render(0.01, &model, vec![]);
+        for command in render(0.02, &model, vec![egui::Event::Text("sideways".into())]).1 {
+            model.apply(command);
+        }
+        assert_eq!(model.launcher.rename.as_ref().unwrap().text, "sideways");
+        let output = render(0.03, &model, vec![]).0;
+        let text = output
+            .shapes
+            .iter()
+            .find_map(|s| match &s.shape {
+                egui::Shape::Text(t) if t.galley.job.text == "Save name" => Some(t),
+                _ => None,
+            })
+            .unwrap();
+        assert!(
+            text.pos.y + text.galley.size().y <= layout.keyboard().y,
+            "Name controls must not be covered by the keyboard"
+        );
+        let point = text.pos + text.galley.size() * 0.5;
+        let event = |pressed| egui::Event::PointerButton {
+            pos: point,
+            button: egui::PointerButton::Primary,
+            pressed,
+            modifiers: egui::Modifiers::NONE,
+        };
+        render(
+            0.04,
+            &model,
+            vec![egui::Event::PointerMoved(point), event(true)],
+        );
+        let mut effects = vec![];
+        for command in render(0.05, &model, vec![event(false)]).1 {
+            effects.extend(model.apply(command));
+        }
+        assert!(matches!(
+            effects.as_slice(),
+            [tarot_core::Effect::Launcher(_)]
+        ));
+        assert_eq!(
+            model
+                .launcher
+                .settings
+                .page(model.launcher.settings.selected)
+                .unwrap()
+                .name,
+            "sideways"
+        );
     }
 }

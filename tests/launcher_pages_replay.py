@@ -84,7 +84,9 @@ def main():
             for _ in range(4):
                 swipe((180,160),(180,640));time.sleep(.3)
             time.sleep(.5);capture('inbox-restored-top')
-            mouse.move(58,148);mouse.button(True);time.sleep(.6);capture('held-icon')
+            mouse.move(58,148);mouse.button(True);time.sleep(.6);mouse.move(180,148);time.sleep(.1);mouse.button(False)
+            saved('same-page-reorder',lambda p:p['pages'][0]['applications'][:3]==['test.app01.desktop','test.app00.desktop','test.app02.desktop'])
+            mouse.move(180,148);mouse.button(True);time.sleep(.6);capture('held-icon')
             before=config.read_bytes();mouse.move(350,300);time.sleep(.8);capture('edge-work-preview')
             assert config.read_bytes()==before,'Edge preview persisted before release'
             mouse.move(180,150);time.sleep(.15);mouse.button(False)
@@ -103,7 +105,7 @@ def main():
             saved('saved-restart',lambda p:p['selected']==work_id and p['pages'][0]['name']=='home' and p['pages'][0]['applications']==['test.app00.desktop'])
             capture('after-restart');menu('remove-menu')
             click(160,340)
-            saved('page-removed',lambda p:len(p['pages'])==1 and p['pages'][0]['applications']==['test.app00.desktop'])
+            saved('page-removed',lambda p:len(p['pages'])==1 and p['pages'][0]['applications']==[f'test.app{n:02}.desktop' for n in range(1,36)]+['test.app00.desktop'])
             records['passed']=True
             print('PASS: menu/OSK page creation, horizontal paging, vertical scroll, edge hold/drop, rename/reorder, saved restart and removal')
         finally:

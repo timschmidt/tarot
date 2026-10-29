@@ -229,6 +229,9 @@ def run(args, password):
             from phone_hardware_replay import replay
             records['hardware_keys'] = replay(socket, pid, screen, guard, tap, state, authenticate,
                                              capture, before, args.output)
+        if getattr(args, 'launcher_pages', False):
+            from phone_launcher_pages_replay import replay as pages_replay
+            records['launcher_pages'] = pages_replay(socket,screen,state,tap,capture,before,args.output,authenticate)
         if getattr(args, 'panel_off', False):
             assert sensor_monitor is not None
             state('sensor-before-panel', lambda s:s['sensors']['available'] and s['sensors']['claimed'])
@@ -458,6 +461,7 @@ def main():
     parser.add_argument('--hardware-keys', action='store_true')
     parser.add_argument('--quick-launch', action='store_true')
     parser.add_argument('--favorite-drag', action='store_true')
+    parser.add_argument('--launcher-pages', action='store_true')
     parser.add_argument('--rounded-cards', action='store_true')
     parser.add_argument('--stack-matrix', action='store_true')
     parser.add_argument('--gtk-close', action='store_true')

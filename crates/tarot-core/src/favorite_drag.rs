@@ -110,6 +110,7 @@ struct Contact {
     finger: (f32, f32),
     pressed: u64,
     active: bool,
+    moved: bool,
     page: crate::launcher::PageId,
     page_target: Option<(crate::launcher::PageId, usize)>,
     edge: Option<(i32, u64)>,
@@ -151,6 +152,7 @@ impl Gesture {
             finger,
             pressed: now,
             active: false,
+            moved: false,
             page: model.launcher.settings.selected,
             page_target: None,
             edge: None,
@@ -184,6 +186,10 @@ impl Gesture {
             {
                 self.cancel();
             } else {
+                c.moved |= (finger.0 - c.start.0)
+                    .abs()
+                    .max((finger.1 - c.start.1).abs())
+                    > crate::design::TAP_SLOP;
                 c.finger = finger;
             }
         }
@@ -191,12 +197,8 @@ impl Gesture {
     pub fn tick(&mut self, now: u64) {
         if let Some(c) = &mut self.contact {
             c.active |= now.saturating_sub(c.pressed) >= crate::design::REORDER_HOLD_MS;
-            let moved = (c.finger.0 - c.start.0)
-                .abs()
-                .max((c.finger.1 - c.start.1).abs())
-                > crate::design::TAP_SLOP;
             let direction = if c.active
-                && moved
+                && c.moved
                 && matches!(c.source, Source::Launcher(_))
                 && c.finger.1 >= Layout::STATUS + 64.0
                 && c.finger.1 < c.scene.size.1 - Layout::GESTURE - crate::design::DOCK - 12.0
@@ -248,8 +250,9 @@ impl Gesture {
         let (x, y) = c.finger;
         // Revealing the tray must not turn a stationary hold on a low launcher
         // row into a drop merely because the tray appeared beneath the finger.
-        let stationary_launcher = matches!(c.source, Source::Launcher(_))
-            && (x - c.start.0).abs().max((y - c.start.1).abs()) <= crate::design::TAP_SLOP;
+        // Returning to the original coordinates after a deliberate move,
+        // including crossing onto another page, is still a moved gesture.
+        let stationary_launcher = matches!(c.source, Source::Launcher(_)) && !c.moved;
         let target = if stationary_launcher {
             None
         } else if matches!(c.source, Source::Dock { .. }) && removal(layout).contains(x, y) {
