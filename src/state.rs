@@ -451,6 +451,16 @@ impl Compositor {
         let system_page = self.shell.system_page;
         let favorites = self.shell.favorites.clone();
         let editing_favorites = self.shell.editing_favorites;
+        let launcher = (
+            self.shell.launcher.settings.clone(),
+            self.shell.launcher.menu_open,
+            self.shell
+                .launcher
+                .rename
+                .as_ref()
+                .map(|r| (r.page, self.shell.launcher.name_epoch)),
+            self.shell.launcher.search_open,
+        );
         let deck: Vec<_> = self
             .shell
             .cards
@@ -461,6 +471,17 @@ impl Compositor {
         if previous != self.shell.view
             || favorites != self.shell.favorites
             || editing_favorites != self.shell.editing_favorites
+            || launcher
+                != (
+                    self.shell.launcher.settings.clone(),
+                    self.shell.launcher.menu_open,
+                    self.shell
+                        .launcher
+                        .rename
+                        .as_ref()
+                        .map(|r| (r.page, self.shell.launcher.name_epoch)),
+                    self.shell.launcher.search_open,
+                )
             || selected != self.shell.selected
             || menu != self.shell.card_menu_open
             || dashboard != self.shell.notifications_open
@@ -676,6 +697,12 @@ impl Compositor {
                 Effect::Favorites(favorites) => {
                     if let Some(server) = &self.preferences {
                         server.handle.favorites(favorites);
+                        self.refresh_preferences_status();
+                    }
+                }
+                Effect::Launcher(settings) => {
+                    if let Some(server) = &self.preferences {
+                        server.handle.launcher(settings);
                         self.refresh_preferences_status();
                     }
                 }

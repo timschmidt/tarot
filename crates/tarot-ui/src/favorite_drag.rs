@@ -19,6 +19,8 @@ struct Hit {
 struct Memory {
     gesture: Gesture,
     hits: Vec<Hit>,
+    targets: Vec<(tarot_core::launcher::PageId, usize, Rect)>,
+    areas: Vec<(tarot_core::launcher::PageId, Rect)>,
     scene: Option<Scene>,
     frame: Option<u64>,
     result: Frame,
@@ -32,6 +34,37 @@ pub(crate) struct Frame {
     pub pending: bool,
     consumed: bool,
     edit: Option<tarot_core::quick_launch::Edit>,
+    page_edit: Option<tarot_core::launcher::Edit>,
+}
+
+fn target(
+    memory: &Memory,
+    pos: Pos2,
+    model: &ShellModel,
+) -> Option<(tarot_core::launcher::PageId, usize)> {
+    let page = memory.gesture.page()?;
+    memory
+        .targets
+        .iter()
+        .rev()
+        .find(|(p, _, r)| *p == page && r.contains(pos))
+        .map(|(p, at, _)| (*p, *at))
+        .or_else(|| {
+            memory
+                .areas
+                .iter()
+                .find(|(p, r)| *p == page && r.contains(pos))
+                .map(|_| {
+                    (
+                        page,
+                        model
+                            .launcher
+                            .settings
+                            .applications(page, &model.applications)
+                            .len(),
+                    )
+                })
+        })
 }
 
 pub(crate) fn begin(ctx: &Context, model: &ShellModel, layout: Layout) -> Frame {
@@ -100,9 +133,13 @@ pub(crate) fn begin(ctx: &Context, model: &ShellModel, layout: Layout) -> Frame 
                         ..
                     } => {
                         memory.gesture.motion((pos.x, pos.y));
+                        memory.gesture.tick(now);
+                        let target = target(&memory, pos, model);
+                        memory.gesture.page_target(target);
                         let release = memory.gesture.release(now, model, layout);
                         result.consumed |= memory.blocked || release.consumed;
                         result.edit = release.edit;
+                        result.page_edit = release.page_edit;
                         memory.blocked = false;
                         memory.pressed_launcher = false;
                     }
@@ -110,6 +147,14 @@ pub(crate) fn begin(ctx: &Context, model: &ShellModel, layout: Layout) -> Frame 
                 }
             }
             memory.gesture.tick(now);
+            if let Some(preview) = memory.gesture.preview(model, layout) {
+                let target = target(
+                    &memory,
+                    Pos2::new(preview.finger.0, preview.finger.1),
+                    model,
+                );
+                memory.gesture.page_target(target);
+            }
             memory.blocked |= memory.gesture.active();
             result.consumed |= memory.blocked;
             result.preview = memory.gesture.preview(model, layout);
@@ -127,10 +172,33 @@ pub(crate) fn begin(ctx: &Context, model: &ShellModel, layout: Layout) -> Frame 
     // Every egui pass replaces the hit map; events and release intents are
     // evaluated once per frame, and the final pass retains the same outcome.
     memory.hits.clear();
+    memory.targets.clear();
+    memory.areas.clear();
     memory.scene = Some(Scene::new(model, layout));
     let result = memory.result.clone();
     ctx.data_mut(|data| data.insert_temp(key(), memory));
     result
+}
+
+pub(crate) fn register_page(
+    ui: &egui::Ui,
+    page: tarot_core::launcher::PageId,
+    at: Option<usize>,
+    rect: Rect,
+) {
+    let rect = rect.intersect(ui.clip_rect());
+    if ui.is_enabled() && rect.is_positive() {
+        ui.ctx().data_mut(|data| {
+            if let Some(mut m) = data.get_temp::<Memory>(key()) {
+                if let Some(at) = at {
+                    m.targets.push((page, at, rect));
+                } else {
+                    m.areas.push((page, rect));
+                }
+                data.insert_temp(key(), m);
+            }
+        });
+    }
 }
 
 pub(crate) fn register(ui: &egui::Ui, source: Source, rect: Rect) {
@@ -160,6 +228,11 @@ pub(crate) fn finish(
         }
         if let Some(edit) = &frame.edit {
             commands.push(Command::Favorite(edit.clone()));
+        }
+        if let Some(edit) = &frame.page_edit {
+            commands.push(Command::LauncherAction(tarot_core::launcher::Action::Edit(
+                edit.clone(),
+            )));
         }
     }
     let Some(preview) = &frame.preview else {
@@ -217,6 +290,8 @@ pub(crate) fn finish(
         Some(Target::Full(_)) => "Quick Launch is full",
         Some(Target::Remove) => "Release to remove favorite",
         Some(Target::Place(_)) => "Release to place favorite",
+        Some(Target::Unavailable(_)) => "This application cannot be a favorite",
+        Some(Target::Page { .. }) => "Release to place application",
         None => "Release outside to cancel",
     };
     let mut at = Pos2::new(layout.width / 2.0, quick_launch_top(layout) - 70.0);
@@ -541,5 +616,51 @@ mod tests {
         let commands = render(&ctx, &m, 0.8, vec![button(target, false)], false);
         assert!(commands.is_empty());
         assert_eq!(m.view, View::Launcher);
+    }
+    #[test]
+    fn actual_icon_hold_edge_pause_and_empty_page_drop_preserve_favorite_identity() {
+        use tarot_core::launcher::{Edit as PageEdit, PageId};
+        let ctx = Context::default();
+        let mut m = model();
+        m.launcher
+            .settings
+            .edit(PageEdit::Create("Work".into()), &m.applications)
+            .unwrap();
+        m.launcher
+            .settings
+            .edit(PageEdit::Select(PageId(1)), &m.applications)
+            .unwrap();
+        let before = m.launcher.settings.clone();
+        let favorites = m.favorites.clone();
+        arm(&ctx, &m);
+        let edge = Pos2::new(350.0, 300.0);
+        render(&ctx, &m, 0.8, vec![egui::Event::PointerMoved(edge)], false);
+        render(&ctx, &m, 1.41, vec![], true);
+        assert_eq!(
+            ctx.data_mut(|d| d.get_temp::<Memory>(key()))
+                .unwrap()
+                .result
+                .preview
+                .unwrap()
+                .page,
+            PageId(2)
+        );
+        assert_eq!(m.launcher.settings, before);
+        let drop = Pos2::new(180.0, 150.0);
+        render(&ctx, &m, 1.5, vec![egui::Event::PointerMoved(drop)], false);
+        let commands = render(&ctx, &m, 1.6, vec![button(drop, false)], true);
+        assert_eq!(commands.len(), 1, "{commands:?}");
+        let effects = m.apply(commands[0].clone());
+        assert!(matches!(effects.as_slice(), [Effect::Launcher(_)]));
+        assert_eq!(
+            m.launcher.settings.applications(PageId(2), &m.applications)[0].id,
+            "app2.desktop"
+        );
+        assert_eq!(m.favorites, favorites);
+        assert!(
+            !render(&ctx, &m, 1.7, vec![], false)
+                .iter()
+                .any(|c| matches!(c, Command::LauncherAction(_) | Command::Launch(_)))
+        );
     }
 }

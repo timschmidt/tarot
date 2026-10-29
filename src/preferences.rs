@@ -30,15 +30,18 @@ pub struct Preferences {
     pub display: tarot_core::display::Preferences,
     #[serde(default)]
     pub quick_launch: Option<tarot_core::quick_launch::Favorites>,
+    #[serde(default)]
+    pub launcher: Option<tarot_core::launcher::Settings>,
 }
 
 impl Default for Preferences {
     fn default() -> Self {
         Self {
-            version: 3,
+            version: 4,
             notifications: Notifications::default(),
             display: tarot_core::display::Preferences::default(),
             quick_launch: None,
+            launcher: None,
         }
     }
 }
@@ -132,32 +135,38 @@ fn read(path: &Path) -> Result<Option<Preferences>> {
     let mut preferences: Preferences = toml::from_str(&text)
         .map_err(|_| anyhow::anyhow!("invalid or unsupported settings schema"))?;
     ensure!(
-        (1..=3).contains(&preferences.version),
+        (1..=4).contains(&preferences.version),
         "unsupported settings version"
     );
-    if preferences.version < 3 {
+    if preferences.version < 4 {
         // Old schemas must not smuggle a later section into a migration.
         let old: toml::Value = toml::from_str(&text)?;
         ensure!(
-            old.get("quick_launch").is_none()
+            old.get("launcher").is_none()
+                && (preferences.version >= 3 || old.get("quick_launch").is_none())
                 && (preferences.version != 1 || old.get("display").is_none()),
             "invalid mixed settings version"
         );
-        preferences.version = 3;
+        preferences.version = 4;
     }
     ensure!(preferences.display.idle.valid(), "invalid display timeouts");
     ensure!(
         preferences.quick_launch.as_ref().is_none_or(|f| f.valid()),
         "invalid Quick Launch favorites"
     );
+    ensure!(
+        preferences.launcher.as_ref().is_none_or(|p| p.valid()),
+        "invalid Launcher pages"
+    );
     Ok(Some(preferences))
 }
 
 fn write(path: &Path, preferences: &Preferences) -> Result<()> {
     ensure!(
-        preferences.version == 3
+        preferences.version == 4
             && preferences.display.idle.valid()
-            && preferences.quick_launch.as_ref().is_none_or(|f| f.valid()),
+            && preferences.quick_launch.as_ref().is_none_or(|f| f.valid())
+            && preferences.launcher.as_ref().is_none_or(|p| p.valid()),
         "invalid settings"
     );
     let parent = path
@@ -179,6 +188,7 @@ fn write(path: &Path, preferences: &Preferences) -> Result<()> {
         _ => {}
     }
     let text = toml::to_string(preferences).context("encoding settings")?;
+    ensure!(text.len() as u64 <= MAX_BYTES, "settings exceed size limit");
     let mut temporary =
         tempfile::NamedTempFile::new_in(parent).context("creating settings transaction")?;
     temporary
@@ -222,6 +232,55 @@ mod tests {
         let loaded = Store::load(path);
         assert_eq!(loaded.current, next);
         assert!(loaded.current.notifications.dnd && loaded.current.display.rotation_locked);
+    }
+
+    #[test]
+    fn version_three_migrates_lazily_and_pages_round_trip_with_other_sections() {
+        use tarot_core::launcher::{Edit, PageId, Settings};
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("settings.toml");
+        let original = "version = 3\n[notifications]\ndnd = true\n[quick_launch]\napplications = ['org.example.First.desktop']\n";
+        fs::write(&path, original).unwrap();
+        let mut store = Store::load(path.clone());
+        assert!(store.saved && store.current.launcher.is_none());
+        assert_eq!(fs::read_to_string(&path).unwrap(), original);
+        let mut pages = Settings::default();
+        pages
+            .edit(Edit::Create("Work \"and\" play".into()), &[])
+            .unwrap();
+        pages
+            .edit(
+                Edit::Reorder {
+                    page: PageId(2),
+                    at: 0,
+                },
+                &[],
+            )
+            .unwrap();
+        let mut next = store.current.clone();
+        next.launcher = Some(pages.clone());
+        store.replace(next.clone());
+        assert!(store.saved, "{:?}", store.error);
+        let loaded = Store::load(path.clone());
+        assert_eq!(loaded.current, next);
+        assert_eq!(loaded.current.launcher, Some(pages));
+        assert!(loaded.current.notifications.dnd);
+        assert_eq!(
+            fs::metadata(&path).unwrap().permissions().mode() & 0o777,
+            0o600
+        );
+        let saved = fs::read_to_string(&path).unwrap();
+        for invalid in [
+            saved.replacen("version = 4", "version = 3", 1),
+            saved.replacen("inbox = 1", "inbox = 999", 1),
+        ] {
+            assert_ne!(invalid, saved);
+            fs::write(&path, &invalid).unwrap();
+            let mut bad = Store::load(path.clone());
+            assert!(bad.error.is_some());
+            bad.update(Notifications::default());
+            assert_eq!(fs::read_to_string(&path).unwrap(), invalid);
+        }
     }
 
     impl Store {
@@ -288,7 +347,7 @@ mod tests {
         fs::write(&path, original).unwrap();
         let mut store = Store::load(path.clone());
         assert!(store.saved && store.current.notifications.dnd);
-        assert_eq!(store.current.version, 3);
+        assert_eq!(store.current.version, 4);
         assert_eq!(fs::read_to_string(&path).unwrap(), original);
         let mut next = store.current.clone();
         next.display.rotation_locked = true;
@@ -312,7 +371,7 @@ mod tests {
         let path = directory.path().join("settings.toml");
         for text in [
             "broken TOML".to_string(),
-            "version = 4\n".into(),
+            "version = 5\n".into(),
             "version = 1\nunknown = true\n".into(),
             "version = 1\n[display]\nrotation_locked = true\n".into(),
             "version = 2\n[display.idle]\nlock_after_seconds = 0\n".into(),

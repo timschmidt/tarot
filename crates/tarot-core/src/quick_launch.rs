@@ -4,6 +4,15 @@ use serde::{Deserialize, Serialize};
 
 pub const CAPACITY: usize = 4;
 
+pub fn valid_id(id: &str) -> bool {
+    !id.is_empty()
+        && id.len() <= 255
+        && id.ends_with(".desktop")
+        && !id
+            .chars()
+            .any(|c| c.is_control() || matches!(c, '/' | '\\'))
+}
+
 #[derive(Clone, Debug, Default, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Favorites {
@@ -22,15 +31,11 @@ pub enum Edit {
 impl Favorites {
     pub fn valid(&self) -> bool {
         self.applications.len() <= CAPACITY
-            && self.applications.iter().enumerate().all(|(i, id)| {
-                !id.is_empty()
-                    && id.len() <= 255
-                    && id.ends_with(".desktop")
-                    && !id
-                        .chars()
-                        .any(|c| c.is_control() || matches!(c, '/' | '\\'))
-                    && !self.applications[..i].contains(id)
-            })
+            && self
+                .applications
+                .iter()
+                .enumerate()
+                .all(|(i, id)| valid_id(id) && !self.applications[..i].contains(id))
     }
 
     pub fn initial(catalog: &[Application]) -> Self {

@@ -117,6 +117,16 @@ impl Compositor {
                             {
                                 Some(Command::BrowseCards(1))
                             }
+                            keysyms::KEY_Escape
+                                if state.shell.view == View::Launcher
+                                    && (state.shell.launcher.menu_open
+                                        || state.shell.launcher.search_open
+                                        || state.shell.launcher.rename.is_some()) =>
+                            {
+                                Some(Command::LauncherAction(
+                                    tarot_core::launcher::Action::Dismiss,
+                                ))
+                            }
                             keysyms::KEY_Escape if !matches!(state.shell.view, View::App(_)) => {
                                 Some(Command::Home)
                             }

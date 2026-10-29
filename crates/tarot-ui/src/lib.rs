@@ -3,6 +3,8 @@ pub mod audio;
 pub mod credentials;
 mod favorite_drag;
 pub mod keyboard;
+mod launcher;
+mod launcher_paging;
 pub mod lock_recovery;
 pub mod native_text;
 pub mod notifications;
@@ -95,9 +97,16 @@ pub fn show_with_native_fullscreen(
     theme::prepare_art(ctx);
     let mut commands = Vec::new();
     let favorite_frame = favorite_drag::begin(ctx, model, layout);
+    let paging_frame = launcher_paging::begin(
+        ctx,
+        model,
+        layout,
+        favorite_frame.preview.is_some(),
+        presentation.overview <= 0.001 && presentation.windows.iter().all(|w| w.opacity <= 0.001),
+    );
     let mut search_focused = false;
-    let search_id = egui::Id::new("launcher_search");
-    let modal = model.system_menu_open || model.notifications_open;
+    let search_id = launcher::text_id(model);
+    let modal = model.system_menu_open || model.notifications_open || model.launcher.menu_open;
     if modal {
         ctx.memory_mut(|memory| memory.surrender_focus(search_id));
     }
@@ -173,6 +182,28 @@ pub fn show_with_native_fullscreen(
                     FontId::proportional(11.0),
                     Color32::from_gray(185),
                 );
+                if model.view == View::Launcher {
+                    let menu = Rect::from_min_size(Pos2::ZERO, Vec2::new(110.0, Layout::STATUS));
+                    if ui
+                        .interact(menu, ui.id().with("launcher-menu"), Sense::click())
+                        .on_hover_text("Launcher menu")
+                        .clicked()
+                    {
+                        commands.push(Command::LauncherAction(tarot_core::launcher::Action::Menu(
+                            !model.launcher.menu_open,
+                        )));
+                    }
+                    let center = Pos2::new(84.0, Layout::STATUS / 2.0);
+                    painter.add(egui::Shape::convex_polygon(
+                        vec![
+                            center + Vec2::new(-3.0, -2.0),
+                            center + Vec2::new(3.0, -2.0),
+                            center + Vec2::new(0.0, 2.0),
+                        ],
+                        Color32::WHITE,
+                        Stroke::NONE,
+                    ));
+                }
                 let status_button = Rect::from_min_size(
                     Pos2::new(layout.width - 104.0, 0.0),
                     Vec2::new(104.0, Layout::STATUS),
@@ -194,12 +225,13 @@ pub fn show_with_native_fullscreen(
                             if modal {
                                 ui.disable();
                             }
-                            show_launcher(
+                            launcher::show(
                                 ui,
                                 &painter,
                                 model,
                                 layout,
-                                favorite_frame.preview.as_ref().map(|p| p.source.id()),
+                                favorite_frame.preview.as_ref(),
+                                &paging_frame,
                                 &mut commands,
                             )
                         })
@@ -289,7 +321,11 @@ pub fn show_with_native_fullscreen(
         ctx.memory_mut(|memory| memory.request_focus(search_id));
         search_focused = true;
     }
-    if model.view == View::Launcher && model.shell_text_focus && favorite_frame.preview.is_none() {
+    if model.view == View::Launcher
+        && model.shell_text_focus
+        && favorite_frame.preview.is_none()
+        && !modal
+    {
         let keyboard_id = egui::Id::new("shell_keyboard_state");
         let mut keyboard = ctx
             .data_mut(|data| data.get_temp::<keyboard::KeyboardUi>(keyboard_id))
@@ -315,8 +351,16 @@ pub fn show_with_native_fullscreen(
                     });
             });
         ctx.data_mut(|data| data.insert_temp(keyboard_id, keyboard));
-        let hide =
-            actions.contains(&keyboard::Action::Hide) || actions.contains(&keyboard::Action::Enter);
+        let accept_name =
+            actions.contains(&keyboard::Action::Enter) && model.launcher.rename.is_some();
+        if accept_name {
+            commands.push(Command::LauncherAction(
+                tarot_core::launcher::Action::AcceptName,
+            ));
+            search_focused = true;
+        }
+        let hide = actions.contains(&keyboard::Action::Hide)
+            || (actions.contains(&keyboard::Action::Enter) && !accept_name);
         if hide {
             search_focused = false;
             ctx.memory_mut(|memory| memory.surrender_focus(search_id));
@@ -345,6 +389,9 @@ pub fn show_with_native_fullscreen(
     }
     system::show(ctx, model, layout, &mut commands);
     credentials::keyboard(ctx, model, layout, &mut commands);
+    if model.view == View::Launcher && !model.system_menu_open && !model.notifications_open {
+        launcher::menu(ctx, model, layout, &mut commands);
+    }
     if model.view != View::Launcher {
         quick_launch::launch_feedback(ctx, model, layout, &mut commands);
     }
@@ -365,6 +412,7 @@ pub fn show_with_native_fullscreen(
         audio::show_key_feedback(ctx, feedback, layout);
     }
     favorite_drag::finish(ctx, &favorite_frame, model, layout, &mut commands);
+    launcher_paging::finish(&paging_frame, &mut commands);
     commands
 }
 
@@ -685,258 +733,6 @@ fn show_cards(
     }
 }
 
-fn show_launcher(
-    ui: &mut egui::Ui,
-    painter: &egui::Painter,
-    model: &ShellModel,
-    layout: Layout,
-    dragged_app: Option<&str>,
-    commands: &mut Vec<Command>,
-) -> bool {
-    let compact = model.shell_text_focus && layout.height < 480.0;
-    if !compact {
-        painter.text(
-            Pos2::new(20.0, 67.0),
-            Align2::LEFT_CENTER,
-            if model.editing_favorites {
-                "Quick Launch"
-            } else {
-                "Applications"
-            },
-            FontId::proportional(22.0),
-            Color32::WHITE,
-        );
-    }
-    if ui
-        .put(
-            Rect::from_min_size(
-                Pos2::new(layout.width - 124.0, if compact { 36.0 } else { 43.0 }),
-                Vec2::new(108.0, if compact { 44.0 } else { 48.0 }),
-            ),
-            egui::Button::new(if model.editing_favorites {
-                "Done"
-            } else {
-                "Quick Launch"
-            }),
-        )
-        .clicked()
-    {
-        commands.push(Command::EditFavorites(!model.editing_favorites));
-    }
-    if model.editing_favorites {
-        quick_launch::editor(ui, model, layout, commands);
-        return false;
-    }
-    let search = if compact {
-        Rect::from_min_size(Pos2::new(20.0, 36.0), Vec2::new(layout.width - 164.0, 44.0))
-    } else {
-        Rect::from_min_size(Pos2::new(20.0, 96.0), Vec2::new(layout.width - 40.0, 40.0))
-    };
-    let mut query = model.launcher_query.clone();
-    let response = ui.put(
-        search,
-        egui::TextEdit::singleline(&mut query)
-            .id(egui::Id::new("launcher_search"))
-            .hint_text("Search applications"),
-    );
-    let focused = response.has_focus();
-    if response.changed() {
-        commands.push(Command::SearchApplications(query.clone()));
-    }
-    let words: Vec<_> = query.split_whitespace().map(str::to_lowercase).collect();
-    let apps: Vec<_> = model
-        .applications
-        .iter()
-        .filter(|app| {
-            let haystack = format!(
-                "{} {} {}",
-                app.name,
-                app.description,
-                app.keywords.join(" ")
-            )
-            .to_lowercase();
-            words.iter().all(|word| haystack.contains(word))
-        })
-        .collect();
-    let bottom = if model.shell_text_focus {
-        layout.keyboard().y - if compact { 4.0 } else { 12.0 }
-    } else {
-        layout.gesture().y - 12.0
-    };
-    let feedback_height = if model.launch_feedback.is_some() {
-        60.0
-    } else {
-        0.0
-    };
-    let grid_top: f32 = if compact { 84.0 } else { 154.0 };
-    let bounds = Rect::from_min_max(
-        Pos2::new(16.0, grid_top),
-        Pos2::new(
-            layout.width - 16.0,
-            (bottom - feedback_height).max(grid_top),
-        ),
-    );
-    if bounds.height() >= 44.0 {
-        let mut child = ui.new_child(egui::UiBuilder::new().max_rect(bounds));
-        child.spacing_mut().item_spacing.y = 10.0;
-        let row_height = if compact { 56.0 } else { 104.0 };
-        egui::ScrollArea::vertical()
-            .id_salt("installed_apps")
-            .scroll_source(egui::scroll_area::ScrollSource {
-                drag: dragged_app.is_none(),
-                ..Default::default()
-            })
-            .max_height(bounds.height())
-            .show_rows(
-                &mut child,
-                row_height,
-                apps.len().div_ceil(3).max(1),
-                |ui, rows| {
-                    if apps.is_empty() {
-                        ui.label(if model.applications.is_empty() {
-                            "No installed applications found"
-                        } else {
-                            "No matching applications"
-                        });
-                    }
-                    let width = (bounds.width() - 24.0) / 3.0;
-                    egui::Grid::new("application_grid")
-                        .num_columns(3)
-                        .spacing(Vec2::new(8.0, 10.0))
-                        .show(ui, |ui| {
-                            for (index, app) in apps
-                                .iter()
-                                .enumerate()
-                                .skip(rows.start * 3)
-                                .take(rows.len() * 3)
-                            {
-                                let response = ui
-                                    .push_id(&app.id, |ui| {
-                                        ui.add_sized(
-                                            Vec2::new(width, row_height),
-                                            egui::Button::new("").frame(false),
-                                        )
-                                    })
-                                    .inner;
-                                response.widget_info(|| {
-                                    egui::WidgetInfo::labeled(
-                                        egui::WidgetType::Button,
-                                        true,
-                                        format!("Open {}", app.name),
-                                    )
-                                });
-                                let center = Pos2::new(
-                                    response.rect.center().x,
-                                    response.rect.top() + if compact { 16.0 } else { 28.0 },
-                                );
-                                favorite_drag::register(
-                                    ui,
-                                    tarot_core::favorite_drag::Source::Launcher(app.id.clone()),
-                                    response.rect,
-                                );
-                                let opacity = if dragged_app == Some(app.id.as_str()) {
-                                    0.3
-                                } else {
-                                    1.0
-                                };
-                                let hue = app.id.bytes().fold(0u8, u8::wrapping_add);
-                                let color = if app.unavailable.is_some() {
-                                    Color32::from_gray(80)
-                                } else {
-                                    Color32::from_rgb(55 + hue % 80, 100 + hue % 90, 110 + hue % 75)
-                                };
-                                if !theme::paint_icon(
-                                    ui.ctx(),
-                                    ui.painter(),
-                                    &app.id,
-                                    false,
-                                    Rect::from_center_size(
-                                        center,
-                                        Vec2::splat(if compact {
-                                            28.0
-                                        } else {
-                                            tarot_core::design::LAUNCHER_ICON
-                                        }),
-                                    ),
-                                    if app.unavailable.is_some() {
-                                        Color32::from_gray(110)
-                                    } else {
-                                        Color32::WHITE.gamma_multiply(opacity)
-                                    },
-                                    model.calendar_day,
-                                ) {
-                                    ui.painter().circle_filled(
-                                        center,
-                                        if compact { 14.0 } else { 24.0 },
-                                        color.gamma_multiply(opacity),
-                                    );
-                                    let initial = app
-                                        .name
-                                        .chars()
-                                        .next()
-                                        .unwrap_or('?')
-                                        .to_uppercase()
-                                        .to_string();
-                                    ui.painter().text(
-                                        center,
-                                        Align2::CENTER_CENTER,
-                                        initial,
-                                        FontId::proportional(if compact { 18.0 } else { 25.0 }),
-                                        Color32::WHITE.gamma_multiply(opacity),
-                                    );
-                                }
-                                let label = ui.painter().layout(
-                                    app.name.clone(),
-                                    FontId::proportional(14.0),
-                                    Color32::WHITE.gamma_multiply(opacity),
-                                    width - 4.0,
-                                );
-                                let label_x = response.rect.center().x - label.size().x / 2.0;
-                                ui.painter().with_clip_rect(response.rect).galley(
-                                    Pos2::new(
-                                        label_x,
-                                        response.rect.top() + if compact { 34.0 } else { 60.0 },
-                                    ),
-                                    label,
-                                    Color32::WHITE,
-                                );
-                                if response.clicked() {
-                                    commands.push(Command::Launch(app.id.clone()));
-                                }
-                                response.on_hover_text(
-                                    app.unavailable.as_deref().unwrap_or(&app.description),
-                                );
-                                if index % 3 == 2 {
-                                    ui.end_row();
-                                }
-                            }
-                        });
-                },
-            );
-    }
-    if let Some(feedback) = &model.launch_feedback {
-        let rect = Rect::from_min_size(
-            Pos2::new(20.0, bottom - 54.0),
-            Vec2::new(layout.width - 40.0, 50.0),
-        );
-        painter.rect_filled(rect, 8.0, Color32::from_black_alpha(180));
-        let text = Rect::from_min_max(rect.min + Vec2::splat(8.0), rect.max - Vec2::new(44.0, 4.0));
-        ui.put(text, egui::Label::new(&feedback.message).wrap());
-        let close = Rect::from_min_size(
-            Pos2::new(rect.right() - 44.0, rect.top() + 3.0),
-            Vec2::splat(44.0),
-        );
-        if ui
-            .put(close, egui::Button::new("×").frame(false))
-            .on_hover_text("Dismiss message")
-            .clicked()
-        {
-            commands.push(Command::DismissLaunchFeedback);
-        }
-    }
-    focused
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -957,7 +753,11 @@ mod tests {
             model.apply(c);
         }
         assert_eq!(model.view, View::Launcher);
-        for c in click(&ctx, &model, Pos2::new(285.0, 67.0)) {
+        for c in click(&ctx, &model, Pos2::new(40.0, 16.0)) {
+            model.apply(c);
+        }
+        assert!(model.launcher.menu_open);
+        for c in click_text(&ctx, &model, "Quick Launch favorites") {
             model.apply(c);
         }
         assert!(model.editing_favorites);
@@ -972,9 +772,7 @@ mod tests {
         let ctx = egui::Context::default();
         let mut model = ShellModel::default();
         model.apply(Command::Launcher);
-        for c in click(&ctx, &model, Pos2::new(80.0, 116.0)) {
-            model.apply(c);
-        }
+        open_search(&ctx, &mut model);
         assert!(model.shell_text_focus);
         for c in frame(
             &ctx,
@@ -1071,6 +869,133 @@ mod tests {
 
     fn click_text(ctx: &egui::Context, model: &ShellModel, label: &str) -> Vec<Command> {
         click(ctx, model, text_position(ctx, model, label))
+    }
+
+    fn open_search(ctx: &egui::Context, model: &mut ShellModel) {
+        for command in click(ctx, model, Pos2::new(40.0, 16.0)) {
+            model.apply(command);
+        }
+        assert!(model.launcher.menu_open);
+        for command in click_text(ctx, model, "Search applications") {
+            model.apply(command);
+        }
+        assert!(model.launcher.search_open && model.shell_text_focus);
+    }
+
+    #[test]
+    fn launcher_menu_creates_and_renames_pages_through_the_real_text_field() {
+        use tarot_core::launcher::{Action, Edit};
+        let ctx = egui::Context::default();
+        let mut model = ShellModel::default();
+        model.apply(Command::Launcher);
+        let favorites = model.favorites.clone();
+        for c in click(&ctx, &model, Pos2::new(40.0, 16.0)) {
+            model.apply(c);
+        }
+        for c in click_text(&ctx, &model, "New page") {
+            model.apply(c);
+        }
+        assert!(model.launcher.rename.is_some() && model.shell_text_focus);
+        frame(&ctx, &model, vec![]);
+        for c in frame(&ctx, &model, vec![egui::Event::Text("Work".into())]) {
+            model.apply(c);
+        }
+        assert_eq!(model.launcher.rename.as_ref().unwrap().text, "Work");
+        let mut effects = vec![];
+        for c in click(&ctx, &model, Pos2::new(260.0, 186.0)) {
+            effects.extend(model.apply(c));
+        }
+        assert!(
+            matches!(effects.as_slice(), [tarot_core::Effect::Launcher(_)]),
+            "{effects:?}"
+        );
+        let page = model.launcher.settings.selected;
+        assert_eq!(model.launcher.settings.page(page).unwrap().name, "Work");
+        assert!(model.launcher.rename.is_none() && !model.shell_text_focus);
+        let saved = model.launcher.settings.clone();
+        model.apply(Command::LauncherAction(Action::BeginName(Some(page))));
+        frame(&ctx, &model, vec![]);
+        frame(&ctx, &model, vec![]);
+        for c in frame(&ctx, &model, vec![egui::Event::Text("Personal".into())]) {
+            model.apply(c);
+        }
+        assert_eq!(model.launcher.rename.as_ref().unwrap().text, "Personal");
+        for c in click(&ctx, &model, Pos2::new(90.0, 186.0)) {
+            model.apply(c);
+        }
+        assert_eq!(model.launcher.settings, saved);
+        model.apply(Command::LauncherAction(Action::BeginName(Some(page))));
+        frame(&ctx, &model, vec![]);
+        frame(&ctx, &model, vec![]);
+        for c in frame(&ctx, &model, vec![egui::Event::Text("Personal".into())]) {
+            model.apply(c);
+        }
+        for c in frame(
+            &ctx,
+            &model,
+            vec![egui::Event::Key {
+                key: egui::Key::Enter,
+                physical_key: None,
+                pressed: true,
+                repeat: false,
+                modifiers: egui::Modifiers::NONE,
+            }],
+        ) {
+            model.apply(c);
+        }
+        assert_eq!(model.launcher.settings.page(page).unwrap().name, "Personal");
+        assert_eq!(model.favorites, favorites);
+        assert!(
+            model
+                .apply(Command::LauncherAction(Action::Edit(Edit::Select(page))))
+                .is_empty()
+        );
+    }
+
+    #[test]
+    fn reopening_a_launcher_menu_after_page_creation_expands_its_visible_viewport() {
+        use tarot_core::launcher::{Action, Edit};
+        let ctx = egui::Context::default();
+        let mut model = ShellModel::default();
+        model.apply(Command::Launcher);
+        model.apply(Command::LauncherAction(Action::Menu(true)));
+        for _ in 0..3 {
+            frame(&ctx, &model, vec![]);
+        }
+        model.apply(Command::LauncherAction(Action::Edit(Edit::Create(
+            "Work".into(),
+        ))));
+        model.apply(Command::LauncherAction(Action::Menu(true)));
+        let mut visible = false;
+        for _ in 0..3 {
+            let output = ctx.run(
+                egui::RawInput {
+                    screen_rect: Some(Rect::from_min_size(Pos2::ZERO, Vec2::new(360.0, 720.0))),
+                    ..Default::default()
+                },
+                |ctx| {
+                    show(
+                        ctx,
+                        &model,
+                        Layout {
+                            width: 360.0,
+                            height: 720.0,
+                            keyboard_height: 0.0,
+                        },
+                    );
+                },
+            );
+            visible = output.shapes.iter().any(|clipped| match &clipped.shape {
+                egui::Shape::Text(text) if text.galley.job.text == "Work" => clipped
+                    .clip_rect
+                    .contains(text.pos + text.galley.size() * 0.5),
+                _ => false,
+            });
+        }
+        assert!(
+            visible,
+            "The new page must be painted inside the menu scroll viewport"
+        );
     }
 
     #[test]
@@ -1285,9 +1210,8 @@ mod tests {
         let ctx = egui::Context::default();
         let mut model = ShellModel::default();
         model.apply(Command::Launcher);
-        let focus = click(&ctx, &model, Pos2::new(100.0, 115.0));
-        assert!(focus.contains(&Command::ShellTextFocus(true)), "{focus:?}");
-        model.apply(Command::ShellTextFocus(true));
+        open_search(&ctx, &mut model);
+        assert!(model.shell_text_focus && model.launcher.search_open);
         let keys = click(&ctx, &model, Pos2::new(21.0, 504.0));
         assert_eq!(
             keys,
@@ -1308,9 +1232,11 @@ mod tests {
         );
         model.apply(Command::ShellTextFocus(false));
         assert!(!frame(&ctx, &model, Vec::new()).contains(&Command::ShellTextFocus(true)));
-        assert!(
-            click(&ctx, &model, Pos2::new(100.0, 115.0)).contains(&Command::ShellTextFocus(true))
-        );
+        let reopened = click(&ctx, &model, Pos2::new(100.0, 115.0));
+        assert!(reopened.contains(&Command::ShellTextFocus(true)));
+        for command in reopened {
+            model.apply(command);
+        }
         let typed = frame(&ctx, &model, vec![egui::Event::Text("calc".into())]);
         assert!(
             typed.contains(&Command::SearchApplications("qcalc".into())),

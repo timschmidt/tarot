@@ -40,8 +40,12 @@ def replay(control,screen,state,tap,capture,before,out,authenticate):
         return s
     def launcher(label):
         request(control,'launcher')
-        return state('favorite-'+label,lambda s:s['view']=='Launcher' and not s['editing_favorites']
+        state('favorite-'+label,lambda s:s['view']=='Launcher' and not s['editing_favorites']
             and s['presentation']['overview']==0 and all(w['opacity']==0 for w in s['presentation']['windows']))
+        down((40,16));screen.up()
+        state('favorite-'+label+'-menu',lambda s:s['launcher']['menu_open'])
+        down((160,60));screen.up()
+        return state('favorite-'+label+'-search-open',lambda s:s['launcher']['search_open'] and s['shell_text_focus'])
     def overview(label):
         request(control,'overview')
         return state('favorite-'+label,lambda s:s['view']=='Overview' and s['presentation']['overview']==1 and s['presentation']['dock']==1)
@@ -68,7 +72,7 @@ def replay(control,screen,state,tap,capture,before,out,authenticate):
         apps=[a for a in apps if all(word in (' '.join([a['name'],a['description'],*a['keywords']])).casefold() for word in words)]
         index=[a['id'] for a in apps].index(app_id);s=status();width,height=size(s)
         compact=s['shell_text_focus'] and height<480
-        tile=(width-32-24)/3;point=(16+(index%3)*(tile+8)+tile/2,(100 if compact else 182)+(index//3)*(66 if compact else 114))
+        tile=(width-32-24)/3;point=(16+(index%3)*(tile+8)+tile/2,(100 if compact else 182)+(index//3)*(80 if compact else 112))
         assert point[1]<height-36 and index<6,(app_id,index,query)
         return point
     def slot(index):

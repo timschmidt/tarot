@@ -316,7 +316,7 @@ TAROT_SOFTWARE_RENDERER=1 ./scripts/run-nested.sh \
 
 The keyboard appears when a native text field enables text-input. Its 240-logical-pixel surface sits above the 28-pixel gesture strip. Tarot configures the app to use the remaining area and clips keyboard drawing to its reserved rectangle. Taps go to the keyboard's surface without moving the application's keyboard focus. Hide dismisses it; the strip's Keyboard button reopens it on the same active field. Letters and symbols use atomic text-input commits; Backspace uses UTF-8 surrounding selection or previous grapheme boundaries, with a restricted virtual key when surrounding context is unavailable. Enter uses a virtual key press/release. Shift, two symbol pages, a numeric layout and a private-entry presentation are implemented. The `#+=` key switches to additional punctuation; `123` returns to the first symbol page and `ABC` returns to letters. Together with Space and letter case, the shared keyboard covers all 95 printable ASCII characters. A pointer-driven private-entry test exercises every character through the actual widgets. The ordinary egui fixture now verifies password-purpose presentation and Backspace without surrounding text; numeric/PIN and broader private-field/toolkit behavior remain unverified.
 
-Launcher search uses the same key view inside Tarot's shell scene. Tap the search field to edit, then type and tap a filtered application tile. Hide or Enter retains the query and restores the results area; tapping search resumes editing. Shell text does not pass through the native input-method process.
+Launcher search uses the same key view inside Tarot's shell scene. In the current source, open the top-left Launcher menu and choose Search applications, then type and tap a filtered application tile. The installed revision-32 checkpoint still has an always-visible search field. Hide or Enter retains the query and restores the results area; tapping search resumes editing. Shell text does not pass through the native input-method process.
 
 For the phone, stage both release binaries in `~/tarot-dev/bin`, the latest `text-probe` fixture there, and `phone_keyboard_replay.py` plus `phone_gesture_replay.py` in `~/tarot-dev/`. Use the bounded harness with `TAROT_KEYBOARD=1` instead of `TAROT_TEXT_PROBE=1`:
 
@@ -468,6 +468,17 @@ python3 phone_audio_replay.py --output artifacts/audio-phone
 
 The root QA process runs every sound-server command as UID 10000. The startup client may still be preparing its first buffer when the status menu opens; mapping must preserve that modal. It tests actual UI touches, compares libpulse server state independently with `pactl`, adds/removes only one temporary null sink for default selection, and restores the exact original channel volumes, mute and default. It also checks that the modal cannot type into an underlying native field and restores typing afterward. This replay does not play or record sound and does not establish acoustic speaker, microphone, headset or call-audio behavior. Copy the replay plus the shared `phone_gesture_replay.py` and `notification_replay.py` helpers; keep earlier failures separate from final passing evidence.
 
+## Named Launcher pages
+
+The [page contract](LAUNCHER_PAGES.md) describes identity, lazy schema migration, gesture ownership and native acceptance still required. The source/desktop replay uses a private display and temporary app catalog/preferences:
+
+```sh
+cargo build --offline --locked --workspace --bins --examples
+python3 tests/launcher_pages_replay.py --output /absolute/new/launcher-pages-evidence --xvfb /path/to/Xvfb
+```
+
+It uses actual menu/keyboard controls and pointer input, checks cross-page placement without premature persistence, and restarts to verify names/order/identity. Preserve original phone settings bytes and mode for native testing; the older installed binary must not rewrite the new schema.
+
 ## Quick Launch
 
 The local Quick Launch candidate has a separate isolated replay:
@@ -477,7 +488,7 @@ cargo build --offline --locked --workspace --bins --examples
 python3 tests/quick_launch_replay.py --output /absolute/new/quick-launch-evidence --xvfb /path/to/Xvfb
 ```
 
-It supplies its own display, catalog and config file, exercises real native app/keyboard clients and actual favorite editing, then restarts to check persistence. Captures contain synthetic fixture content only. It does not establish phone KMS/PAM results. Favorites use schema version 3; old versions migrate lazily, but revision 9 cannot load the new schema. Keep rollback/schema acceptance separate from the earlier retained-package test. Read the [current checkpoint](IMPLEMENTATION_STATUS.md#quick-launch-development-checkpoint) before treating local results as installed behavior.
+It supplies its own display, catalog and config file, exercises real native app/keyboard clients and actual favorite editing, then restarts to check persistence. Captures contain synthetic fixture content only. It does not establish phone KMS/PAM results. The accepted revision-32 package uses schema 3. Current Launcher-page sources write schema 4; old versions migrate lazily. Revision 32 cannot read schema 4. Keep rollback/schema acceptance separate from the earlier retained-package test. Read the [current checkpoint](IMPLEMENTATION_STATUS.md#quick-launch-development-checkpoint) before treating local results as installed behavior.
 
 [Favorite hold-and-drag organization](FAVORITE_DRAG.md) has a separate replay at portrait scales 1/2 and landscape scale 2:
 

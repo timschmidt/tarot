@@ -120,7 +120,7 @@ def main():
         assert launcher['calendar_day']==datetime.datetime.now().day
         capture('launcher-live-calendar')
         # Editor uses real UI presses; reordered identities, not labels, persist.
-        click(285,67);state('editor-open',lambda s:s['editing_favorites'])
+        click(40,16);state('editor-menu',lambda s:s['launcher']['menu_open']);click(160,160);state('editor-open',lambda s:s['editing_favorites'])
         capture('editor-before')
         click(165,259);state('second-favorite-added',lambda s:s['favorites']['applications']==[app_id,'test.beta.desktop'])
         click(208,225);state('favorite-reordered',lambda s:s['favorites']['applications']==['test.beta.desktop',app_id])
@@ -135,7 +135,7 @@ def main():
         state('launch-message-dismissed',lambda s:s['launch_feedback'] is None)
         assert count()==buttons
         wave(320,610);mouse.button(False);state('launcher-after-failure',lambda s:s['view']=='Launcher')
-        click(285,67);state('editor-again',lambda s:s['editing_favorites'])
+        click(40,16);state('editor-menu-again',lambda s:s['launcher']['menu_open']);click(160,160);state('editor-again',lambda s:s['editing_favorites'])
         click(320,174);state('favorite-removed',lambda s:s['favorites']['applications']==[app_id])
         click(285,67);state('editor-done',lambda s:not s['editing_favorites'])
         saved=await_value(config.read_text,lambda text:'org.tarot.InputProbe.desktop' in text and 'test.beta.desktop' not in text)
@@ -158,7 +158,7 @@ def main():
             return [json.loads(line) for line in text_report.read_bytes().split(b'\n')[:-1] if line]
         await_value(text_events,lambda es:any(e['event']=='applied' and e['text']=='hello q' for e in es))
         request(control,'launcher');state('launcher-before-search',lambda s:s['view']=='Launcher')
-        click(80,116);state('search-focused',lambda s:s['shell_text_focus'])
+        click(40,16);state('search-menu',lambda s:s['launcher']['menu_open']);click(160,60);state('search-focused',lambda s:s['shell_text_focus'])
         wave(320,610);capture('wave-over-shell-keyboard');mouse.button(False)
         state('search-focus-after-wave',lambda s:s['view']=='Launcher' and s['shell_text_focus'] and s['presentation']['quick_launch'] is None)
         mouse.close();mouse=None;request(control,'exit');assert session.wait(timeout=5)==0

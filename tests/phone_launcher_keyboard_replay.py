@@ -56,7 +56,12 @@ def main():
     time.sleep(.4)
     screen = Touchscreen(guard)
     try:
-        tap(100, 116)
+        tap(40, 16)
+        for _ in range(100):
+            if request(args.socket,'status')['launcher']['menu_open']:break
+            time.sleep(.02)
+        else:raise AssertionError('Launcher menu did not open')
+        tap(160, 60)
         focused = await_state("search-focused", keyboard_visible=True, shell_text_focus=True, launcher_query="", view="Launcher")
         assert focused["app_area"]["height"] == 424
         capture("launcher-keyboard-open")

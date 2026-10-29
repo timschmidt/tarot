@@ -1,6 +1,6 @@
 # Tarot implementation status
 
-Updated October 28, 2026 in Detroit. The active objective is the complete development plan. No full milestone is claimed complete yet.
+Updated October 29, 2026 in Detroit. The active objective is the complete development plan. No full milestone is claimed complete yet.
 
 ## Current gate audit
 
@@ -14,6 +14,14 @@ The installed and last accepted complete scoped native checkpoint is revision 32
 | M3 device session | Installed unprivileged PAM session, rotation, persistent policy, revision 9 power/volume and protected panel wake, earlier revision-specific ten-login/twenty-suspend passes, crash cleanup and Phosh recovery | Broader wake/endurance on current binaries, matched sustained measurements and broader update/schema-rollback coverage |
 
 M4–M6 remain incomplete, including service/permission agents, visual/accessibility refinement, authentication-failure policy, phone applications, carrier tests and release/soak gates. No active SIM is available. The new read-only resource sampler has three passing host accounting tests and a short native Phosh smoke pass; matched five-minute measurements remain pending. [Full criteria](DEVELOPMENT_PLAN.md#milestone-sequence) · [Application matrix](APPLICATION_COMPATIBILITY.md) · [Sampler procedure](BUILDING.md#read-only-resource-sampling)
+
+## Launcher pages source/desktop checkpoint
+
+The source now implements named persistent Launcher pages, a top-left menu for search/favorite editing/page management, create/rename/reorder/removal, independent page scrolling, horizontal finger-following paging and hold/edge-dwell icon placement. Page identities and desktop identities survive catalog changes and temporary app removal; Quick Launch references stay independent. Version-4 preferences migrate existing schemas lazily and merge all sections on the existing worker. Name drafts and edge previews do not persist.
+
+All 176 workspace tests pass on current Rust and Rust 1.89. Strict host/AArch64 checks and minimum-compiler phone-target checking pass. A real private-display/GLES replay passes menu/OSK creation, page/scroll ownership, cross-page icon movement, rename/reorder, saved restart and removal. Existing favorite-drag replays pass in portrait and landscape; Quick Launch passes with native app/typing, shell search focus and restart. The replay exposed and fixed a retained-menu-height clipping bug; original failed attempts remain in ignored artifacts.
+
+The recipe advances to revision 33, but no revision-33 APK has been built or installed at this checkpoint. The accepted phone remains normal revision 32. Native touch/PAM/rotation/package/restart acceptance, physical calibration and visual comparison are pending for these new sources. [Interaction/persistence contract and next gates](LAUNCHER_PAGES.md). This is progress on M1 and the original packet, not milestone completion.
 
 ## Activation continuity revision 32 checkpoint
 

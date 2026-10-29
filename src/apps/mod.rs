@@ -69,6 +69,11 @@ pub fn init(
     };
     let registry = Registry::from_environment();
     state.shell.applications = registry.applications.clone();
+    state.shell.launcher.settings = state
+        .preferences
+        .as_ref()
+        .and_then(|s| s.initial.launcher.clone())
+        .unwrap_or_default();
     state.shell.favorites = state
         .preferences
         .as_ref()

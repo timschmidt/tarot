@@ -22,10 +22,7 @@ impl Source {
             Self::Launcher(id) => {
                 model.view == View::Launcher
                     && !model.editing_favorites
-                    && model
-                        .applications
-                        .iter()
-                        .any(|a| a.id == *id && a.unavailable.is_none())
+                    && model.applications.iter().any(|a| a.id == *id)
             }
             Self::Dock { id, index } => {
                 !matches!(model.view, View::App(_))
@@ -42,6 +39,7 @@ pub struct Scene {
     query: String,
     favorites: Favorites,
     catalog: Vec<(String, bool)>,
+    pages: crate::launcher::Settings,
     banner: Option<(u32, u64)>,
     size: (f32, f32),
 }
@@ -53,6 +51,7 @@ impl Scene {
             editing: model.editing_favorites,
             query: model.launcher_query.clone(),
             favorites: model.favorites.clone(),
+            pages: model.launcher.settings.clone(),
             size: (layout.width, layout.height),
             banner: model.notifications.banner,
             catalog: model
@@ -68,6 +67,8 @@ impl Scene {
             && !model.notifications_open
             && !model.card_menu_open
             && model.network_input.is_none()
+            && !model.launcher.menu_open
+            && model.launcher.rename.is_none()
     }
 }
 
@@ -76,6 +77,11 @@ pub enum Target {
     Place(usize),
     Remove,
     Full(usize),
+    Unavailable(usize),
+    Page {
+        page: crate::launcher::PageId,
+        at: usize,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -84,6 +90,7 @@ pub struct Preview {
     pub finger: (f32, f32),
     pub target: Option<Target>,
     pub favorites: Favorites,
+    pub page: crate::launcher::PageId,
 }
 
 pub fn removal(layout: Layout) -> Rect {
@@ -103,6 +110,9 @@ struct Contact {
     finger: (f32, f32),
     pressed: u64,
     active: bool,
+    page: crate::launcher::PageId,
+    page_target: Option<(crate::launcher::PageId, usize)>,
+    edge: Option<(i32, u64)>,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -114,6 +124,7 @@ pub struct Gesture {
 pub struct Release {
     pub consumed: bool,
     pub edit: Option<Edit>,
+    pub page_edit: Option<crate::launcher::Edit>,
 }
 
 impl Gesture {
@@ -140,10 +151,16 @@ impl Gesture {
             finger,
             pressed: now,
             active: false,
+            page: model.launcher.settings.selected,
+            page_target: None,
+            edge: None,
         });
     }
     pub fn active(&self) -> bool {
         self.contact.as_ref().is_some_and(|c| c.active)
+    }
+    pub fn page(&self) -> Option<crate::launcher::PageId> {
+        self.contact.as_ref().map(|c| c.page)
     }
     pub fn cancel(&mut self) {
         self.contact = None;
@@ -174,15 +191,56 @@ impl Gesture {
     pub fn tick(&mut self, now: u64) {
         if let Some(c) = &mut self.contact {
             c.active |= now.saturating_sub(c.pressed) >= crate::design::REORDER_HOLD_MS;
+            let moved = (c.finger.0 - c.start.0)
+                .abs()
+                .max((c.finger.1 - c.start.1).abs())
+                > crate::design::TAP_SLOP;
+            let direction = if c.active
+                && moved
+                && matches!(c.source, Source::Launcher(_))
+                && c.finger.1 >= Layout::STATUS + 64.0
+                && c.finger.1 < c.scene.size.1 - Layout::GESTURE - crate::design::DOCK - 12.0
+            {
+                if c.finger.0 < 24.0 {
+                    Some(-1)
+                } else if c.finger.0 > c.scene.size.0 - 24.0 {
+                    Some(1)
+                } else {
+                    None
+                }
+            } else {
+                None
+            };
+            match (direction, c.edge) {
+                (Some(side), Some((old, since))) if side == old => {
+                    if now.saturating_sub(since) >= crate::launcher::EDGE_DWELL_MS {
+                        if let Some(page) = c.scene.pages.neighbor(c.page, side) {
+                            c.page = page;
+                            c.page_target = None;
+                        }
+                        c.edge = Some((side, now));
+                    }
+                }
+                (Some(side), _) => c.edge = Some((side, now)),
+                _ => c.edge = None,
+            }
+        }
+    }
+    pub fn page_target(&mut self, target: Option<(crate::launcher::PageId, usize)>) {
+        if let Some(c) = &mut self.contact {
+            c.page_target = target.filter(|(page, _)| *page == c.page);
         }
     }
     pub fn wake_after(&self, now: u64) -> Option<Duration> {
-        self.contact.as_ref().filter(|c| !c.active).map(|c| {
-            Duration::from_millis(
-                (c.pressed.saturating_add(crate::design::REORDER_HOLD_MS))
-                    .saturating_sub(now)
-                    .max(1),
-            )
+        self.contact.as_ref().and_then(|c| {
+            let deadline = if !c.active {
+                c.pressed.saturating_add(crate::design::REORDER_HOLD_MS)
+            } else if let Some((_, since)) = c.edge {
+                since.saturating_add(crate::launcher::EDGE_DWELL_MS)
+            } else {
+                return None;
+            };
+            Some(Duration::from_millis(deadline.saturating_sub(now).max(1)))
         })
     }
     pub fn preview(&self, model: &ShellModel, layout: Layout) -> Option<Preview> {
@@ -200,7 +258,13 @@ impl Gesture {
             (0..quick_launch::CAPACITY)
                 .find(|i| quick_launch::slot(layout, *i, None).contains(x, y))
                 .map(|i| {
-                    if !model
+                    if model
+                        .applications
+                        .iter()
+                        .any(|a| a.id == c.source.id() && a.unavailable.is_some())
+                    {
+                        Target::Unavailable(i)
+                    } else if !model
                         .favorites
                         .applications
                         .iter()
@@ -212,7 +276,13 @@ impl Gesture {
                         Target::Place(i)
                     }
                 })
-        };
+        }
+        .or_else(|| {
+            if stationary_launcher || !matches!(c.source, Source::Launcher(_)) {
+                return None;
+            }
+            c.page_target.map(|(page, at)| Target::Page { page, at })
+        });
         let mut favorites = model.favorites.clone();
         if let Some(edit) = edit(&c.source, target) {
             favorites.edit(edit, &model.applications);
@@ -222,6 +292,7 @@ impl Gesture {
             finger: c.finger,
             target,
             favorites,
+            page: c.page,
         })
     }
     pub fn release(&mut self, now: u64, model: &ShellModel, layout: Layout) -> Release {
@@ -229,9 +300,18 @@ impl Gesture {
         self.tick(now);
         let preview = self.preview(model, layout);
         self.cancel();
+        let page_edit = preview.as_ref().and_then(|p| match p.target {
+            Some(Target::Page { page, at }) => Some(crate::launcher::Edit::Place {
+                application: p.source.id().into(),
+                page,
+                at,
+            }),
+            _ => None,
+        });
         Release {
             consumed: preview.is_some(),
             edit: preview.and_then(|p| edit(&p.source, p.target)),
+            page_edit,
         }
     }
 }
@@ -308,7 +388,8 @@ mod tests {
             g.release(600, &model, layout),
             Release {
                 consumed: true,
-                edit: None
+                edit: None,
+                page_edit: None,
             }
         );
     }
@@ -466,5 +547,88 @@ mod tests {
             .edit
             .is_some()
         );
+    }
+    #[test]
+    fn edge_dwell_previews_pages_and_only_a_valid_release_places_the_identity() {
+        use crate::launcher::{Edit as PageEdit, PageId};
+        let (mut model, layout) = fixture();
+        model
+            .launcher
+            .settings
+            .edit(PageEdit::Create("Work".into()), &model.applications)
+            .unwrap();
+        model
+            .launcher
+            .settings
+            .edit(PageEdit::Select(PageId(1)), &model.applications)
+            .unwrap();
+        let before = model.launcher.settings.clone();
+        let favorites = model.favorites.clone();
+        let source = Source::Launcher("app2.desktop".into());
+        let mut g = armed(&model, layout, source.clone());
+        g.motion((350.0, 300.0));
+        g.tick(800);
+        g.tick(1399);
+        assert_eq!(g.page(), Some(PageId(1)));
+        g.tick(1400);
+        assert_eq!(g.page(), Some(PageId(2)));
+        assert_eq!(model.launcher.settings, before);
+        g.motion((180.0, 300.0));
+        g.page_target(Some((PageId(2), 0)));
+        let release = g.release(1500, &model, layout);
+        assert!(release.consumed && release.edit.is_none());
+        let effects = model.apply(Command::LauncherAction(crate::launcher::Action::Edit(
+            release.page_edit.unwrap(),
+        )));
+        assert!(matches!(effects.as_slice(), [Effect::Launcher(_)]));
+        assert_eq!(
+            model
+                .launcher
+                .settings
+                .applications(PageId(2), &model.applications)[0]
+                .id,
+            "app2.desktop"
+        );
+        assert_eq!(model.favorites, favorites);
+        assert_eq!(g.release(1501, &model, layout), Release::default());
+        for change in 0..4 {
+            let mut g = armed(&model, layout, source.clone());
+            g.motion((180.0, 300.0));
+            g.page_target(Some((PageId(2), 0)));
+            let mut next = model.clone();
+            let mut geometry = layout;
+            match change {
+                0 => next.launcher.menu_open = true,
+                1 => {
+                    next.launcher
+                        .settings
+                        .edit(PageEdit::Create("Changed".into()), &next.applications)
+                        .unwrap();
+                }
+                2 => next.applications.retain(|a| a.id != "app2.desktop"),
+                _ => geometry.width = 720.0,
+            }
+            assert_eq!(g.release(1600, &next, geometry), Release::default());
+        }
+    }
+    #[test]
+    fn unavailable_applications_can_be_arranged_but_cannot_become_favorites() {
+        use crate::launcher::PageId;
+        let (mut model, layout) = fixture();
+        model.applications[2].unavailable = Some("Unavailable".into());
+        let source = Source::Launcher("app2.desktop".into());
+        let mut g = armed(&model, layout, source.clone());
+        g.motion(center(layout, 0));
+        assert_eq!(
+            g.preview(&model, layout).unwrap().target,
+            Some(Target::Unavailable(0))
+        );
+        let release = g.release(800, &model, layout);
+        assert!(release.edit.is_none() && release.page_edit.is_none());
+        let mut g = armed(&model, layout, source);
+        g.motion((180.0, 300.0));
+        g.page_target(Some((PageId(1), 0)));
+        let release = g.release(800, &model, layout);
+        assert!(release.edit.is_none() && release.page_edit.is_some());
     }
 }

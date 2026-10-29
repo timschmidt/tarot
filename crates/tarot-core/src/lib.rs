@@ -11,6 +11,7 @@ pub mod frame;
 pub mod gesture;
 pub mod hardware;
 pub mod idle;
+pub mod launcher;
 pub mod motion;
 pub mod network;
 pub mod notifications;
@@ -89,6 +90,7 @@ pub enum Command {
     Overview,
     Launcher,
     SearchApplications(String),
+    LauncherAction(launcher::Action),
     ShellTextFocus(bool),
     ShellKey(KeyboardAction),
     ToggleKeyboard,
@@ -130,6 +132,7 @@ pub enum Effect {
     RequestClose(WindowId),
     Launch(String),
     Favorites(quick_launch::Favorites),
+    Launcher(launcher::Settings),
     ShellKey(KeyboardAction),
     ToggleKeyboard,
     Notification(notifications::UiAction),
@@ -151,6 +154,8 @@ pub struct ShellModel {
     pub favorites_saved: bool,
     pub favorites_error: Option<String>,
     pub launcher_query: String,
+    pub launcher: launcher::State,
+    pub reduced_motion: bool,
     pub shell_text_focus: bool,
     pub keyboard_available: bool,
     pub lock_available: bool,
@@ -329,6 +334,7 @@ impl ShellModel {
                 self.editing_favorites = open;
                 self.view = View::Launcher;
                 self.shell_text_focus = false;
+                self.launcher.dismiss();
             }
             Command::Favorite(edit) => {
                 return if self.favorites.edit(edit, &self.applications) {
@@ -447,6 +453,7 @@ impl ShellModel {
                 self.card_menu_open = false;
                 if open {
                     self.shell_text_focus = false;
+                    self.launcher.menu_open = false;
                 }
                 let mut effects = canceled;
                 effects.push(Effect::Focus(if !open && let View::App(id) = self.view {
@@ -489,6 +496,7 @@ impl ShellModel {
                 self.card_menu_open = false;
                 if open {
                     self.shell_text_focus = false;
+                    self.launcher.menu_open = false;
                 }
                 let mut effects = canceled;
                 effects.push(Effect::Focus(if !open && let View::App(id) = self.view {
@@ -505,6 +513,25 @@ impl ShellModel {
                 return Vec::new();
             }
             Command::ToggleKeyboard => {
+                if self.view == View::Launcher
+                    && !self.system_menu_open
+                    && !self.notifications_open
+                    && !self.launcher.menu_open
+                {
+                    if self.shell_text_focus {
+                        self.shell_text_focus = false;
+                    } else if self.launcher.rename.is_some() {
+                        self.shell_text_focus = true;
+                    } else {
+                        self.launcher.action(
+                            launcher::Action::Search(true),
+                            &self.applications,
+                            &mut self.launcher_query,
+                            &mut self.shell_text_focus,
+                        );
+                    }
+                    return Vec::new();
+                }
                 return if matches!(self.view, View::App(_)) && self.keyboard_available {
                     vec![Effect::ToggleKeyboard]
                 } else {
@@ -515,7 +542,11 @@ impl ShellModel {
                 self.shell_text_focus = focused
                     && self.view == View::Launcher
                     && !self.system_menu_open
-                    && !self.notifications_open;
+                    && !self.notifications_open
+                    && !self.launcher.menu_open;
+                if self.shell_text_focus && self.launcher.rename.is_none() {
+                    self.launcher.search_open = true;
+                }
                 return Vec::new();
             }
             Command::ShellKey(action) => {
@@ -534,11 +565,43 @@ impl ShellModel {
                 }
             }
             Command::Launcher => {
+                let keep_search = self.view == View::Launcher
+                    && self.launcher.search_open
+                    && self.launcher.rename.is_none()
+                    && !self.editing_favorites;
                 self.view = View::Launcher;
                 self.editing_favorites = false;
+                if keep_search {
+                    self.launcher.menu_open = false;
+                } else {
+                    self.launcher.dismiss();
+                    self.shell_text_focus = false;
+                }
+            }
+            Command::LauncherAction(action) => {
+                if self.view != View::Launcher
+                    || self.system_menu_open
+                    || self.notifications_open
+                    || self.editing_favorites
+                {
+                    return Vec::new();
+                }
+                return if self.launcher.action(
+                    action,
+                    &self.applications,
+                    &mut self.launcher_query,
+                    &mut self.shell_text_focus,
+                ) {
+                    vec![Effect::Launcher(self.launcher.settings.clone())]
+                } else {
+                    Vec::new()
+                };
             }
             Command::SearchApplications(query) => {
                 self.launcher_query = query;
+                if self.view == View::Launcher {
+                    self.launcher.search_open = true;
+                }
                 return Vec::new();
             }
             Command::DismissLaunchFeedback => {
@@ -644,6 +707,7 @@ impl ShellModel {
         }
         if self.view != View::Launcher {
             self.editing_favorites = false;
+            self.launcher.dismiss();
             self.shell_text_focus = false;
         }
         if self.view != View::Overview {

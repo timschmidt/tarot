@@ -73,7 +73,7 @@ def main():
         apps=request(control,'applications')['applications']
         if filtered:apps=[app for app in apps if 'b' in app['name'].casefold() or 'b' in app['description'].casefold() or any('b' in word.casefold() for word in app['keywords'])]
         index=[app['id'] for app in apps].index(identifier);tile=(width-32-24)/3
-        top,stride=(100,66) if filtered and args.landscape else (182,114)
+        top,stride=(100,80) if filtered and args.landscape else (182,112) if filtered else (148,112)
         return 16+(index%3)*(tile+8)+tile/2,top+(index//3)*stride
     def place(identifier,index,expected,label):
         before=request(control,'status')['favorites']['applications'];saved=config.read_bytes()
@@ -140,7 +140,7 @@ def main():
         place(original,0,[original,epsilon,delta],'readd-original')
         # A real launcher search opens the shared keyboard. Holding the filtered
         # tile must retain its identity as the keyboard closes and tray appears.
-        click(80,116);state('search-keyboard',lambda s:s['shell_text_focus'] and s['keyboard_visible'])
+        click(40,16);state('search-menu',lambda s:s['launcher']['menu_open']);click(160,60);state('search-keyboard',lambda s:s['shell_text_focus'] and s['keyboard_visible'])
         mouse.tap(56);time.sleep(.15)  # X11 US key b; only Beta matches.
         capture('filtered-search-keyboard')
         hold(source(beta,filtered=True),'keyboard-visible-source')

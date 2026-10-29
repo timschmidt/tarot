@@ -301,6 +301,7 @@ fn main() -> Result<()> {
     data.state
         .animation
         .set_reduced_motion(options.reduced_motion);
+    data.state.shell.reduced_motion = options.reduced_motion;
     #[cfg(feature = "drm")]
     let backend = if options.drm_device.is_some() {
         Backend::Drm(drm::init(&mut event_loop, &mut data, &options)?)

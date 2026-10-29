@@ -63,7 +63,7 @@ pub fn show(
         };
         let available = launcher || id.is_none() || app.is_some_and(|a| a.unavailable.is_none());
         let selected = wave.is_some_and(|w| w.selected == Some(index))
-            || drag.is_some_and(|d| matches!(d.target,Some(tarot_core::favorite_drag::Target::Place(i) | tarot_core::favorite_drag::Target::Full(i)) if i==index));
+            || drag.is_some_and(|d| matches!(d.target,Some(tarot_core::favorite_drag::Target::Place(i) | tarot_core::favorite_drag::Target::Full(i) | tarot_core::favorite_drag::Target::Unavailable(i)) if i==index));
         if selected {
             painter.rect_filled(
                 rect.expand(2.0),

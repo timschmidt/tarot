@@ -254,6 +254,11 @@ pub fn start(path: &Path, handle: &LoopHandle<'_, CalloopData>) -> Result<Contro
             response["clock"] = json!(state.shell.clock_label);
             response["calendar_day"] = json!(state.shell.calendar_day);
             response["editing_favorites"] = json!(state.shell.editing_favorites);
+            response["launcher"] = json!({"settings":state.shell.launcher.settings,
+                "menu_open":state.shell.launcher.menu_open,"search_open":state.shell.launcher.search_open,
+                "editing_name":state.shell.launcher.rename.is_some(),"saved":state.shell.launcher.saved,
+                "settings_available":state.shell.launcher.available,
+                "error":state.shell.launcher.save_error});
             if include_apps {
                 response["applications"] = json!(state.shell.applications);
             }

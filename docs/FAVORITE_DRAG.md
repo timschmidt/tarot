@@ -2,6 +2,8 @@
 
 Revision-28 component checkpoint, October 28, 2026. The signed package is installed and its favorite/shell component replay passes, including saved restart. Full native/browser acceptance remains open. This implements the packet’s hold-and-drag Quick Launch organization; named Launcher pages, native icon resolution, motion calibration and the remaining design/plan gates retain separate work.
 
+The later [Launcher-page source checkpoint](LAUNCHER_PAGES.md) extends the same gesture with page destinations and edge dwell, and moves the named-button editor entry into the Launcher menu. Its current desktop checks do not replace the revision-specific native evidence below.
+
 ## Interaction contract
 
 Hold a visible Launcher application or a resting Quick Launch favorite for the shared proposed 420 ms interval. Movement beyond tap slop before that interval remains ordinary scrolling. During a recognized hold the tray appears, an icon follows the pointer, and the proposed order appears without changing saved preferences. Launcher entries remain linked to their desktop identities. The original entry dims while it is held. The lifted icon and its instruction avoid the global status area and each other.

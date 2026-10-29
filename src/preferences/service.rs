@@ -74,6 +74,9 @@ impl Handle {
     pub fn favorites(&self, settings: tarot_core::quick_launch::Favorites) {
         self.change(|p| p.quick_launch = Some(settings));
     }
+    pub fn launcher(&self, settings: tarot_core::launcher::Settings) {
+        self.change(|p| p.launcher = Some(settings));
+    }
 }
 
 pub struct Server {
@@ -113,7 +116,10 @@ impl Compositor {
             self.shell.notifications.settings_saved = status.saved;
             self.shell.notifications.settings_error = status.error.clone();
             self.shell.favorites_saved = status.saved;
-            self.shell.favorites_error = status.error;
+            self.shell.favorites_error = status.error.clone();
+            self.shell.launcher.available = true;
+            self.shell.launcher.saved = status.saved;
+            self.shell.launcher.save_error = status.error;
         }
     }
 }
@@ -205,6 +211,7 @@ mod tests {
         let notifications = server.handle.clone();
         let display = server.handle.clone();
         let favorites = server.handle.clone();
+        let launcher = server.handle.clone();
         let notification_thread = std::thread::spawn(move || {
             for n in 0..100 {
                 notifications.notifications(Notifications {
@@ -233,6 +240,16 @@ mod tests {
                 });
             }
         });
+        let launcher_thread = std::thread::spawn(move || {
+            for n in 0..100 {
+                let mut pages = tarot_core::launcher::Settings::default();
+                pages
+                    .edit(tarot_core::launcher::Edit::Create(format!("Page {n}")), &[])
+                    .unwrap();
+                launcher.launcher(pages);
+            }
+        });
+        launcher_thread.join().unwrap();
         notification_thread.join().unwrap();
         display_thread.join().unwrap();
         favorites_thread.join().unwrap();
@@ -246,6 +263,8 @@ mod tests {
             tarot_core::orientation::Orientation::LeftUp
         );
         assert_eq!(loaded.current.display.idle.lock_after_seconds, 129);
+        let pages = loaded.current.launcher.as_ref().unwrap();
+        assert_eq!(pages.page(pages.selected).unwrap().name, "Page 99");
         assert_eq!(
             loaded.current.quick_launch.unwrap().applications,
             ["favorite99.desktop"]
