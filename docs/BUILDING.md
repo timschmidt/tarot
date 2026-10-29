@@ -491,6 +491,23 @@ python3 phone_audio_replay.py --output artifacts/audio-phone
 
 The root QA process runs every sound-server command as UID 10000. The startup client may still be preparing its first buffer when the status menu opens; mapping must preserve that modal. It tests actual UI touches, compares libpulse server state independently with `pactl`, adds/removes only one temporary null sink for default selection, and restores the exact original channel volumes, mute and default. It also checks that the modal cannot type into an underlying native field and restores typing afterward. This replay does not play or record sound and does not establish acoustic speaker, microphone, headset or call-audio behavior. Copy the replay plus the shared `phone_gesture_replay.py` and `notification_replay.py` helpers; keep earlier failures separate from final passing evidence.
 
+## App and device menus
+
+Revision 39 uses separate top-left activity and top-right device anchors. The [menu contract](MENUS.md) describes ownership, stale-input rejection, page submenus and observed device controls. The [native record](recordings/r39/README.md) distinguishes the first 14 passing shell components from the separate focused page/restart run and retained OCR failure.
+
+Run the host replay on a private display with owned native clients and temporary preferences:
+
+```sh
+cargo build --offline --locked --workspace --bins --examples
+python3 tests/menus_replay.py --output /absolute/new/menu-portrait --xvfb /path/to/Xvfb
+python3 tests/menus_replay.py --output /absolute/new/menu-portrait-2 --scale 2 --xvfb /path/to/Xvfb
+python3 tests/menus_replay.py --output /absolute/new/menu-landscape-2 --scale 2 --landscape --xvfb /path/to/Xvfb
+```
+
+The replay selects actual painted menu rows, tests root switching, arrow/Enter navigation and detail-page Tab/Enter, and observes native keyboard focus, accepting/refusing close and owner exit. Back activation requires its visible keyboard-focus outline; a fixed Tab count cannot account for earlier focus. Screenshots and raw records belong in ignored private artifacts.
+
+The installed-session runner also exposes `--menus` and its `run` API for a prepared phone controller. The caller must supply a private user-owned `menus` output folder, accepting/refusing `test.tarot.MenuAccept.desktop` and `test.tarot.MenuRefuse.desktop` entries using the audited `rounded-input-probe`, corresponding `Accept.jsonl`/`Refuse.jsonl` reports and real PAM. The [native module](../tests/phone_menus_replay.py) uses root only for temporary uinput, independent observation and exact cleanup; apps, shell, locker, keyboard and sound-server commands remain ordinary-user processes. Preserve the caller's exact current preferences/MIME data and modes, raw backlight and per-channel audio state, verify identities before process signals, and remove all temporary entries/input sources after ending the test session. The public runner's menu body matches the immutable wrapper executed for revision-39 acceptance; fixture/package orchestration and its source ledger are retained separately with the private evidence.
+
 ## Named Launcher pages
 
 The [page contract](LAUNCHER_PAGES.md) describes identity, lazy schema migration, gesture ownership and native acceptance still required. The source/desktop replay uses a private display and temporary app catalog/preferences:

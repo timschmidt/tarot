@@ -216,6 +216,9 @@ def run(args, password):
         assert candidates and all(p['cgroup'] == cgroup for p in candidates)
         records['native_app_processes'] = candidates
         capture('app-before')
+        if getattr(args, 'menus', False):
+            from phone_menus_replay import replay as menu_replay
+            records['menus'] = menu_replay(socket,screen,state,tap,capture,before,args.output,cgroup,authenticate)
         if getattr(args, 'just_type', False):
             from phone_just_type_replay import replay as search_replay
             records['just_type'] = search_replay(socket,screen,state,tap,capture,before,args.output,cgroup,authenticate)
@@ -490,6 +493,7 @@ def main():
     parser.add_argument('--keyboard-context', action='store_true')
     parser.add_argument('--native-icons', action='store_true')
     parser.add_argument('--just-type', action='store_true')
+    parser.add_argument('--menus', action='store_true')
     parser.add_argument('--detach', action='store_true')
     args = parser.parse_args()
     assert not args.panel_off or args.observe_sensors

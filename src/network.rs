@@ -148,6 +148,8 @@ pub fn start(
                 if data.state.protected() {
                     effects.extend(data.state.shell.cancel_network_input());
                     data.state.shell.system_menu_open = false;
+                    data.state.shell.launcher.menu_open = false;
+                    data.state.shell.menus.dismiss();
                 }
                 if before != data.state.shell.network_input.as_ref().map(|i| i.target) {
                     data.state.cancel_input_sequences();

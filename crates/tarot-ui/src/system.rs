@@ -1,5 +1,5 @@
 //! The status menu shows observed state, with separate pending/error feedback.
-use egui::{Color32, Pos2, Rect, Vec2};
+use egui::{Color32, Vec2};
 use tarot_core::{Command, Layout, ShellModel, SystemPage, power::UiAction};
 
 pub fn status_label(model: &ShellModel) -> String {
@@ -20,199 +20,161 @@ pub fn status_label(model: &ShellModel) -> String {
 }
 
 pub fn show(ctx: &egui::Context, model: &ShellModel, layout: Layout, commands: &mut Vec<Command>) {
-    let popup_page = egui::Id::new("system_menu_popup_page");
     if !model.system_menu_open {
-        ctx.data_mut(|data| data.remove_temp::<SystemPage>(popup_page));
         return;
     }
-    let previous_page = ctx.data_mut(|data| data.get_temp::<SystemPage>(popup_page));
-    if previous_page != Some(model.system_page) {
-        egui::Popup::close_all(ctx);
-        ctx.data_mut(|data| data.insert_temp(popup_page, model.system_page));
-    }
-    // An outside click promotes its Area. Keep the interactive panel directly
-    // above that scrim, including when the same panel is reopened later.
-    ctx.set_sublayer(
-        egui::LayerId::new(egui::Order::Foreground, "system_scrim".into()),
-        egui::LayerId::new(egui::Order::Foreground, "system_menu".into()),
-    );
-    let content = layout.content();
-    let full = Rect::from_min_size(
-        Pos2::new(content.x, content.y),
-        Vec2::new(content.width, content.height),
-    );
-    egui::Area::new("system_scrim".into())
-        .order(egui::Order::Foreground)
-        .fixed_pos(full.min)
-        .movable(false)
-        .fade_in(false)
-        .show(ctx, |ui| {
-            ui.set_min_size(full.size());
-            ui.painter()
-                .rect_filled(full, 0.0, Color32::from_black_alpha(120));
+    crate::menu::panel(ctx, model, layout, commands, |ui, commands| {
+        if matches!(model.system_page, SystemPage::Device | SystemPage::Activity) {
+            crate::menu::roots(ui, model, layout, commands);
+            return;
+        }
+        ui.horizontal(|ui| {
             if ui
-                .interact(full, ui.id().with("close"), egui::Sense::click())
+                .add_sized([64.0, 48.0], egui::Button::new("‹ Back"))
                 .clicked()
             {
+                commands.push(Command::Menu(tarot_core::menu::Action::Back));
+            }
+            let title = match model.system_page {
+                SystemPage::Wifi => "Wi-Fi",
+                SystemPage::Audio => "Sound",
+                _ => "Power & display",
+            };
+            ui.add_sized(
+                [(ui.available_width() - 56.0).max(1.0), 48.0],
+                egui::Label::new(egui::RichText::new(title).size(20.0).strong()).wrap(),
+            );
+            if ui.add_sized([48.0, 48.0], egui::Button::new("×")).clicked() {
                 commands.push(Command::SystemMenuOpen(false));
             }
         });
-    egui::Area::new("system_menu".into())
-        .order(egui::Order::Foreground)
-        .fixed_pos(Pos2::new(8.0, 36.0))
-        .movable(false)
-        .fade_in(false)
-        .show(ctx, |ui| {
-            ui.set_width(layout.width - 16.0);
-            ui.set_max_height((layout.gesture().y - 44.0).max(160.0));
-            egui::Frame::new()
-                .fill(Color32::from_rgb(22, 29, 33))
-                .corner_radius(12.0)
-                .inner_margin(12.0)
-                .show(ui, |ui| {
-                    ui.set_width(layout.width - 40.0);
-                    ui.set_max_height((layout.gesture().y - 68.0).max(136.0));
-                    ui.spacing_mut().interact_size.y = 48.0;
-                    ui.horizontal(|ui| {
-                        ui.heading(match model.system_page {
-                            SystemPage::Wifi => "Wi-Fi",
-                            SystemPage::Power => "Power & display",
-                            SystemPage::Audio => "Audio",
-                        });
-                        if ui.add_sized([48.0, 48.0], egui::Button::new("×")).clicked() {
-                            commands.push(Command::SystemMenuOpen(false));
-                        }
-                    });
-                    if model.system_page == SystemPage::Audio {
-                        super::audio::show(ui, model, layout, commands);
-                        return;
-                    }
-                    if model.system_page == SystemPage::Wifi {
-                        if model.network_input.is_some() {
-                            super::credentials::show(ui, model, commands);
-                            return;
-                        }
-                        super::wifi::show(ui, model, layout, commands);
-                        return;
-                    }
-                    egui::ScrollArea::vertical()
-                        .id_salt("power_controls")
-                        .max_height((layout.gesture().y - 124.0).max(80.0))
-                        .show(ui, |ui| {
-                            if !model.power.enabled {
-                                ui.label("System services are disabled for this session.");
-                            }
-                            let battery = &model.power.battery;
-                            ui.label(egui::RichText::new(battery.level_label()).strong());
-                            if battery.available && battery.present {
-                                ui.label(battery.state.label());
-                            }
-                            if let Some(external) = battery.external_power {
-                                ui.label(if external {
-                                    "External power connected"
-                                } else {
-                                    "On battery power"
-                                });
-                            }
-                            if let Some(error) = &battery.error {
-                                ui.colored_label(Color32::LIGHT_RED, error);
-                            }
-                            ui.separator();
-                            if model.sensors.enabled {
-                                let mut locked = model.rotation_locked;
-                                if ui.checkbox(&mut locked, "Rotation lock").changed() {
-                                    commands.push(Command::RotationLock(locked));
-                                }
-                                if !model.sensors.available {
-                                    ui.label("Rotation sensor unavailable");
-                                } else if !model.sensors.has_accelerometer {
-                                    ui.label("No orientation sensor");
-                                }
-                                ui.separator();
-                            }
-                            let brightness = &model.power.brightness;
-                            ui.label(format!(
-                                "Brightness: {}",
-                                brightness
-                                    .percent()
-                                    .map_or_else(|| "unknown".into(), |p| format!("{p}%"))
-                            ));
-                            if let Some(percent) = brightness.pending_percent {
-                                ui.label(format!("Changing to {percent}%…"));
-                            }
-                            let enabled =
-                                brightness.can_set && brightness.pending_percent.is_none();
-                            ui.horizontal(|ui| {
-                                let percent = brightness.percent().unwrap_or(50);
-                                for (label, target) in [
-                                    ("−", percent.saturating_sub(10).max(5)),
-                                    ("40%", 40),
-                                    ("60%", 60),
-                                    ("+", percent.saturating_add(10).min(100)),
-                                ] {
-                                    if ui
-                                        .add_enabled(
-                                            enabled,
-                                            egui::Button::new(label)
-                                                .min_size(Vec2::new(64.0, 48.0)),
-                                        )
-                                        .clicked()
-                                    {
-                                        commands.push(Command::Power(UiAction::Brightness {
-                                            percent: target,
-                                        }));
-                                    }
-                                }
-                            });
-                            if let Some(error) = &brightness.error {
-                                ui.colored_label(Color32::LIGHT_RED, error);
-                            }
-                            if let Some(error) = &brightness.action_error {
-                                ui.colored_label(Color32::LIGHT_RED, error);
-                            }
-                            ui.separator();
-                            if ui
-                                .add_sized(
-                                    [ui.available_width(), 48.0],
-                                    egui::Button::new(format!(
-                                        "Wi-Fi: {}",
-                                        model.network.state.label()
-                                    )),
-                                )
-                                .clicked()
-                            {
-                                commands.push(Command::SystemPage(SystemPage::Wifi));
-                            }
-                            if ui
-                                .add_sized([ui.available_width(), 48.0], egui::Button::new("Audio"))
-                                .clicked()
-                            {
-                                commands.push(Command::SystemPage(SystemPage::Audio));
-                            }
-                            if model.lock_available
-                                && ui
-                                    .add_sized(
-                                        [ui.available_width(), 48.0],
-                                        egui::Button::new("Lock"),
-                                    )
-                                    .clicked()
-                            {
-                                commands.push(Command::Lock);
-                            }
-                            ui.separator();
-                            idle_controls(ui, model, commands);
-                            if model.display.settings_available {
-                                if model.display.settings_error.is_some() {
-                                    ui.colored_label(
-                                        Color32::LIGHT_RED,
-                                        "Settings could not be saved. Changes apply until logout.",
-                                    );
-                                } else if !model.display.settings_saved {
-                                    ui.label("Saving settings…");
-                                }
-                            }
-                        });
+        ui.separator();
+        match model.system_page {
+            SystemPage::Audio => super::audio::show(ui, model, layout, commands),
+            SystemPage::Wifi => {
+                if model.network_input.is_some() {
+                    super::credentials::show(ui, model, commands);
+                } else {
+                    super::wifi::show(ui, model, layout, commands);
+                }
+            }
+            _ => power_controls(ui, model, layout, commands),
+        }
+    });
+}
+
+fn power_controls(
+    ui: &mut egui::Ui,
+    model: &ShellModel,
+    _layout: Layout,
+    commands: &mut Vec<Command>,
+) {
+    egui::ScrollArea::vertical()
+        .id_salt("power_controls")
+        .max_height(ui.available_height().max(1.0))
+        .show(ui, |ui| {
+            if !model.power.enabled {
+                ui.label("System services are disabled for this session.");
+            }
+            let battery = &model.power.battery;
+            ui.label(egui::RichText::new(battery.level_label()).strong());
+            if battery.available && battery.present {
+                ui.label(battery.state.label());
+            }
+            if let Some(external) = battery.external_power {
+                ui.label(if external {
+                    "External power connected"
+                } else {
+                    "On battery power"
                 });
+            }
+            if let Some(error) = &battery.error {
+                ui.colored_label(Color32::LIGHT_RED, error);
+            }
+            ui.separator();
+            if model.sensors.enabled {
+                let mut locked = model.rotation_locked;
+                if ui.checkbox(&mut locked, "Rotation lock").changed() {
+                    commands.push(Command::RotationLock(locked));
+                }
+                if !model.sensors.available {
+                    ui.label("Rotation sensor unavailable");
+                } else if !model.sensors.has_accelerometer {
+                    ui.label("No orientation sensor");
+                }
+                ui.separator();
+            }
+            let brightness = &model.power.brightness;
+            ui.label(format!(
+                "Brightness: {}",
+                brightness
+                    .percent()
+                    .map_or_else(|| "unknown".into(), |p| format!("{p}%"))
+            ));
+            if let Some(percent) = brightness.pending_percent {
+                ui.label(format!("Changing to {percent}%…"));
+            }
+            let enabled = brightness.can_set && brightness.pending_percent.is_none();
+            ui.horizontal(|ui| {
+                let percent = brightness.percent().unwrap_or(50);
+                for (label, target) in [
+                    ("−", percent.saturating_sub(10).max(5)),
+                    ("40%", 40),
+                    ("60%", 60),
+                    ("+", percent.saturating_add(10).min(100)),
+                ] {
+                    if ui
+                        .add_enabled(
+                            enabled,
+                            egui::Button::new(label).min_size(Vec2::new(64.0, 48.0)),
+                        )
+                        .clicked()
+                    {
+                        commands.push(Command::Power(UiAction::Brightness { percent: target }));
+                    }
+                }
+            });
+            if let Some(error) = &brightness.error {
+                ui.colored_label(Color32::LIGHT_RED, error);
+            }
+            if let Some(error) = &brightness.action_error {
+                ui.colored_label(Color32::LIGHT_RED, error);
+            }
+            ui.separator();
+            if ui
+                .add_sized(
+                    [ui.available_width(), 48.0],
+                    egui::Button::new(format!("Wi-Fi: {}", model.network.state.label())),
+                )
+                .clicked()
+            {
+                commands.push(Command::SystemPage(SystemPage::Wifi));
+            }
+            if ui
+                .add_sized([ui.available_width(), 48.0], egui::Button::new("Audio"))
+                .clicked()
+            {
+                commands.push(Command::SystemPage(SystemPage::Audio));
+            }
+            if model.lock_available
+                && ui
+                    .add_sized([ui.available_width(), 48.0], egui::Button::new("Lock"))
+                    .clicked()
+            {
+                commands.push(Command::Lock);
+            }
+            ui.separator();
+            idle_controls(ui, model, commands);
+            if model.display.settings_available {
+                if model.display.settings_error.is_some() {
+                    ui.colored_label(
+                        Color32::LIGHT_RED,
+                        "Settings could not be saved. Changes apply until logout.",
+                    );
+                } else if !model.display.settings_saved {
+                    ui.label("Saving settings…");
+                }
+            }
         });
 }
 

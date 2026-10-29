@@ -81,6 +81,16 @@ impl Compositor {
                                 FilterResult::Intercept(None)
                             };
                         }
+                        // Tab transfers selection to egui's actual focused widget,
+                        // including submenu Back buttons and detail-page controls.
+                        if pressed && symbol == keysyms::KEY_Tab && state.shell.system_menu_open {
+                            state.shell.menus.selected = None;
+                        }
+                        let menu_rows = state.shell.system_menu_open
+                            && matches!(
+                                state.shell.system_page,
+                                tarot_core::SystemPage::Device | tarot_core::SystemPage::Activity
+                            );
                         let command = match symbol {
                             keysyms::KEY_Escape if state.shell.network_input.is_some() => {
                                 Some(Command::CredentialCancel)
@@ -94,7 +104,17 @@ impl Compositor {
                                 Some(Command::CredentialSubmit)
                             }
                             keysyms::KEY_Escape if state.shell.system_menu_open => {
-                                Some(Command::SystemMenuOpen(false))
+                                Some(Command::Menu(tarot_core::menu::Action::Back))
+                            }
+                            keysyms::KEY_Up | keysyms::KEY_Down if menu_rows => {
+                                Some(Command::Menu(tarot_core::menu::Action::Move(
+                                    if symbol == keysyms::KEY_Up { -1 } else { 1 },
+                                )))
+                            }
+                            keysyms::KEY_Return | keysyms::KEY_KP_Enter
+                                if menu_rows && state.shell.menus.selected.is_some() =>
+                            {
+                                Some(Command::Menu(tarot_core::menu::Action::Submit))
                             }
                             keysyms::KEY_Escape if state.shell.notifications_open => {
                                 Some(Command::NotificationsOpen(false))

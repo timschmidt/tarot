@@ -59,7 +59,7 @@ pub fn show_key_feedback(
         });
 }
 
-pub fn show(ui: &mut egui::Ui, model: &ShellModel, layout: Layout, commands: &mut Vec<Command>) {
+pub fn show(ui: &mut egui::Ui, model: &ShellModel, _layout: Layout, commands: &mut Vec<Command>) {
     if ui
         .add_sized(
             [ui.available_width(), 48.0],
@@ -88,12 +88,12 @@ pub fn show(ui: &mut egui::Ui, model: &ShellModel, layout: Layout, commands: &mu
     ui.label("Default output applies to new playback. Apps may keep their own route.");
     egui::ScrollArea::vertical()
         .id_salt("audio_outputs")
-        .max_height((layout.gesture().y - 250.0).max(96.0))
+        .max_height(ui.available_height().max(1.0))
         .show(ui, |ui| {
             for output in &audio.outputs {
                 ui.push_id(output.id, |ui| {
                     ui.group(|ui| {
-                        ui.set_width((layout.width - 64.0).max(160.0));
+                        ui.set_width(ui.available_width().max(1.0));
                         ui.label(egui::RichText::new(&output.label).strong());
                         ui.label(format!(
                             "Volume: {}%{}",

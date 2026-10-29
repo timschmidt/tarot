@@ -13,6 +13,7 @@ pub mod hardware;
 pub mod icons;
 pub mod idle;
 pub mod launcher;
+pub mod menu;
 pub mod motion;
 pub mod network;
 pub mod notifications;
@@ -75,12 +76,14 @@ pub enum KeyboardAction {
     Hide,
 }
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum SystemPage {
     #[default]
     Power,
     Wifi,
     Audio,
+    Device,
+    Activity,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -94,6 +97,7 @@ pub enum Command {
     Launcher,
     SearchApplications(String),
     JustType(search::Action),
+    Menu(menu::Action),
     LauncherAction(launcher::Action),
     ShellTextFocus(bool),
     ShellKey(KeyboardAction),
@@ -150,6 +154,7 @@ pub enum Effect {
 #[derive(Clone, Debug, Default)]
 pub struct ShellModel {
     pub clock_label: String,
+    pub date_label: String,
     pub calendar_day: Option<u8>,
     pub view: View,
     pub cards: Vec<Card>,
@@ -163,6 +168,7 @@ pub struct ShellModel {
     pub launcher_query: String,
     pub launcher: launcher::State,
     pub search: search::State,
+    pub menus: menu::State,
     pub reduced_motion: bool,
     pub shell_text_focus: bool,
     pub keyboard_available: bool,
@@ -267,7 +273,7 @@ impl ShellModel {
                 Vec::new()
             }
             Action::Submit => {
-                if self.launcher_query.trim().is_empty() {
+                if self.launcher_query.trim().is_empty() && self.search.selected.is_none() {
                     return Vec::new();
                 }
                 // Enter can accept the first local result; a remote provider always
@@ -410,8 +416,8 @@ impl ShellModel {
                 .is_none_or(|i| i.target != network::InputTarget::Agent(prompt.id))
         {
             effects.extend(self.cancel_network_input());
-            effects.extend(self.apply(Command::SystemMenuOpen(true)));
             self.system_page = SystemPage::Wifi;
+            effects.extend(self.apply(Command::SystemMenuOpen(true)));
             self.network_input = Some(network::Input {
                 target: network::InputTarget::Agent(prompt.id),
                 label: prompt.label.clone(),
@@ -426,8 +432,12 @@ impl ShellModel {
     }
     pub fn add_window(&mut self, id: WindowId, title: String, app_id: String) -> Vec<Effect> {
         if let Some(card) = self.cards.iter_mut().find(|card| card.id == id) {
+            let changed = card.app_id != app_id;
             card.title = title;
             card.app_id = app_id;
+            if changed && self.system_menu_open && self.menus.entry == SystemPage::Activity {
+                self.menus.invalidate();
+            }
             return Vec::new();
         }
         self.add_window_in_background(id, title, app_id);
@@ -442,6 +452,9 @@ impl ShellModel {
             self.update_window(id, title, app_id);
             return;
         }
+        if self.system_menu_open && self.menus.entry == SystemPage::Activity {
+            self.menus.invalidate();
+        }
         let stack = self.new_stack();
         self.cards.push(Card {
             id,
@@ -455,12 +468,33 @@ impl ShellModel {
 
     pub fn update_window(&mut self, id: WindowId, title: String, app_id: String) {
         if let Some(card) = self.cards.iter_mut().find(|card| card.id == id) {
+            let changed = card.app_id != app_id;
             card.title = title;
             card.app_id = app_id;
+            if changed && self.system_menu_open && self.menus.entry == SystemPage::Activity {
+                self.menus.invalidate();
+            }
         }
     }
 
     pub fn remove_window(&mut self, id: WindowId) -> Vec<Effect> {
+        let menu_owner_removed = self.system_menu_open && self.menus.owner == Some(View::App(id));
+        if self.system_menu_open {
+            if self.menus.entry == SystemPage::Activity || menu_owner_removed {
+                self.menus.invalidate();
+            }
+            if self.menus.owner == Some(View::App(id)) {
+                self.menus.owner = None;
+                if self.menus.entry == SystemPage::Activity {
+                    self.system_menu_open = false;
+                    self.launcher.menu_open = false;
+                    self.menus.dismiss();
+                }
+            }
+            if self.menus.panel == menu::Panel::Arrange(id) {
+                self.menus.panel = menu::Panel::Root;
+            }
+        }
         let old_index = self
             .cards
             .iter()
@@ -486,13 +520,22 @@ impl ShellModel {
         if self.view == View::App(id) {
             if let Some(next) = self.selected {
                 self.view = View::App(next);
-                return vec![Effect::Focus(Some(next))];
+                return vec![Effect::Focus(if menu_owner_removed {
+                    None
+                } else {
+                    Some(next)
+                })];
             }
             self.view = View::Home;
             return vec![Effect::Focus(None)];
         }
         if self.cards.is_empty() && self.view == View::Overview {
             self.view = View::Home;
+            if self.system_menu_open && self.menus.entry == SystemPage::Activity {
+                self.system_menu_open = false;
+                self.menus.dismiss();
+                self.launcher.menu_open = false;
+            }
         }
         Vec::new()
     }
@@ -516,6 +559,7 @@ impl ShellModel {
         }
         match command {
             Command::JustType(action) => return self.just_type(action),
+            Command::Menu(action) => return self.menu_action(action),
             Command::LoadIcon(id) => {
                 if let Some(icon) = self
                     .applications
@@ -646,6 +690,10 @@ impl ShellModel {
             }
             Command::CredentialCancel => return self.cancel_network_input(),
             Command::SystemMenuOpen(open) => {
+                let was_open = self.system_menu_open;
+                let restore_owner = !was_open || self.menus.owner == Some(self.view);
+                let restore_text = self.shell_text_focus
+                    || was_open && restore_owner && self.menus.restore_shell_text_focus;
                 let canceled = if !open {
                     self.cancel_network_input()
                 } else {
@@ -656,14 +704,30 @@ impl ShellModel {
                 self.card_menu_open = false;
                 if open {
                     self.shell_text_focus = false;
+                    self.launcher.menu_open =
+                        self.system_page == SystemPage::Activity && self.view == View::Launcher;
+                    self.menus.open(self.view, self.system_page);
+                    self.menus.restore_shell_text_focus = restore_text;
+                } else {
                     self.launcher.menu_open = false;
+                    self.shell_text_focus = restore_owner
+                        && restore_text
+                        && self.view == View::Launcher
+                        && !self.editing_favorites
+                        && (self.just_type_active() || self.launcher.rename.is_some());
+                    self.menus.dismiss();
                 }
                 let mut effects = canceled;
-                effects.push(Effect::Focus(if !open && let View::App(id) = self.view {
-                    Some(id)
-                } else {
-                    None
-                }));
+                effects.push(Effect::Focus(
+                    if !open
+                        && restore_owner
+                        && let View::App(id) = self.view
+                    {
+                        Some(id)
+                    } else {
+                        None
+                    },
+                ));
                 return effects;
             }
             Command::Lock => {
@@ -689,12 +753,20 @@ impl ShellModel {
                 } else {
                     Vec::new()
                 };
+                if self.system_menu_open && self.system_page != page {
+                    if self.menus.history.len() >= 8 {
+                        self.menus.history.remove(1);
+                    }
+                    self.menus.history.push(self.system_page);
+                }
                 self.system_page = page;
+                self.menus.invalidate();
                 return effects;
             }
             Command::NotificationsOpen(open) => {
                 let canceled = self.cancel_network_input();
                 self.system_menu_open = false;
+                self.menus.dismiss();
                 self.notifications_open = open;
                 self.card_menu_open = false;
                 if open {
@@ -712,7 +784,10 @@ impl ShellModel {
             Command::Notification(action) => return vec![Effect::Notification(action)],
             Command::CancelGesture => return Vec::new(),
             Command::CardMenuOpen(open) => {
-                self.card_menu_open = open && self.view == View::Overview;
+                self.card_menu_open = open
+                    && self.view == View::Overview
+                    && !self.system_menu_open
+                    && !self.notifications_open;
                 return Vec::new();
             }
             Command::ToggleKeyboard => {
@@ -785,6 +860,40 @@ impl ShellModel {
                 }
             }
             Command::LauncherAction(action) => {
+                if self.view == View::Launcher
+                    && let launcher::Action::Menu(open) = action
+                {
+                    return if open {
+                        if self.system_menu_open && self.system_page == SystemPage::Activity {
+                            Vec::new()
+                        } else {
+                            self.menu_action(menu::Action::ToggleActivity)
+                        }
+                    } else {
+                        self.apply(Command::SystemMenuOpen(false))
+                    };
+                }
+                if self.view == View::Launcher
+                    && self.system_menu_open
+                    && self.system_page == SystemPage::Activity
+                    && action == launcher::Action::Dismiss
+                {
+                    return self.menu_action(menu::Action::Back);
+                }
+                if self.view == View::Launcher
+                    && self.system_menu_open
+                    && self.system_page == SystemPage::Activity
+                    && matches!(
+                        action,
+                        launcher::Action::Search(_)
+                            | launcher::Action::BeginName(_)
+                            | launcher::Action::Edit(_)
+                    )
+                {
+                    let mut effects = self.apply(Command::SystemMenuOpen(false));
+                    effects.extend(self.apply(Command::LauncherAction(action)));
+                    return effects;
+                }
                 if self.view != View::Launcher
                     || self.system_menu_open
                     || self.notifications_open
@@ -944,6 +1053,7 @@ impl ShellModel {
         }
         self.notifications_open = false;
         self.system_menu_open = false;
+        self.menus.dismiss();
         vec![Effect::Focus(None)]
     }
 

@@ -57,6 +57,8 @@ This follows the division between egui's UI integration and Smithay's compositor
 
 See [architecture](ARCHITECTURE.md) for component boundaries, rendering, input, protocols, services, packaging, and the decision register. See [interaction design](INTERACTION_DESIGN.md) for the proposed behavior. [Research](RESEARCH.md) records the sources and uncertainties.
 
+Revision-39 update: initial distinct app/device menus now have native touch/PAM/service/client-lifetime component evidence within a 14-component shell run. A separate focused page/restart run passes after an attached-chevron OCR correction; the first failed controller remains retained. Independent normal-session/restoration/Panfrost audits pass after both. All 209 current/minimum-compiler tests and strict host/ARM checks pass. Menu motion, glyph/rail contrast, enlarged/physical calibration, real exported app actions and all unfinished M0–M6 gates remain open. [Contract](MENUS.md) · [Native evidence and limits](recordings/r39/README.md) · [Export experiment](MENUS_PLAN.md#next-native-export-experiment).
+
 ## Milestone sequence
 
 The critical path is **M0 feasibility → M1 interaction model → M2 native app management → M3 device session → M4 shell alpha → M5 phone alpha → M6 beta**. Real hardware testing begins in M0, and all later phases retain the nested desktop development path. Design, service mocks, and packaging preparation can progress independently when their dependencies permit.

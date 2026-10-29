@@ -451,6 +451,7 @@ impl Compositor {
         let dashboard = self.shell.notifications_open;
         let system_menu = self.shell.system_menu_open;
         let system_page = self.shell.system_page;
+        let top_menu_revision = self.shell.menus.revision;
         let favorites = self.shell.favorites.clone();
         let editing_favorites = self.shell.editing_favorites;
         let launcher = (
@@ -489,6 +490,7 @@ impl Compositor {
             || dashboard != self.shell.notifications_open
             || system_menu != self.shell.system_menu_open
             || system_page != self.shell.system_page
+            || top_menu_revision != self.shell.menus.revision
             || deck
                 != self
                     .shell
@@ -499,10 +501,13 @@ impl Compositor {
         {
             self.cancel_input_sequences();
         }
-        if system_menu != self.shell.system_menu_open
+        if (system_menu != self.shell.system_menu_open || system_page != self.shell.system_page)
             && let Some(server) = &self.system_services
         {
-            server.watch(self.shell.system_menu_open);
+            server.watch(
+                self.shell.system_menu_open
+                    && self.shell.system_page != tarot_core::SystemPage::Activity,
+            );
         }
         self.apply_effects(effects);
         if (system_menu != self.shell.system_menu_open || system_page != self.shell.system_page)

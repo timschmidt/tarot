@@ -9,7 +9,9 @@ import subprocess
 import tempfile
 import time
 import tomllib
+from PIL import Image
 
+from dialog_button import locate
 from hardware_replay import PrivateInput
 from notification_replay import await_value
 from phone_gesture_replay import request
@@ -43,6 +45,18 @@ def main():
             mouse.move(x,y);time.sleep(.06);mouse.button(True);time.sleep(.06);mouse.button(False);time.sleep(.12)
         def menu(label):
             click(40,16);state(label+'-open',lambda s:s['launcher']['menu_open']);capture(label)
+        def menu_item(word,label):
+            capture(label)
+            with Image.open(out/(label+'.png')) as source:
+                source.crop((0,32,240,684)).save(out/(label+'-panel.png'))
+            found=locate(out/(label+'-panel.png'),word,vertical=(0,1))
+            records['actions'].append({'label':label+'-visible-target','ocr':found})
+            click(found['point'][0],32+found['point'][1])
+        def page_menu(label,name):
+            menu(label);menu_item('pages',label+'-pages')
+            state(label+'-page-list',lambda s:s['top_menu']['panel']=='Pages')
+            menu_item(name,label+'-page')
+            state(label+'-page-actions',lambda s:isinstance(s['top_menu']['panel'],dict) and 'Page' in s['top_menu']['panel'])
         def swipe(start,end):
             mouse.move(*start);mouse.button(True);time.sleep(.06);mouse.move(*end);time.sleep(.1);mouse.button(False)
         def saved(label,condition):
@@ -92,19 +106,19 @@ def main():
             mouse.move(180,150);time.sleep(.15);mouse.button(False)
             saved('identity-moved-to-work',lambda p:p['selected']==work_id and next(x for x in p['pages'] if x['id']==work_id)['applications']==['test.app00.desktop'])
             capture('work-with-linked-favorite')
-            menu('rename-menu');click(315,284)  # Name on the second of two verified pages
+            page_menu('rename-menu','work');menu_item('Rename','rename-command')
             state('rename-focus',lambda s:s['launcher']['editing_name'] and s['shell_text_focus'])
             for code in [43,32,58,26]:mouse.tap(code)  # home, replacing selected old name
             time.sleep(.2);click(260,186)
             saved('renamed-home',lambda p:next(x for x in p['pages'] if x['id']==work_id)['name']=='home')
-            menu('reorder-menu');click(210,284)  # Move that same page earlier
+            page_menu('reorder-menu','home');menu_item('earlier','reorder-command')
             saved('page-reordered',lambda p:p['pages'][0]['id']==work_id and p['inbox']==1)
             click(180,650);state('menu-dismissed',lambda s:not s['launcher']['menu_open'])
             final=config.read_bytes();mouse.close();mouse=None;request(control,'exit');assert session.wait(timeout=6)==0
             launch('restarted');assert config.read_bytes()==final
             saved('saved-restart',lambda p:p['selected']==work_id and p['pages'][0]['name']=='home' and p['pages'][0]['applications']==['test.app00.desktop'])
-            capture('after-restart');menu('remove-menu')
-            click(160,340)
+            capture('after-restart');page_menu('remove-menu','home')
+            menu_item('Remove','remove-command')
             saved('page-removed',lambda p:len(p['pages'])==1 and p['pages'][0]['applications']==[f'test.app{n:02}.desktop' for n in range(1,36)]+['test.app00.desktop'])
             records['passed']=True
             print('PASS: menu/OSK page creation, horizontal paging, vertical scroll, edge hold/drop, rename/reorder, saved restart and removal')

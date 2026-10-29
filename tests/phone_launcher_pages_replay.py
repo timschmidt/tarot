@@ -9,8 +9,10 @@ import json
 import time
 import tomllib
 from pathlib import Path
+from PIL import Image
 
 from card_matrix import physical
+from dialog_button import locate
 from phone_gesture_replay import request
 from phone_touch_keyboard import Keyboard
 
@@ -50,6 +52,27 @@ def replay(control,screen,state,tap,capture,before,out,authenticate):
         return s
     def menu(label):
         touch(40,16);observe(label+'-menu',lambda s:s['launcher']['menu_open']);picture(label+'-menu')
+    def menu_item(word,label):
+        picture(label);s=status();width,height=dimensions(s);scale=s['output']['scale']
+        raw=out/('pages-'+label+'.png');target=folder/(label+'-menu-panel.png')
+        with Image.open(raw) as source:
+            source.load();rotation={'normal':None,'left-up':Image.Transpose.ROTATE_270,'bottom-up':Image.Transpose.ROTATE_180,'right-up':Image.Transpose.ROTATE_90}[s['output']['orientation']]
+            image=source.copy() if rotation is None else source.transpose(rotation)
+        assert image.size==(round(width*scale),round(height*scale))
+        image.crop((0,round(32*scale),round(min(240,width)*scale),round((height-36)*scale))).save(target)
+        # The rendered return chevron can join "Back" into one OCR token.
+        # Restrict this lookup to the header and retain the 80% confidence gate.
+        vertical=(0,min(1,72/(height-68))) if word=='Back' else (0,1)
+        alternatives=('‹Back','«Back','<Back') if word=='Back' else ()
+        found=locate(target,word,vertical=vertical,alternatives=alternatives);result.setdefault('menu_targets',[]).append({'label':label,'ocr':found,'orientation':s['output']['orientation']})
+        touch(found['point'][0]/scale,32+found['point'][1]/scale)
+    def page_menu(label):
+        menu(label);menu_item('pages',label+'-pages')
+        observe(label+'-list',lambda s:s['top_menu']['panel']=='Pages')
+        settings=status()['launcher']['settings'];selected=settings['selected']
+        name=next(page['name'] for page in settings['pages'] if page['id']==selected)
+        menu_item(name,label+'-selected')
+        observe(label+'-actions',lambda s:s['top_menu']['panel']=={'Page':selected})
     def launcher(label):
         request(control,'home');request(control,'launcher')
         return observe(label,lambda s:s['view']=='Launcher' and not s['shell_text_focus']
@@ -74,7 +97,7 @@ def replay(control,screen,state,tap,capture,before,out,authenticate):
         Keyboard(lambda x,y:touch(5+(x-5)*(width-10)/350,
                                  keyboard['y']+(y-444)*keyboard['height']/240)).type_ascii(text)
     def edit_name(label):
-        menu(label);touch(315,284)  # second of the two verified page rows
+        page_menu(label);menu_item('Rename',label+'-rename')
         return observe(label+'-field',lambda s:s['launcher']['editing_name']
                        and s['shell_text_focus'] and s['keyboard_visible'])
     try:
@@ -155,13 +178,15 @@ def replay(control,screen,state,tap,capture,before,out,authenticate):
         assert settings.read_bytes()==baseline
         edit_name('rename-accept');type_name('personal');touch(245,663)  # touch Enter
         saved('name-accepted',lambda p:page(p,work)['name']=='personal')
-        menu('reorder');touch(210,284)
+        page_menu('reorder');menu_item('earlier','reorder-command')
         saved('work-first',lambda p:p['pages'][0]['id']==work and p['inbox']==inbox)
         touch(180,650);observe('reorder-menu-dismissed',lambda s:not s['launcher']['menu_open'])
-        menu('remove');touch(160,340)
+        page_menu('remove');menu_item('Remove','remove-command')
         removed=saved('work-removed',lambda p:len(p['pages'])==1 and p['pages'][0]['id']==inbox
                       and IDS[0] in p['pages'][0]['applications'])
         assert removed['launcher']['menu_open']
+        menu_item('Back','removed-list-back')
+        observe('removed-root',lambda s:s['top_menu']['panel']=='Root')
         touch(160,110);observe('replacement-name',lambda s:s['launcher']['editing_name'] and s['shell_text_focus'])
         type_name('saved');touch(260,186)
         replacement=saved('replacement-page',lambda p:len(p['pages'])==2 and p['pages'][1]['name']=='saved')

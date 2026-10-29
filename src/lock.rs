@@ -381,6 +381,8 @@ impl Compositor {
         let effects = self.shell.cancel_network_input();
         self.apply_effects(effects);
         self.shell.system_menu_open = false;
+        self.shell.launcher.menu_open = false;
+        self.shell.menus.dismiss();
         self.shell.notifications_open = false;
         self.shell.shell_text_focus = false;
         self.protection.recovery_presented = None;

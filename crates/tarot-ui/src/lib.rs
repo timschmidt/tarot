@@ -7,6 +7,7 @@ pub mod keyboard;
 mod launcher;
 mod launcher_paging;
 pub mod lock_recovery;
+mod menu;
 mod native_icons;
 pub mod native_text;
 pub mod notifications;
@@ -98,6 +99,15 @@ pub fn show_with_native_fullscreen(
     theme::install(ctx);
     theme::prepare_art(ctx);
     let mut commands = Vec::new();
+    let popup_epoch = egui::Id::new("top_menu_popup_epoch");
+    if model.system_menu_open {
+        if ctx.data_mut(|d| d.get_temp::<u64>(popup_epoch)) != Some(model.menus.revision) {
+            egui::Popup::close_all(ctx);
+            ctx.data_mut(|d| d.insert_temp(popup_epoch, model.menus.revision));
+        }
+    } else {
+        ctx.data_mut(|d| d.remove::<u64>(popup_epoch));
+    }
     if matches!(model.view, View::Home | View::Overview)
         && !model.system_menu_open
         && !model.notifications_open
@@ -183,10 +193,26 @@ pub fn show_with_native_fullscreen(
                     }
                     _ => "Tarot",
                 };
+                let title_limit = (layout.width / 2.0 - 36.0).max(24.0);
+                let measured = painter.layout_no_wrap(
+                    title.to_owned(),
+                    theme::bold(ctx, 15.0),
+                    Color32::WHITE,
+                );
+                let arrow_x = (measured.size().x + 20.0).min(title_limit - 8.0).max(24.0);
+                let activity_button =
+                    Rect::from_min_size(Pos2::ZERO, Vec2::new(title_limit, Layout::STATUS));
+                if model.system_menu_open && model.menus.entry == tarot_core::SystemPage::Activity {
+                    painter.rect_filled(
+                        Rect::from_min_size(Pos2::ZERO, Vec2::new(arrow_x + 12.0, Layout::STATUS)),
+                        4.0,
+                        Color32::from_rgb(63, 73, 66),
+                    );
+                }
                 painter
                     .with_clip_rect(Rect::from_min_max(
                         Pos2::ZERO,
-                        Pos2::new(layout.width / 2.0 - 36.0, Layout::STATUS),
+                        Pos2::new(arrow_x - 8.0, Layout::STATUS),
                     ))
                     .text(
                         Pos2::new(10.0, Layout::STATUS / 2.0),
@@ -213,18 +239,21 @@ pub fn show_with_native_fullscreen(
                     FontId::proportional(11.0),
                     Color32::from_gray(185),
                 );
-                if model.view == View::Launcher {
-                    let menu = Rect::from_min_size(Pos2::ZERO, Vec2::new(110.0, Layout::STATUS));
-                    if ui
-                        .interact(menu, ui.id().with("launcher-menu"), Sense::click())
-                        .on_hover_text("Launcher menu")
-                        .clicked()
-                    {
-                        commands.push(Command::LauncherAction(tarot_core::launcher::Action::Menu(
-                            !model.launcher.menu_open,
-                        )));
-                    }
-                    let center = Pos2::new(84.0, Layout::STATUS / 2.0);
+                let response = ui
+                    .interact(
+                        activity_button,
+                        ui.id().with("activity-menu"),
+                        Sense::click(),
+                    )
+                    .on_hover_text("Activity menu");
+                response.widget_info(|| {
+                    egui::WidgetInfo::labeled(egui::WidgetType::Button, true, "Activity menu")
+                });
+                if response.clicked() {
+                    commands.push(Command::Menu(tarot_core::menu::Action::ToggleActivity));
+                }
+                {
+                    let center = Pos2::new(arrow_x, Layout::STATUS / 2.0);
                     painter.add(egui::Shape::convex_polygon(
                         vec![
                             center + Vec2::new(-3.0, -2.0),
@@ -243,7 +272,7 @@ pub fn show_with_native_fullscreen(
                     .interact(status_button, ui.id().with("system-status"), Sense::click())
                     .clicked()
                 {
-                    commands.push(Command::SystemMenuOpen(!model.system_menu_open));
+                    commands.push(Command::Menu(tarot_core::menu::Action::ToggleDevice));
                 }
             }
 
@@ -276,7 +305,12 @@ pub fn show_with_native_fullscreen(
             }
 
             if presentation.overview > 0.001 {
-                show_cards(ui, model, layout, presentation, &mut commands);
+                ui.scope(|ui| {
+                    if modal {
+                        ui.disable();
+                    }
+                    show_cards(ui, model, layout, presentation, &mut commands);
+                });
             }
 
             if (presentation.dock > 0.001
@@ -418,7 +452,10 @@ pub fn show_with_native_fullscreen(
     if search_focused != model.shell_text_focus {
         commands.push(Command::ShellTextFocus(search_focused));
     }
-    let menu_open = model.view == View::Overview && egui::Popup::is_any_open(ctx);
+    let menu_open = model.view == View::Overview
+        && !model.system_menu_open
+        && !model.notifications_open
+        && egui::Popup::is_any_open(ctx);
     if menu_open != model.card_menu_open {
         commands.push(Command::CardMenuOpen(menu_open));
     }
@@ -427,9 +464,6 @@ pub fn show_with_native_fullscreen(
     }
     system::show(ctx, model, layout, &mut commands);
     credentials::keyboard(ctx, model, layout, &mut commands);
-    if model.view == View::Launcher && !model.system_menu_open && !model.notifications_open {
-        launcher::menu(ctx, model, layout, &mut commands);
-    }
     if model.view != View::Launcher {
         quick_launch::launch_feedback(ctx, model, layout, &mut commands);
     }
@@ -1004,6 +1038,9 @@ mod tests {
             "Work".into(),
         ))));
         model.apply(Command::LauncherAction(Action::Menu(true)));
+        for c in click_text(&ctx, &model, "Launcher pages") {
+            model.apply(c);
+        }
         let mut visible = false;
         for _ in 0..3 {
             let output = ctx.run(
@@ -1428,7 +1465,7 @@ mod tests {
         model.apply(Command::SystemPage(tarot_core::SystemPage::Audio));
         assert_eq!(
             click(&ctx, &model, Pos2::new(21.0, 504.0)),
-            vec![Command::SystemMenuOpen(false)]
+            vec![Command::Menu(tarot_core::menu::Action::Dismiss)]
         );
         model.apply(Command::SystemMenuOpen(false));
         model.apply(Command::SystemPage(tarot_core::SystemPage::Power));
@@ -1436,8 +1473,12 @@ mod tests {
             model.apply(command);
         }
         assert!(model.system_menu_open);
+        for command in click_text(&ctx, &model, "Power & display") {
+            model.apply(command);
+        }
+        assert_eq!(model.system_page, tarot_core::SystemPage::Power);
         assert_eq!(
-            click(&ctx, &model, Pos2::new(124.0, 220.0)),
+            click_text(&ctx, &model, "40%"),
             vec![Command::Power(tarot_core::power::UiAction::Brightness {
                 percent: 40
             })]
@@ -1577,9 +1618,9 @@ mod tests {
         let mut model = ShellModel::default();
         assert_eq!(
             click(&ctx, &model, Pos2::new(310.0, 14.0)),
-            vec![Command::SystemMenuOpen(true)]
+            vec![Command::Menu(tarot_core::menu::Action::ToggleDevice)]
         );
-        model.apply(Command::SystemMenuOpen(true));
+        model.apply(Command::Menu(tarot_core::menu::Action::ToggleDevice));
         model.power.enabled = true;
         model.power.battery = tarot_core::power::Battery {
             available: true,
@@ -1591,17 +1632,20 @@ mod tests {
         };
         model.power.brightness.maximum = 100;
         model.power.brightness.actual = Some(30);
-        assert!(click(&ctx, &model, Pos2::new(124.0, 220.0)).is_empty());
+        for c in click_text(&ctx, &model, "Power & display") {
+            model.apply(c);
+        }
+        assert!(click_text(&ctx, &model, "40%").is_empty());
         model.power.brightness.can_set = true;
         assert_eq!(
-            click(&ctx, &model, Pos2::new(124.0, 220.0)),
+            click_text(&ctx, &model, "40%"),
             vec![Command::Power(tarot_core::power::UiAction::Brightness {
                 percent: 40
             })]
         );
         assert_eq!(
             click(&ctx, &model, Pos2::new(292.0, 648.0)),
-            vec![Command::SystemMenuOpen(false)]
+            vec![Command::Menu(tarot_core::menu::Action::Dismiss)]
         );
     }
 

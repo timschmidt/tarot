@@ -372,7 +372,10 @@ mod tests {
             false,
         );
         let commands = render(&ctx, &m, 0.4, vec![button(40.0, 16.0, false)], false);
-        assert_eq!(commands, vec![Command::LauncherAction(Action::Menu(true))]);
+        assert_eq!(
+            commands,
+            vec![Command::Menu(tarot_core::menu::Action::ToggleActivity)]
+        );
         assert!(
             ctx.data_mut(|d| d.get_temp::<Memory>(Id::new("launcher_paging")))
                 .unwrap()
