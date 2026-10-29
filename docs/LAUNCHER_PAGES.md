@@ -1,6 +1,6 @@
 # Named Launcher pages
 
-This implements the named-page interaction in the owner's original [design packet](Tarot_Design_Packet/source/build_packet.py), especially screen 03. Signed revision 34 now passes the scoped native Launcher component and saved restart. Physical-panel conformance remains pending, and revision 32 remains the last accepted complete scoped native checkpoint. [Evidence and limits](recordings/r34/README.md).
+This implements the named-page interaction in the owner's original [design packet](Tarot_Design_Packet/source/build_packet.py), especially screen 03. Signed revision 34 now passes the scoped native Launcher component and saved restart. The owner qualitatively confirms page/control usability on the phone. Calibrated physical-panel conformance remains pending, and revision 32 remains the last accepted complete scoped native checkpoint. [Evidence and limits](recordings/r34/README.md).
 
 ## Interaction
 
