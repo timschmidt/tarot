@@ -229,6 +229,7 @@ pub fn start(path: &Path, handle: &LoopHandle<'_, CalloopData>) -> Result<Contro
                     "items":state.shell.notifications.items.iter().map(|n|json!({"id":n.id,"revision":n.revision,"live":n.live,"orphaned":n.orphaned,"action_count":n.actions.len(),"urgent":n.urgent})).collect::<Vec<_>>(),
                 },
                 "launcher_query": state.shell.launcher_query,
+                "just_type": {"active":state.shell.just_type_active(), "origin":state.shell.search.origin, "revision":state.shell.search.revision, "selection_revision":state.shell.search.selection_revision, "selected":state.shell.search.selected, "query_chars":state.shell.launcher_query.chars().count()},
                 "keyboard_rect": state.layout.keyboard(),
                 "app_area": state.layout.content(),
                 "selected": state.shell.selected,

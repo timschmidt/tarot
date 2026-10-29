@@ -554,6 +554,15 @@ impl Compositor {
                 continue;
             }
             match effect {
+                Effect::OpenUri { generation, uri } => {
+                    if let Some(sender) = &self.app_events {
+                        let _ = sender.send(crate::apps::AppEvent::OpenUri {
+                            generation,
+                            search_revision: self.shell.search.revision,
+                            uri,
+                        });
+                    }
+                }
                 Effect::LoadIcon { id, icon } => {
                     if !self
                         .icons

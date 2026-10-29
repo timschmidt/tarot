@@ -1,13 +1,13 @@
 # Local source-snapshot recipe. Keep Phosh installed as a recovery session.
 pkgname=tarot
 pkgver=0.1.0
-pkgrel=36
+pkgrel=38
 pkgdesc="Rust phone shell and Wayland compositor (development preview)"
 url="https://github.com/timschmidt/tarot"
 arch="aarch64"
 license="MIT OR Apache-2.0"
 depends="dbus elogind linux-pam pulseaudio iio-sensor-proxy mesa-dri-gallium mesa-egl mesa-gles
-	wayland-libs-client wayland-libs-egl xkeyboard-config"
+	wayland-libs-client wayland-libs-egl xkeyboard-config glib xdg-utils"
 makedepends="cargo clang lld pkgconf libinput-dev libseat-dev mesa-dev
 	wayland-dev libxkbcommon-dev eudev-dev pulseaudio-dev"
 source="tarot-$pkgver.tar.gz"

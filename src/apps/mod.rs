@@ -1,6 +1,7 @@
 //! Installed applications. XDG precedence is applied before visibility filters.
 
 mod exec;
+pub(crate) mod uri;
 
 use anyhow::{Context, Result, anyhow};
 use freedesktop_desktop_entry as desktop;
@@ -22,6 +23,17 @@ pub enum ChildTag {
 }
 
 pub enum AppEvent {
+    OpenUri {
+        generation: u64,
+        search_revision: u64,
+        uri: String,
+    },
+    UriFinished {
+        generation: u64,
+        search_revision: u64,
+        handler: Option<String>,
+        success: bool,
+    },
     Launch {
         id: String,
         generation: u64,
@@ -81,10 +93,34 @@ pub fn init(
         .unwrap_or_else(|| tarot_core::quick_launch::Favorites::initial(&state.shell.applications));
     let (sender, receiver) = channel::channel::<AppEvent>();
     state.app_events = Some(sender.clone());
+    let uri_requests = uri::start(sender.clone());
     let loop_handle = handle.clone();
     handle.insert_source(receiver, move |event, _, data| {
         let channel::Event::Msg(event) = event else { return; };
         match event {
+            AppEvent::OpenUri { generation, search_revision, uri } => {
+                if data.state.protected() {
+                    launch_failed(&mut data.state, generation, "Browser request canceled while the session was protected.".into());
+                    return;
+                }
+                if uri_requests.try_send(uri::Request { generation, search_revision, uri, display: data.state.socket_name.clone() }).is_err() {
+                    launch_failed(&mut data.state, generation, "Another browser request is in progress. Try again.".into());
+                }
+            }
+            AppEvent::UriFinished { generation, search_revision, handler, success } => {
+                let current = data.state.shell.launch_feedback.as_ref().is_some_and(|f| f.generation == generation && f.pending);
+                if !current { return; }
+                launch_failed(&mut data.state, generation, if success { "Request handed to the default browser." } else { "Unable to open the default browser. Check its installation and default-app setting, then try again." }.into());
+                if success && !data.state.protected() && data.state.shell.just_type_active() && data.state.shell.search.revision == search_revision
+                    && !data.state.shell.system_menu_open && !data.state.shell.notifications_open
+                    && let Some(handler) = handler {
+                    let app_id = handler.strip_suffix(".desktop").unwrap_or(&handler);
+                    if let Some(id) = data.state.shell.cards.iter().rev().find(|c| !c.closing && (c.app_id == app_id || c.app_id == handler)).map(|c| c.id) {
+                        data.state.apply_command(tarot_core::Command::Activate(id));
+                        data.state.shell.launch_feedback = None;
+                    }
+                }
+            }
             AppEvent::Launch { id, generation } => {
                 match registry.launch(&id, &data.state.socket_name) {
                     Ok(child) => monitor_child(loop_handle.clone(), child, ChildTag::Application(generation), sender.clone()),

@@ -197,6 +197,9 @@ pub(crate) fn show(
         }
         return response.has_focus();
     }
+    if model.just_type_active() && drag.is_none() {
+        return crate::just_type::show(ui, model, layout, commands);
+    }
     let search = searching(model) && drag.is_none();
     let compact = search && model.shell_text_focus && layout.height < 480.0;
     let page = drag
@@ -456,7 +459,7 @@ fn grid(
                     if drag.is_some_and(|d|matches!(d.target,Some(tarot_core::favorite_drag::Target::Page{page:p,at}) if p==page && at==index)) {
                         ui.painter().rect_stroke(response.rect.shrink(2.0),8.0,egui::Stroke::new(2.0_f32,theme::FOCUS),egui::StrokeKind::Inside);
                     }
-                    paint_application(ui,app,&response,model,compact,drag.is_some_and(|d|d.source.id()==app.id),commands);
+                    paint_application(ui,app,&response,model,AppStyle { compact, dragged: drag.is_some_and(|d|d.source.id()==app.id), label: Color32::WHITE },commands);
                     if response.clicked() {commands.push(Command::Launch(app.id.clone()));}
                     response.on_hover_text(app.unavailable.as_deref().unwrap_or(&app.description));
                     if index%3==2 {ui.end_row();}
@@ -479,15 +482,24 @@ fn grid(
     }
 }
 
-fn paint_application(
+pub(crate) struct AppStyle {
+    pub compact: bool,
+    pub dragged: bool,
+    pub label: Color32,
+}
+pub(crate) fn paint_application(
     ui: &egui::Ui,
     app: &Application,
     response: &egui::Response,
     model: &ShellModel,
-    compact: bool,
-    dragged: bool,
+    style: AppStyle,
     commands: &mut Vec<Command>,
 ) {
+    let AppStyle {
+        compact,
+        dragged,
+        label: label_color,
+    } = style;
     let opacity = if dragged { 0.3 } else { 1.0 };
     let center = Pos2::new(
         response.rect.center().x,
@@ -548,10 +560,10 @@ fn paint_application(
     let mut job = egui::text::LayoutJob::simple(
         app.name.clone(),
         FontId::proportional(14.0),
-        Color32::WHITE.gamma_multiply(opacity),
+        label_color.gamma_multiply(opacity),
         response.rect.width() - 8.0,
     );
-    job.wrap.max_rows = 2;
+    job.wrap.max_rows = if compact { 1 } else { 2 };
     job.wrap.overflow_character = Some('…');
     let label = ui.painter().layout_job(job);
     let x = response.rect.center().x - label.size().x / 2.0;
@@ -560,7 +572,7 @@ fn paint_application(
         .galley(
             Pos2::new(x, response.rect.top() + if compact { 34.0 } else { 70.0 }),
             label,
-            Color32::WHITE,
+            label_color,
         );
 }
 
@@ -589,6 +601,21 @@ pub(crate) fn menu(
                     .max_height((layout.gesture().y - Layout::STATUS - 24.0).max(48.0))
                     .show(ui, |ui| {
                         let width = ui.available_width();
+                        if model.just_type_active() {
+                            for (label, value) in [
+                                ("Clear search", tarot_core::search::Action::Clear),
+                                ("Close Just Type", tarot_core::search::Action::Close),
+                            ] {
+                                if ui
+                                    .add_sized(Vec2::new(width, 44.0), egui::Button::new(label))
+                                    .clicked()
+                                {
+                                    commands.push(Command::JustType(value));
+                                }
+                            }
+                            ui.label("Web search runs only when you select a provider.");
+                            return;
+                        }
                         if ui
                             .add_sized(
                                 Vec2::new(width, 44.0),

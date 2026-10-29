@@ -118,6 +118,24 @@ impl Compositor {
                             {
                                 Some(Command::BrowseCards(1))
                             }
+                            keysyms::KEY_Up | keysyms::KEY_Down
+                                if state.shell.just_type_active()
+                                    && !state.shell.system_menu_open
+                                    && !state.shell.notifications_open
+                                    && !state.shell.launcher.menu_open =>
+                            {
+                                Some(Command::JustType(tarot_core::search::Action::Move(
+                                    if symbol == keysyms::KEY_Up { -1 } else { 1 },
+                                )))
+                            }
+                            keysyms::KEY_Return | keysyms::KEY_KP_Enter
+                                if state.shell.just_type_active()
+                                    && !state.shell.system_menu_open
+                                    && !state.shell.notifications_open
+                                    && !state.shell.launcher.menu_open =>
+                            {
+                                Some(Command::JustType(tarot_core::search::Action::Submit))
+                            }
                             keysyms::KEY_Escape
                                 if state.shell.view == View::Launcher
                                     && (state.shell.launcher.menu_open

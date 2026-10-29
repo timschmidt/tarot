@@ -2,6 +2,7 @@
 pub mod audio;
 pub mod credentials;
 mod favorite_drag;
+mod just_type;
 pub mod keyboard;
 mod launcher;
 mod launcher_paging;
@@ -97,6 +98,28 @@ pub fn show_with_native_fullscreen(
     theme::install(ctx);
     theme::prepare_art(ctx);
     let mut commands = Vec::new();
+    if matches!(model.view, View::Home | View::Overview)
+        && !model.system_menu_open
+        && !model.notifications_open
+        && !model.card_menu_open
+    {
+        let typed = ctx.input(|i| {
+            i.events
+                .iter()
+                .filter_map(|e| {
+                    if let egui::Event::Text(t) = e {
+                        Some(t.as_str())
+                    } else {
+                        None
+                    }
+                })
+                .collect::<String>()
+        });
+        if !typed.is_empty() {
+            commands.push(Command::JustType(tarot_core::search::Action::Open));
+            commands.push(Command::SearchApplications(typed));
+        }
+    }
     native_icons::prune(ctx, model);
     let favorite_frame = favorite_drag::begin(ctx, model, layout);
     let paging_frame = launcher_paging::begin(
@@ -151,7 +174,13 @@ pub fn show_with_native_fullscreen(
                         .find(|card| card.id == id)
                         .map(|card| card.title.as_str())
                         .unwrap_or("Tarot"),
-                    View::Launcher => "Launcher",
+                    View::Launcher => {
+                        if model.just_type_active() {
+                            "Just Type"
+                        } else {
+                            "Launcher"
+                        }
+                    }
                     _ => "Tarot",
                 };
                 painter
@@ -219,8 +248,11 @@ pub fn show_with_native_fullscreen(
             }
 
             match model.view {
-                View::Home => {}
-                View::Overview => {}
+                View::Home | View::Overview => {
+                    if !modal {
+                        just_type::affordance(ui, layout, &mut commands);
+                    }
+                }
                 View::Launcher => {
                     search_focused = ui
                         .scope(|ui| {
@@ -361,8 +393,12 @@ pub fn show_with_native_fullscreen(
             ));
             search_focused = true;
         }
+        let submit_search = actions.contains(&keyboard::Action::Enter) && model.just_type_active();
+        if submit_search {
+            commands.push(Command::JustType(tarot_core::search::Action::Submit));
+        }
         let hide = actions.contains(&keyboard::Action::Hide)
-            || (actions.contains(&keyboard::Action::Enter) && !accept_name);
+            || (actions.contains(&keyboard::Action::Enter) && !accept_name && !submit_search);
         if hide {
             search_focused = false;
             ctx.memory_mut(|memory| memory.surrender_focus(search_id));
@@ -1234,7 +1270,7 @@ mod tests {
         );
         model.apply(Command::ShellTextFocus(false));
         assert!(!frame(&ctx, &model, Vec::new()).contains(&Command::ShellTextFocus(true)));
-        let reopened = click(&ctx, &model, Pos2::new(100.0, 115.0));
+        let reopened = click(&ctx, &model, Pos2::new(100.0, 64.0));
         assert!(reopened.contains(&Command::ShellTextFocus(true)));
         for command in reopened {
             model.apply(command);
@@ -1652,10 +1688,91 @@ mod tests {
             },
         ];
         model.apply(Command::SearchApplications("  MATH   numbers  ".into()));
+        let commands = click(&ctx, &model, Pos2::new(64.0, 188.0));
+        let effects: Vec<_> = commands.into_iter().flat_map(|c| model.apply(c)).collect();
         assert_eq!(
-            click(&ctx, &model, Pos2::new(64.0, 188.0)),
-            vec![Command::Launch("calc.desktop".into())]
+            effects,
+            vec![tarot_core::Effect::Launch("calc.desktop".into())]
         );
+    }
+
+    #[test]
+    fn just_type_enters_from_cards_and_opens_a_real_setting_without_changing_the_query() {
+        let ctx = egui::Context::default();
+        let mut model = ShellModel::default();
+        model.add_window(
+            tarot_core::WindowId(1),
+            "Original".into(),
+            "original".into(),
+        );
+        model.apply(Command::Overview);
+        for c in click(&ctx, &model, Pos2::new(120.0, 60.0)) {
+            model.apply(c);
+        }
+        assert!(model.just_type_active());
+        assert_eq!(model.search.origin, Some(View::Overview));
+        for c in frame(&ctx, &model, vec![egui::Event::Text("volume".into())]) {
+            model.apply(c);
+        }
+        assert_eq!(model.launcher_query, "volume");
+        for c in click(&ctx, &model, Pos2::new(180.0, 145.0)) {
+            model.apply(c);
+        }
+        assert!(model.system_menu_open);
+        assert_eq!(model.system_page, tarot_core::SystemPage::Audio);
+        assert_eq!(model.launcher_query, "volume");
+        model.apply(Command::SystemMenuOpen(false));
+        for c in click(&ctx, &model, Pos2::new(40.0, 16.0)) {
+            model.apply(c);
+        }
+        for c in click_text(&ctx, &model, "Close Just Type") {
+            model.apply(c);
+        }
+        assert_eq!(model.view, View::Overview);
+        assert_eq!(model.cards.len(), 1);
+        assert!(model.launcher_query.is_empty());
+    }
+
+    #[test]
+    fn a_real_held_result_cannot_activate_a_replacement_query_result() {
+        let ctx = egui::Context::default();
+        let mut model = ShellModel::default();
+        model.apply(Command::JustType(tarot_core::search::Action::Open));
+        model.apply(Command::SearchApplications("rotation".into()));
+        for _ in 0..3 {
+            frame(&ctx, &model, vec![]);
+        }
+        let pos = Pos2::new(180.0, 145.0);
+        let down = vec![
+            egui::Event::PointerMoved(pos),
+            egui::Event::PointerButton {
+                pos,
+                button: egui::PointerButton::Primary,
+                pressed: true,
+                modifiers: egui::Modifiers::NONE,
+            },
+        ];
+        for c in frame(&ctx, &model, down) {
+            model.apply(c);
+        }
+        model.apply(Command::SearchApplications("volume".into()));
+        frame(&ctx, &model, vec![]);
+        let up = vec![egui::Event::PointerButton {
+            pos,
+            button: egui::PointerButton::Primary,
+            pressed: false,
+            modifiers: egui::Modifiers::NONE,
+        }];
+        let commands = frame(&ctx, &model, up);
+        assert!(!commands.iter().any(|c| matches!(
+            c,
+            Command::JustType(tarot_core::search::Action::Choose { .. })
+        )));
+        assert!(!model.system_menu_open);
+        for c in click(&ctx, &model, pos) {
+            model.apply(c);
+        }
+        assert!(model.system_menu_open && model.system_page == tarot_core::SystemPage::Audio);
     }
 
     #[test]

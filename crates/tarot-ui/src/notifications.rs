@@ -12,7 +12,7 @@ fn button(ui: &mut egui::Ui, label: &str) -> egui::Response {
     ui.add_sized([ui.available_width(), 48.0], egui::Button::new(label))
 }
 
-fn item(ui: &mut egui::Ui, item: &Notification, commands: &mut Vec<Command>) {
+fn item(ui: &mut egui::Ui, item: &Notification, commands: &mut Vec<Command>) -> egui::Response {
     ui.push_id((item.id, item.revision), |ui| {
         egui::Frame::new()
             .fill(Color32::from_rgb(35, 40, 44))
@@ -83,8 +83,23 @@ fn item(ui: &mut egui::Ui, item: &Notification, commands: &mut Vec<Command>) {
                         }
                     }
                 }
-            });
-    });
+            })
+            .response
+    })
+    .inner
+}
+
+fn count_controls(ui: &mut egui::Ui, model: &ShellModel, commands: &mut Vec<Command>) {
+    ui.label(format!("{} retained", model.notifications.items.len()));
+    if ui
+        .add_enabled(
+            !model.notifications.items.is_empty(),
+            egui::Button::new("Clear all"),
+        )
+        .clicked()
+    {
+        action(commands, UiAction::Clear);
+    }
 }
 
 pub fn show(ctx: &egui::Context, model: &ShellModel, layout: Layout, commands: &mut Vec<Command>) {
@@ -139,8 +154,13 @@ pub fn show(ctx: &egui::Context, model: &ShellModel, layout: Layout, commands: &
                     .show(ui, |ui| {
                         ui.set_min_size(panel.size() - Vec2::splat(16.0));
                         ui.set_max_size(panel.size() - Vec2::splat(16.0));
+                        let compact = layout.height < 480.0;
+                        ui.spacing_mut().interact_size.y = 48.0;
                         ui.horizontal(|ui| {
                             ui.heading("Notifications");
+                            if compact {
+                                count_controls(ui, model, commands);
+                            }
                             if ui
                                 .add_sized([48.0, 48.0], egui::Button::new("×"))
                                 .on_hover_text("Close dashboard")
@@ -161,39 +181,37 @@ pub fn show(ctx: &egui::Context, model: &ShellModel, layout: Layout, commands: &
                         let mut dnd = model.notifications.dnd;
                         let mut privacy = model.notifications.hide_previews;
                         ui.spacing_mut().interact_size.y = 48.0;
-                        let dnd_changed = ui
-                            .add_enabled(
-                                model.notifications.settings_available,
-                                egui::Checkbox::new(&mut dnd, "Do not disturb"),
-                            )
-                            .changed();
-                        let privacy_changed = ui
-                            .add_enabled(
-                                model.notifications.settings_available,
-                                egui::Checkbox::new(&mut privacy, "Hide banner previews"),
-                            )
-                            .changed();
-                        if dnd_changed || privacy_changed {
-                            action(
-                                commands,
-                                UiAction::Settings {
-                                    dnd,
-                                    hide_previews: privacy,
-                                },
-                            );
-                        }
-                        ui.horizontal(|ui| {
-                            ui.label(format!("{} retained", model.notifications.items.len()));
-                            if ui
+                        let mut settings_controls = |ui: &mut egui::Ui| {
+                            let dnd_changed = ui
                                 .add_enabled(
-                                    !model.notifications.items.is_empty(),
-                                    egui::Button::new("Clear all"),
+                                    model.notifications.settings_available,
+                                    egui::Checkbox::new(&mut dnd, "Do not disturb"),
                                 )
-                                .clicked()
-                            {
-                                action(commands, UiAction::Clear);
+                                .changed();
+                            let privacy_changed = ui
+                                .add_enabled(
+                                    model.notifications.settings_available,
+                                    egui::Checkbox::new(&mut privacy, "Hide banner previews"),
+                                )
+                                .changed();
+                            if dnd_changed || privacy_changed {
+                                action(
+                                    commands,
+                                    UiAction::Settings {
+                                        dnd,
+                                        hide_previews: privacy,
+                                    },
+                                );
                             }
-                        });
+                        };
+                        if compact {
+                            ui.horizontal(&mut settings_controls);
+                        } else {
+                            settings_controls(ui);
+                        }
+                        if !compact {
+                            ui.horizontal(|ui| count_controls(ui, model, commands));
+                        }
                         egui::ScrollArea::vertical()
                             .id_salt("notification_entries")
                             .max_height(ui.available_height())
@@ -202,7 +220,33 @@ pub fn show(ctx: &egui::Context, model: &ShellModel, layout: Layout, commands: &
                                     ui.label("No notifications");
                                 }
                                 for entry in &model.notifications.items {
-                                    item(ui, entry, commands);
+                                    let response = item(ui, entry, commands);
+                                    if model.just_type_active()
+                                        && model.search.selected.as_ref()
+                                            == Some(&tarot_core::search::Target::Notification {
+                                                id: entry.id,
+                                                revision: entry.revision,
+                                            })
+                                    {
+                                        let id = egui::Id::new("just_type_notification_scroll");
+                                        let selection = (
+                                            model.search.revision,
+                                            model.search.selection_revision,
+                                            entry.id,
+                                            entry.revision,
+                                        );
+                                        if ui
+                                            .ctx()
+                                            .data_mut(|d| d.get_temp::<(u64, u64, u32, u64)>(id))
+                                            != Some(selection)
+                                        {
+                                            ui.scroll_to_rect(
+                                                response.rect,
+                                                Some(egui::Align::Min),
+                                            );
+                                            ui.ctx().data_mut(|d| d.insert_temp(id, selection));
+                                        }
+                                    }
                                     ui.add_space(6.0);
                                 }
                             });

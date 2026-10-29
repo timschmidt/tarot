@@ -22,7 +22,19 @@ python3 tests/native_icons_replay.py --scale 2 --output artifacts/native-icons-s
 
 Use `--xvfb /path/to/Xvfb` when it is not on PATH. The runner owns its synthetic catalog, icon themes, preferences and X display. It must be able to create local sockets. On the phone, the canonical installed-session replay's `--native-icons` component requires the temporary entries/page described by [phone_native_icons_replay.py](../tests/phone_native_icons_replay.py), controlled PAM input and exact original-settings restoration. This component requests no kernel suspend; saved restart and independent normal-session/Panfrost audits remain separate controller checks. [Recorded native scope](recordings/r35/README.md).
 
-Run an empty shell or launch a client inside its private Wayland session:
+### Just Type replay
+
+The [Just Type contract](JUST_TYPE.md) has a separate actual-input/rendered replay. Build the workspace binaries/examples first, then use fresh ignored output directories:
+
+```sh
+python3 tests/just_type_replay.py --scale 1 --output artifacts/search-portrait-1
+python3 tests/just_type_replay.py --scale 2 --output artifacts/search-portrait-2
+python3 tests/just_type_replay.py --scale 2 --landscape --output artifacts/search-landscape-2
+```
+
+It requires Pillow, Xvfb, D-Bus, GIO/xdg-utils and Tesseract. `--xvfb` selects an extracted executable if necessary. Each run owns its private X display, bus, catalog, XDG configuration/MIME defaults and finite synthetic URI handler; it never changes the host's defaults or submits its fixture queries to the Internet. Exact executed Python sources are retained with the report. The notification fallback requires dashboard-only rendered OCR of a target buried below fifteen newer entries, then real manual scrolling away and reselection of the same target. Dimmed underlying search text cannot satisfy visibility; intermediate captures remain separate observations. Native `--just-type` additionally requires the temporary matching Reader/MIME fixture described by [phone_just_type_replay.py](../tests/phone_just_type_replay.py), trusted PAM input and exact restoration of the owner's current Tarot and MIME settings. Native evidence, restart and independent normal-session/Panfrost audits are separate gates.
+
+An ordinary nested shell can launch a client inside its private Wayland session:
 
 ```sh
 cargo run --bin tarot
@@ -127,7 +139,7 @@ The socket requires a private directory owned by the current user and uses mode 
 
 ## Compiler minimum
 
-The workspace declares Rust 1.89 centrally. The locked `uuid` 1.29.0 dependency through zbus rejects Rust 1.88. Actual Rust 1.89 passes all 104 host tests and the complete AArch64/musl DRM workspace/all-target check. Release package builds use the separately recorded Alpine Rust 1.96.1 toolchain. Minimum-version compilation does not substitute for device testing or the ordinary strict Clippy gates.
+The workspace declares Rust 1.89 centrally. The locked `uuid` 1.29.0 dependency through zbus rejects Rust 1.88. Actual Rust 1.89 passes the revision-38 suite's 196 ordinary workspace tests and the complete AArch64/musl DRM workspace/all-target check. Release package builds use the separately recorded Alpine Rust 1.96.1 toolchain. Minimum-version compilation does not substitute for device testing or the ordinary strict Clippy gates.
 
 ## AArch64 cross-compilation
 
@@ -155,7 +167,7 @@ qemu-aarch64-static -L target/phone-sysroot \
 
 ## Direct phone experiment
 
-`--drm-device /dev/dri/card1 --scale 2` selects the experimental single-panel backend in a `drm` build. Identify the actual connected display node each boot; card numbering is not an interface guarantee. This backend uses libseat, GBM/EGL, libinput, DRM page flips and vblank completion. It shares the native-client/egui scene with the nested backend. It currently handles one selected output and does not implement hotplug, rotation, a production lock, or a packaged device session.
+`--drm-device /dev/dri/card1 --scale 2` selects the single-panel backend in a `drm` build. Identify the actual connected display node each boot; card numbering is not an interface guarantee. This backend uses libseat, GBM/EGL, libinput, DRM page flips and vblank completion. It shares the native-client/egui scene with the nested backend. Single-output rotation, authenticated locking and a packaged development session are implemented; general hotplug/multiple outputs and full production acceptance remain pending. The bounded VT8 experiment below is separate from the normal [installed session](PACKAGING.md).
 
 For the verified phone, `scripts/phone-drm-smoke.sh` runs through an authenticated root terminal after copying the build to `~/tarot-dev/bin` and staging the script on the phone. It stops greetd temporarily, starts a temporary seatd instance, and runs Tarot **as user** on VT8. The default test lasts 45 seconds (`TAROT_DRM_SECONDS` accepts 10–300). A compositor timer, launcher timeout and recovery guard bound the experiment and restore greetd on VT7; SSH remains enabled. The harness checks the compositor's own exit result, not just `openvt`'s status, and removes only its own seatd socket.
 

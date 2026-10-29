@@ -32,20 +32,35 @@ def replay(control,screen,state,tap,capture,before,out,authenticate):
         x,y=physical(status(),*point);screen.down(x/2,y/2)
     def move(point):
         x,y=physical(status(),*point);screen.move(x/2,y/2)
+    def touch(point):
+        down(point);screen.up()
     def favorite(label,expected):
         s=state('favorite-'+label,lambda s:s['favorites']['applications']==expected and s['display_settings']['settings_saved'])
         assert [c['id'] for c in s['cards']]==[identifier] and s['launch_feedback'] is None
         saved=tomllib.loads(settings.read_text());assert saved['quick_launch']['applications']==expected
         assert saved['notifications']['dnd'] and saved['display']['rotation_locked']
         return s
-    def launcher(label):
+    def launcher(label,desired=None):
+        wanted=query if desired is None else desired
         request(control,'launcher')
-        state('favorite-'+label,lambda s:s['view']=='Launcher' and not s['editing_favorites']
+        s=state('favorite-'+label,lambda s:s['view']=='Launcher' and not s['editing_favorites']
             and s['presentation']['overview']==0 and all(w['opacity']==0 for w in s['presentation']['windows']))
-        down((40,16));screen.up()
-        state('favorite-'+label+'-menu',lambda s:s['launcher']['menu_open'])
-        down((160,60));screen.up()
-        return state('favorite-'+label+'-search-open',lambda s:s['launcher']['search_open'] and s['shell_text_focus'])
+        if not s['just_type']['active']:
+            touch((40,16));state('favorite-'+label+'-menu',lambda s:s['launcher']['menu_open'])
+            touch((160,60))
+            s=state('favorite-'+label+'-search-open',lambda s:s['just_type']['active'] and s['shell_text_focus'] and not s['launcher']['menu_open'])
+        width,height=size(s);field_y=57 if height<480 else 64
+        # Reopening the active Just Type menu offers Clear search, not the
+        # former app-filter entry. Leaving search also retires its query.
+        # Restore this finite fixture query through actual oriented keys.
+        if s['launcher_query']!=wanted:
+            touch((width-32,field_y))
+            s=state('favorite-'+label+'-empty-query',lambda s:not s['launcher_query'] and s['shell_text_focus'] and s['keyboard_visible'])
+            k=s['keyboard_rect']
+            Keyboard(lambda x,y:touch((5+(x-5)*(width-10)/350,k['y']+(y-444)*k['height']/240))).type_ascii(wanted)
+        elif not s['shell_text_focus']:
+            touch((100,field_y))
+        return state('favorite-'+label+'-query-ready',lambda s:s['launcher_query']==wanted and s['shell_text_focus'] and s['keyboard_visible'])
     def overview(label):
         request(control,'overview')
         return state('favorite-'+label,lambda s:s['view']=='Overview' and s['presentation']['overview']==1 and s['presentation']['dock']==1)
@@ -57,13 +72,7 @@ def replay(control,screen,state,tap,capture,before,out,authenticate):
     def set_query(value,label):
         nonlocal query
         assert status()['output']['orientation']=='normal'
-        # A tap inside existing text positions the caret there. Use the trailing
-        # blank space, then verify the entire old query was actually removed.
-        launcher(label+'-launcher');tap(330,116)
-        state('favorite-'+label+'-search',lambda s:s['shell_text_focus'] and s['keyboard_visible'] and s['keyboard_rect']['height']==240)
-        for _ in query:tap(330,609)
-        state('favorite-'+label+'-empty-query',lambda s:s['launcher_query']=='')
-        Keyboard(tap).type_ascii(value)
+        launcher(label+'-launcher',value)
         state('favorite-'+label+'-exact-query',lambda s:s['launcher_query']==value)
         query=value
         capture('favorite-'+label+'-search')
@@ -71,8 +80,8 @@ def replay(control,screen,state,tap,capture,before,out,authenticate):
         words=query.split();apps=request(control,'applications')['applications']
         apps=[a for a in apps if all(word in (' '.join([a['name'],a['description'],*a['keywords']])).casefold() for word in words)]
         index=[a['id'] for a in apps].index(app_id);s=status();width,height=size(s)
-        compact=s['shell_text_focus'] and height<480
-        tile=(width-32-24)/3;point=(16+(index%3)*(tile+8)+tile/2,(100 if compact else 182)+(index//3)*(80 if compact else 112))
+        compact=height<480
+        tile=(width-32-24)/3;point=(16+(index%3)*(tile+8)+tile/2,(100 if compact else 182)+(index//3)*(56 if compact else 112))
         assert point[1]<height-36 and index<6,(app_id,index,query)
         return point
     def slot(index):
@@ -136,7 +145,7 @@ def replay(control,screen,state,tap,capture,before,out,authenticate):
         set_query(PREFIX,'landscape-query');rotate('left-up')
         # Output reconfiguration cancels the old shell input context. Reopen
         # search through its painted landscape control, using oriented touch.
-        down((330,116));screen.up()
+        down((100,57));screen.up()
         state('favorite-landscape-keyboard',lambda s:s['shell_text_focus'] and s['keyboard_visible'] and s['keyboard_rect']['height']==180)
         assert status()['launcher_query']==PREFIX
         capture('favorite-landscape-filtered-search')

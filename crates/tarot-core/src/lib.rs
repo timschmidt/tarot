@@ -19,6 +19,7 @@ pub mod notifications;
 pub mod orientation;
 pub mod power;
 pub mod quick_launch;
+pub mod search;
 pub mod session;
 pub mod sleep;
 pub mod touch;
@@ -92,6 +93,7 @@ pub enum Command {
     Overview,
     Launcher,
     SearchApplications(String),
+    JustType(search::Action),
     LauncherAction(launcher::Action),
     ShellTextFocus(bool),
     ShellKey(KeyboardAction),
@@ -135,6 +137,7 @@ pub enum Effect {
     RequestClose(WindowId),
     Launch(String),
     Favorites(quick_launch::Favorites),
+    OpenUri { generation: u64, uri: String },
     Launcher(launcher::Settings),
     ShellKey(KeyboardAction),
     ToggleKeyboard,
@@ -159,6 +162,7 @@ pub struct ShellModel {
     pub favorites_error: Option<String>,
     pub launcher_query: String,
     pub launcher: launcher::State,
+    pub search: search::State,
     pub reduced_motion: bool,
     pub shell_text_focus: bool,
     pub keyboard_available: bool,
@@ -183,6 +187,183 @@ pub struct ShellModel {
 }
 
 impl ShellModel {
+    pub fn just_type_active(&self) -> bool {
+        self.view == View::Launcher
+            && self.launcher.search_open
+            && self.launcher.rename.is_none()
+            && !self.editing_favorites
+    }
+
+    fn clear_search(&mut self) {
+        self.search.origin = None;
+        self.search.invalidate();
+        self.launcher_query.clear();
+    }
+
+    fn just_type(&mut self, action: search::Action) -> Vec<Effect> {
+        use search::{Action, Target};
+        if self.system_menu_open
+            || self.notifications_open
+            || self.editing_favorites
+            || self.launcher.rename.is_some()
+        {
+            return Vec::new();
+        }
+        if action == Action::Open {
+            if !matches!(self.view, View::Home | View::Overview | View::Launcher) {
+                return Vec::new();
+            }
+            if !self.just_type_active() {
+                self.search.origin = Some(self.view);
+                self.search.invalidate();
+                self.launcher_query.clear();
+            }
+            self.view = View::Launcher;
+            self.launcher.search_open = true;
+            self.launcher.menu_open = false;
+            self.shell_text_focus = true;
+            self.card_menu_open = false;
+            return vec![Effect::Focus(None)];
+        }
+        if !self.just_type_active() {
+            return Vec::new();
+        }
+        match action {
+            Action::Open => unreachable!(),
+            Action::Close => {
+                let origin = self.search.origin.unwrap_or(View::Launcher);
+                self.launcher.dismiss();
+                self.shell_text_focus = false;
+                self.view = if origin == View::Overview && self.cards.is_empty() {
+                    View::Home
+                } else {
+                    origin
+                };
+                self.clear_search();
+                vec![Effect::Focus(None)]
+            }
+            Action::Clear => {
+                self.launcher_query.clear();
+                self.search.invalidate();
+                self.launcher.menu_open = false;
+                self.shell_text_focus = true;
+                Vec::new()
+            }
+            _ if self.launcher.menu_open => Vec::new(),
+            Action::Move(delta) => {
+                let targets = search::targets(self);
+                if targets.is_empty() {
+                    return Vec::new();
+                }
+                let index = self
+                    .search
+                    .selected
+                    .as_ref()
+                    .and_then(|s| targets.iter().position(|t| t == s));
+                let next = index.map_or(0, |i| {
+                    (i as i64 + i64::from(delta)).clamp(0, targets.len() as i64 - 1) as usize
+                });
+                self.search.selected = Some(targets[next].clone());
+                Vec::new()
+            }
+            Action::Submit => {
+                if self.launcher_query.trim().is_empty() {
+                    return Vec::new();
+                }
+                // Enter can accept the first local result; a remote provider always
+                // requires explicit selection, including arrow selection plus Enter.
+                let target = self.search.selected.clone().or_else(|| {
+                    search::targets(self)
+                        .into_iter()
+                        .find(|t| !matches!(t, Target::DuckDuckGo | Target::OpenWebsite))
+                });
+                target.map_or_else(Vec::new, |target| {
+                    self.just_type(Action::Choose {
+                        revision: self.search.revision,
+                        target,
+                    })
+                })
+            }
+            Action::Choose { revision, target } => {
+                if revision != self.search.revision || !search::targets(self).contains(&target) {
+                    return Vec::new();
+                }
+                self.search.selection_revision = self.search.selection_revision.wrapping_add(1);
+                self.search.selected = Some(target.clone());
+                match target {
+                    Target::Application(id) => {
+                        let app_id = id.strip_suffix(".desktop").unwrap_or(&id);
+                        let existing = self
+                            .cards
+                            .iter()
+                            .rev()
+                            .find(|c| !c.closing && (c.app_id == app_id || c.app_id == id))
+                            .map(|c| c.id);
+                        self.apply(existing.map_or(Command::Launch(id), Command::Activate))
+                    }
+                    Target::Setting(setting) => {
+                        self.shell_text_focus = false;
+                        if setting == search::Setting::Notifications {
+                            self.apply(Command::NotificationsOpen(true))
+                        } else {
+                            self.system_page = setting.page();
+                            self.apply(Command::SystemMenuOpen(true))
+                        }
+                    }
+                    Target::Notification { id, revision } => {
+                        let notification = self
+                            .notifications
+                            .items
+                            .iter()
+                            .find(|n| n.id == id && n.revision == revision)
+                            .unwrap();
+                        self.shell_text_focus = false;
+                        if notification.live
+                            && !notification.orphaned
+                            && notification.actions.iter().any(|a| a.key == "default")
+                        {
+                            vec![Effect::Notification(notifications::UiAction::Invoke {
+                                id,
+                                revision,
+                                key: "default".into(),
+                            })]
+                        } else {
+                            self.apply(Command::NotificationsOpen(true))
+                        }
+                    }
+                    Target::OpenWebsite | Target::DuckDuckGo => {
+                        if self
+                            .launch_feedback
+                            .as_ref()
+                            .is_some_and(|f| f.pending && f.application_id == "@just-type-web")
+                        {
+                            return Vec::new();
+                        }
+                        let uri = if target == Target::OpenWebsite {
+                            search::website(&self.launcher_query)
+                        } else {
+                            search::web_search(&self.launcher_query)
+                        };
+                        let Some(uri) = uri else {
+                            return Vec::new();
+                        };
+                        self.launch_generation += 1;
+                        self.launch_feedback = Some(LaunchFeedback {
+                            generation: self.launch_generation,
+                            application_id: "@just-type-web".into(),
+                            message: "Opening the default browser…".into(),
+                            pending: true,
+                        });
+                        vec![Effect::OpenUri {
+                            generation: self.launch_generation,
+                            uri,
+                        }]
+                    }
+                }
+            }
+        }
+    }
+
     pub fn cancel_network_input(&mut self) -> Vec<Effect> {
         match self.network_input.take().map(|i| i.target) {
             Some(network::InputTarget::Agent(request)) => {
@@ -334,6 +515,7 @@ impl ShellModel {
             return effects;
         }
         match command {
+            Command::JustType(action) => return self.just_type(action),
             Command::LoadIcon(id) => {
                 if let Some(icon) = self
                     .applications
@@ -351,6 +533,7 @@ impl ShellModel {
                 return Vec::new();
             }
             Command::EditFavorites(open) => {
+                self.clear_search();
                 self.editing_favorites = open;
                 self.view = View::Launcher;
                 self.shell_text_focus = false;
@@ -533,6 +716,9 @@ impl ShellModel {
                 return Vec::new();
             }
             Command::ToggleKeyboard => {
+                if matches!(self.view, View::Home | View::Overview) {
+                    return self.just_type(search::Action::Open);
+                }
                 if self.view == View::Launcher
                     && !self.system_menu_open
                     && !self.notifications_open
@@ -606,6 +792,20 @@ impl ShellModel {
                 {
                     return Vec::new();
                 }
+                if action == launcher::Action::Search(true) {
+                    return self.just_type(search::Action::Open);
+                }
+                if self.just_type_active() {
+                    if action == launcher::Action::Search(false)
+                        || (action == launcher::Action::Dismiss && !self.launcher.menu_open)
+                    {
+                        return self.just_type(search::Action::Close);
+                    }
+                    if action == launcher::Action::Dismiss {
+                        self.launcher.menu_open = false;
+                        return Vec::new();
+                    }
+                }
                 return if self.launcher.action(
                     action,
                     &self.applications,
@@ -618,6 +818,12 @@ impl ShellModel {
                 };
             }
             Command::SearchApplications(query) => {
+                if !search::valid_query(&query) {
+                    return Vec::new();
+                }
+                if self.launcher_query != query {
+                    self.search.invalidate();
+                }
                 self.launcher_query = query;
                 if self.view == View::Launcher {
                     self.launcher.search_open = true;
@@ -667,6 +873,8 @@ impl ShellModel {
                 self.card_menu_open = false;
                 self.notifications_open = false;
                 self.system_menu_open = false;
+                self.launcher.dismiss();
+                self.clear_search();
                 return vec![Effect::Focus(Some(id))];
             }
             Command::BrowseCards(steps) => {
@@ -729,6 +937,7 @@ impl ShellModel {
             self.editing_favorites = false;
             self.launcher.dismiss();
             self.shell_text_focus = false;
+            self.clear_search();
         }
         if self.view != View::Overview {
             self.card_menu_open = false;

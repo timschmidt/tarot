@@ -39,13 +39,13 @@ The update also fixes diagnostic preference isolation: native DRM diagnostic ses
 | 07 Wave Launcher | Real preview, selection, one release action, cancel, current-app focus and native-verified hold-and-drag favorite organization | Exact curve/lift/label treatment and physical timing calibration |
 | 08 Device menu | Actual battery, brightness, rotation, idle, audio and Wi-Fi controls | Packet anchor/material/row rhythm; Bluetooth, authorization prompts and complete submenu treatment |
 | 09 App menu | Native card lifecycle/arrangement actions available | Distinct top-left menu and cooperative app actions; unsupported app commands must be absent |
-| 10 Just Type | Application search and private shell keyboard | Card-view entry, settings/content/actions/provider result types and explicit external query submission |
+| 10 Just Type | Revision-38 Card/Home/attached-keyboard entry, actual application/settings/retained-notification results, aliases and explicit HTTP(S)/provider actions; rendered and native reselection/URI/orientation/PAM/restart gates pass, with qualitative owner usability | Contacts/messages/documents, creation actions, provider configuration, matching/locales, keyboard/accessibility/performance and reference comparison |
 | 11 Lock | Real protected compositor boundary and PAM locker | Packet lock composition, drag-to-authentication affordance, counts-only privacy and notifications |
 | 12 PIN/authentication | Private masked touch/physical password entry through PAM | Explicit credential policy and packet layout; do not assume the account uses a numeric PIN |
 | 13 Incoming call | Not implemented | ModemManager state machine, service failure, urgent presentation, routes and authorized carrier/device tests |
 | 14 Active call | Not implemented | Rust call UI, route readiness independent of connection, proximity/inhibitors, hang-up/error handling |
 | 15 Settings | Functional shell control pages and versioned atomic preferences | Reusable dimensional light chrome, full Settings app, accessible rows and asynchronous state variants |
-| 16 Empty Card view | Live original wallpaper, status and tray without promotional copy | Packet search affordance and final empty-state spacing |
+| 16 Empty Card view | Live original wallpaper, status, tray and Just type affordance | Final empty-state spacing and reference comparison |
 | 17 Heritage | Original assets retained in packet | Theme selection after Nocturne acceptance; identical geometry and semantic action colors |
 | 18 Vellum | Original assets retained in packet | Same theme gate; contrast and readability on actual panel |
 | 19 Messaging | Not implemented | Rust conversations/editor and ModemManager SMS; contacts, storage, failure/retry and privacy |
@@ -62,7 +62,7 @@ Revision 32 established the last accepted complete scoped native checkpoint, inc
 
 1. The foundation now passes Rust/MSRV/AArch64 checks, actual nested GLES input replays and clean installed-package touch/PAM/keyboard/protected-rotation tests. Keep original attempts and exact sources. A subsequent pixel audit retracts the suspected missing status text: the actual native clock/status regions are identical across captured states. Pixel visibility/comparison checks now guard the host replay. Leave the phone in normal Tarot.
 2. Rounded native clipping, shadow and corner selection now pass on the phone. Fan/input transforms and three/five-card browsing now pass on the phone. Actual-frame recordings include launch, typing, minimize, browse, maximize and cooperative dismiss/refusal in a real GTK editor. Compare motion and gestures against the reference; capture overhead prevents frame-pacing conclusions.
-3. Continue everyday shell composition: named Launcher pages and native PNG/SVG icon loading now have native component evidence. Complete remaining icon formats/refresh, Just Type, distinct app/device menus and the notification well/rail/dashboard. Establish keyboard-visible and landscape contracts before polish. Reuse light app chrome only for shell-owned or cooperating applications.
+3. Continue everyday shell composition: named Launcher pages, native PNG/SVG icon loading and initial Just Type now have native component evidence. Complete remaining search sources/actions, icon formats/refresh, [distinct app/device menus](MENUS_PLAN.md) and the notification well/rail/dashboard. Establish keyboard-visible and landscape contracts before polish. Reuse light app chrome only for shell-owned or cooperating applications.
 4. Complete the phone/trust paths: locker presentation, privacy policy, authorization agents/portals, Bluetooth, ModemManager phone/SMS and audio routes. No active SIM is available; carrier gates remain explicitly pending.
 5. Run the packet’s A–L capture suite, motion/gesture calibration, text enlargement, reduced-motion and real-panel review. Only then apply Heritage/Vellum and score cross-theme conformance.
 

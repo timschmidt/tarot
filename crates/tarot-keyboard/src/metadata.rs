@@ -1,4 +1,5 @@
 //! Explicit diagnostic metadata. The API accepts no text, key or position data.
+use std::io::Write;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 #[derive(Clone, Copy)]
@@ -64,8 +65,8 @@ impl Snapshot {
             .duration_since(UNIX_EPOCH)
             .unwrap_or_default()
             .as_millis();
-        eprintln!(
-            "{{\"event\":\"keyboard-metadata\",\"stage\":\"{}\",\"unix_ms\":{},\"elapsed_ms\":{},\"serial\":{},\"generation\":{},\"active\":{},\"hidden\":{},\"configured\":{},\"frame_pending\":{},\"pending_activation\":{},\"queued\":{},\"contacts\":{},\"frame_events\":{},\"actions\":{}}}",
+        let record = format!(
+            "{{\"event\":\"keyboard-metadata\",\"stage\":\"{}\",\"unix_ms\":{},\"elapsed_ms\":{},\"serial\":{},\"generation\":{},\"active\":{},\"hidden\":{},\"configured\":{},\"frame_pending\":{},\"pending_activation\":{},\"queued\":{},\"contacts\":{},\"frame_events\":{},\"actions\":{}}}\n",
             stage.name(),
             unix_ms,
             elapsed.as_millis(),
@@ -81,5 +82,8 @@ impl Snapshot {
             frame_events,
             actions,
         );
+        // Formatting directly into stderr can split one record across writes
+        // and interleave it with another child's output in the session log.
+        let _ = std::io::stderr().lock().write_all(record.as_bytes());
     }
 }
