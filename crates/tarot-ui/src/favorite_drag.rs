@@ -81,7 +81,7 @@ pub(crate) fn begin(ctx: &Context, model: &ShellModel, layout: Layout) -> Frame 
             ..Default::default()
         };
         memory.gesture.reconcile(model, layout);
-        if !focused || events.iter().any(|e| matches!(e, egui::Event::PointerGone)) {
+        if !focused {
             result.consumed |= memory.gesture.active();
             memory.gesture.cancel();
             memory.blocked = false;
@@ -89,6 +89,12 @@ pub(crate) fn begin(ctx: &Context, model: &ShellModel, layout: Layout) -> Frame 
         } else {
             for event in events {
                 match event {
+                    egui::Event::PointerGone => {
+                        result.consumed |= memory.gesture.active();
+                        memory.gesture.cancel();
+                        memory.blocked = false;
+                        memory.pressed_launcher = false;
+                    }
                     egui::Event::PointerMoved(pos) => memory.gesture.motion((pos.x, pos.y)),
                     egui::Event::MouseWheel { .. } => {
                         memory.blocked |= memory.gesture.in_progress();

@@ -1,6 +1,6 @@
 # App and device menus
 
-Revision 41 is installed. Both native runs pass seven components including both corrected held-key directions, then fail rotated Just Type scrolling. Exact restoration and independent normal-session/Panfrost audits pass. Full scoped acceptance remains false. [Current evidence and limits](recordings/r41/README.md).
+Revision 42 is installed. All fourteen scoped native shell components, full Launcher pages and saved restart pass, with independent exact restoration/normal-session/Panfrost audits. Both held-key directions and completed-touch menu/page/favorite interactions pass. The original revision-41 search failure is corrected; browser/endurance and broader calibration remain open. [Current evidence and limits](recordings/r42/README.md).
 
 The left title opens the current activity menu. The right status area opens the device menu. Repeated activation closes the same root; activating the other anchor switches roots. Menus overlay the current activity with Nocturne's dark gradient, rounded border, shadow, pale typography and separators. The starting widths are 236 logical units for activity commands, 250 for the device root and at most 440 for detail pages. All widths and scroll areas are constrained to the output and available height above the gesture strip or credential keyboard. Rows start at 56 units and grow for wrapped text.
 
@@ -21,3 +21,5 @@ The implementation draws service glyphs and page selection marks as vectors, sep
 Enlarged text calibration, packet G physical/visual approval, GTK/KDE exported app actions and the cooperating Rust app spike remain open. These menus do not close the retained browser input failures, notification composition, device endurance or any unfinished M0–M6 milestone.
 
 Revision 41 is the correction for the retained reverse-direction key failure. It clears held seat/forwarded state after removing native focus and consumes the remaining physical releases. The same production routine serves shell entry and existing protection cleanup. The exact previously failing host replays now pass unchanged; expanded tests also hold a native key through dismissal and require fresh zero-held input afterward. Both native runs pass these cases, then fail a separate rotated search-scroll gate. Remaining components/pages/restart were not reached. [Current evidence](recordings/r41/README.md).
+
+Revision 42 orders pointer departure after completed touch release, and before synthetic cleanup releases on cancellation. Custom favorite/page handlers preserve a completed intent while canceled input cannot commit one. Native and host checks cover those paths; menu motion, presented-retirement guards and physical calibration requirements retain their existing scope.

@@ -405,7 +405,9 @@ impl Compositor {
                 if self.shell_owns(pointer.current_location()) {
                     self.ui_events.push(egui::Event::MouseWheel {
                         unit: egui::MouseWheelUnit::Point,
-                        delta: egui::vec2(horizontal as f32, vertical as f32),
+                        // Linux/Wayland positive axes move toward the bottom
+                        // or right. egui describes the content's movement.
+                        delta: egui::vec2(-horizontal as f32, -vertical as f32),
                         modifiers: egui::Modifiers::NONE,
                     });
                     self.ui_dirty = true;
@@ -509,12 +511,7 @@ impl Compositor {
                 match self.touches.end(i32::from(slot)) {
                     Target::Shell => {
                         if !self.finish_shell_gesture(i32::from(slot), event.time_msec()) {
-                            self.ui_events.push(egui::Event::PointerButton {
-                                pos: self.shell_pointer_position,
-                                button: egui::PointerButton::Primary,
-                                pressed: false,
-                                modifiers: egui::Modifiers::NONE,
-                            });
+                            release_touch_pointer(&mut self.ui_events, self.shell_pointer_position);
                         }
                         self.ui_dirty = true;
                     }
@@ -713,6 +710,18 @@ impl Compositor {
     }
 }
 
+fn release_touch_pointer(events: &mut Vec<egui::Event>, pos: egui::Pos2) {
+    events.push(egui::Event::PointerButton {
+        pos,
+        button: egui::PointerButton::Primary,
+        pressed: false,
+        modifiers: egui::Modifiers::NONE,
+    });
+    // A lifted finger has no hover position. Keeping its previous position
+    // makes the next touch-down's jump look like a drag delta to ScrollArea.
+    events.push(egui::Event::PointerGone);
+}
+
 fn pointer_button(code: u32) -> Option<egui::PointerButton> {
     match code {
         0x110 => Some(egui::PointerButton::Primary),
@@ -741,6 +750,81 @@ fn egui_key(symbol: u32) -> Option<egui::Key> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn repeated_touch_drags_accumulate_without_a_reverse_jump_on_the_next_press() {
+        let ctx = egui::Context::default();
+        let mut time = 0.0;
+        let mut draw = |events| {
+            time += 0.055;
+            let mut offset = 0.0;
+            let _ = ctx.run(
+                egui::RawInput {
+                    time: Some(time),
+                    screen_rect: Some(egui::Rect::from_min_size(
+                        egui::Pos2::ZERO,
+                        egui::vec2(720.0, 360.0),
+                    )),
+                    focused: true,
+                    events,
+                    ..Default::default()
+                },
+                |ctx| {
+                    egui::CentralPanel::default().show(ctx, |ui| {
+                        let bounds = egui::Rect::from_min_max(
+                            egui::pos2(0.0, 84.0),
+                            egui::pos2(720.0, 140.0),
+                        );
+                        let mut child = ui.new_child(egui::UiBuilder::new().max_rect(bounds));
+                        child.set_clip_rect(bounds);
+                        offset = egui::ScrollArea::vertical()
+                            .id_salt("touch_results")
+                            .auto_shrink([false, false])
+                            .max_height(bounds.height())
+                            .scroll_bar_visibility(
+                                egui::scroll_area::ScrollBarVisibility::AlwaysHidden,
+                            )
+                            .show(&mut child, |ui| {
+                                ui.set_min_size(egui::vec2(720.0, 240.0));
+                            })
+                            .state
+                            .offset
+                            .y;
+                    });
+                },
+            );
+            offset
+        };
+        for _ in 0..4 {
+            draw(Vec::new());
+        }
+        let start = egui::pos2(700.0, 132.0);
+        let end = egui::pos2(700.0, 92.0);
+        for attempt in 0..4 {
+            let at_press = draw(vec![
+                egui::Event::PointerMoved(start),
+                egui::Event::PointerButton {
+                    pos: start,
+                    button: egui::PointerButton::Primary,
+                    pressed: true,
+                    modifiers: egui::Modifiers::NONE,
+                },
+            ]);
+            assert!((at_press - attempt as f32 * 40.0).abs() < 0.1);
+            for step in 1..=4 {
+                draw(vec![egui::Event::PointerMoved(egui::pos2(
+                    start.x,
+                    start.y - step as f32 * 10.0,
+                ))]);
+            }
+            let mut events = Vec::new();
+            release_touch_pointer(&mut events, end);
+            let after_release = draw(events);
+            assert!((after_release - (attempt + 1) as f32 * 40.0).abs() < 0.1);
+            assert!(!ctx.input(|i| i.pointer.any_down()));
+            assert!(ctx.input(|i| i.pointer.hover_pos()).is_none());
+        }
+    }
 
     #[test]
     fn retiring_shell_widgets_releases_egui_and_keeps_physical_tails_out_of_clients() {

@@ -63,13 +63,20 @@ pub(crate) fn begin(
         if enabled {
             if events
                 .iter()
-                .any(|e| matches!(e, Event::PointerGone | Event::Text(_) | Event::Paste(_)))
+                .any(|e| matches!(e, Event::Text(_) | Event::Paste(_)))
             {
                 result.consumed |= m.swipe.cancel();
                 m.settle = None;
             } else {
                 for event in events {
                     match event {
+                        Event::PointerGone => {
+                            let cancelled = m.swipe.cancel();
+                            result.consumed |= cancelled;
+                            if cancelled {
+                                m.settle = None;
+                            }
+                        }
                         Event::PointerButton {
                             pos,
                             button: egui::PointerButton::Primary,
@@ -245,7 +252,7 @@ mod tests {
     }
     #[test]
     fn actual_horizontal_swipe_selects_once_and_animates_across_the_model_update() {
-        for reduced in [false, true] {
+        for (reduced, touch) in [(false, false), (true, false), (false, true), (true, true)] {
             let ctx = Context::default();
             let mut m = model();
             m.reduced_motion = reduced;
@@ -268,7 +275,11 @@ mod tests {
                 true,
             );
             assert!(motion.is_empty(), "{motion:?}");
-            let release = render(&ctx, &m, 0.3, vec![button(70.0, 152.0, false)], true);
+            let mut release_events = vec![button(70.0, 152.0, false)];
+            if touch {
+                release_events.push(Event::PointerGone);
+            }
+            let release = render(&ctx, &m, 0.3, release_events, true);
             assert_eq!(
                 release,
                 vec![Command::LauncherAction(Action::Edit(Edit::Select(PageId(
@@ -357,7 +368,13 @@ mod tests {
             vec![Event::PointerMoved(Pos2::new(70.0, 152.0))],
             false,
         );
-        for command in render(&ctx, &m, 0.3, vec![button(70.0, 152.0, false)], false) {
+        for command in render(
+            &ctx,
+            &m,
+            0.3,
+            vec![button(70.0, 152.0, false), Event::PointerGone],
+            false,
+        ) {
             m.apply(command);
         }
         assert_eq!(m.launcher.settings.selected, PageId(2));

@@ -47,6 +47,8 @@ pub fn prepare_pointer_input(ctx: &egui::Context, events: &[egui::Event]) {
 
 /// End an interrupted pointer sequence without clicking the pressed control.
 pub fn cancel_pointer_input(events: &mut Vec<egui::Event>) {
+    // Retire gesture ownership before synthetic button releases clear egui.
+    events.push(egui::Event::PointerGone);
     // PointerGone alone leaves egui's button held. Move outside before release.
     let outside = Pos2::new(-10000.0, -10000.0);
     events.push(egui::Event::PointerMoved(outside));

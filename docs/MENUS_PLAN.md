@@ -1,6 +1,6 @@
 # App and device menus: implementation plan
 
-Research checkpoint: October 29, 2026. Revision 39 implements the initial shared shell menus after the Just Type checkpoint, with scoped native component and separate page/restart evidence. Physical/visual acceptance, remaining interaction coverage and native exported-action adapters remain pending. [Evidence and limits](recordings/r39/README.md). [Current implementation contract](MENUS.md). It refines M1/M2 and the original packet's [device menu](Tarot_Design_Packet/screens/png/08-device-menu.png), [app menu](Tarot_Design_Packet/screens/png/09-app-menu.png) and fidelity capture G.
+Research checkpoint: October 29, 2026. Revision 42 passes fourteen scoped native shell components, full pages and saved restart after correcting touch lifecycle and scrolling. Physical/visual acceptance, broader interaction coverage and native exported-action adapters remain pending. Revision 39 retains the initial menu checkpoint. [Current evidence and limits](recordings/r42/README.md). [Current implementation contract](MENUS.md). This plan refines M1/M2 and the original packet’s [device menu](Tarot_Design_Packet/screens/png/08-device-menu.png), [app menu](Tarot_Design_Packet/screens/png/09-app-menu.png) and fidelity capture G.
 
 ## Product contract
 
@@ -79,3 +79,10 @@ The separate [Rust experiment](../experiments/menu-export/README.md) now builds 
 A deliberately stalled exporter produces a confirmed 100 ms transport timeout, then executes the action after dispatch resumes. Thus a deadline bounds waiting without establishing cancellation or nonexecution. Treat an in-flight timeout as an uncertain outcome, observe state where available, and require application-level acknowledgement/idempotency before automatic retry. The 100/350 ms fixture timings are experimental values.
 
 The next gate remains association with a real owned Wayland surface and rejection of wrong-client claims, followed by actual GTK/KDE exports and a cooperating Rust/egui producer. Bound and test snapshots/nesting/strings, changed or disabled targets after a press, malformed producers, worker teardown, app acknowledgement, performance and ARM/phone build inputs. The existing phone cross SDK still needs its GIO development input evaluation. Compare this measured binding path with the direct Rust D-Bus approach before selecting the production adapter; the private-interface maintenance constraint remains.
+
+
+## Touch lifecycle prerequisite for input acceptance
+
+Revision 42 addresses the retained rotated search scroll before further menu delivery. A completed touch emits release then pointer departure. Favorite/page handlers process those events in order so the completed intent survives departure. Interrupted input marks departure before synthetic cleanup releases, preventing cleanup from selecting a page or committing a drop. Application tiles leave ordinary drag sensing to the result scroll area while the independent hold engine owns favorite organization. Linux wheel axes are converted only at the shell-to-egui boundary; native axis delivery retains its convention.
+
+The first signed candidate is withheld after genuine release-plus-departure tests expose canceled drops/swipes. The corrected source passes current/minimum-Rust tests, strict host/ARM checks, rendered search/favorite/menu suites and protected recovery checks. The complete fourteen-component native shell/page/restart replay and independent restoration/Panfrost audits pass. The owner also confirms repeated landscape result scrolling and Sound selection with a finger. This does not close browser input, physical calibration or endurance. [Current evidence](recordings/r42/README.md).

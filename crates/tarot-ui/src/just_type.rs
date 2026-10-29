@@ -216,7 +216,7 @@ pub(crate) fn show(
                         let response = ui.interact(
                             rect,
                             Id::new(("just_type_app", model.search.revision, &application.id)),
-                            Sense::click_and_drag(),
+                            Sense::click(),
                         );
                         response.widget_info(|| {
                             egui::WidgetInfo::labeled(
@@ -453,5 +453,204 @@ fn row(
     painter.galley(rect.min + Vec2::new(18.0, 34.0), galley, SECONDARY);
     if response.clicked() {
         choose(commands, model, target);
+    }
+}
+
+#[cfg(test)]
+mod scroll_diagnostic_tests {
+    use super::*;
+    use egui::{Context, Event, Modifiers, PointerButton};
+    use tarot_core::{Application, quick_launch};
+
+    fn model() -> ShellModel {
+        let mut m = ShellModel::default();
+        m.applications = (0..3)
+            .map(|n| Application {
+                id: format!("volume{n}.desktop"),
+                name: format!("Volume {n}"),
+                description: String::new(),
+                icon: None,
+                keywords: vec!["volume".into()],
+                unavailable: None,
+            })
+            .collect();
+        m.apply(Command::JustType(Action::Open));
+        m.apply(Command::SearchApplications("volume".into()));
+        m
+    }
+    fn button(pos: Pos2, pressed: bool) -> Event {
+        Event::PointerButton {
+            pos,
+            button: PointerButton::Primary,
+            pressed,
+            modifiers: Modifiers::NONE,
+        }
+    }
+    fn frame(
+        ctx: &Context,
+        m: &mut ShellModel,
+        t: f64,
+        events: Vec<Event>,
+    ) -> (Vec<Command>, egui::FullOutput) {
+        crate::prepare_pointer_input(ctx, &events);
+        let mut commands = Vec::new();
+        let layout = Layout {
+            width: 720.0,
+            height: 360.0,
+            keyboard_height: if m.shell_text_focus { 180.0 } else { 0.0 },
+        };
+        let output = ctx.run(
+            egui::RawInput {
+                screen_rect: Some(Rect::from_min_size(Pos2::ZERO, Vec2::new(720.0, 360.0))),
+                time: Some(t),
+                events,
+                focused: true,
+                ..Default::default()
+            },
+            |ctx| {
+                commands = crate::show(ctx, m, layout);
+            },
+        );
+        for c in &commands {
+            m.apply(c.clone());
+        }
+        (commands, output)
+    }
+    fn warm(ctx: &Context, m: &mut ShellModel) {
+        for i in 0..4 {
+            frame(ctx, m, i as f64 * 0.01, vec![]);
+        }
+        m.apply(Command::ShellTextFocus(true));
+        frame(ctx, m, 0.04, vec![]);
+        frame(ctx, m, 0.05, vec![]);
+        assert!(
+            m.shell_text_focus,
+            "Warm-up must retain the landscape keyboard"
+        );
+    }
+    fn activates(c: &Command) -> bool {
+        matches!(
+            c,
+            Command::Launch(_) | Command::JustType(Action::Choose { .. })
+        )
+    }
+    #[test]
+    fn dense_search_tile_tap_and_held_favorite_drop_remain_distinct() {
+        let source = Pos2::new(592.0, 112.0);
+        let ctx = Context::default();
+        let mut m = model();
+        warm(&ctx, &mut m);
+        frame(
+            &ctx,
+            &mut m,
+            0.1,
+            vec![Event::PointerMoved(source), button(source, true)],
+        );
+        let (commands, _) = frame(
+            &ctx,
+            &mut m,
+            0.2,
+            vec![button(source, false), Event::PointerGone],
+        );
+        assert_eq!(commands.iter().filter(|c| activates(c)).count(), 1);
+        assert!(commands.iter().any(|c| matches!(c,Command::JustType(Action::Choose{target:Target::Application(id),..}) if id=="volume2.desktop")));
+
+        let ctx = Context::default();
+        let mut m = model();
+        warm(&ctx, &mut m);
+        frame(
+            &ctx,
+            &mut m,
+            0.1,
+            vec![Event::PointerMoved(source), button(source, true)],
+        );
+        let (commands, _) = frame(&ctx, &mut m, 0.65, vec![]);
+        assert!(!commands.iter().any(activates));
+        assert!(!m.shell_text_focus);
+        let layout = Layout {
+            width: 720.0,
+            height: 360.0,
+            keyboard_height: 0.0,
+        };
+        let slot = quick_launch::slot(layout, 0, None);
+        let drop = Pos2::new(slot.x + slot.width / 2.0, slot.y + slot.height / 2.0);
+        frame(&ctx, &mut m, 0.7, vec![Event::PointerMoved(drop)]);
+        let (commands, _) = frame(
+            &ctx,
+            &mut m,
+            0.8,
+            vec![button(drop, false), Event::PointerGone],
+        );
+        assert!(!commands.iter().any(activates));
+        assert_eq!(
+            commands
+                .iter()
+                .filter(|c| matches!(c, Command::Favorite(_)))
+                .count(),
+            1
+        );
+        assert_eq!(m.favorites.applications, vec!["volume2.desktop"]);
+        assert_eq!(m.launcher_query, "volume");
+        assert!(
+            !frame(&ctx, &mut m, 0.9, vec![])
+                .0
+                .iter()
+                .any(|c| matches!(c, Command::Favorite(_)))
+        );
+    }
+    #[test]
+    fn dense_search_drag_reveals_a_setting_without_launch_or_favorite() {
+        let ctx = Context::default();
+        let mut m = model();
+        warm(&ctx, &mut m);
+        let start = Pos2::new(592.0, 132.0);
+        let mut commands = frame(
+            &ctx,
+            &mut m,
+            0.1,
+            vec![Event::PointerMoved(start), button(start, true)],
+        )
+        .0;
+        for i in 1..=4 {
+            commands.extend(
+                frame(
+                    &ctx,
+                    &mut m,
+                    0.1 + i as f64 * 0.02,
+                    vec![Event::PointerMoved(Pos2::new(
+                        592.0,
+                        132.0 - i as f32 * 10.0,
+                    ))],
+                )
+                .0,
+            );
+        }
+        commands.extend(
+            frame(
+                &ctx,
+                &mut m,
+                0.2,
+                vec![button(Pos2::new(592.0, 92.0), false)],
+            )
+            .0,
+        );
+        let mut output = frame(&ctx, &mut m, 0.22, vec![]).1;
+        for i in 0..12 {
+            let (c, o) = frame(&ctx, &mut m, 0.24 + i as f64 * 0.016, vec![]);
+            commands.extend(c);
+            output = o;
+        }
+        assert!(
+            !commands
+                .iter()
+                .any(|c| activates(c) || matches!(c, Command::Favorite(_)))
+        );
+        assert!(m.favorites.applications.is_empty());
+        assert_eq!(m.launcher_query, "volume");
+        assert!(
+            m.shell_text_focus,
+            "Scrolling must retain the keyboard and constrained viewport"
+        );
+        assert!(output.shapes.iter().any(|s| matches!(&s.shape,egui::Shape::Text(t) if t.galley.job.text.contains("outputs") && s.clip_rect.intersects(Rect::from_min_size(t.pos,t.galley.size())))));
     }
 }
