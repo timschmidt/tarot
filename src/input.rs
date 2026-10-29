@@ -9,6 +9,7 @@ use smithay::{
         pointer::{AxisFrame, ButtonEvent, MotionEvent},
         touch::{DownEvent, MotionEvent as TouchMotion, UpEvent},
     },
+    reexports::wayland_server::Resource,
     utils::{Logical, Point, SERIAL_COUNTER},
 };
 use tarot_core::{Command, View, touch::Target};
@@ -368,6 +369,13 @@ impl Compositor {
                 {
                     self.native_contacts.insert(slot, (pos, event.time_msec()));
                     let serial = SERIAL_COUNTER.next_serial();
+                    if !self.protected() {
+                        tracing::debug!(target: "tarot::input::metadata",
+                            slot = i32::from(slot), input_time_ms = event.time_msec(),
+                            surface = focus.as_ref().map_or(0, |(focus, _)| focus.surface.id().protocol_id()),
+                            keyboard = focus.as_ref().is_some_and(|(focus, _)| self.keyboard.as_ref().is_some_and(|k| k.layer.wl_surface() == &focus.surface)),
+                            "native touch down");
+                    }
                     if let Some((focus, _)) = &focus {
                         self.remember_popup_input(serial, &focus.surface);
                     }
@@ -429,6 +437,11 @@ impl Compositor {
                     }
                     Target::Application => {
                         if let Some(touch) = self.seat.get_touch() {
+                            if !self.protected() {
+                                tracing::debug!(target: "tarot::input::metadata",
+                                    slot = i32::from(slot), input_time_ms = event.time_msec(),
+                                    "native touch up");
+                            }
                             touch.up(
                                 self,
                                 &UpEvent {
@@ -519,9 +532,18 @@ impl Compositor {
     }
 
     fn finish_shell_gesture(&mut self, id: i32, time_ms: u32) -> bool {
+        let previous_target = self.presentation.arrange.as_ref().and_then(|a| a.target);
         // Preserve the last drag position even if down/motion/up arrive before a paint.
         self.advance_presentation();
         let outcome = self.gestures.finish(id, u64::from(time_ms), &self.shell);
+        if !self.protected()
+            && let Some(Command::PlaceCard { card, target }) = &outcome.command
+        {
+            tracing::debug!(target: "tarot::input::metadata",
+                card = card.0, input_time_ms = time_ms,
+                previous_target = ?previous_target, drop_target = ?target,
+                "card drop");
+        }
         self.gesture_started = None;
         self.animation.end_drag();
         if outcome.consumed {

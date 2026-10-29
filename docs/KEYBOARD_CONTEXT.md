@@ -2,6 +2,8 @@
 
 Revision-32 checkpoint, October 28, 2026. Repeated activation of the same keyboard layout now retains its mapped surface, graphics and frame callback while clearing context-specific input. Host verification, signed native focused and broader replays, saved restart and independent cleanup audits pass. Revision 32 is the last accepted complete scoped native checkpoint. This does not close a complete development-plan milestone.
 
+October 29 follow-up: revision 36 reproduces cancellation of a held fullscreen browser key. Server traces show two enable requests in one committed activation batch arriving about 7 ms after keyboard down; the helper resets the same surface context with the contact held and emits no text action at release. Later fresh keys work. This narrows the observed ordering without establishing the originating toolkit callback or a production fix. The revision-34 return-key failure also remains open. [Recorded failure and limits](recordings/r36/README.md).
+
 ## Failure and correction
 
 Revision 31 destroys and recreates the native keyboard on every input-method activation. Re-enabling an unchanged field therefore temporarily removes its input surface and sends the application through unnecessary resize/configure work. Retained native browser failures include a fresh, focused field with an unchanged value after a key press, and no keyboard down/up delivery to either adjacent generation. A separate deterministic synthetic fixture reproduces the needless replacement: re-enabling the same normal-purpose field changes surface generation 1 to 2.

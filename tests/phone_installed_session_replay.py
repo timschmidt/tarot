@@ -68,6 +68,12 @@ def run(args, password):
 
     def save():
         mark('save-start')
+        # Serializing the accumulated report can exceed the card edge dwell.
+        # Preserve held-contact observations in memory, then checkpoint them
+        # after release. The final report still includes them on failure.
+        if screen is not None and screen.active:
+            mark('save-deferred-while-contact', contacts=len(screen.active))
+            return
         payload = json.dumps(records, indent=2)+'\n'
         mark('save-serialized', bytes=len(payload))
         (args.output/'running.json').write_text(payload)

@@ -12,6 +12,8 @@ Revision-34 update: named Launcher pages now pass their native touch/PAM/rotatio
 
 Revision-35 update: native application PNG/SVG artwork now loads on a bounded Rust worker, preserving original Nocturne role art. The native icon, orientation, favorite, real-PAM and saved-restart component passes, with independent normal-session/Panfrost audits. XPM/imported SVG images, live catalog/theme refresh, physical/visual review and performance budgets remain open. The browser activation failure and all unfinished M0–M6 gates retain their scope. [Revision-35 results and limits](recordings/r35/README.md).
 
+Revision-36 update: numeric server-side traces now show browser enable/activation arriving during a held fullscreen key, whose context reset cancels delivery. The native replay passes 21 returns first; browser reliability remains open. A separate QA correction defers accumulated checkpoints during held contacts: the unchanged revision-35 APK then passes all 13 components after an earlier checkpoint crossed the card edge-paging deadline. Preserve both failures, the stale-input guard and original exact-value gates. A separate run on the same revision-36 package passes 12 shell components and saved restart. Normal-session/policy/preference/Panfrost restoration audits pass after both runs. No remaining milestone or current-binary endurance gate closes. [Current evidence and limits](recordings/r36/README.md).
+
 ## Confirmed direction
 
 | Topic | Owner decision |

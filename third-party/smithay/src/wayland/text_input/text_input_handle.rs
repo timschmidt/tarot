@@ -223,6 +223,20 @@ where
             }
         };
 
+        // Opt-in ordering diagnostics. Never format a request: surrounding,
+        // preedit and committed text may contain credentials.
+        let metadata_method = match &request {
+            zwp_text_input_v3::Request::Enable => Some("enable"),
+            zwp_text_input_v3::Request::Disable => Some("disable"),
+            zwp_text_input_v3::Request::Commit => Some("commit"),
+            _ => None,
+        };
+        if let Some(method) = metadata_method {
+            debug!(target: "smithay::wayland::text_input::metadata",
+                method, object = resource.id().protocol_id(),
+                surface = focus.id().protocol_id(), "text-input request");
+        }
+
         let mut guard = data.handle.inner.lock().unwrap();
         let pending_state = match guard.instances.iter_mut().find_map(|instance| {
             if instance.instance == *resource {
@@ -273,12 +287,18 @@ where
                         *active_text_input_id = Some(resource.id());
                         // Drop the guard before calling to other subsystem.
                         drop(guard);
+                        debug!(target: "smithay::wayland::text_input::metadata",
+                            active = true, object = resource.id().protocol_id(),
+                            surface = focus.id().protocol_id(), "text-input activation");
                         data.input_method_handle.activate_input_method(state, &focus);
                     }
                     Some(false) => {
                         *active_text_input_id = None;
                         // Drop the guard before calling to other subsystem.
                         drop(guard);
+                        debug!(target: "smithay::wayland::text_input::metadata",
+                            active = false, object = resource.id().protocol_id(),
+                            surface = focus.id().protocol_id(), "text-input activation");
                         data.input_method_handle.deactivate_input_method(state);
                         return;
                     }

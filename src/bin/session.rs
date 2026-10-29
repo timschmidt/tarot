@@ -370,7 +370,11 @@ fn run(options: Options) -> Result<()> {
         .env("XDG_SESSION_TYPE", "wayland")
         .env("GDK_BACKEND", "wayland")
         .env("QT_QPA_PLATFORM", "wayland")
-        .env("RUST_LOG", "tarot=info,smithay=warn")
+        .env("RUST_LOG", if options.diagnostics {
+            "tarot=info,smithay=warn,tarot::input::metadata=debug,smithay::wayland::text_input::metadata=debug"
+        } else {
+            "tarot=info,smithay=warn"
+        })
         .env_remove("DISPLAY")
         .env_remove("WAYLAND_DISPLAY")
         .env_remove("WAYLAND_SOCKET")

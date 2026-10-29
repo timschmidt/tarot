@@ -56,7 +56,7 @@ The update also fixes diagnostic preference isolation: native DRM diagnostic ses
 | 24 Launch failed | Recoverable message preserves original app/input | Packet failure composition and retry; truthful application-specific explanation |
 | 25 Locked incoming call | Not implemented | Urgent trusted call surface without exposing app data or bypassing lock; suspend/wake/carrier tests |
 
-Revision 32 now passes the complete scoped native suite and saved restart with stable keyboard activation, including the existing favorite/card/stack/editor tests. [Current acceptance](recordings/r32/README.md) keeps this runtime foundation separate from design conformance.
+Revision 32 established the last accepted complete scoped native checkpoint, including saved restart and favorite/card/stack/editor checks. Later revision-34 return-key and revision-36 fullscreen input failures leave current browser reliability open. Revision-35 follow-ups also expose and correct large QA checkpoints prolonging held card-edge gestures, with an unchanged-runtime 13-component pass afterward. Keep this runtime evidence separate from design conformance. [Current status and limits](IMPLEMENTATION_STATUS.md) · [Input ordering diagnosis](recordings/r36/README.md).
 
 ## Ordered remaining work
 

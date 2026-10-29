@@ -36,6 +36,24 @@ All four payloads differ from revision 34. All 347 frozen Rust files and Cargo i
 
 ## Retained gates
 
+### Subsequent browser and recorder investigation
+
+Three additional runs retain the exact revision-35 installed payloads and the original browser gesture, first-key and 15-second exact-value checks:
+
+| Run | Result | Private archive SHA-256 / verified QA sources |
+| --- | --- | --- |
+| Browser first, protocol and filtered IME metadata | All 21 returns, later text/password/history/popup/fullscreen/PAM checks and saved restart pass | `82023cbaeb0c1a5cf5d36fd129da0557626a1055716406c3a704407350625298` / 153 |
+| Both keyboard components before browser, protocol metadata only | Browser and ten components pass; stack matrix fails at the second join | `9973f21ff3ec7b78153e7cfac56c051e4358ed89b7abec11eb3065c25983addd` / 157 |
+| Same combined replay, deferred held-contact checkpoints | All 13 components, 21 browser returns and saved restart pass | `6b5fef6723d3d46fced8f0dd091e7c8c87c1873399f8e12b19a88100ebee14c5` / 162 |
+
+The second run exposes recorder interference with intentional card edge paging. Its accumulated observation report is 4,906,437 bytes: serialization takes 296 ms and writing another 19 ms while the synthetic finger remains at the left edge. The next observation begins 423 ms after the target preview, crossing the gesture's 350-ms edge dwell. The deck pans and release joins the card to Calculator instead of the previewed test stack. The failed result remains retained.
+
+The third run changes only the wrapper's checkpoint scheduling: observations stay in memory while its owned touchscreen has active contacts, then the next released/final checkpoint writes them. The same target-to-next-observation interval is 105 ms, and all three probe cards join their intended stack while Calculator stays separate. The runtime, card interaction policy, browser replay, input intervals and acceptance expectations are unchanged. Small timing-journal writes, observer work and scheduling still affect execution; this change removes the measured large checkpoint cost, not all observer effects.
+
+All three controllers restore the owner's exact current settings and normal default Tarot. Independent normal-session/Panfrost audits pass. Collection excludes only the isolated Firefox profile's verified lock symlink; it does not follow that link. Every archived QA source is hash-verified.
+
+Passing follow-ups do **not** explain or resolve revision 34's held-key cancellation. In the first passing sample, no keyboard context reset overlaps a held contact; last-reset-to-down margins for the 21 return keys are 149–227 ms. The combined runs retain the preceding ten keyboard context/remap cases. None establishes production reliability or current-binary endurance, and full native acceptance remains false.
+
 Full native acceptance remains **false**. Revision 32 remains the last accepted complete scoped native checkpoint. Revision 34's broader run loses a browser character on repeat 19 after 19 successful returns; a same-generation context reset cancels that held key. This revision does not change the activation policy or weaken its stale-input guard. [Original failure and limits](../r34/README.md).
 
 Current controllers request zero kernel suspend cycles. The kernel USB suspend failure, broader compatibility, current-binary endurance, remaining M0–M6 requirements and carrier tests without an active SIM remain open. Continue native input diagnosis, Just Type, menu/notification composition, visual/accessibility comparison and device/service/application work under the full development plan.
