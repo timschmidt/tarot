@@ -80,6 +80,14 @@ A deliberately stalled exporter produces a confirmed 100 ms transport timeout, t
 
 The next gate remains association with a real owned Wayland surface and rejection of wrong-client claims, followed by actual GTK/KDE exports and a cooperating Rust/egui producer. Bound and test snapshots/nesting/strings, changed or disabled targets after a press, malformed producers, worker teardown, app acknowledgement, performance and ARM/phone build inputs. The existing phone cross SDK still needs its GIO development input evaluation. Compare this measured binding path with the direct Rust D-Bus approach before selecting the production adapter; the private-interface maintenance constraint remains.
 
+### Stable process ownership precheck
+
+D-Bus credentials can include an optional `ProcessFD`, which avoids numeric PID reuse; missing credentials must be handled explicitly. Linux can provide the corresponding socket peer handle through `SO_PEERPIDFD`. [D-Bus credential contract](https://dbus.freedesktop.org/doc/dbus-specification.html#bus-messages-get-connection-credentials).
+
+An isolated host bus on D-Bus 1.16.2 supplies a process descriptor whose live PID matches the connecting process. Host and phone Unix-socket probes also obtain peer process descriptors. These are capability observations: the phone's session-bus descriptor support and real Wayland/menu association remain untested. Private executed source and aggregate observations are retained separately.
+
+The next Rust experiment must use distinct producer processes with the same UID/session, actual Wayland surfaces and standard menu claims. Compare live, retained process handles from both endpoints; reject absent or mismatched identity rather than accepting PID/UID equality. Test owner exit/replacement and surface destruction while validation is pending, then reject any stale row before dispatch. Delegated helpers and sandbox proxies require an explicit separate ownership contract. This proposes the initial adapter's supported subset; no production capability is advertised.
+
 
 ## Touch lifecycle prerequisite for input acceptance
 
