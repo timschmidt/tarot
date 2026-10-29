@@ -115,25 +115,38 @@ pub fn show(
                 Stroke::new(1.0_f32, crate::theme::FOCUS),
                 egui::StrokeKind::Inside,
             );
-        } else if !((id.is_some() || launcher)
-            && crate::theme::paint_icon(
-                ui.ctx(),
-                &painter,
-                app.map_or("", |a| a.id.as_str()),
-                launcher,
-                Rect::from_center_size(center, Vec2::splat(tarot_core::design::ICON)),
-                tint,
-                model.calendar_day,
-            ))
-        {
-            icon(
-                &painter,
-                center,
-                app.map(|a| a.id.as_str()),
-                launcher,
-                id.is_none(),
-                tint,
-            );
+        } else {
+            let icon_rect = Rect::from_center_size(center, Vec2::splat(tarot_core::design::ICON));
+            let original = (id.is_some() || launcher)
+                && crate::theme::paint_icon(
+                    ui.ctx(),
+                    &painter,
+                    app.map_or("", |a| a.id.as_str()),
+                    launcher,
+                    icon_rect,
+                    tint,
+                    model.calendar_day,
+                );
+            let native = !original
+                && app.is_some_and(|app| {
+                    crate::native_icons::paint(ui.ctx(), &painter, model, &app.id, icon_rect, tint)
+                });
+            if !original
+                && !native
+                && let Some(app) = app
+            {
+                crate::native_icons::request(model, &app.id, commands);
+            }
+            if !original && !native {
+                icon(
+                    &painter,
+                    center,
+                    app.map(|a| a.id.as_str()),
+                    launcher,
+                    id.is_none(),
+                    tint,
+                );
+            }
         }
         if selected {
             let text = painter.layout_no_wrap(label.to_owned(), FontId::proportional(15.0), color);
@@ -167,9 +180,18 @@ pub(crate) fn paint_drag_icon(
     painter: &egui::Painter,
     id: &str,
     rect: Rect,
-    day: Option<u8>,
+    model: &ShellModel,
 ) {
-    if !crate::theme::paint_icon(ctx, painter, id, false, rect, Color32::WHITE, day) {
+    if !crate::theme::paint_icon(
+        ctx,
+        painter,
+        id,
+        false,
+        rect,
+        Color32::WHITE,
+        model.calendar_day,
+    ) && !crate::native_icons::paint(ctx, painter, model, id, rect, Color32::WHITE)
+    {
         icon(
             painter,
             rect.center(),

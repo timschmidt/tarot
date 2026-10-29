@@ -456,7 +456,7 @@ fn grid(
                     if drag.is_some_and(|d|matches!(d.target,Some(tarot_core::favorite_drag::Target::Page{page:p,at}) if p==page && at==index)) {
                         ui.painter().rect_stroke(response.rect.shrink(2.0),8.0,egui::Stroke::new(2.0_f32,theme::FOCUS),egui::StrokeKind::Inside);
                     }
-                    paint_application(ui,app,&response,model,compact,drag.is_some_and(|d|d.source.id()==app.id));
+                    paint_application(ui,app,&response,model,compact,drag.is_some_and(|d|d.source.id()==app.id),commands);
                     if response.clicked() {commands.push(Command::Launch(app.id.clone()));}
                     response.on_hover_text(app.unavailable.as_deref().unwrap_or(&app.description));
                     if index%3==2 {ui.end_row();}
@@ -486,6 +486,7 @@ fn paint_application(
     model: &ShellModel,
     compact: bool,
     dragged: bool,
+    commands: &mut Vec<Command>,
 ) {
     let opacity = if dragged { 0.3 } else { 1.0 };
     let center = Pos2::new(
@@ -497,22 +498,29 @@ fn paint_application(
     } else {
         Color32::WHITE.gamma_multiply(opacity)
     };
-    if !theme::paint_icon(
+    let icon_rect = Rect::from_center_size(
+        center,
+        Vec2::splat(if compact {
+            28.0
+        } else {
+            tarot_core::design::LAUNCHER_ICON
+        }),
+    );
+    let original = theme::paint_icon(
         ui.ctx(),
         ui.painter(),
         &app.id,
         false,
-        Rect::from_center_size(
-            center,
-            Vec2::splat(if compact {
-                28.0
-            } else {
-                tarot_core::design::LAUNCHER_ICON
-            }),
-        ),
+        icon_rect,
         tint,
         model.calendar_day,
-    ) {
+    );
+    let native = !original
+        && crate::native_icons::paint(ui.ctx(), ui.painter(), model, &app.id, icon_rect, tint);
+    if !original && !native && ui.is_rect_visible(icon_rect) {
+        crate::native_icons::request(model, &app.id, commands);
+    }
+    if !original && !native {
         let hue = app.id.bytes().fold(0u8, u8::wrapping_add);
         let color = if app.unavailable.is_some() {
             Color32::from_gray(80)

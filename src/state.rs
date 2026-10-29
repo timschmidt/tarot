@@ -80,6 +80,7 @@ pub struct Compositor {
     pub input_method: Option<crate::input_method_process::ManagedInputMethod>,
     pub notifications: Option<crate::notifications::Server>,
     pub preferences: Option<crate::preferences::Server>,
+    pub icons: Option<crate::icons::Server>,
     pub system_services: Option<crate::power::Server>,
     pub network: Option<crate::network::Server>,
     pub audio: Option<crate::audio::Server>,
@@ -228,6 +229,7 @@ impl Compositor {
             input_method: None,
             notifications: None,
             preferences: None,
+            icons: None,
             system_services: None,
             network: None,
             audio: None,
@@ -552,6 +554,15 @@ impl Compositor {
                 continue;
             }
             match effect {
+                Effect::LoadIcon { id, icon } => {
+                    if !self
+                        .icons
+                        .as_ref()
+                        .is_some_and(|server| server.request(id.clone(), icon))
+                    {
+                        self.shell.icons.complete(id, None);
+                    }
+                }
                 Effect::IdleTimeouts(settings) => {
                     if self.shell.display.idle_configurable && settings.valid() {
                         if let Some(policy) = &mut self.idle.policy {

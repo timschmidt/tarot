@@ -10,6 +10,7 @@ pub mod favorite_drag;
 pub mod frame;
 pub mod gesture;
 pub mod hardware;
+pub mod icons;
 pub mod idle;
 pub mod launcher;
 pub mod motion;
@@ -83,6 +84,7 @@ pub enum SystemPage {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Command {
+    LoadIcon(String),
     IdleTimeouts(idle::Settings),
     RotationLock(bool),
     Lock,
@@ -125,6 +127,7 @@ pub enum Command {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Effect {
+    LoadIcon { id: String, icon: String },
     IdleTimeouts(idle::Settings),
     RotationLock(bool),
     Lock,
@@ -149,6 +152,7 @@ pub struct ShellModel {
     pub cards: Vec<Card>,
     pub selected: Option<WindowId>,
     pub applications: Vec<Application>,
+    pub icons: icons::State,
     pub favorites: quick_launch::Favorites,
     pub editing_favorites: bool,
     pub favorites_saved: bool,
@@ -330,6 +334,22 @@ impl ShellModel {
             return effects;
         }
         match command {
+            Command::LoadIcon(id) => {
+                if let Some(icon) = self
+                    .applications
+                    .iter()
+                    .find(|a| a.id == id)
+                    .and_then(|a| a.icon.as_ref())
+                    .filter(|s| !s.is_empty() && s.len() <= 4096)
+                    && self.icons.begin(&id)
+                {
+                    return vec![Effect::LoadIcon {
+                        id,
+                        icon: icon.clone(),
+                    }];
+                }
+                return Vec::new();
+            }
             Command::EditFavorites(open) => {
                 self.editing_favorites = open;
                 self.view = View::Launcher;

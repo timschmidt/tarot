@@ -2,6 +2,8 @@
 
 ## Desktop development
 
+Native application artwork uses the Rust resvg/usvg dependency with bundled fonts; it adds no system font-rendering dependency. `TAROT_ICON_THEME=ThemeName` selects a theme at session startup; the default is Adwaita with inherited/hicolor fallback. Original Nocturne role art retains priority. PNG/SVG support, resource bounds and remaining format/refresh gaps are documented in the [Launcher artwork contract](LAUNCHER_PAGES.md#native-artwork-foundation).
+
 The nested backend needs a Linux graphical session, Rust 1.89 or newer, a linker, and libxkbcommon development files. The native keyboard additionally uses the system Wayland client/Wayland EGL and EGL/GLES runtimes through glutin; it renders through egui_glow. The optional `drm` feature additionally needs GBM/Mesa, libinput, libseat, and libudev development files. The inspected host uses the nested backend; direct-device builds use the isolated phone SDK.
 
 ```sh
@@ -10,6 +12,15 @@ cargo test --workspace
 cargo clippy --workspace --all-targets -- -D warnings
 python3 -m unittest discover -s tests -p 'test_*.py' -v
 ```
+
+After building the desktop binary, the private-display icon replay checks real image pixels and favorite manipulation. Run it once at each supported test scale, using an available Xvfb executable and a new ignored evidence directory:
+
+```sh
+python3 tests/native_icons_replay.py --scale 1 --output artifacts/native-icons-scale1
+python3 tests/native_icons_replay.py --scale 2 --output artifacts/native-icons-scale2
+```
+
+Use `--xvfb /path/to/Xvfb` when it is not on PATH. The runner owns its synthetic catalog, icon themes, preferences and X display. It must be able to create local sockets. On the phone, the canonical installed-session replay's `--native-icons` component requires the temporary entries/page described by [phone_native_icons_replay.py](../tests/phone_native_icons_replay.py), controlled PAM input and exact original-settings restoration. This component requests no kernel suspend; saved restart and independent normal-session/Panfrost audits remain separate controller checks. [Recorded native scope](recordings/r35/README.md).
 
 Run an empty shell or launch a client inside its private Wayland session:
 

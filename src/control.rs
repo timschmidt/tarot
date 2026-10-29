@@ -239,6 +239,7 @@ pub fn start(path: &Path, handle: &LoopHandle<'_, CalloopData>) -> Result<Contro
                 "capture_error": state.snapshot_error,
                 "render_metrics": state.metrics,
                 "application_count": state.shell.applications.len(),
+                "application_icons": state.shell.icons.stats(),
                 "dmabuf_enabled": state.dmabuf_global.is_some(),
                 "launch_feedback": state.shell.launch_feedback,
             });

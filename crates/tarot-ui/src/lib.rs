@@ -6,6 +6,7 @@ pub mod keyboard;
 mod launcher;
 mod launcher_paging;
 pub mod lock_recovery;
+mod native_icons;
 pub mod native_text;
 pub mod notifications;
 pub mod quick_launch;
@@ -96,6 +97,7 @@ pub fn show_with_native_fullscreen(
     theme::install(ctx);
     theme::prepare_art(ctx);
     let mut commands = Vec::new();
+    native_icons::prune(ctx, model);
     let favorite_frame = favorite_drag::begin(ctx, model, layout);
     let paging_frame = launcher_paging::begin(
         ctx,

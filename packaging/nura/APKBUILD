@@ -1,7 +1,7 @@
 # Local source-snapshot recipe. Keep Phosh installed as a recovery session.
 pkgname=tarot
 pkgver=0.1.0
-pkgrel=34
+pkgrel=35
 pkgdesc="Rust phone shell and Wayland compositor (development preview)"
 url="https://github.com/timschmidt/tarot"
 arch="aarch64"
@@ -42,6 +42,7 @@ package() {
 	install -Dm644 LICENSE-MIT "$pkgdir/usr/share/licenses/tarot/LICENSE-MIT"
 	install -Dm644 LICENSE-APACHE "$pkgdir/usr/share/licenses/tarot/LICENSE-APACHE"
 	install -Dm644 third-party/Smithay-MIT.txt "$pkgdir/usr/share/licenses/tarot/Smithay-MIT.txt"
+	install -Dm644 third-party/native-icons-NOTICES.txt "$pkgdir/usr/share/licenses/tarot/native-icons-NOTICES.txt"
 	install -Dm644 crates/tarot-ui/assets/fonts/Lato-OFL.txt "$pkgdir/usr/share/licenses/tarot/Lato-OFL.txt"
 	install -Dm644 crates/tarot-ui/assets/fonts/InstrumentSerif-OFL.txt "$pkgdir/usr/share/licenses/tarot/InstrumentSerif-OFL.txt"
 	install -Dm644 README.md "$pkgdir/usr/share/doc/tarot/README.md"

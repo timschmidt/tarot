@@ -232,6 +232,9 @@ def run(args, password):
         if getattr(args, 'launcher_pages', False):
             from phone_launcher_pages_replay import replay as pages_replay
             records['launcher_pages'] = pages_replay(socket,screen,state,tap,capture,before,args.output,authenticate)
+        if getattr(args, 'native_icons', False):
+            from phone_native_icons_replay import replay as icons_replay
+            records['native_icons'] = icons_replay(socket,screen,state,tap,capture,before,args.output,authenticate)
         if getattr(args, 'panel_off', False):
             assert sensor_monitor is not None
             state('sensor-before-panel', lambda s:s['sensors']['available'] and s['sensors']['claimed'])
@@ -476,6 +479,7 @@ def main():
     parser.add_argument('--fullscreen-terminal', action='store_true')
     parser.add_argument('--virtual-keyboard-lock', action='store_true')
     parser.add_argument('--keyboard-context', action='store_true')
+    parser.add_argument('--native-icons', action='store_true')
     parser.add_argument('--detach', action='store_true')
     args = parser.parse_args()
     assert not args.panel_off or args.observe_sensors

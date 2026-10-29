@@ -42,6 +42,10 @@ Positions are staged on the parent, with weak surface/role identities; applying 
 
 The invalid-unlock regression was run with just the early return removed: a rejected second lock object reached the unlock handler and exposed the ordinary scene/status. The guarded build passes the same test on desktop and phone. Current upstream uses a different lock-owner/state design; compare [the inspected immutable source](https://github.com/Smithay/smithay/blob/6b37edc019889148608a73e3e27423979cd642c8/src/wayland/session_lock/lock.rs). Re-evaluate these local changes when selecting a newer Smithay release, with the real protocol, clipboard and native presentation replays retained.
 
+## Native icon renderer
+
+Native application icons use locked resvg/usvg 0.48.1 and tiny-skia 0.12.0 with Rust text shaping and the bundled Lato font. System font discovery, memory mapped fonts, SVGZ and resvg's optional raster-image decoders are disabled. Tarot explicitly rejects imported SVG images, including data URLs. PNG uses the existing bounded Rust decoder. [Native icon dependency notices](native-icons-NOTICES.txt) preserve the introduced packages' upstream license text and are installed in the APK; complete locked dependency sources and license options remain in the vendored source archive.
+
 ## Linux-PAM runtime boundary
 
 The trusted lock client's own Rust FFI declarations follow Linux-PAM's public application/conversation ABI; no PAM implementation or helper source was copied into Tarot. The disposable unprivileged worker dynamically loads the system `libpam.so.0` and uses distribution modules/policy. `libloading` and `libc` remain Cargo dependencies with their upstream licenses; the system's PAM libraries/helpers retain their distribution license/notice files. [Public API](https://github.com/linux-pam/linux-pam/blob/master/libpam/include/security/pam_appl.h)

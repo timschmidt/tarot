@@ -10,6 +10,7 @@ mod focus;
 mod grabs;
 mod handlers;
 mod hardware;
+mod icons;
 mod idle;
 mod input;
 mod input_method_process;
@@ -314,6 +315,7 @@ fn main() -> Result<()> {
         apps::publish_activation_environment(&data.state.socket_name)?;
     }
     apps::init(event_loop.handle(), &mut data.state)?;
+    icons::start(event_loop.handle(), &mut data.state)?;
     clock::start(event_loop.handle(), &mut data.state)?;
     data.state.protection.verify_blank = options.verify_lock_blank;
     data.state.protection.verify_surface_rgba = options.verify_lock_surface_rgba;

@@ -279,13 +279,7 @@ pub(crate) fn finish(
         34.0,
         Color32::from_black_alpha(100),
     );
-    crate::quick_launch::paint_drag_icon(
-        ctx,
-        &painter,
-        preview.source.id(),
-        rect,
-        model.calendar_day,
-    );
+    crate::quick_launch::paint_drag_icon(ctx, &painter, preview.source.id(), rect, model);
     let label = match preview.target {
         Some(Target::Full(_)) => "Quick Launch is full",
         Some(Target::Remove) => "Release to remove favorite",
@@ -499,10 +493,19 @@ mod tests {
     }
 
     #[test]
-    fn painted_launcher_hold_drop_emits_one_intent_even_with_an_extra_egui_pass() {
+    fn painted_hold_survives_late_icon_and_emits_one_intent_with_an_extra_pass() {
         let ctx = Context::default();
         let mut m = model();
+        m.applications[2].icon = Some("app2".into());
+        assert!(matches!(
+            m.apply(Command::LoadIcon("app2.desktop".into())).as_slice(),
+            [Effect::LoadIcon { .. }]
+        ));
         arm(&ctx, &m);
+        m.icons.complete(
+            "app2.desktop".into(),
+            tarot_core::icons::Raster::new([1, 1], vec![0, 255, 0, 255]),
+        );
         let before = m.favorites.clone();
         let target = Pos2::new(38.0, 645.0);
         render(

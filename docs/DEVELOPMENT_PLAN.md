@@ -10,6 +10,8 @@ Revision-32 update: unchanged-layout keyboard activation retains its mapped surf
 
 Revision-34 update: named Launcher pages now pass their native touch/PAM/rotation/name-management/favorite-link/restart component. The source and installed package include the original packet's page interaction. Physical calibration, native icons, Just Type, menu/notification composition and all remaining milestones retain their existing scope. The broader revision-34 run fails a browser character check on repeat 19; current input reliability and endurance are not certified by the page component. [Current evidence and limits](recordings/r34/README.md).
 
+Revision-35 update: native application PNG/SVG artwork now loads on a bounded Rust worker, preserving original Nocturne role art. The native icon, orientation, favorite, real-PAM and saved-restart component passes, with independent normal-session/Panfrost audits. XPM/imported SVG images, live catalog/theme refresh, physical/visual review and performance budgets remain open. The browser activation failure and all unfinished M0–M6 gates retain their scope. [Revision-35 results and limits](recordings/r35/README.md).
+
 ## Confirmed direction
 
 | Topic | Owner decision |
