@@ -196,5 +196,8 @@ def replay(control,tap,state,capture,out,cgroup,authenticate,inspect_only=False)
         result['observer']={'heartbeats':sum(e['event']=='heartbeat' for e in snapshots),
             'reported_transport_failures':max((e.get('transportFailures',0) for e in snapshots),default=0),
             'receipt_minus_browser_timestamp_ms_max':max((e.get('report_delivery_ms',0) for e in snapshots),default=0)}
+        result['last_field_metadata']={page:event['fields'] for page,event in latest_reports(snapshots).items()}
+        result['last_document_metadata']={page:{key:event.get(key) for key in ['documentFocused','visibility','sequence','observed']} for page,event in latest_reports(snapshots).items()}
+        result['last_report_age_ms']={page:time.time()*1000-event['observed'] for page,event in latest_reports(snapshots).items()}
         (folder/'validation.json').write_text(json.dumps(result,indent=2)+'\n')
     return result

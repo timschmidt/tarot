@@ -21,3 +21,20 @@ The [retained password discrepancy](browser-observer-discrepancy.png) shows six 
 Independent final [session](normal-session-audit.py) and [GPU](gpu-audit.py) audits pass: normal default Tarot on UID 10000/VT7, exact loaded hashes, hardware keys, diagnostics disabled, original preference bytes/owner/group/mode and policies, absent fixture processes/input/RTC alarm, and a live Panfrost descriptor. Both component sessions request zero suspend cycles. The evidence reconciles all 335 frozen Rust files and 411 build inputs, 36 repository QA/support files, the byte-identical installed replay, and 15 separately collected support sources. Final QA/documentation follows source freezing; the complete current Git tree is not asserted byte-identical to the source archive.
 
 Original failed outputs and executed sources remain under ignored `artifacts/m1/favorite-drag-r27/` and `artifacts/m1/favorite-drag-r28/`; public hashes preserve their identities. No complete M0–M6 milestone, current-binary endurance, full visual conformance or new physical-finger acceptance is claimed.
+
+## Browser observer follow-up
+
+Six later focused trials use these same installed binaries. [Exact archive/source identities and scoped results](browser-observer-evidence.json) preserve every passing and failing result under ignored `artifacts/m2/browser-ime-r28/`. The [unmodified failure frame](browser-after-pam-observer-stale.png) visibly contains `tarotxz`, although that trial's latest HTTP report still says `tarotx` and is 17.3 seconds old. A stale value cannot establish that the native key was lost.
+
+| Trial | Observer / diagnostic scope | Result |
+| --- | --- | --- |
+| 1 | HTTP; protocol metadata | Post-PAM exact-state timeout despite browser commit receipt; no causal serial conclusion |
+| 2 | HTTP; protocol and focus metadata | Complete focused browser case passes |
+| 3 | HTTP; protocol, focus and filtered IME metadata | Post-PAM timeout; final received DOM snapshot predates unlock |
+| 4 | HTTP with three-second deadlines; same metadata | Three counted delivery failures; expected text visible while report remains stale |
+| 5 | Persistent WebSocket; same metadata | Complete focused browser case passes; 116 heartbeats, maximum reported reconnect counter 1, maximum delay 1118.8 ms |
+| 6 | Default persistent WebSocket; protocol/IME logging disabled | Overview-return input fails with fresh unchanged text, report age 366.4 ms, document focus true and zero transport failures |
+
+The [exact final focused controller](native-browser-focused-controller.py) explicitly records full native acceptance as false. Independent [normal-session](browser-normal-session-audit.py) and [GPU](browser-gpu-audit.py) audits pass after each trial: normal default Tarot, UID 10000/VT7, exact loaded payloads, hardware keys, diagnostics disabled, original preferences/policies, absent fixtures/input/RTC alarm and Panfrost. No package is reinstalled; all 335 frozen Rust files remain unchanged. The final collected installed-session replay and nine QA/support files match the repository byte-for-byte. These historical scripts reference their original audited staging paths.
+
+Sixteen host observer checks pass; the phone passes thirteen and skips three optional Node producer checks. The WebSocket is the default QA observer, with bounded HTTP retained for comparison. Text-free diagnostics add focus, composition and numeric selection metadata; strict filters discard raw protocol/IME strings and keys. Input timing, 15-second exact-value checks, PAM and sandbox boundaries remain intact. The fresh failure requires investigating native keyboard touch/frame/activation delivery before another complete native replay. These focused results do not close broader browser coverage, current-binary endurance or the complete development plan.

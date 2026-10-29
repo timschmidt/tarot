@@ -1,0 +1,515 @@
+{
+  "date": "2026-10-28",
+  "installed_revision": 28,
+  "production_payload_changed": false,
+  "all_335_frozen_rust_sources_unchanged": true,
+  "full_native_acceptance": false,
+  "scope": "Six focused browser diagnostics; no complete native suite or suspend cycles",
+  "tests": {
+    "host_passed": 16,
+    "phone_passed": 13,
+    "phone_optional_node_skipped": 3
+  },
+  "trials": [
+    {
+      "trial": 1,
+      "archive": "browser-ime-native-r28-trace1-complete-evidence.tar.gz",
+      "archive_sha256": "288600f86e50f599af4616d58c554420dfc011d9d9bce7d02647cc1891ad0945",
+      "archive_bytes": 51270520,
+      "controller_sha256": "ff7572a096eee199ebef23616a13b5228b74619ad3d20af965310f7f0ef13ce3",
+      "browser_case_passed": false,
+      "controller_passed": false,
+      "full_native_acceptance": false,
+      "report_transport": "http",
+      "protocol_metadata_enabled": true,
+      "ime_metadata_enabled": false,
+      "normal_session_audit_passed": true,
+      "panfrost_audit_passed": true,
+      "observer": {
+        "heartbeats": 18,
+        "reported_transport_failures": 0,
+        "receipt_minus_browser_timestamp_ms_max": 11694.34765625
+      },
+      "last_report_age_ms": null,
+      "last_document_metadata": null,
+      "last_field_metadata": {
+        "main": {
+          "primary": {
+            "state": 6,
+            "length": 6,
+            "focused": true,
+            "composing": false,
+            "selectionStart": 6,
+            "selectionEnd": 6,
+            "x": 12,
+            "y": 65.5,
+            "width": 336,
+            "height": 46
+          },
+          "password": {
+            "state": 0,
+            "length": 0,
+            "focused": false,
+            "composing": false,
+            "selectionStart": 0,
+            "selectionEnd": 0,
+            "x": 12,
+            "y": 140.5,
+            "width": 336,
+            "height": 46
+          },
+          "bottom": {
+            "state": 0,
+            "length": 0,
+            "focused": false,
+            "composing": false,
+            "selectionStart": 0,
+            "selectionEnd": 0,
+            "x": 12,
+            "y": 473.5,
+            "width": 336,
+            "height": 46
+          }
+        }
+      }
+    },
+    {
+      "trial": 2,
+      "archive": "browser-ime-native-r28-trace2-complete-evidence.tar.gz",
+      "archive_sha256": "7bae9936ab55ace53474f3c023911d6b5643ca2723bb61212a1aaf7372a6be64",
+      "archive_bytes": 59712336,
+      "controller_sha256": "08ccb9797841b614c8e19e01755d0a1b2cad0c2f71495b7959a30771c8f1a192",
+      "browser_case_passed": true,
+      "controller_passed": true,
+      "full_native_acceptance": false,
+      "report_transport": "http",
+      "protocol_metadata_enabled": true,
+      "ime_metadata_enabled": false,
+      "normal_session_audit_passed": true,
+      "panfrost_audit_passed": true,
+      "observer": {
+        "heartbeats": 49,
+        "reported_transport_failures": 0,
+        "receipt_minus_browser_timestamp_ms_max": 9207.19775390625
+      },
+      "last_report_age_ms": null,
+      "last_document_metadata": {
+        "main": {
+          "documentFocused": true,
+          "visibility": "visible",
+          "sequence": 53,
+          "observed": 1793231193255
+        },
+        "second": {
+          "documentFocused": true,
+          "visibility": "visible",
+          "sequence": 8,
+          "observed": 1793231175927
+        },
+        "popup": {
+          "documentFocused": true,
+          "visibility": "visible",
+          "sequence": 17,
+          "observed": 1793231183505
+        }
+      },
+      "last_field_metadata": {
+        "main": {
+          "primary": {
+            "state": 0,
+            "length": 0,
+            "focused": false,
+            "composing": false,
+            "selectionStart": 0,
+            "selectionEnd": 0,
+            "x": 12,
+            "y": 65.5,
+            "width": 336,
+            "height": 46
+          },
+          "password": {
+            "state": 0,
+            "length": 0,
+            "focused": false,
+            "composing": false,
+            "selectionStart": 0,
+            "selectionEnd": 0,
+            "x": 12,
+            "y": 140.5,
+            "width": 336,
+            "height": 46
+          },
+          "bottom": {
+            "state": 13,
+            "length": 4,
+            "focused": false,
+            "composing": false,
+            "selectionStart": 4,
+            "selectionEnd": 4,
+            "x": 12,
+            "y": 626,
+            "width": 336,
+            "height": 46
+          }
+        },
+        "second": {},
+        "popup": {
+          "popup-input": {
+            "state": 24,
+            "length": 5,
+            "focused": true,
+            "composing": false,
+            "selectionStart": 5,
+            "selectionEnd": 5,
+            "x": 12,
+            "y": 46.5,
+            "width": 336,
+            "height": 46
+          }
+        }
+      }
+    },
+    {
+      "trial": 3,
+      "archive": "browser-ime-native-r28-trace3-complete-evidence.tar.gz",
+      "archive_sha256": "972c99e7dfc40f669b76ce74f0aaa92e61ea0f04672d2ad96160ae60c8012423",
+      "archive_bytes": 51293553,
+      "controller_sha256": "0e4af436802ad64797bf4f72f0ceb3e7ebe2e12678bfcf0fc9ce80f7c7470e0d",
+      "browser_case_passed": false,
+      "controller_passed": false,
+      "full_native_acceptance": false,
+      "report_transport": "http",
+      "protocol_metadata_enabled": true,
+      "ime_metadata_enabled": true,
+      "normal_session_audit_passed": true,
+      "panfrost_audit_passed": true,
+      "observer": {
+        "heartbeats": 18,
+        "reported_transport_failures": 0,
+        "receipt_minus_browser_timestamp_ms_max": 8431.71044921875
+      },
+      "last_report_age_ms": null,
+      "last_document_metadata": {
+        "main": {
+          "documentFocused": false,
+          "visibility": "visible",
+          "sequence": 73,
+          "observed": 1793232017417
+        }
+      },
+      "last_field_metadata": {
+        "main": {
+          "primary": {
+            "state": 6,
+            "length": 6,
+            "focused": true,
+            "composing": false,
+            "selectionStart": 6,
+            "selectionEnd": 6,
+            "x": 12,
+            "y": 65.5,
+            "width": 336,
+            "height": 46
+          },
+          "password": {
+            "state": 0,
+            "length": 0,
+            "focused": false,
+            "composing": false,
+            "selectionStart": 0,
+            "selectionEnd": 0,
+            "x": 12,
+            "y": 140.5,
+            "width": 336,
+            "height": 46
+          },
+          "bottom": {
+            "state": 0,
+            "length": 0,
+            "focused": false,
+            "composing": false,
+            "selectionStart": 0,
+            "selectionEnd": 0,
+            "x": 12,
+            "y": 473.5,
+            "width": 336,
+            "height": 46
+          }
+        }
+      }
+    },
+    {
+      "trial": 4,
+      "archive": "browser-ime-native-r28-trace4-complete-evidence.tar.gz",
+      "archive_sha256": "aa65308afbfd2f719d03abf54a9f9daf52c367d05a23c1a01ea55c4df022eb8d",
+      "archive_bytes": 51280539,
+      "controller_sha256": "708f83b22e04d277faa621c5bf63ab9cc5d0d545eed7d6aeff144e49f17f6577",
+      "browser_case_passed": false,
+      "controller_passed": false,
+      "full_native_acceptance": false,
+      "report_transport": "http",
+      "protocol_metadata_enabled": true,
+      "ime_metadata_enabled": true,
+      "normal_session_audit_passed": true,
+      "panfrost_audit_passed": true,
+      "observer": {
+        "heartbeats": 21,
+        "reported_transport_failures": 3,
+        "receipt_minus_browser_timestamp_ms_max": 1836.32177734375
+      },
+      "last_report_age_ms": {
+        "main": 17324.445556640625
+      },
+      "last_document_metadata": {
+        "main": {
+          "documentFocused": false,
+          "visibility": "visible",
+          "sequence": 74,
+          "observed": 1793232321084
+        }
+      },
+      "last_field_metadata": {
+        "main": {
+          "primary": {
+            "state": 6,
+            "length": 6,
+            "focused": true,
+            "composing": false,
+            "selectionStart": 6,
+            "selectionEnd": 6,
+            "x": 12,
+            "y": 65.5,
+            "width": 336,
+            "height": 46
+          },
+          "password": {
+            "state": 0,
+            "length": 0,
+            "focused": false,
+            "composing": false,
+            "selectionStart": 0,
+            "selectionEnd": 0,
+            "x": 12,
+            "y": 140.5,
+            "width": 336,
+            "height": 46
+          },
+          "bottom": {
+            "state": 0,
+            "length": 0,
+            "focused": false,
+            "composing": false,
+            "selectionStart": 0,
+            "selectionEnd": 0,
+            "x": 12,
+            "y": 473.5,
+            "width": 336,
+            "height": 46
+          }
+        }
+      }
+    },
+    {
+      "trial": 5,
+      "archive": "browser-ime-native-r28-trace5-complete-evidence.tar.gz",
+      "archive_sha256": "04f05fdd2808a7f976b3bfcb18bbb3c5ab89466d1eb4cbc38a019c1c593b5f18",
+      "archive_bytes": 72943713,
+      "controller_sha256": "ce1345e046c42e6ee319c34aaa31f90b7b725278b60728c1b09c387d06a7eef1",
+      "browser_case_passed": true,
+      "controller_passed": true,
+      "full_native_acceptance": false,
+      "report_transport": "websocket",
+      "protocol_metadata_enabled": true,
+      "ime_metadata_enabled": true,
+      "normal_session_audit_passed": true,
+      "panfrost_audit_passed": true,
+      "observer": {
+        "heartbeats": 116,
+        "reported_transport_failures": 1,
+        "receipt_minus_browser_timestamp_ms_max": 1118.8134765625
+      },
+      "last_report_age_ms": {
+        "main": 3124.93896484375,
+        "second": 39436.956787109375,
+        "popup": 10023.963134765625
+      },
+      "last_document_metadata": {
+        "main": {
+          "documentFocused": false,
+          "visibility": "hidden",
+          "sequence": 100,
+          "observed": 1793232774301
+        },
+        "second": {
+          "documentFocused": true,
+          "visibility": "visible",
+          "sequence": 13,
+          "observed": 1793232737989
+        },
+        "popup": {
+          "documentFocused": false,
+          "visibility": "hidden",
+          "sequence": 27,
+          "observed": 1793232767402
+        }
+      },
+      "last_field_metadata": {
+        "main": {
+          "primary": {
+            "state": 0,
+            "length": 0,
+            "focused": false,
+            "composing": false,
+            "selectionStart": 0,
+            "selectionEnd": 0,
+            "x": 12,
+            "y": 65.5,
+            "width": 336,
+            "height": 46
+          },
+          "password": {
+            "state": 0,
+            "length": 0,
+            "focused": false,
+            "composing": false,
+            "selectionStart": 0,
+            "selectionEnd": 0,
+            "x": 12,
+            "y": 140.5,
+            "width": 336,
+            "height": 46
+          },
+          "bottom": {
+            "state": 13,
+            "length": 4,
+            "focused": false,
+            "composing": false,
+            "selectionStart": 4,
+            "selectionEnd": 4,
+            "x": 12,
+            "y": 473.5,
+            "width": 336,
+            "height": 46
+          }
+        },
+        "second": {},
+        "popup": {
+          "popup-input": {
+            "state": 24,
+            "length": 5,
+            "focused": false,
+            "composing": false,
+            "selectionStart": 5,
+            "selectionEnd": 5,
+            "x": 12,
+            "y": 46.5,
+            "width": 336,
+            "height": 46
+          }
+        }
+      }
+    },
+    {
+      "trial": 6,
+      "archive": "browser-ime-native-r28-trace6-complete-evidence.tar.gz",
+      "archive_sha256": "3a619a14b4d0473234f5ec7771527ca8f8d802a1822d10a6f27f5e7c92279fb7",
+      "archive_bytes": 34793743,
+      "controller_sha256": "3cb039f5ab9f18eb9197e33dd1da799469b92581dede8542f9d316d494c1a5e2",
+      "browser_case_passed": false,
+      "controller_passed": false,
+      "full_native_acceptance": false,
+      "report_transport": "websocket",
+      "protocol_metadata_enabled": false,
+      "ime_metadata_enabled": false,
+      "normal_session_audit_passed": true,
+      "panfrost_audit_passed": true,
+      "observer": {
+        "heartbeats": 45,
+        "reported_transport_failures": 0,
+        "receipt_minus_browser_timestamp_ms_max": 634.974365234375
+      },
+      "last_report_age_ms": {
+        "main": 366.4287109375
+      },
+      "last_document_metadata": {
+        "main": {
+          "documentFocused": true,
+          "visibility": "visible",
+          "sequence": 73,
+          "observed": 1793232965665
+        }
+      },
+      "last_field_metadata": {
+        "main": {
+          "primary": {
+            "state": 5,
+            "length": 5,
+            "focused": true,
+            "composing": false,
+            "selectionStart": 5,
+            "selectionEnd": 5,
+            "x": 12,
+            "y": 65.5,
+            "width": 336,
+            "height": 46
+          },
+          "password": {
+            "state": 0,
+            "length": 0,
+            "focused": false,
+            "composing": false,
+            "selectionStart": 0,
+            "selectionEnd": 0,
+            "x": 12,
+            "y": 140.5,
+            "width": 336,
+            "height": 46
+          },
+          "bottom": {
+            "state": 0,
+            "length": 0,
+            "focused": false,
+            "composing": false,
+            "selectionStart": 0,
+            "selectionEnd": 0,
+            "x": 12,
+            "y": 233.5,
+            "width": 336,
+            "height": 46
+          }
+        }
+      }
+    }
+  ],
+  "final_repository_qa_sha256": {
+    "tests/browser_fixture.py": "cca9066fbe2009e86fbf6226cecd6c769d59f3a5d4e660d026f7982890a94217",
+    "tests/browser_websocket.py": "74f4f4fa6f7a3295e816271670a102eb3be8c2cde2da707ad9cc81ca22761ffc",
+    "tests/browser_observations.py": "1b6b1efa08b4de6fe919c246e8c579f92cce04f10cbcc4c3ce0e287c728530ad",
+    "tests/phone_browser_replay.py": "79cdaf8c27df1387900c1cd6a93d30aad60e7f3250f55bcc5dae8cfca229f947",
+    "tests/test_browser_protocol_metadata.py": "73e249ba69492d3c13af175736dbc89d5435b3fb0f1863e33a7a087a72ef56e4",
+    "tests/test_browser_report_queue.py": "c184da74f872758e77cdad646a9ab16c537a4211896411c7dbdbaddcf917b904",
+    "tests/test_browser_observer_transport.py": "1a93daeeb5255d755680cc61b4cb494cb2b13ac02f42051b2e8edf1f3fba6e8b",
+    "tests/test_browser_observations.py": "5648e9569800c68ed06cc45a475bbbb4795eb079e7956f1ff0705b18e21de66f",
+    "tests/test_browser_websocket.py": "27067259c03c5080c4a878a0db53850c035d85038f5b566a0d512fcbe724478d"
+  },
+  "final_collected_replay_matches_repository": true,
+  "stale_observer_capture": {
+    "file": "browser-after-pam-observer-stale.png",
+    "sha256": "c1f7058c33d9e72b9802d287c8cc8f7854c231694d1ac9e5ec0a5445827349e3",
+    "unmodified": true,
+    "trial": 4,
+    "known_synthetic_text_visible": "tarotxz",
+    "last_reported_known_synthetic_text": "tarotx",
+    "last_report_age_ms": 17324.445556640625
+  },
+  "upstream_branch_sources": {
+    "IMContextWrapper-esr140.cpp": {
+      "sha256": "c68c44a36776c7929d6f4dc55f8c2a5e8f0edd36b2c91ad881fd5b445838848d",
+      "bytes": 130463
+    },
+    "imwayland-gtk3.c": {
+      "sha256": "8bf9de1dd4282682a993c7a49272f6390f491bb0d8aee12c58fe227520be555d",
+      "bytes": 31522
+    }
+  }
+}
