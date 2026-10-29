@@ -17,12 +17,18 @@ from card_matrix import physical
 from dialog_button import locate
 from notification_replay import await_value
 from phone_gesture_replay import request
+from phone_lock_replay import Keyboard
 
 
 def replay(control, screen, state, tap, capture, before, out, cgroup, authenticate):
     folder=out/'menus';assert folder.is_dir()
     result={'passed':False,'physical_finger_tested':False,'orientations':[],
             'replay_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),'targets':[]}
+    keys=None
+    fixture_binary=Path('/home/user/tarot-dev/bin/menu-input-probe-r40')
+    audit=json.loads(Path('menu-input-probe-r40-audit.json').read_text())
+    assert hashlib.sha256(fixture_binary.read_bytes()).hexdigest()==audit['binary_sha256']
+    result['fixture_binary_sha256']=audit['binary_sha256']
     account=pwd.getpwuid(10000);groups=os.getgrouplist(account.pw_name,account.pw_gid)
     env=dict(os.environ,HOME=account.pw_dir,XDG_RUNTIME_DIR='/run/user/10000')
     for name in ['WAYLAND_SOCKET','DISPLAY','PULSE_SERVER']:env.pop(name,None)
@@ -48,6 +54,7 @@ def replay(control, screen, state, tap, capture, before, out, cgroup, authentica
         px,py=physical(status(),x,y);screen.move(px/2,py/2)
     def touch(x,y):down(x,y);screen.up();time.sleep(.1)
     def picture(label):
+        observe(label+'-settled',lambda s:not s['system_menu_open'] or not s['top_menu']['motion']['moving'])
         capture('menus-'+label);s=status();path=out/('menus-'+label+'.png')
         with Image.open(path) as source:
             source.load();rotation={'normal':None,'left-up':Image.Transpose.ROTATE_270,'bottom-up':Image.Transpose.ROTATE_180,'right-up':Image.Transpose.ROTATE_90}[s['output']['orientation']]
@@ -82,8 +89,9 @@ def replay(control, screen, state, tap, capture, before, out, cgroup, authentica
         for proc in Path('/proc').iterdir():
             if not proc.name.isdecimal():continue
             try:
-                if (proc/'exe').resolve()==Path('/home/user/tarot-dev/bin/rounded-input-probe') and str(folder/(label+'.jsonl')).encode() in (proc/'cmdline').read_bytes().split(b'\0'):
+                if (proc/'exe').resolve()==fixture_binary and str(folder/(label+'.jsonl')).encode() in (proc/'cmdline').read_bytes().split(b'\0'):
                     assert proc.stat().st_uid==10000 and (proc/'cgroup').read_text()==cgroup
+                    assert hashlib.sha256((proc/'exe').read_bytes()).hexdigest()==audit['binary_sha256']
                     candidates.append(int(proc.name))
             except (FileNotFoundError,ProcessLookupError):pass
         assert len(candidates)==1
@@ -127,7 +135,22 @@ def replay(control, screen, state, tap, capture, before, out, cgroup, authentica
         dismiss('audio-dismissed');assert settings.read_bytes()==saved
         activity('protected-menu');request(control,'lock');authenticate('menus-actual-pam')
         observe('protected-menu-retired',lambda s:not s['system_menu_open'] and s['view']==before['view'] and s['cards']==before['cards'])
-        identifier,pid=fixture('Refuse');activity('refuse-menu');item('Close','refuse-close')
+        identifier,pid=fixture('Refuse');activity('held-key-menu')
+        keys=Keyboard(screen.guard)
+        balanced=lambda:[e for e in events('Refuse') if e['event']=='keyboard_key_balance']
+        before_keys=len(balanced());before_enters=sum(e['event']=='keyboard_enter' for e in events('Refuse'))
+        keys.key(15,True);keys.key(30,True)
+        dismiss('held-key-menu-retired')
+        await_value(lambda:events('Refuse'),lambda es:sum(e['event']=='keyboard_enter' for e in es)>before_enters)
+        keys.key(15,False);keys.key(30,False);time.sleep(.15)
+        assert len(balanced())==before_keys,'A shell-owned key release reached the native client'
+        keys.tap(15);await_value(lambda:len(balanced()),lambda count:count==before_keys+2)
+        pair=balanced()[-2:]
+        assert [e['pressed'] for e in pair]==[True,False] and pair[-1]['held']==0
+        assert not any(e['unmatched_release'] for e in balanced())
+        keys.close();keys=None
+        result['held_shell_key_retirement']={'suppressed_releases':2,'fresh_native_pair':pair,'passed':True}
+        activity('refuse-menu');item('Close','refuse-close')
         observe('refused-client-alive',lambda s:any(c['id']==identifier and c['closing'] for c in s['cards']) and not s['system_menu_open'])
         await_value(lambda:events('Refuse'),lambda es:any(e['event']=='close_requested' and e['refused'] for e in es));assert Path('/proc',str(pid)).exists()
         activity('after-refusal');item('cards','refused-show-cards');observe('refused-overview',lambda s:s['view']=='Overview' and s['presentation']['overview']==1)
@@ -146,6 +169,7 @@ def replay(control, screen, state, tap, capture, before, out, cgroup, authentica
         assert settings.read_bytes()==saved
         result.update(passed=True,actual_pam=True,consumed_outside_contact=True,cooperative_and_refused_close=True,client_death_retires_menu=True)
     finally:
+        if keys is not None:keys.close()
         for slot in list(screen.active):screen.up(slot=slot)
         (backlight/'brightness').write_text(str(requested)+'\n')
         await_value(lambda:int((backlight/'actual_brightness').read_text()),lambda value:value==actual)

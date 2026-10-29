@@ -55,6 +55,7 @@ def main():
             value = await_value(lambda: request(control, 'status'), predicate, seconds=10)
             records['actions'].append({'label': label, 'state': value}); return value
         def capture(label):
+            state(label+'-settled', lambda s: not s['system_menu_open'] or not s['top_menu']['motion']['moving'])
             path = out/(label+'.png'); request(control, 'capture', path=str(path))
             state(label, lambda s: not s['capture_pending'] and not s['capture_error'])
             with Image.open(path) as image:
@@ -76,7 +77,7 @@ def main():
             return [json.loads(line) for line in path.read_text().splitlines()] if path.exists() else []
         def launch_native(label, refuse=False):
             report = out/(label+'.jsonl')
-            command = [str(root/'target/debug/examples/input-probe'), '--report', str(report), '--exit-after-seconds', '180', '--no-child']
+            command = [str(root/'target/debug/examples/input-probe'), '--report', str(report), '--exit-after-seconds', '180', '--no-child', '--audit-key-balance']
             if refuse: command.append('--refuse-close')
             process = subprocess.Popen(command, env=native_env, stdout=log(label+'.log'), stderr=subprocess.STDOUT)
             children.append(process)
@@ -135,6 +136,23 @@ def main():
             enter_count = sum(e['event'] == 'keyboard_enter' for e in app_events(report))
             click(40, 16); state('native-menu', lambda s: s['system_menu_open'] and s['top_menu']['owner'] == {'App':identifier})
             await_value(lambda: any(e['event'] == 'keyboard_leave' for e in app_events(report)), bool)
+            # Both an egui key and a text-only key stay owned by the retiring
+            # shell. Release them after the native client regains focus.
+            key_events = lambda: [e for e in app_events(report) if e['event'] == 'keyboard_key_balance']
+            before = len(key_events())
+            mouse.key(23, True); mouse.key(38, True)
+            click(width-16, height*.6)
+            state('held-key-menu-retired', lambda s: not s['system_menu_open'] and s['view'] == {'App':identifier})
+            await_value(lambda: sum(e['event'] == 'keyboard_enter' for e in app_events(report)) > enter_count, bool)
+            mouse.key(23, False); mouse.key(38, False); time.sleep(.15)
+            assert len(key_events()) == before, 'A shell-owned physical release reached the client'
+            mouse.tap(23)
+            await_value(lambda: len(key_events()), lambda count: count == before+2)
+            tail = key_events()[-2:]
+            assert [e['pressed'] for e in tail] == [True,False] and tail[-1]['held'] == 0
+            assert not any(e['unmatched_release'] for e in key_events())
+            records['actions'].append({'label':'held-shell-key-retirement','suppressed_releases':2,'fresh_native_pair':tail})
+            click(40,16); state('native-menu-reopened', lambda s: s['system_menu_open'])
             item('Close', 'cooperative-close')
             state('close-refused', lambda s: not s['system_menu_open'] and s['cards'][0]['closing'])
             await_value(lambda: any(e['event'] == 'close_requested' and e['refused'] for e in app_events(report)), bool)

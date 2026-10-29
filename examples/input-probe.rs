@@ -20,6 +20,9 @@ use wayland_protocols::xdg::shell::client::{
 
 #[derive(Parser)]
 struct Options {
+    /// Record only press/release balance, without keycodes or text.
+    #[arg(long)]
+    audit_key_balance: bool,
     #[arg(long)]
     report: PathBuf,
     #[arg(long, default_value_t = 60)]
@@ -96,6 +99,8 @@ struct Window {
 }
 
 struct Probe {
+    audit_key_balance: bool,
+    held_keys: std::collections::HashSet<u32>,
     keyboard_on_touch: bool,
     keyboard_purpose_cycle: bool,
     keyboard_terminal: bool,
@@ -366,6 +371,8 @@ fn main() -> Result<()> {
     let mut queue = connection.new_event_queue();
     let qh = queue.handle();
     let mut probe = Probe {
+        audit_key_balance: options.audit_key_balance,
+        held_keys: std::collections::HashSet::new(),
         keyboard_on_touch: options.keyboard_on_touch,
         keyboard_purpose_cycle: options.keyboard_purpose_cycle,
         keyboard_terminal: false,
@@ -735,7 +742,16 @@ impl Dispatch<wl_keyboard::WlKeyboard, ()> for Probe {
         _: &QueueHandle<Self>,
     ) {
         match event {
-            wl_keyboard::Event::Enter { surface, .. } => {
+            wl_keyboard::Event::Enter { surface, keys, .. } => {
+                if state.audit_key_balance {
+                    state.held_keys = keys
+                        .as_chunks::<4>()
+                        .0
+                        .iter()
+                        .copied()
+                        .map(u32::from_ne_bytes)
+                        .collect();
+                }
                 state.record(json!({"event":"keyboard_enter","target":surface.data::<Tag>().unwrap().name()}));
             }
             wl_keyboard::Event::Leave { surface, .. } => {
@@ -744,16 +760,29 @@ impl Dispatch<wl_keyboard::WlKeyboard, ()> for Probe {
                 state.record(json!({"event":"keyboard_leave","target":surface.data::<Tag>().map(|tag| tag.name())}));
             }
             wl_keyboard::Event::Key {
-                key: 88,
-                state: WEnum::Value(wl_keyboard::KeyState::Pressed),
-                ..
-            } if state.keyboard_on_touch => state.enable_keyboard("key"),
-            wl_keyboard::Event::Key {
-                key: 1,
-                state: WEnum::Value(wl_keyboard::KeyState::Pressed),
+                key,
+                state: WEnum::Value(key_state),
                 ..
             } => {
-                if let Some(popup) = state.popups.last() {
+                let pressed = key_state == wl_keyboard::KeyState::Pressed;
+                if state.audit_key_balance {
+                    let unmatched_release = if pressed {
+                        state.held_keys.insert(key);
+                        false
+                    } else {
+                        !state.held_keys.remove(&key)
+                    };
+                    // Only event balance is recorded; never a keycode or text.
+                    state.record(json!({"event":"keyboard_key_balance", "pressed":pressed,
+                        "held":state.held_keys.len(), "unmatched_release":unmatched_release}));
+                }
+                if pressed && key == 88 && state.keyboard_on_touch {
+                    state.enable_keyboard("key");
+                }
+                if pressed
+                    && key == 1
+                    && let Some(popup) = state.popups.last()
+                {
                     state.destroy_popups(popup.level);
                 }
             }

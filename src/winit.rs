@@ -235,9 +235,11 @@ fn draw(
     }
     let scene_size = output.current_transform().transform_size(size);
     let (scene, commands) = build_scene(backend.renderer(), state, shell, scene_size)?;
+    let menu_retirement = state.menu_retirement_token();
     let snapshot_due =
         state.snapshot.is_some() && state.start_time.elapsed() >= state.snapshot_after;
-    if state.sleep.gate.barrier.is_some()
+    if menu_retirement.is_some()
+        || state.sleep.gate.barrier.is_some()
         || state.idle.barrier().is_some()
         || snapshot_due
         || matches!(
@@ -278,6 +280,9 @@ fn draw(
         state.idle_frame_presented(idle_barrier, generation);
     }
     complete_frame(state, output, commands);
+    if rendered && let Some(revision) = menu_retirement {
+        state.menu_frame_presented(revision);
+    }
     Ok(())
 }
 

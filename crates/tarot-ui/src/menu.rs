@@ -4,6 +4,8 @@ use tarot_core::{
     Command, Layout, ShellModel, SystemPage,
     menu::{Action, Item, Panel, Target},
 };
+mod glyph;
+use glyph::Glyph;
 
 pub const TEXT: Color32 = Color32::from_rgb(231, 236, 225);
 const SECONDARY: Color32 = Color32::from_rgb(182, 196, 173);
@@ -70,6 +72,7 @@ pub(crate) fn panel(
     commands: &mut Vec<Command>,
     contents: impl FnOnce(&mut egui::Ui, &mut Vec<Command>),
 ) {
+    let visual = model.menu_visual();
     let full = Rect::from_min_max(
         Pos2::new(0.0, Layout::STATUS),
         Pos2::new(layout.width, layout.gesture().y),
@@ -85,8 +88,11 @@ pub(crate) fn panel(
         .fade_in(false)
         .show(ctx, |ui| {
             ui.set_min_size(full.size());
-            ui.painter()
-                .rect_filled(full, 0.0, Color32::from_black_alpha(120));
+            ui.painter().rect_filled(
+                full,
+                0.0,
+                Color32::from_black_alpha((120.0 * visual.scrim).round() as u8),
+            );
             if ui
                 .interact(
                     full,
@@ -117,6 +123,8 @@ pub(crate) fn panel(
         Layout::STATUS,
     );
     let height = (layout.gesture().y - layout.keyboard_height - Layout::STATUS - 8.0).max(1.0);
+    let clip = Rect::from_min_size(origin, Vec2::new(width, height));
+    let origin = origin + Vec2::new(0.0, visual.offset_y);
     egui::Area::new("top_menu_panel".into())
         .order(egui::Order::Foreground)
         .fixed_pos(origin)
@@ -125,7 +133,11 @@ pub(crate) fn panel(
         .show(ctx, |ui| {
             ui.set_width(width);
             ui.set_max_height(height);
-            ui.set_clip_rect(Rect::from_min_size(origin, Vec2::new(width, height)));
+            ui.set_clip_rect(clip);
+            ui.set_opacity(visual.opacity);
+            if visual.closing || visual.opacity < 0.05 {
+                ui.disable();
+            }
             let shape = ui.painter().add(egui::Shape::Noop);
             let frame = egui::Frame::new().inner_margin(8.0).show(ui, |ui| {
                 ui.set_width((width - 16.0).max(1.0));
@@ -159,7 +171,25 @@ fn choose(commands: &mut Vec<Command>, model: &ShellModel, target: Target) {
 }
 
 fn row(ui: &mut egui::Ui, model: &ShellModel, item: Item, commands: &mut Vec<Command>) {
-    let inset = if item.checked { 30.0 } else { 12.0 };
+    let glyph = if model.system_page == SystemPage::Device {
+        match item.target {
+            Target::Page(SystemPage::Wifi) => Some(Glyph::Wifi),
+            Target::Page(SystemPage::Audio) => Some(Glyph::Sound),
+            Target::Page(SystemPage::Power) => Some(Glyph::Power),
+            Target::Notifications => Some(Glyph::Notifications),
+            Target::Lock => Some(Glyph::Lock),
+            _ => None,
+        }
+    } else {
+        None
+    };
+    let inset = if glyph.is_some() {
+        42.0
+    } else if item.checked {
+        30.0
+    } else {
+        12.0
+    };
     let width = (ui.available_width() - inset - 24.0).max(1.0);
     let label = ui.painter().layout(
         item.label.clone(),
@@ -171,12 +201,13 @@ fn row(ui: &mut egui::Ui, model: &ShellModel, item: Item, commands: &mut Vec<Com
         },
         width,
     );
+    let has_detail = !item.detail.is_empty();
     let detail = ui
         .painter()
         .layout(item.detail, FontId::proportional(14.0), SECONDARY, width);
     let height = 56.0_f32.max(
         label.size().y
-            + if detail.is_empty() {
+            + if !has_detail {
                 20.0
             } else {
                 detail.size().y + 16.0
@@ -193,7 +224,16 @@ fn row(ui: &mut egui::Ui, model: &ShellModel, item: Item, commands: &mut Vec<Com
         },
     );
     response.widget_info(|| {
-        egui::WidgetInfo::labeled(egui::WidgetType::Button, item.enabled, &item.label)
+        if model.menus.panel == Panel::Pages {
+            egui::WidgetInfo::selected(
+                egui::WidgetType::SelectableLabel,
+                item.enabled,
+                item.checked,
+                &item.label,
+            )
+        } else {
+            egui::WidgetInfo::labeled(egui::WidgetType::Button, item.enabled, &item.label)
+        }
     });
     if model.menus.selected.as_ref() == Some(&item.target) {
         let id = Id::new("top_menu_selected_scroll");
@@ -220,7 +260,7 @@ fn row(ui: &mut egui::Ui, model: &ShellModel, item: Item, commands: &mut Vec<Com
     let top = rect.top()
         + (height
             - label.size().y
-            - if detail.is_empty() {
+            - if !has_detail {
                 0.0
             } else {
                 detail.size().y + 3.0
@@ -229,7 +269,7 @@ fn row(ui: &mut egui::Ui, model: &ShellModel, item: Item, commands: &mut Vec<Com
     let label_height = label.size().y;
     ui.painter()
         .galley(Pos2::new(rect.left() + inset, top), label, TEXT);
-    if !detail.is_empty() {
+    if has_detail {
         ui.painter().galley(
             Pos2::new(rect.left() + inset, top + label_height + 3.0),
             detail,
@@ -237,11 +277,18 @@ fn row(ui: &mut egui::Ui, model: &ShellModel, item: Item, commands: &mut Vec<Com
         );
     }
     if item.checked {
-        ui.painter().text(
-            Pos2::new(rect.left() + 12.0, rect.center().y),
-            egui::Align2::CENTER_CENTER,
-            "✓",
-            FontId::proportional(16.0),
+        glyph::paint(
+            ui.painter(),
+            Pos2::new(rect.left() + 14.0, rect.center().y),
+            Glyph::Check,
+            SECONDARY,
+        );
+    }
+    if let Some(glyph) = glyph {
+        glyph::paint(
+            ui.painter(),
+            Pos2::new(rect.left() + 20.0, rect.center().y),
+            glyph,
             SECONDARY,
         );
     }
@@ -279,7 +326,11 @@ pub(crate) fn header(
         {
             commands.push(Command::Menu(Action::Back));
         }
-        ui.add(egui::Label::new(egui::RichText::new(title).size(18.0).strong()).wrap());
+        ui.add_sized(
+            [ui.available_width(), 44.0],
+            egui::Label::new(egui::RichText::new(title).size(18.0).strong()).truncate(),
+        )
+        .on_hover_text(title);
     });
     ui.separator();
     let _ = model;
@@ -291,6 +342,25 @@ pub(crate) fn roots(
     layout: Layout,
     commands: &mut Vec<Command>,
 ) {
+    // Navigation stays visible while a long list scrolls beneath it. A user
+    // supplied page or window title cannot grow this header out of the viewport.
+    if model.system_page == SystemPage::Activity && model.menus.panel != Panel::Root {
+        let title = match model.menus.panel {
+            Panel::Pages => "Launcher pages",
+            Panel::Page(id) => model
+                .launcher
+                .settings
+                .page(id)
+                .map_or("Page", |p| p.name.as_str()),
+            Panel::Arrange(id) => model
+                .cards
+                .iter()
+                .find(|c| c.id == id)
+                .map_or("Arrange card", |c| c.title.as_str()),
+            Panel::Root => unreachable!(),
+        };
+        header(ui, model, title, commands);
+    }
     egui::ScrollArea::vertical()
         .id_salt(("top_menu_rows", model.system_page, model.menus.panel))
         .max_height(ui.available_height())
@@ -315,23 +385,9 @@ pub(crate) fn roots(
                 ui.label(egui::RichText::new(battery).size(15.0).color(SECONDARY));
                 ui.add_space(12.0);
                 ui.separator();
-            } else if model.menus.panel != Panel::Root {
-                let title = match model.menus.panel {
-                    Panel::Pages => "Launcher pages",
-                    Panel::Page(id) => model
-                        .launcher
-                        .settings
-                        .page(id)
-                        .map_or("Page", |p| p.name.as_str()),
-                    Panel::Arrange(id) => model
-                        .cards
-                        .iter()
-                        .find(|c| c.id == id)
-                        .map_or("Arrange card", |c| c.title.as_str()),
-                    Panel::Root => unreachable!(),
-                };
-                header(ui, model, title, commands);
-            } else if matches!(model.view, tarot_core::View::App(_)) {
+            } else if model.menus.panel == Panel::Root
+                && matches!(model.view, tarot_core::View::App(_))
+            {
                 ui.label(
                     egui::RichText::new("Card controls")
                         .size(14.0)
@@ -363,25 +419,71 @@ fn brightness(ui: &mut egui::Ui, model: &ShellModel, commands: &mut Vec<Command>
         || "Brightness unavailable".into(),
         |v| format!("Brightness {v}%"),
     ));
+    let enabled = model.power.enabled && b.can_set && b.pending_percent.is_none();
     let r = ui
-        .push_id((model.menus.revision, model.power.generation), |ui| {
-            ui.spacing_mut().slider_width = ui.available_width();
-            ui.visuals_mut().selection.bg_fill = Color32::from_rgb(153, 173, 147);
-            let widgets = &mut ui.visuals_mut().widgets;
-            for visuals in [
-                &mut widgets.inactive,
-                &mut widgets.hovered,
-                &mut widgets.active,
-            ] {
-                visuals.bg_fill = Color32::from_rgb(194, 202, 185);
-            }
-            ui.add_enabled(
-                model.power.enabled && b.can_set && b.pending_percent.is_none(),
-                egui::Slider::new(&mut value, 5..=100)
-                    .show_value(false)
-                    .trailing_fill(true)
-                    .handle_shape(egui::style::HandleShape::Circle),
-            )
+        .horizontal(|ui| {
+            let (sun, _) = ui.allocate_exact_size(Vec2::new(28.0, 48.0), Sense::hover());
+            glyph::paint(ui.painter(), sun.center(), Glyph::Sun, SECONDARY);
+            ui.push_id((model.menus.revision, model.power.generation), |ui| {
+                // Keep the actual egui slider's input, keyboard and accessibility
+                // behavior; paint the packet's smaller thumb within its touch row.
+                let r = ui
+                    .scope(|ui| {
+                        ui.spacing_mut().slider_width = ui.available_width();
+                        ui.set_opacity(0.0);
+                        ui.add_enabled(
+                            enabled,
+                            egui::Slider::new(&mut value, 5..=100)
+                                .show_value(false)
+                                .handle_shape(egui::style::HandleShape::Circle),
+                        )
+                    })
+                    .inner;
+                let radius = (r.rect.height() / 2.5).min(r.rect.width() / 2.0);
+                let left = r.rect.left() + radius;
+                let right = (r.rect.right() - radius).max(left);
+                let center = Pos2::new(
+                    left + (right - left) * (f32::from(value) - 5.0) / 95.0,
+                    r.rect.center().y,
+                );
+                let rail = Rect::from_min_max(
+                    Pos2::new(left, r.rect.center().y - 2.5),
+                    Pos2::new(right, r.rect.center().y + 2.5),
+                );
+                let alpha = if enabled { 1.0 } else { 0.4 };
+                ui.painter()
+                    .rect_filled(rail, 2.5, Color32::from_rgb(19, 29, 29));
+                let fill = Rect::from_min_max(rail.min, Pos2::new(center.x, rail.bottom()));
+                ui.painter().rect_filled(
+                    fill,
+                    2.5,
+                    Color32::from_rgb(153, 173, 147).gamma_multiply(alpha),
+                );
+                ui.painter().circle_filled(
+                    center + Vec2::new(0.0, 1.0),
+                    12.0,
+                    Color32::from_black_alpha(90),
+                );
+                ui.painter().circle_filled(
+                    center,
+                    11.0,
+                    Color32::from_rgb(194, 202, 185).gamma_multiply(alpha),
+                );
+                ui.painter().circle_stroke(
+                    center,
+                    11.0,
+                    Stroke::new(0.7_f32, Color32::from_rgb(154, 163, 148)),
+                );
+                if r.has_focus() {
+                    ui.painter().circle_stroke(
+                        center,
+                        13.5,
+                        Stroke::new(1.5_f32, crate::theme::FOCUS),
+                    );
+                }
+                r
+            })
+            .inner
         })
         .inner;
     if r.dragged() {
@@ -679,6 +781,186 @@ mod tests {
         assert_eq!(
             render(&ctx, &model, size, vec![key(egui::Key::Enter, true)]).0,
             vec![Command::Menu(Action::Back)]
+        );
+    }
+
+    #[test]
+    fn selected_page_has_a_painted_vector_mark_next_to_its_actual_row() {
+        let ctx = egui::Context::default();
+        let mut model = ShellModel::default();
+        model.apply(Command::Launcher);
+        model.apply(Command::Menu(Action::ToggleActivity));
+        model.apply(Command::Menu(Action::Choose {
+            revision: model.menus.revision,
+            target: Target::Pages,
+        }));
+        let output = settle(&ctx, &model, Vec2::new(360.0, 720.0));
+        let row = output
+            .shapes
+            .iter()
+            .find_map(|s| match &s.shape {
+                egui::Shape::Text(t)
+                    if t.galley.job.text == "Applications"
+                        && t.pos.y > 90.0
+                        && s.clip_rect.right() <= 240.0 =>
+                {
+                    Some(t.pos + t.galley.size() * 0.5)
+                }
+                _ => None,
+            })
+            .expect("the selected page row must be visible");
+        assert!(
+            output.shapes.iter().any(|s| match &s.shape {
+                egui::Shape::Path(p) if p.points.len() == 3 => {
+                    let [a, b, c] = p.points.as_slice() else {
+                        return false;
+                    };
+                    a.x < b.x
+                        && b.x < c.x
+                        && a.y < b.y
+                        && c.y < b.y
+                        && (b.y - row.y).abs() < 10.0
+                        && c.x < 40.0
+                        && p.stroke.width >= 1.5
+                }
+                _ => false,
+            }),
+            "selection must be drawn rather than relying on a missing font glyph; row={row:?}, paths={:?}",
+            output
+                .shapes
+                .iter()
+                .filter_map(|s| match &s.shape {
+                    egui::Shape::Path(p) => Some((&p.points, p.stroke.width)),
+                    _ => None,
+                })
+                .collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn landscape_page_actions_keep_back_pinned_while_long_titles_and_rows_scroll() {
+        let ctx = egui::Context::default();
+        let mut model = ShellModel::default();
+        let size = Vec2::new(720.0, 360.0);
+        let name = "A deliberately long launcher page title that must stay bounded";
+        model
+            .launcher
+            .settings
+            .edit(tarot_core::launcher::Edit::Create(name.into()), &[])
+            .unwrap();
+        let page = model.launcher.settings.pages.last().unwrap().id;
+        model.apply(Command::Launcher);
+        model.apply(Command::Menu(Action::ToggleActivity));
+        model.apply(Command::Menu(Action::Choose {
+            revision: model.menus.revision,
+            target: Target::Pages,
+        }));
+        model.apply(Command::Menu(Action::Choose {
+            revision: model.menus.revision,
+            target: Target::PageActions(page),
+        }));
+        let back = position(&settle(&ctx, &model, size), "‹ Back");
+        render(
+            &ctx,
+            &model,
+            size,
+            vec![
+                Event::PointerMoved(Pos2::new(120.0, 190.0)),
+                Event::MouseWheel {
+                    unit: egui::MouseWheelUnit::Point,
+                    delta: Vec2::new(0.0, -1200.0),
+                    modifiers: egui::Modifiers::NONE,
+                },
+            ],
+        );
+        let mut last = None;
+        for _ in 0..30 {
+            last = Some(render(&ctx, &model, size, vec![]).1);
+        }
+        let output = last.unwrap();
+        assert_eq!(position(&output, "‹ Back"), back);
+        assert!(position(&output, "Remove page").y < size.y - Layout::GESTURE);
+        render(
+            &ctx,
+            &model,
+            size,
+            vec![Event::PointerMoved(back), button(back, true)],
+        );
+        assert_eq!(
+            render(&ctx, &model, size, vec![button(back, false)]).0,
+            vec![Command::Menu(Action::Back)]
+        );
+    }
+
+    #[test]
+    fn landscape_credentials_scroll_to_real_controls_above_the_keyboard() {
+        use tarot_core::network::{Input, InputTarget, PasswordKind, Secret};
+        let ctx = egui::Context::default();
+        let mut model = ShellModel::default();
+        model.apply(Command::Launcher);
+        model.apply(Command::JustType(tarot_core::search::Action::Open));
+        model.apply(Command::SearchApplications("retained query".into()));
+        model.apply(Command::SystemPage(SystemPage::Wifi));
+        model.apply(Command::SystemMenuOpen(true));
+        model.network_input = Some(Input {
+            target: InputTarget::New(1),
+            label: "A long network name for a constrained credential form".into(),
+            kind: PasswordKind::Psk,
+            password: Secret::new("fixture-only".into()),
+            remember: true,
+            keyboard: true,
+        });
+        let layout = Layout {
+            width: 720.0,
+            height: 360.0,
+            keyboard_height: 160.0,
+        };
+        let frame = |events: Vec<Event>| {
+            crate::prepare_pointer_input(&ctx, &events);
+            let mut commands = vec![];
+            let output = ctx.run(
+                egui::RawInput {
+                    screen_rect: Some(Rect::from_min_size(Pos2::ZERO, Vec2::new(720.0, 360.0))),
+                    events,
+                    focused: true,
+                    ..Default::default()
+                },
+                |ctx| commands = crate::show(ctx, &model, layout),
+            );
+            (commands, output)
+        };
+        for _ in 0..4 {
+            frame(vec![]);
+        }
+        frame(vec![
+            Event::PointerMoved(Pos2::new(500.0, 110.0)),
+            Event::MouseWheel {
+                unit: egui::MouseWheelUnit::Point,
+                delta: Vec2::new(0.0, -1200.0),
+                modifiers: egui::Modifiers::NONE,
+            },
+        ]);
+        let mut last = None;
+        for _ in 0..30 {
+            last = Some(frame(vec![]).1);
+        }
+        let output = last.unwrap();
+        let cancel = position(&output, "Cancel");
+        let connect = position(&output, "Connect");
+        assert!(cancel.y < layout.keyboard().y && connect.y < layout.keyboard().y);
+        assert!(
+            frame(vec![Event::PointerMoved(cancel), button(cancel, true)])
+                .0
+                .is_empty()
+        );
+        assert_eq!(
+            frame(vec![button(cancel, false)]).0,
+            vec![Command::CredentialCancel]
+        );
+        assert_eq!(model.launcher_query, "retained query");
+        assert_eq!(
+            model.network_input.as_ref().unwrap().password.expose(),
+            "fixture-only"
         );
     }
 }

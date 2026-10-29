@@ -80,6 +80,7 @@ impl Compositor {
             keyboard.height = keyboard.height.clamp(1, (height * 0.5).max(1.0) as i32);
         }
         self.refresh_keyboard();
+        self.reconfigure_menu_motion();
         self.configure_windows();
         self.configure_lock_surface();
         self.animation

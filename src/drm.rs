@@ -49,6 +49,7 @@ struct Device {
     queued_sleep: Option<tarot_core::sleep::Barrier>,
     queued_idle: Option<u64>,
     queued_output_revision: u64,
+    queued_menu_retirement: Option<u64>,
     powered_off: bool,
     requested: bool,
 }
@@ -154,7 +155,9 @@ impl Device {
         let scene_size = self.output.current_transform().transform_size(size);
         let (scene, commands) =
             winit::build_scene(&mut self.renderer, state, &mut self.shell, scene_size)?;
-        if state.sleep.gate.barrier.is_some()
+        let menu_retirement = state.menu_retirement_token();
+        if menu_retirement.is_some()
+            || state.sleep.gate.barrier.is_some()
             || state.idle.barrier().is_some()
             || matches!(
                 state.protection.gate.phase,
@@ -193,6 +196,7 @@ impl Device {
             self.queued_sleep = state.sleep.gate.barrier;
             self.queued_idle = state.idle.barrier();
             self.queued_output_revision = state.output_geometry.revision;
+            self.queued_menu_retirement = menu_retirement;
         }
         winit::complete_frame(state, &self.output, commands);
         Ok(())
@@ -309,6 +313,7 @@ pub fn init(
         queued_sleep: None,
         queued_idle: None,
         queued_output_revision: 0,
+        queued_menu_retirement: None,
         powered_off: false,
         requested: true,
     }));
@@ -355,6 +360,7 @@ pub fn init(
                 SessionEvent::PauseSession => {
                     data.state.idle.seat_inactive = true;
                     data.state.cancel_input_sequences();
+                    data.state.reconfigure_menu_motion();
                     input.suspend();
                     device.active = false;
                     device.drm.pause();
@@ -381,6 +387,7 @@ pub fn init(
                     device.queued_lock_generation = None;
                     device.queued_sleep = None;
                     device.queued_idle = None;
+                    device.queued_menu_retirement = None;
                     device.surface.reset_buffers();
                     device.damage = OutputDamageTracker::from_output(&device.output);
                     data.state.ui_dirty = true;
@@ -440,6 +447,9 @@ pub fn init(
                             .sleep_frame_presented(device.queued_sleep.take(), generation);
                         data.state
                             .idle_frame_presented(device.queued_idle.take(), generation);
+                        if let Some(revision) = device.queued_menu_retirement.take() {
+                            data.state.menu_frame_presented(revision);
+                        }
                     }
                     device.pending = false;
                     if data.state.idle.off()

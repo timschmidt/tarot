@@ -1,6 +1,10 @@
 //! Versioned top menus contain shell actions and declared capabilities only.
 use crate::{CardDrop, Command, Effect, ShellModel, SystemPage, View, WindowId, launcher, search};
 use serde::Serialize;
+pub mod transition;
+use std::time::Duration;
+#[cfg(test)]
+mod transition_tests;
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Hash, Serialize)]
 pub enum Panel {
@@ -20,12 +24,14 @@ pub struct State {
     pub panel: Panel,
     pub selected: Option<Target>,
     pub restore_shell_text_focus: bool,
+    motion: transition::Motion,
 }
 
 impl State {
     pub fn invalidate(&mut self) {
         self.revision = self.revision.wrapping_add(1);
         self.selected = None;
+        self.motion.pending = None;
     }
     pub fn open(&mut self, owner: View, entry: SystemPage) {
         self.owner = Some(owner);
@@ -33,6 +39,7 @@ impl State {
         self.panel = Panel::Root;
         self.history.clear();
         self.restore_shell_text_focus = false;
+        self.motion.open();
         self.invalidate();
     }
     pub fn dismiss(&mut self) {
@@ -40,6 +47,7 @@ impl State {
         self.panel = Panel::Root;
         self.history.clear();
         self.restore_shell_text_focus = false;
+        self.motion.reset();
         self.invalidate();
     }
 }
@@ -310,12 +318,146 @@ pub fn items(model: &ShellModel) -> Vec<Item> {
 }
 
 impl ShellModel {
+    /// Register/advance the compositor's monotonic clock. Static embedders can
+    /// omit this; production compositor construction always registers it.
+    pub fn advance_menus(&mut self, now: Duration) {
+        self.menus.motion.track(now, self.reduced_motion);
+        if !self.system_menu_open {
+            self.menus.motion.reset();
+        }
+    }
+
+    /// A timer reaching zero opacity does not authorize input restoration.
+    /// The backend must acknowledge the matching fully retired menu frame.
+    pub fn menu_retirement_token(&self) -> Option<u64> {
+        let visual = self.menu_visual();
+        (self.system_menu_open && visual.closing && !visual.moving).then_some(self.menus.revision)
+    }
+
+    pub fn present_menus(&mut self, revision: u64) -> Vec<Effect> {
+        if self.menu_retirement_token() != Some(revision) {
+            return vec![];
+        }
+        let pending = self.menus.motion.pending.take();
+        if let Some(target) = pending
+            && (self.menus.entry != SystemPage::Activity || self.menus.owner == Some(self.view))
+            && items(self).iter().any(|i| i.enabled && i.target == target)
+        {
+            return self.finish_menu_choice(target);
+        }
+        self.apply(Command::SystemMenuOpen(false))
+    }
+
+    pub fn menu_visual(&self) -> transition::Visual {
+        if !self.system_menu_open {
+            return transition::Visual {
+                opacity: 0.0,
+                scrim: 0.0,
+                offset_y: 0.0,
+                moving: false,
+                closing: false,
+            };
+        }
+        if !self.menus.motion.clock_active() {
+            return transition::Visual {
+                opacity: 1.0,
+                scrim: 1.0,
+                offset_y: 0.0,
+                moving: false,
+                closing: false,
+            };
+        }
+        self.menus.motion.visual()
+    }
+
+    /// Geometry changes retire pending choices before anything can execute in
+    /// the new coordinate system. Opening panels settle; closing panels retire.
+    pub fn reconfigure_menus(&mut self, now: Duration) -> Vec<Effect> {
+        self.menus.motion.track(now, self.reduced_motion);
+        if !self.system_menu_open {
+            self.menus.motion.reset();
+            return vec![];
+        }
+        if self.menus.motion.closing {
+            return self.apply(Command::SystemMenuOpen(false));
+        }
+        self.menus.invalidate();
+        self.menus.motion.settle_open();
+        vec![]
+    }
+
+    fn close_menu(&mut self, target: Option<Target>) -> Vec<Effect> {
+        if !self.system_menu_open || self.menus.motion.closing {
+            return vec![];
+        }
+        // Lock protection starts immediately and never waits for an animation.
+        if target != Some(Target::Lock) && self.menus.motion.clock_active() {
+            self.menus.invalidate();
+            if self.menus.motion.close(target.clone()) {
+                return vec![];
+            }
+        }
+        match target {
+            Some(target) => self.finish_menu_choice(target),
+            None => self.apply(Command::SystemMenuOpen(false)),
+        }
+    }
+
+    fn finish_menu_choice(&mut self, target: Target) -> Vec<Effect> {
+        let previous = self.view;
+        let mut effects = self.apply(Command::SystemMenuOpen(false));
+        let command = match target {
+            Target::Lock => Command::Lock,
+            Target::Notifications => Command::NotificationsOpen(true),
+            Target::JustType => Command::JustType(search::Action::Open),
+            Target::Launcher if matches!(previous, View::App(_)) => Command::Overview,
+            Target::Launcher => Command::Launcher,
+            Target::Favorites => Command::EditFavorites(true),
+            Target::FinishFavorites => Command::EditFavorites(false),
+            Target::CancelName => Command::LauncherAction(launcher::Action::Dismiss),
+            Target::OpenCard(id) => Command::Activate(id),
+            Target::CloseCard(id) => Command::Close(id),
+            Target::Place {
+                card,
+                anchor,
+                before,
+                inside,
+            } => Command::PlaceCard {
+                card,
+                target: if inside {
+                    CardDrop::Into { anchor, before }
+                } else {
+                    CardDrop::Separate { anchor, before }
+                },
+            },
+            Target::Unstack(id) => Command::Unstack(id),
+            Target::ClearSearch => Command::JustType(search::Action::Clear),
+            Target::CloseSearch => Command::JustType(search::Action::Close),
+            Target::NewPage => Command::LauncherAction(launcher::Action::BeginName(None)),
+            Target::OpenPage(page) => {
+                Command::LauncherAction(launcher::Action::Edit(launcher::Edit::Select(page)))
+            }
+            Target::RenamePage(page) => {
+                Command::LauncherAction(launcher::Action::BeginName(Some(page)))
+            }
+            _ => unreachable!(),
+        };
+        effects.extend(self.apply(command));
+        effects
+    }
+
     pub(super) fn menu_action(&mut self, action: Action) -> Vec<Effect> {
         use Action::*;
+        if self.menus.motion.closing && !matches!(action, ToggleDevice | ToggleActivity | Dismiss) {
+            return vec![];
+        }
         match action {
             ToggleDevice => {
-                if self.system_menu_open && self.menus.entry != SystemPage::Activity {
-                    return self.apply(Command::SystemMenuOpen(false));
+                if self.system_menu_open
+                    && self.menus.entry != SystemPage::Activity
+                    && !self.menus.motion.closing
+                {
+                    return self.close_menu(None);
                 }
                 let mut effects = self.cancel_network_input();
                 self.system_page = SystemPage::Device;
@@ -323,8 +465,11 @@ impl ShellModel {
                 effects
             }
             ToggleActivity => {
-                if self.system_menu_open && self.menus.entry == SystemPage::Activity {
-                    return self.apply(Command::SystemMenuOpen(false));
+                if self.system_menu_open
+                    && self.menus.entry == SystemPage::Activity
+                    && !self.menus.motion.closing
+                {
+                    return self.close_menu(None);
                 }
                 let mut effects = self.cancel_network_input();
                 self.system_page = SystemPage::Activity;
@@ -332,7 +477,7 @@ impl ShellModel {
                 self.launcher.menu_open = self.view == View::Launcher;
                 effects
             }
-            Dismiss => self.apply(Command::SystemMenuOpen(false)),
+            Dismiss => self.close_menu(None),
             Back => {
                 if !self.system_menu_open {
                     return vec![];
@@ -354,7 +499,7 @@ impl ShellModel {
                     self.menus.invalidate();
                     effects
                 } else {
-                    self.apply(Command::SystemMenuOpen(false))
+                    self.close_menu(None)
                 }
             }
             Move(delta) => {
@@ -437,73 +582,30 @@ impl ShellModel {
                         vec![]
                     }
                     Target::MovePage { page, at } => {
-                        let mut effects = self.apply(Command::SystemMenuOpen(false));
-                        effects.extend(self.apply(Command::LauncherAction(
-                            launcher::Action::Edit(launcher::Edit::Reorder { page, at }),
-                        )));
-                        effects.extend(self.menu_action(ToggleActivity));
-                        self.menus.panel = Panel::Page(page);
-                        effects
+                        self.menu_page_edit(launcher::Edit::Reorder { page, at }, Panel::Page(page))
                     }
                     Target::RemovePage(page) => {
-                        let mut effects = self.apply(Command::SystemMenuOpen(false));
-                        effects.extend(self.apply(Command::LauncherAction(
-                            launcher::Action::Edit(launcher::Edit::Remove(page)),
-                        )));
-                        effects.extend(self.menu_action(ToggleActivity));
-                        self.menus.panel = Panel::Pages;
-                        effects
+                        self.menu_page_edit(launcher::Edit::Remove(page), Panel::Pages)
                     }
-                    _ => {
-                        let previous = self.view;
-                        let mut effects = self.apply(Command::SystemMenuOpen(false));
-                        let command = match target {
-                            Target::Lock => Command::Lock,
-                            Target::Notifications => Command::NotificationsOpen(true),
-                            Target::JustType => Command::JustType(search::Action::Open),
-                            Target::Launcher if matches!(previous, View::App(_)) => {
-                                Command::Overview
-                            }
-                            Target::Launcher => Command::Launcher,
-                            Target::Favorites => Command::EditFavorites(true),
-                            Target::FinishFavorites => Command::EditFavorites(false),
-                            Target::CancelName => {
-                                Command::LauncherAction(launcher::Action::Dismiss)
-                            }
-                            Target::OpenCard(id) => Command::Activate(id),
-                            Target::CloseCard(id) => Command::Close(id),
-                            Target::Place {
-                                card,
-                                anchor,
-                                before,
-                                inside,
-                            } => Command::PlaceCard {
-                                card,
-                                target: if inside {
-                                    CardDrop::Into { anchor, before }
-                                } else {
-                                    CardDrop::Separate { anchor, before }
-                                },
-                            },
-                            Target::Unstack(id) => Command::Unstack(id),
-                            Target::ClearSearch => Command::JustType(search::Action::Clear),
-                            Target::CloseSearch => Command::JustType(search::Action::Close),
-                            Target::NewPage => {
-                                Command::LauncherAction(launcher::Action::BeginName(None))
-                            }
-                            Target::OpenPage(page) => Command::LauncherAction(
-                                launcher::Action::Edit(launcher::Edit::Select(page)),
-                            ),
-                            Target::RenamePage(page) => {
-                                Command::LauncherAction(launcher::Action::BeginName(Some(page)))
-                            }
-                            _ => unreachable!(),
-                        };
-                        effects.extend(self.apply(command));
-                        effects
-                    }
+                    _ => self.close_menu(Some(target)),
                 }
             }
+        }
+    }
+
+    fn menu_page_edit(&mut self, edit: launcher::Edit, panel: Panel) -> Vec<Effect> {
+        let changed = self.launcher.action(
+            launcher::Action::Edit(edit),
+            &self.applications,
+            &mut self.launcher_query,
+            &mut self.shell_text_focus,
+        );
+        self.menus.panel = panel;
+        self.menus.invalidate();
+        if changed {
+            vec![Effect::Launcher(self.launcher.settings.clone())]
+        } else {
+            vec![]
         }
     }
 }

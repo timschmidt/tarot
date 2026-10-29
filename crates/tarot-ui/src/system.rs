@@ -45,7 +45,7 @@ pub fn show(ctx: &egui::Context, model: &ShellModel, layout: Layout, commands: &
                 egui::Label::new(egui::RichText::new(title).size(20.0).strong()).wrap(),
             );
             if ui.add_sized([48.0, 48.0], egui::Button::new("×")).clicked() {
-                commands.push(Command::SystemMenuOpen(false));
+                commands.push(Command::Menu(tarot_core::menu::Action::Dismiss));
             }
         });
         ui.separator();
@@ -53,7 +53,10 @@ pub fn show(ctx: &egui::Context, model: &ShellModel, layout: Layout, commands: &
             SystemPage::Audio => super::audio::show(ui, model, layout, commands),
             SystemPage::Wifi => {
                 if model.network_input.is_some() {
-                    super::credentials::show(ui, model, commands);
+                    egui::ScrollArea::vertical()
+                        .id_salt("network_credentials")
+                        .max_height(ui.available_height().max(1.0))
+                        .show(ui, |ui| super::credentials::show(ui, model, commands));
                 } else {
                     super::wifi::show(ui, model, layout, commands);
                 }

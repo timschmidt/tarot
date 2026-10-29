@@ -15,6 +15,41 @@ use smithay::{
 use tarot_core::{Command, View, touch::Target};
 use xkbcommon::xkb::keysyms;
 
+/// Keys delivered to shell widgets belong to that UI until their release.
+/// Retiring a widget must release egui's state and consume the physical tail,
+/// even if a native client gains focus before the person lets go.
+#[derive(Default)]
+pub(crate) struct ShellKeys(std::collections::HashMap<u32, Option<egui::Key>>);
+
+impl ShellKeys {
+    fn record(&mut self, code: u32, key: Option<egui::Key>, pressed: bool) {
+        if pressed {
+            self.0.insert(code, key);
+        } else {
+            self.0.remove(&code);
+        }
+    }
+
+    fn retire(
+        &mut self,
+        events: &mut Vec<egui::Event>,
+        intercepted: &mut std::collections::HashSet<u32>,
+    ) {
+        for (code, key) in self.0.drain() {
+            intercepted.insert(code);
+            if let Some(key) = key {
+                events.push(egui::Event::Key {
+                    key,
+                    physical_key: None,
+                    pressed: false,
+                    repeat: false,
+                    modifiers: egui::Modifiers::NONE,
+                });
+            }
+        }
+    }
+}
+
 impl Compositor {
     pub fn process_input_event<I: InputBackend>(&mut self, event: InputEvent<I>) {
         if self.hardware_input(&event) {
@@ -83,7 +118,10 @@ impl Compositor {
                         }
                         // Tab transfers selection to egui's actual focused widget,
                         // including submenu Back buttons and detail-page controls.
-                        if pressed && symbol == keysyms::KEY_Tab && state.shell.system_menu_open {
+                        if pressed
+                            && matches!(symbol, keysyms::KEY_Tab | keysyms::KEY_ISO_Left_Tab)
+                            && state.shell.system_menu_open
+                        {
                             state.shell.menus.selected = None;
                         }
                         let menu_rows = state.shell.system_menu_open
@@ -189,10 +227,17 @@ impl Compositor {
                             state.intercepted_keys.insert(raw_code);
                             return FilterResult::Intercept(command);
                         }
+                        if state.shell.menu_visual().closing {
+                            if pressed {
+                                state.intercepted_keys.insert(raw_code);
+                            }
+                            return FilterResult::Intercept(None);
+                        }
                         if !matches!(state.shell.view, View::App(_))
                             || state.shell.notifications_open
                             || state.shell.system_menu_open
                         {
+                            state.shell_keys.record(raw_code, egui_key(symbol), pressed);
                             let modifiers = egui::Modifiers {
                                 alt: modifiers.alt,
                                 ctrl: modifiers.ctrl,
@@ -503,6 +548,8 @@ impl Compositor {
     }
 
     pub fn cancel_input_sequences(&mut self) {
+        self.shell_keys
+            .retire(&mut self.ui_events, &mut self.intercepted_keys);
         self.hardware.cancel();
         if self.protected() {
             tarot_ui::cancel_pointer_input(&mut self.protection.recovery_events);
@@ -652,9 +699,9 @@ fn pointer_button(code: u32) -> Option<egui::PointerButton> {
 
 fn egui_key(symbol: u32) -> Option<egui::Key> {
     Some(match symbol {
-        keysyms::KEY_Return => egui::Key::Enter,
+        keysyms::KEY_Return | keysyms::KEY_KP_Enter => egui::Key::Enter,
         keysyms::KEY_Escape => egui::Key::Escape,
-        keysyms::KEY_Tab => egui::Key::Tab,
+        keysyms::KEY_Tab | keysyms::KEY_ISO_Left_Tab => egui::Key::Tab,
         keysyms::KEY_BackSpace => egui::Key::Backspace,
         keysyms::KEY_Delete => egui::Key::Delete,
         keysyms::KEY_Left => egui::Key::ArrowLeft,
@@ -664,4 +711,51 @@ fn egui_key(symbol: u32) -> Option<egui::Key> {
         keysyms::KEY_space => egui::Key::Space,
         _ => return None,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn retiring_shell_widgets_releases_egui_and_keeps_physical_tails_out_of_clients() {
+        let ctx = egui::Context::default();
+        let mut keys = ShellKeys::default();
+        let mut events = vec![egui::Event::Key {
+            key: egui::Key::Space,
+            physical_key: None,
+            pressed: true,
+            repeat: false,
+            modifiers: egui::Modifiers::NONE,
+        }];
+        let mut intercepted = std::collections::HashSet::new();
+        let frame = |events: Vec<egui::Event>| {
+            let _ = ctx.run(
+                egui::RawInput {
+                    events,
+                    focused: true,
+                    ..Default::default()
+                },
+                |_| {},
+            );
+        };
+        keys.record(65, Some(egui::Key::Space), true);
+        keys.record(38, None, true); // Text-only keys also own their release.
+        keys.record(23, Some(egui::Key::Tab), true);
+        keys.record(23, Some(egui::Key::Tab), false);
+        frame(std::mem::take(&mut events));
+        assert!(ctx.input(|i| i.key_down(egui::Key::Space)));
+        keys.retire(&mut events, &mut intercepted);
+        assert_eq!(intercepted.len(), 2);
+        assert!(intercepted.contains(&65) && intercepted.contains(&38));
+        frame(std::mem::take(&mut events));
+        assert!(!ctx.input(|i| i.key_down(egui::Key::Space)));
+        keys.retire(&mut events, &mut intercepted);
+        assert!(events.is_empty(), "retirement is idempotent");
+        assert!(intercepted.remove(&65));
+        assert!(intercepted.remove(&38));
+        assert!(intercepted.is_empty());
+        assert_eq!(egui_key(keysyms::KEY_ISO_Left_Tab), Some(egui::Key::Tab));
+        assert_eq!(egui_key(keysyms::KEY_KP_Enter), Some(egui::Key::Enter));
+    }
 }

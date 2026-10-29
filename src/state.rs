@@ -119,6 +119,7 @@ pub struct Compositor {
     pub touches: tarot_core::touch::TouchRouter,
     pub native_contacts: HashMap<smithay::backend::input::TouchSlot, (Point<f64, Logical>, u32)>,
     pub intercepted_keys: HashSet<u32>,
+    pub(crate) shell_keys: crate::input::ShellKeys,
     pub snapshot: Option<std::path::PathBuf>,
     pub snapshot_after: std::time::Duration,
     pub snapshot_error: Option<String>,
@@ -193,6 +194,8 @@ impl Compositor {
         // Get the loop signal, used to stop the event loop
         let loop_signal = event_loop.get_signal();
 
+        let mut shell = ShellModel::default();
+        shell.advance_menus(std::time::Duration::ZERO);
         Self {
             start_time,
             display_handle: dh,
@@ -238,7 +241,7 @@ impl Compositor {
             popup_owner: None,
             popup_input: VecDeque::new(),
             seat,
-            shell: ShellModel::default(),
+            shell,
             animation: Default::default(),
             presentation: Default::default(),
             presented_windows: Default::default(),
@@ -271,6 +274,7 @@ impl Compositor {
             touches: Default::default(),
             native_contacts: Default::default(),
             intercepted_keys: HashSet::new(),
+            shell_keys: crate::input::ShellKeys::default(),
             snapshot: None,
             snapshot_after: std::time::Duration::ZERO,
             snapshot_error: None,
@@ -428,6 +432,7 @@ impl Compositor {
         if self.protected() {
             return;
         }
+        self.advance_menu_clock();
         if matches!(
             command,
             Command::Home
@@ -524,6 +529,7 @@ impl Compositor {
     }
 
     pub fn advance_presentation(&mut self) {
+        self.advance_menu_clock();
         if let Some(started) = self.gesture_started {
             self.gestures.tick_elapsed(started.elapsed());
         }
@@ -542,10 +548,68 @@ impl Compositor {
             self.presentation = frame;
             self.ui_dirty = true;
         }
-        if moving {
+        if moving || self.shell.menu_visual().moving {
             let deadline = Instant::now() + std::time::Duration::from_millis(16);
             self.repaint_at = Some(self.repaint_at.map_or(deadline, |old| old.min(deadline)));
         }
+    }
+
+    fn advance_menu_clock(&mut self) {
+        if self.protected() {
+            return;
+        }
+        let visual = self.shell.menu_visual();
+        self.shell.advance_menus(self.start_time.elapsed());
+        if visual != self.shell.menu_visual() {
+            self.ui_dirty = true;
+            self.redraw = true;
+        }
+    }
+
+    pub(crate) fn menu_retirement_token(&self) -> Option<u64> {
+        if self.protected() {
+            None
+        } else {
+            self.shell.menu_retirement_token()
+        }
+    }
+
+    pub(crate) fn menu_frame_presented(&mut self, revision: u64) {
+        if self.protected() {
+            return;
+        }
+        let was_open = self.shell.system_menu_open;
+        let effects = self.shell.present_menus(revision);
+        if was_open && !self.shell.system_menu_open {
+            self.cancel_input_sequences();
+            self.apply_effects(effects);
+            if let Some(server) = &self.system_services {
+                server.watch(false);
+            }
+            if let Some(network) = &self.network {
+                network.watch(false);
+            }
+            self.refresh_keyboard();
+            self.ui_dirty = true;
+            self.redraw = true;
+        }
+    }
+
+    pub(crate) fn reconfigure_menu_motion(&mut self) {
+        let was_open = self.shell.system_menu_open;
+        let effects = self.shell.reconfigure_menus(self.start_time.elapsed());
+        self.apply_effects(effects);
+        if was_open && !self.shell.system_menu_open {
+            if let Some(server) = &self.system_services {
+                server.watch(false);
+            }
+            if let Some(network) = &self.network {
+                network.watch(false);
+            }
+            self.refresh_keyboard();
+        }
+        self.ui_dirty = true;
+        self.redraw = true;
     }
 
     pub fn apply_effects(&mut self, effects: Vec<Effect>) {
