@@ -4,7 +4,10 @@ use smithay::{
     backend::renderer::utils::with_renderer_surface_state,
     delegate_layer_shell, delegate_virtual_keyboard_manager,
     desktop::{LayerSurface as DesktopLayer, WindowSurfaceType},
-    reexports::wayland_server::protocol::{wl_output::WlOutput, wl_surface::WlSurface},
+    reexports::wayland_server::{
+        Resource,
+        protocol::{wl_output::WlOutput, wl_surface::WlSurface},
+    },
     utils::{Logical, Point},
     wayland::shell::wlr_layer::{
         Anchor, KeyboardInteractivity, Layer, LayerSurface, WlrLayerShellHandler,
@@ -158,7 +161,20 @@ impl WlrLayerShellHandler for Compositor {
             .as_ref()
             .is_some_and(|keyboard| keyboard.layer.layer_surface() == &surface)
         {
-            if !self.protected() {
+            // Re-enabling an app field can remap the keyboard during that
+            // app's own touch. Only tear down a keyboard-owned touch grab.
+            let keyboard_owns_touch = self
+                .seat
+                .get_touch()
+                .and_then(|touch| touch.grab_start_data())
+                .and_then(|start| start.focus)
+                .is_some_and(|(focus, _)| {
+                    focus
+                        .surface
+                        .id()
+                        .same_client_as(&surface.wl_surface().id())
+                });
+            if !self.protected() && keyboard_owns_touch {
                 self.cancel_native_touch_sequence();
             }
             self.keyboard = None;

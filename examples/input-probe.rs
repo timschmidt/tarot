@@ -11,6 +11,9 @@ use wayland_client::{
         wl_shm, wl_shm_pool, wl_subcompositor, wl_subsurface, wl_surface, wl_touch,
     },
 };
+use wayland_protocols::wp::text_input::zv3::client::{
+    zwp_text_input_manager_v3, zwp_text_input_v3,
+};
 use wayland_protocols::xdg::shell::client::{
     xdg_popup, xdg_positioner, xdg_surface, xdg_toplevel, xdg_wm_base,
 };
@@ -37,6 +40,9 @@ struct Options {
     opaque: bool,
     #[arg(long)]
     refuse_close: bool,
+    /// Re-enable text input on each root touch to exercise keyboard remapping.
+    #[arg(long)]
+    keyboard_on_touch: bool,
 }
 
 fn parse_color(value: &str) -> std::result::Result<[u8; 4], String> {
@@ -87,6 +93,9 @@ struct Window {
 }
 
 struct Probe {
+    keyboard_on_touch: bool,
+    text_manager: Option<zwp_text_input_manager_v3::ZwpTextInputManagerV3>,
+    text_input: Option<zwp_text_input_v3::ZwpTextInputV3>,
     refuse_close: bool,
     opaque: bool,
     solid_color: Option<[u8; 4]>,
@@ -116,6 +125,20 @@ struct Probe {
 }
 
 impl Probe {
+    fn enable_keyboard(&mut self, reason: &'static str) {
+        let Some(input) = &self.text_input else {
+            return;
+        };
+        input.enable();
+        input.set_surrounding_text(String::new(), 0, 0);
+        input.set_content_type(
+            zwp_text_input_v3::ContentHint::None,
+            zwp_text_input_v3::ContentPurpose::Normal,
+        );
+        input.set_cursor_rectangle(10, 10, 1, 1);
+        input.commit();
+        self.record(json!({"event":"keyboard_enable","reason":reason}));
+    }
     fn record(&mut self, event: Value) {
         serde_json::to_writer(&mut self.report, &event).unwrap();
         self.report.write_all(b"\n").unwrap();
@@ -331,6 +354,9 @@ fn main() -> Result<()> {
     let mut queue = connection.new_event_queue();
     let qh = queue.handle();
     let mut probe = Probe {
+        keyboard_on_touch: options.keyboard_on_touch,
+        text_manager: None,
+        text_input: None,
         refuse_close: options.refuse_close,
         opaque: options.opaque,
         solid_color: options.solid_color,
@@ -360,6 +386,15 @@ fn main() -> Result<()> {
     };
     connection.display().get_registry(&qh, ());
     queue.roundtrip(&mut probe)?;
+    if probe.keyboard_on_touch {
+        probe.text_input = Some(
+            probe
+                .text_manager
+                .as_ref()
+                .expect("text-input global")
+                .get_text_input(probe.seat.as_ref().expect("seat"), &qh, ()),
+        );
+    }
     probe.create_window(&qh);
     while !probe.closed {
         queue.blocking_dispatch(&mut probe)?;
@@ -389,6 +424,9 @@ impl Dispatch<wl_registry::WlRegistry, ()> for Probe {
                 "xdg_wm_base" => state.shell = Some(registry.bind(name, version.min(3), qh, ())),
                 "wl_seat" => {
                     state.seat = Some(registry.bind(name, version.min(7), qh, ()));
+                }
+                "zwp_text_input_manager_v3" if state.keyboard_on_touch => {
+                    state.text_manager = Some(registry.bind(name, 1, qh, ()));
                 }
                 _ => {}
             }
@@ -421,6 +459,30 @@ impl Dispatch<wl_seat::WlSeat, ()> for Probe {
         }
     }
 }
+
+impl Dispatch<zwp_text_input_v3::ZwpTextInputV3, ()> for Probe {
+    fn event(
+        state: &mut Self,
+        input: &zwp_text_input_v3::ZwpTextInputV3,
+        event: zwp_text_input_v3::Event,
+        _: &(),
+        _: &Connection,
+        _: &QueueHandle<Self>,
+    ) {
+        match event {
+            zwp_text_input_v3::Event::Enter { .. } => state.enable_keyboard("enter"),
+            zwp_text_input_v3::Event::CommitString { .. } => {
+                state.record(json!({"event":"text_commit"}));
+            }
+            zwp_text_input_v3::Event::Leave { .. } => {
+                input.disable();
+                input.commit();
+            }
+            _ => {}
+        }
+    }
+}
+delegate_noop!(Probe: ignore zwp_text_input_manager_v3::ZwpTextInputManagerV3);
 
 impl Dispatch<xdg_wm_base::XdgWmBase, ()> for Probe {
     fn event(
@@ -525,6 +587,9 @@ impl Dispatch<wl_touch::WlTouch, ()> for Probe {
                 let target = *surface.data::<Tag>().unwrap();
                 state.touch_targets.insert(id, target);
                 state.record(json!({"event":"touch_down","id":id,"target":target.name(),"x":x,"y":y,"time":time}));
+                if state.keyboard_on_touch && matches!(target, Tag::Root) {
+                    state.enable_keyboard("touch");
+                }
                 if matches!(target, Tag::Child) && state.moving_child {
                     let window = state.window.as_ref().unwrap();
                     window._subsurface.set_position(150, 200);
@@ -664,6 +729,11 @@ impl Dispatch<wl_keyboard::WlKeyboard, ()> for Probe {
                 // destroyed while handling popup_done. Its proxy data is gone.
                 state.record(json!({"event":"keyboard_leave","target":surface.data::<Tag>().map(|tag| tag.name())}));
             }
+            wl_keyboard::Event::Key {
+                key: 88,
+                state: WEnum::Value(wl_keyboard::KeyState::Pressed),
+                ..
+            } if state.keyboard_on_touch => state.enable_keyboard("key"),
             wl_keyboard::Event::Key {
                 key: 1,
                 state: WEnum::Value(wl_keyboard::KeyState::Pressed),

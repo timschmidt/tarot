@@ -1,10 +1,12 @@
 //! Native egui keyboard. Privileged protocols require Tarot's inherited connection.
 use tarot_wayland_egui as graphics;
+mod metadata;
 mod terminal;
 mod ui;
 use anyhow::{Context, Result, ensure};
 use calloop::{EventLoop, Interest, Mode, PostAction, generic::Generic};
 use calloop_wayland_source::WaylandSource;
+use metadata::Stage;
 use std::{
     collections::HashSet,
     io::{Read, Write},
@@ -53,6 +55,7 @@ impl Surrounding {
     }
 }
 struct Keyboard {
+    metadata_enabled: bool,
     connection: Connection,
     qh: QueueHandle<Self>,
     compositor: Option<wl_compositor::WlCompositor>,
@@ -98,6 +101,22 @@ struct Keyboard {
 }
 
 impl Keyboard {
+    fn metadata(&self, stage: Stage, frame_events: usize, actions: usize) {
+        if self.metadata_enabled {
+            metadata::Snapshot {
+                serial: self.serial,
+                generation: self.generation,
+                active: self.active,
+                hidden: self.hidden,
+                configured: self.configured,
+                frame_pending: self.frame_pending,
+                pending_activation: self.pending_active.is_some(),
+                queued: self.events.len(),
+                contacts: self.contacts.len(),
+            }
+            .emit(stage, self.start.elapsed(), frame_events, actions);
+        }
+    }
     fn terminal_mode(&self) -> bool {
         self.purpose == 13 && !self.secure()
     }
@@ -136,8 +155,10 @@ impl Keyboard {
         self.surface = Some(surface);
         self.layer = Some(layer);
         self.generation = self.generation.wrapping_add(1);
+        self.metadata(Stage::SurfaceCreate, 0, 0);
     }
     fn hide_surface(&mut self) {
+        self.metadata(Stage::SurfaceHide, 0, 0);
         self.terminal_controls.reset();
         // EGL owns a wl_egl_window wrapping this surface. Destroy it first.
         self.graphics = None;
@@ -221,6 +242,16 @@ impl Keyboard {
         self.dirty = true;
     }
     fn action(&mut self, action: ui::Action) {
+        self.metadata(
+            match &action {
+                ui::Action::Text(_) => Stage::ActionText,
+                ui::Action::Backspace => Stage::Backspace,
+                ui::Action::Enter => Stage::Enter,
+                ui::Action::Hide => Stage::Hide,
+            },
+            0,
+            1,
+        );
         if !self.active {
             return;
         }
@@ -307,6 +338,7 @@ impl Keyboard {
             .entry(egui::ViewportId::ROOT)
             .or_default()
             .native_pixels_per_point = Some(self.scale as f32);
+        let frame_events = input.events.len();
         let numeric = matches!(self.purpose, 2 | 3 | 4 | 9);
         let secure = self.secure();
         let terminal = self.terminal_mode();
@@ -343,6 +375,13 @@ impl Keyboard {
             .as_mut()
             .unwrap()
             .paint(&self.context, output)?;
+        if frame_events != 0 {
+            self.metadata(
+                Stage::InputFrame,
+                frame_events,
+                actions.len() + terminal_keys.len(),
+            );
+        }
         for key in terminal_keys {
             self.terminal_key(key);
         }
@@ -352,6 +391,7 @@ impl Keyboard {
         Ok(())
     }
     fn done(&mut self) {
+        self.metadata(Stage::ContextApply, 0, 0);
         let previous_terminal = self.terminal_mode();
         self.serial = self.serial.wrapping_add(1);
         if let Some(active) = self.pending_active.take() {
@@ -379,10 +419,16 @@ impl Keyboard {
         }
         self.show_surface();
         self.dirty = true;
+        self.metadata(Stage::ContextDone, 0, 0);
     }
 }
 
 fn main() -> Result<()> {
+    let mut metadata_enabled = false;
+    for argument in std::env::args_os().skip(1) {
+        ensure!(argument == "--metadata", "Only --metadata is supported");
+        metadata_enabled = true;
+    }
     ensure!(
         std::env::var_os("WAYLAND_SOCKET").is_some(),
         "launch through Tarot's --input-method option"
@@ -392,6 +438,7 @@ fn main() -> Result<()> {
     let qh = queue.handle();
     connection.display().get_registry(&qh, ());
     let mut state = Keyboard {
+        metadata_enabled,
         connection: connection.clone(),
         qh,
         compositor: None,
@@ -633,6 +680,7 @@ impl Dispatch<zwlr_layer_surface_v1::ZwlrLayerSurfaceV1, ()> for Keyboard {
                 state.configured = true;
                 state.warmup_frames = 0;
                 state.dirty = true;
+                state.metadata(Stage::Configure, 0, 0);
             }
             zwlr_layer_surface_v1::Event::Closed => {
                 state.hidden = true;
@@ -721,6 +769,12 @@ impl Dispatch<wl_touch::WlTouch, ()> for Keyboard {
         _: &Connection,
         _: &QueueHandle<Self>,
     ) {
+        let stage = match &event {
+            wl_touch::Event::Down { .. } => Some(Stage::TouchDown),
+            wl_touch::Event::Up { .. } => Some(Stage::TouchUp),
+            wl_touch::Event::Cancel => Some(Stage::TouchCancel),
+            _ => None,
+        };
         match event {
             wl_touch::Event::Down { id, x, y, .. } => {
                 state.contacts.insert(id);
@@ -761,6 +815,9 @@ impl Dispatch<wl_touch::WlTouch, ()> for Keyboard {
             }
             _ => {}
         }
+        if let Some(stage) = stage {
+            state.metadata(stage, 0, 0);
+        }
     }
 }
 impl Dispatch<wl_pointer::WlPointer, ()> for Keyboard {
@@ -772,6 +829,20 @@ impl Dispatch<wl_pointer::WlPointer, ()> for Keyboard {
         _: &Connection,
         _: &QueueHandle<Self>,
     ) {
+        let stage = match &event {
+            wl_pointer::Event::Button {
+                button: 0x110,
+                state: WEnum::Value(wl_pointer::ButtonState::Pressed),
+                ..
+            } => Some(Stage::PointerPress),
+            wl_pointer::Event::Button {
+                button: 0x110,
+                state: WEnum::Value(wl_pointer::ButtonState::Released),
+                ..
+            } => Some(Stage::PointerRelease),
+            wl_pointer::Event::Leave { .. } => Some(Stage::PointerLeave),
+            _ => None,
+        };
         match event {
             wl_pointer::Event::Enter {
                 surface_x,
@@ -797,6 +868,9 @@ impl Dispatch<wl_pointer::WlPointer, ()> for Keyboard {
                 state.dirty = true;
             }
             _ => {}
+        }
+        if let Some(stage) = stage {
+            state.metadata(stage, 0, 0);
         }
     }
 }

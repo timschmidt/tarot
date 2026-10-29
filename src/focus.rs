@@ -1,6 +1,10 @@
 //! Shared native rendering and final-target input placement, including held grabs.
 //! Smithay keeps the original target during a grab; its origin remains zero here.
 
+#[cfg(test)]
+#[path = "focus_keyboard_tests.rs"]
+mod keyboard_tests;
+
 use crate::Compositor;
 use smithay::{
     backend::renderer::element::{
@@ -305,7 +309,35 @@ impl SurfaceFocus {
         data: &Compositor,
         global: Point<f64, Logical>,
     ) -> Option<Point<f64, Logical>> {
-        let placement = data.presented_surfaces.get(&self.surface)?;
+        let mut keyboard_placements = std::collections::HashMap::new();
+        let placement = if let Some(placement) = data.presented_surfaces.get(&self.surface) {
+            placement
+        } else {
+            // A newly committed keyboard can receive input before the next
+            // render populates presented_surfaces. Its direct layer uses the
+            // same committed tree and origin for hit-testing and rendering.
+            // App/card transforms must still come from the presented scene.
+            if !data.native_keyboard_visible() {
+                return None;
+            }
+            let keyboard = data.keyboard.as_ref()?;
+            if !self
+                .surface
+                .id()
+                .same_client_as(&keyboard.layer.wl_surface().id())
+            {
+                return None;
+            }
+            let rect = data.layout.keyboard();
+            cache_surface_tree(
+                keyboard.layer.wl_surface(),
+                (rect.x as i32, rect.y as i32).into(),
+                keyboard.owner?,
+                true,
+                &mut keyboard_placements,
+            );
+            keyboard_placements.get(&self.surface)?
+        };
         if placement.direct {
             return Some(global - placement.origin);
         }
@@ -450,6 +482,9 @@ impl TouchTarget<Compositor> for SurfaceFocus {
         if let Some(location) = self.position(data, event.location) {
             let event = touch::DownEvent { location, ..*event };
             TouchTarget::<Compositor>::down(&self.surface, seat, data, &event, seq);
+        } else {
+            // Never log the location: keyboard positions can reveal text.
+            tracing::warn!("touch down omitted: target has no presented placement");
         }
     }
 

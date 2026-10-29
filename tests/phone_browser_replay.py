@@ -16,10 +16,11 @@ from phone_touch_keyboard import Keyboard
 from phone_stock_login import processes
 
 
-def replay(control,tap,state,capture,out,cgroup,authenticate,inspect_only=False):
+def replay(control,tap,state,capture,out,cgroup,authenticate,inspect_only=False,focus_cycles=0):
+    assert type(focus_cycles) is int and 0<=focus_cycles<=20
     folder=out/'browser';report=folder/'events.jsonl'
     result={'passed':False,'inspect_only':inspect_only,'physical_finger_tested':False,
-            'webdriver_input_used':False,'target_pixels':[]}
+            'webdriver_input_used':False,'target_pixels':[],'overview_cycles':[]}
     def observe(event,condition=lambda e:True,seconds=30):
         return await_value(lambda:[e for e in events(report) if e['event']==event and condition(e)],bool,seconds=seconds)[-1]
     def exact(field,text,page='main'):
@@ -82,6 +83,15 @@ def replay(control,tap,state,capture,out,cgroup,authenticate,inspect_only=False)
         return s
     def hide(label):
         tap(329,663);state('browser-'+label,lambda s:not s['keyboard_visible'])
+    def overview_return(suffix=''):
+        tap(180,702)
+        s=state('browser-overview'+suffix,lambda s:s['view']=='Overview' and s['presentation']['overview']==1 and not s['keyboard_visible'])
+        rect=next(w['rect'] for w in s['presentation']['windows'] if w['id']==identifier)
+        tap(rect['x']+rect['width']/2,rect['y']+rect['height']/2)
+        state('browser-returned'+suffix,lambda s:s['view']=={'App':identifier})
+        click('primary','browser-refocus'+suffix);keyboard('returned-keyboard'+suffix)
+        Keyboard(tap).type_ascii('x');exact('primary','tarotx')
+        result['overview_cycles'].append({'label':suffix or 'original','passed':True})
     def queued_taps():
         # Stop only our verified ordinary-user keyboard, queue actual touchscreen
         # contacts, and resume it even if input fails. This deliberately batches
@@ -136,12 +146,10 @@ def replay(control,tap,state,capture,out,cgroup,authenticate,inspect_only=False)
             return result
         # Shared-keyboard Backspace and same field through overview/PAM.
         Keyboard(tap).type_ascii('x');exact('primary','tarotx');tap(330,609);exact('primary','tarot')
-        tap(180,702)
-        s=state('browser-overview',lambda s:s['view']=='Overview' and s['presentation']['overview']==1 and not s['keyboard_visible'])
-        rect=next(w['rect'] for w in s['presentation']['windows'] if w['id']==identifier)
-        tap(rect['x']+rect['width']/2,rect['y']+rect['height']/2)
-        state('browser-returned',lambda s:s['view']=={'App':identifier})
-        click('primary','browser-refocus');keyboard('returned-keyboard');Keyboard(tap).type_ascii('x');exact('primary','tarotx')
+        overview_return()
+        for cycle in range(focus_cycles):
+            tap(330,609);exact('primary','tarot')
+            overview_return('-repeat-'+str(cycle+1))
         request(control,'lock')
         protected=state('browser-protected',lambda s:s['lock']['phase']=='Locked' and s['lock']['last_presented_surface'] and s['lock']['generation']==s['lock']['last_presented_generation'])
         assert set(protected)=={'ok','pid','lock'}

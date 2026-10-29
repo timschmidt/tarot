@@ -1,6 +1,6 @@
 # Native browser compatibility
 
-Revision 26 is the last accepted complete scoped native replay, October 28, 2026. The installed phone candidate is revision 28; its ongoing checks and retained input failures are described in [favorite organization and keyboard input](FAVORITE_DRAG.md#native-keyboard-regression-discovered-during-acceptance). This advances the development plan's native browser requirement; media, permissions, portals, downloads and broad site compatibility retain separate gates.
+Revision 26 is the last accepted complete scoped native replay, October 28, 2026. The installed candidate is revision 31. Its focused browser replay passes 21 card returns and fullscreen Unicode input, while a subsequent broader run retains a field-blur/keyboard-deactivation failure after card return. [Keyboard corrections and remaining gate](KEYBOARD_REACTIVATION.md) · [Current evidence](recordings/r31/README.md). Media, permissions, portals, downloads and broad site compatibility retain separate gates.
 
 ## Real Firefox baseline
 
@@ -47,3 +47,9 @@ The first WebSocket trial passes the entire focused browser case, including actu
 All sixteen host observer checks pass; the phone passes thirteen and skips three optional Node producer checks. Six focused controllers preserve their original outputs and executed sources; each has independent normal-session and Panfrost cleanup audits. All 335 frozen Rust files and the installed revision-28 payloads remain unchanged. [Curated comparison evidence and unmodified capture](recordings/r28/README.md#browser-observer-follow-up) distinguish these QA changes from the earlier favorite component checkpoint.
 
 Input is still delivered through the native keyboard. The 15-second exact-text deadline, input timing, PAM boundaries and browser sandbox remain unchanged. Observer transport comparisons do not establish a production IME fix. Preserve original failures, inspect source timestamps before treating an old value as a DOM mismatch, and require fresh observations in subsequent browser and complete native replays.
+
+## Revision 31 keyboard delivery checkpoint
+
+Native revision-29/revision-30 comparison proves keyboard layer teardown canceled an app-owned touch; the corrected teardown consults the seat's actual implicit grab owner. Revision 30 then passes 21 exact-text card-return cycles but drops the first fullscreen character because a newly committed keyboard is hit-testable before its rendered placement is cached. A real Wayland test reproduces that coordinate gap without a renderer. Revision 31 adds a fallback only for the visible registered keyboard's committed subtree, preserving app/card presentation transforms.
+
+The signed revision-31 focused replay passes all five touch-ownership cases and the complete focused browser sequence, including queued taps, 21 card returns, real PAM, masked password, navigation/history, popup input/close and fullscreen Unicode entry. Its observer reports zero transport failures and its helper emits no missing-placement warnings. The subsequent broader run fails before completing its first card-return cycle: the page field blurs after enable/remap, and the keyboard deactivates. Fresh DOM observations, painted target pixels, configure/focus timing, original sources and independent normal-session/Panfrost audits are retained. This remaining failure is not established as either an observer fault or a specific production cause. [Exact comparison and limits](recordings/r31/README.md).

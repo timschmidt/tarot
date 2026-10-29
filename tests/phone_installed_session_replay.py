@@ -159,9 +159,12 @@ def run(args, password):
         authenticate('startup')
         if args.require_audio:
             state('audio-ready', lambda s: s['audio']['available'] and bool(s['audio']['outputs']))
+        if getattr(args, 'keyboard_reactivation', False):
+            from phone_keyboard_reactivation_replay import replay as keyboard_reactivation_replay
+            records['keyboard_reactivation'] = keyboard_reactivation_replay(socket,screen,tap,state,capture,args.output,cgroup,authenticate)
         if getattr(args, 'browser', False):
             from phone_browser_replay import replay as browser_replay
-            records['browser'] = browser_replay(socket,tap,state,capture,args.output,cgroup,authenticate,getattr(args,'browser_inspect',False))
+            records['browser'] = browser_replay(socket,tap,state,capture,args.output,cgroup,authenticate,getattr(args,'browser_inspect',False),getattr(args,'browser_focus_cycles',0))
         if getattr(args, 'transients', False):
             from phone_transient_replay import replay as transient_replay
             records['transients'] = transient_replay(socket, screen, guard, state,
@@ -460,6 +463,9 @@ def main():
     parser.add_argument('--terminal-clipboard', action='store_true')
     parser.add_argument('--browser', action='store_true')
     parser.add_argument('--browser-inspect', action='store_true')
+    parser.add_argument('--keyboard-reactivation',action='store_true')
+    parser.add_argument('--browser-focus-cycles',type=int,choices=range(21),default=0,
+                        help='Additional native overview-return input cycles for browser diagnosis')
     parser.add_argument('--fullscreen-terminal', action='store_true')
     parser.add_argument('--virtual-keyboard-lock', action='store_true')
     parser.add_argument('--detach', action='store_true')

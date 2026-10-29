@@ -2953,6 +2953,7 @@ dependencies = [
  "wayland-client",
  "wayland-protocols",
  "wayland-protocols-misc",
+ "wayland-protocols-wlr",
  "xkbcommon",
  "zbus",
  "zeroize",

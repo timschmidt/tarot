@@ -258,6 +258,7 @@ fn compositor_arguments(card: &Path, control: Option<&Path>) -> Vec<std::ffi::Os
     ];
     if let Some(path) = control {
         args.extend(["--control-socket".into(), path.as_os_str().into()]);
+        args.extend(["--input-method-arg".into(), "--metadata".into()]);
     }
     args
 }
@@ -572,8 +573,18 @@ mod tests {
             "--control-socket",
             "--screenshot",
             "--platform-bus",
+            "--input-method-arg",
         ] {
             assert!(!args.contains(&OsStr::new(escape).to_owned()));
         }
+        let diagnostics = compositor_arguments(
+            Path::new("/dev/dri/card1"),
+            Some(Path::new("/tmp/control.sock")),
+        );
+        assert!(
+            diagnostics
+                .windows(2)
+                .any(|p| p == ["--input-method-arg", "--metadata"])
+        );
     }
 }
