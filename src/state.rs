@@ -756,11 +756,15 @@ impl Compositor {
                             .map(|toplevel| toplevel.wl_surface().clone())
                     });
                     if let Some(keyboard) = self.seat.get_keyboard() {
-                        keyboard.set_focus(
-                            self,
-                            surface,
-                            smithay::utils::SERIAL_COUNTER.next_serial(),
-                        );
+                        if surface.is_some() {
+                            keyboard.set_focus(
+                                self,
+                                surface,
+                                smithay::utils::SERIAL_COUNTER.next_serial(),
+                            );
+                        } else {
+                            self.retire_keyboard_input(&keyboard);
+                        }
                     }
                 }
                 Effect::RequestClose(id) => {

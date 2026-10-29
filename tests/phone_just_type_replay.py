@@ -98,11 +98,18 @@ def replay(control,screen,state,tap,capture,before,out,cgroup,authenticate):
                 found=locate(text_image,word,vertical=(top/height,bottom/height))
             except AssertionError:
                 if attempt==7:raise
-                # Cross axis ownership promptly, before a hold could begin.
+                # Present down/motion/up across frames. A whole gesture in
+                # one event batch can leave the scroll area without a drag.
+                # Cross the slop promptly, before a hold could begin.
                 x=width-20;y=bottom-8;end=max(top+8,y-90)
                 assert y-end>14
                 px,py=physical(s,x,y);screen.down(px/2,py/2)
-                px,py=physical(s,x,end);screen.move(px/2,py/2);screen.up();time.sleep(.25)
+                time.sleep(.03)
+                for step in range(1,5):
+                    px,py=physical(s,x,y+(end-y)*step/4)
+                    screen.move(px/2,py/2);time.sleep(.02)
+                time.sleep(.03)
+                screen.up();time.sleep(.25)
                 continue
             current=status()
             assert current['just_type']['revision']==query_revision and current['output']['revision']==output_revision

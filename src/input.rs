@@ -5,7 +5,7 @@ use smithay::{
         InputEvent, KeyState, KeyboardKeyEvent, PointerAxisEvent, PointerButtonEvent, TouchEvent,
     },
     input::{
-        keyboard::FilterResult,
+        keyboard::{FilterResult, KeyboardHandle},
         pointer::{AxisFrame, ButtonEvent, MotionEvent},
         touch::{DownEvent, MotionEvent as TouchMotion, UpEvent},
     },
@@ -564,6 +564,31 @@ impl Compositor {
         self.animation.end_drag();
         self.redraw = true;
         self.pointer_shell_owned = None;
+    }
+
+    /// Retire held keys before a shell surface or protection owns input.
+    /// Smithay seeds the next client's enter event from forwarded keys, which
+    /// an intercepted physical release would otherwise leave remembered.
+    pub(crate) fn retire_keyboard_input(&mut self, keyboard: &KeyboardHandle<Self>) {
+        self.shell_keys
+            .retire(&mut self.ui_events, &mut self.intercepted_keys);
+        keyboard.unset_grab(self);
+        keyboard.set_focus(self, None, SERIAL_COUNTER.next_serial());
+        for code in keyboard.pressed_keys() {
+            self.intercepted_keys.insert(code.raw());
+            // No client is focused: update seat/forwarded state without sending
+            // a synthetic release to an old, replacement or protected client.
+            keyboard.input::<(), _>(
+                self,
+                code,
+                KeyState::Released,
+                SERIAL_COUNTER.next_serial(),
+                0,
+                |_, _, _| FilterResult::Forward,
+            );
+        }
+        self.ui_dirty = true;
+        self.redraw = true;
     }
 
     pub fn cancel_native_touch_sequence(&mut self) {

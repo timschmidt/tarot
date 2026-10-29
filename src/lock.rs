@@ -3,7 +3,7 @@ use crate::{CalloopData, Compositor, apps, focus::SurfaceFocus, state::ClientSta
 use anyhow::{Context, Result, ensure};
 use smithay::{
     delegate_session_lock,
-    input::{keyboard::FilterResult, pointer::MotionEvent},
+    input::pointer::MotionEvent,
     output::Output,
     reexports::{
         calloop::{
@@ -499,19 +499,7 @@ impl Compositor {
         self.ui_events.clear();
         let serial = SERIAL_COUNTER.next_serial();
         if let Some(keyboard) = self.seat.get_keyboard() {
-            keyboard.unset_grab(self);
-            keyboard.set_focus(self, None, serial);
-            for code in keyboard.pressed_keys() {
-                self.intercepted_keys.insert(code.raw());
-                keyboard.input::<(), _>(
-                    self,
-                    code,
-                    smithay::backend::input::KeyState::Released,
-                    SERIAL_COUNTER.next_serial(),
-                    0,
-                    |_, _, _| FilterResult::Forward,
-                );
-            }
+            self.retire_keyboard_input(&keyboard);
         }
         if let Some(pointer) = self.seat.get_pointer() {
             pointer.unset_grab(self, serial, 0);

@@ -23,6 +23,27 @@ LETTERS = dict(zip('qwertyuiopasdfghjklzxcvbnm', [24,25,26,27,28,29,30,31,32,33,
 PUNCTUATION = {' ': (65, False), ':': (47, True), '/': (61, False), '.': (60, False), '?': (61, True), '=': (21, False), '&': (16, True)}
 
 
+def dashboard_band(path,scale):
+    """Find the opaque dashboard's painted rows, excluding dimmed results.
+
+    Fixed height fractions can cut through both visible titles in landscape.
+    The tested Nocturne panel/row colors establish the actual viewport instead.
+    """
+    with Image.open(path) as source:
+        image=source.convert('RGB');width,height=image.size
+    edges=[round(12*scale),round(width-12*scale)]
+    panel=[y for y in range(round(32*scale),round(height-28*scale))
+           if all(image.getpixel((x,y))==(22,29,33) for x in edges)]
+    assert panel,'The opaque dashboard panel must be visible'
+    columns=[round(width*f) for f in (.45,.68,.9)]
+    rows=[y for y in range(min(panel),max(panel)+1)
+          if sum(image.getpixel((x,y))==(35,40,44) for x in columns)>=2]
+    assert rows and max(rows)-min(rows)>=24*scale,'The actual dashboard row viewport must be visible'
+    top,bottom=min(rows),max(rows)+1
+    return {'vertical':(top/height,bottom/height),'pixel_bounds':(top,bottom),
+            'panel_pixel_bounds':(min(panel),max(panel)+1),'row_scan_columns':columns}
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--output', type=Path, required=True)
@@ -70,6 +91,10 @@ def main():
             with Image.open(out/(label+'.png')) as image:
                 image.load();assert image.size==(width*args.scale,height*args.scale)
             return value
+        def dashboard_word(label,word):
+            path=out/(label+'.png');band=dashboard_band(path,args.scale)
+            records.setdefault('dashboard_bands',{})[label]=band
+            return locate(path,word,vertical=band['vertical'])
         def click(x,y):
             mouse.move(x*args.scale,y*args.scale);time.sleep(.05);mouse.button(True);time.sleep(.06);mouse.button(False);time.sleep(.1)
         def type_ascii(value):
@@ -136,7 +161,7 @@ def main():
                 try:
                     # Match the dashboard content, excluding the dimmed
                     # search result with the same title behind that panel.
-                    records['target_visibility']=locate(out/(label+'.png'),'Archive',vertical=(.59,(height-44)/height))
+                    records['target_visibility']=dashboard_word(label,'Archive')
                     records['target_visibility'].update(capture=label+'.png',observation_attempt=attempt+1)
                     break
                 except AssertionError:
@@ -151,8 +176,8 @@ def main():
                     mouse.move(width/2*args.scale,(start+(end-start)*step/6)*args.scale);time.sleep(.025)
                 mouse.button(False);time.sleep(.1)
             capture('dashboard-scrolled-away')
-            records['scrolled_newer_visible']=locate(out/'dashboard-scrolled-away.png','Newer',vertical=(.59,(height-44)/height))
-            try:locate(out/'dashboard-scrolled-away.png','Archive',vertical=(.59,(height-44)/height))
+            records['scrolled_newer_visible']=dashboard_word('dashboard-scrolled-away','Newer')
+            try:dashboard_word('dashboard-scrolled-away','Archive')
             except AssertionError:pass
             else:raise AssertionError('Target must be outside the viewport before reselection')
             selected=state('before-dashboard-reselection')['just_type']
@@ -165,7 +190,7 @@ def main():
             for attempt in range(4):
                 label='reselected-dashboard-'+str(attempt);capture(label)
                 try:
-                    records['reselected_target_visibility']=locate(out/(label+'.png'),'Archive',vertical=(.59,(height-44)/height))
+                    records['reselected_target_visibility']=dashboard_word(label,'Archive')
                     records['reselected_target_visibility'].update(capture=label+'.png',observation_attempt=attempt+1);break
                 except AssertionError:
                     if attempt==3:raise

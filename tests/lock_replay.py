@@ -65,6 +65,12 @@ def main():
         assert not scheduled.exists() and not (args.output/'denied-capture.png').exists()
         command_locker('destroy-lock-surface');protected('destroyed-role-blank',surface=False)
         read_clipboard('destroyed-role-still-private',False)
+        # A verified fallback frame alone cannot authorize unlocking after the
+        # trusted role has been destroyed. Require rejection and replacement.
+        command_locker('unlock');protected('destroyed-role-unlock-rejected','Orphaned',surface=False)
+        read_clipboard('destroyed-role-rejected-still-private',False)
+        replaced=recover('destroyed-role-trusted-recovery');assert replaced['lock']['generation']>generation
+        generation=replaced['lock']['generation']
         command_locker('unlock');unlocked=status('first-unlock',lambda s:s['lock']['phase']=='Unlocked');assert unlocked['view']==before['view'];read_clipboard('clipboard-restored',True)
         request(control,'capture',path=str(args.output/'unlocked-restored.png'));status('capture-restored',lambda s:not s['capture_pending'] and not s['capture_error'])
         command_locker('lock');second=protected('second-protected');assert second['lock']['generation']>generation
