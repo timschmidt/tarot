@@ -1,0 +1,53 @@
+{
+  "pinephone-pro": {
+    "native_px": [
+      720,
+      1440
+    ],
+    "logical": [
+      360,
+      720
+    ],
+    "scale": 2.0,
+    "gesture_source": "screen-owned strip",
+    "gesture_strip_dp": 36,
+    "keyboard": "software",
+    "status_dp": 32,
+    "quicklaunch_total": 5
+  },
+  "lg-fx0": {
+    "native_px": [
+      720,
+      1280
+    ],
+    "logical": [
+      360,
+      640
+    ],
+    "scale": 2.0,
+    "gesture_source": "screen-owned strip + home key",
+    "gesture_strip_dp": 36,
+    "keyboard": "software",
+    "status_dp": 32,
+    "quicklaunch_total": 5
+  },
+  "hp-pre3": {
+    "native_px": [
+      480,
+      800
+    ],
+    "logical": [
+      360,
+      600
+    ],
+    "scale": 1.3333333333333333,
+    "gesture_source": "hardware capacitive area (driver-mapped)",
+    "gesture_strip_dp": 0,
+    "keyboard": "physical slider QWERTY preferred; software fallback",
+    "status_dp": 24,
+    "quicklaunch_total": 5,
+    "hardware_ram_mb": 512,
+    "device_dpi_approx": 261,
+    "porting_assumption": "Nura/postmarketOS available (requested scenario); runtime inputs unverified"
+  }
+}

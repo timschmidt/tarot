@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="440" height="180" viewBox="0 0 440 180"><defs>
+ <linearGradient id="wall" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#081E23"/><stop offset="0.52" stop-color="#0B2F34"/><stop offset="1" stop-color="#081E23"/></linearGradient>
+ <radialGradient id="lit"><stop stop-color="#D7BE89" stop-opacity="0.13"/><stop offset="1" stop-color="#D7BE89" stop-opacity="0"/></radialGradient>
+ <linearGradient id="glass" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#F3F4EC"/><stop offset="0.14" stop-color="#E5E8E0"/><stop offset="0.68" stop-color="#CFD4CC"/><stop offset="1" stop-color="#F5F5EC"/></linearGradient>
+ <linearGradient id="bar" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#4A5554"/><stop offset="1" stop-color="#111A1A"/></linearGradient>
+ <linearGradient id="dock" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#D3E1D6" stop-opacity="0.52"/><stop offset="0.6" stop-color="#5B7F7B" stop-opacity="0.7"/><stop offset="1" stop-color="#162C30" stop-opacity="0.86"/></linearGradient>
+ <linearGradient id="cardbg" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#EFF2E9"/><stop offset="1" stop-color="#DDE3D9"/></linearGradient>
+ <filter id="shadow" x="-35%" y="-30%" width="170%" height="175%"><feGaussianBlur stdDeviation="7"/></filter>
+ <filter id="soft" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="3"/></filter>
+ <clipPath id="viewport"><rect x="0" y="0" width="360" height="600"/></clipPath>
+ </defs><rect x="0.00" y="0.00" width="440.00" height="180.00" rx="0" fill="#081E23" stroke="none" stroke-width="1" opacity="1"/><text x="220.00" y="102.00" fill="#F0F2E8" font-family="Lato, DejaVu Sans, sans-serif" font-size="83" font-weight="400" text-anchor="middle" letter-spacing="9">TAROT</text><line x1="74" y1="126" x2="366" y2="126" stroke="#D7BE89" stroke-width="1.3" opacity="1"/><text x="220.00" y="151.00" fill="#819F9B" font-family="Lato, DejaVu Sans, sans-serif" font-size="12" font-weight="700" text-anchor="middle" letter-spacing="2.4">PRE 3 / NOCTURNE</text></svg>

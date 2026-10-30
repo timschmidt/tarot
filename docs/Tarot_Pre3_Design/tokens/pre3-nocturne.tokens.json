@@ -1,0 +1,111 @@
+{
+  "name": "Tarot Pre 3 Nocturne",
+  "version": "0.1",
+  "date": "2026-10-30",
+  "device_profile": "hp-pre3",
+  "output_px": [
+    480,
+    800
+  ],
+  "logical_dp": [
+    360,
+    600
+  ],
+  "scale": 1.3333333333333333,
+  "safe_insets_dp": {
+    "top": 24,
+    "bottom": 0,
+    "left": 0,
+    "right": 0
+  },
+  "gesture_area": {
+    "kind": "external_hardware",
+    "onscreen_reserved_dp": 0,
+    "touch_region": "outside_LCD",
+    "requires_evdev_mapping": true,
+    "fallback": "optional discoverable overlay; no default reserved strip"
+  },
+  "keyboard": {
+    "primary": "hardware QWERTY slider",
+    "show_software_ime_by_default": false,
+    "slider_open_does_not_change_LCD_geometry": true,
+    "ime_fallback": "explicit / accessibility / physical unavailable"
+  },
+  "shell": {
+    "status_height_dp": 24,
+    "quick_launch": {
+      "slots": 5,
+      "editable_slots": 4,
+      "launcher_slot_index": 4,
+      "rect_dp": [
+        5,
+        523,
+        350,
+        62
+      ]
+    },
+    "card_focus": {
+      "rect_dp": [
+        53,
+        130,
+        254,
+        334
+      ],
+      "scale_seed": 0.69
+    },
+    "app_content_rect_dp": [
+      0,
+      24,
+      360,
+      576
+    ],
+    "launcher_columns": 3,
+    "launcher_first_row_y_dp": 87,
+    "launcher_row_pitch_dp": 95,
+    "min_hit_dp": 44
+  },
+  "palette": {
+    "Nocturne": {
+      "wallpaper_base": "#081E23",
+      "wallpaper_light": "#184449",
+      "panel": "#EAEDE3",
+      "ink": "#243537",
+      "accent": "#D7BE89"
+    },
+    "Heritage": {
+      "wallpaper_base": "#18352C",
+      "wallpaper_light": "#5D8168"
+    },
+    "Vellum": {
+      "wallpaper_base": "#3B202A",
+      "wallpaper_light": "#603541"
+    },
+    "Fx0 Gold": {
+      "wallpaper_base": "#2E241E",
+      "wallpaper_light": "#554139"
+    }
+  },
+  "motion_seed_ms": {
+    "launch": 400,
+    "maximize": 300,
+    "minimize": 350,
+    "dismiss": 300,
+    "stack_reorder": 350,
+    "dashboard_expand": 500,
+    "wave_reveal": 350
+  },
+  "memory_budget_proposed": {
+    "running_surface_previews": "only visible; no permanent copies",
+    "retained_preview_count_soft_cap": 3,
+    "retained_preview_cache_mib_soft_cap": 12,
+    "effects": "blur/downsample only when measurable",
+    "waydroid": "disabled by default pending feasibility; Nura port assumption is not Android compatibility"
+  },
+  "evidence_level": "proposed design; numerical UI values are not historical measurements",
+  "sources": [
+    "https://hp.manymanuals.com/pc-workstation-barebones/pre3/users-guide-1137/12",
+    "https://hp.manymanuals.com/pc-workstation-barebones/pre3/users-guide-1137/13",
+    "https://hp.manymanuals.com/pc-workstation-barebones/pre3/users-guide-1137/43",
+    "https://www.gsmarena.com/hp_pre_3-3770.php"
+  ]
+}

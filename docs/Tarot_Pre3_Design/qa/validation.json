@@ -1,0 +1,15 @@
+{
+  "packet_pages": 34,
+  "native_output_px": [
+    480,
+    800
+  ],
+  "screens_svg": 28,
+  "screens_png": 28,
+  "icons_svg": 15,
+  "wallpaper_variants": 4,
+  "motion_present": true,
+  "issues": [],
+  "historical_capture_verification": "not performed",
+  "driver_port_verification": "not performed"
+}

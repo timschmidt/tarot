@@ -1,0 +1,226 @@
+[
+  {
+    "id": "01-card-view",
+    "title": "Card view",
+    "description": "One native client, another scale",
+    "theme": "Nocturne",
+    "svg": "screens/svg/01-card-view.svg",
+    "png": "screens/png/01-card-view.png"
+  },
+  {
+    "id": "02-card-stack",
+    "title": "Card stacks",
+    "description": "Independent windows remain in a group",
+    "theme": "Nocturne",
+    "svg": "screens/svg/02-card-stack.svg",
+    "png": "screens/png/02-card-stack.png"
+  },
+  {
+    "id": "03-launcher",
+    "title": "Launcher",
+    "description": "Three columns and named pages",
+    "theme": "Nocturne",
+    "svg": "screens/svg/03-launcher.svg",
+    "png": "screens/png/03-launcher.png"
+  },
+  {
+    "id": "04-email",
+    "title": "Email",
+    "description": "Cooperating light application chrome",
+    "theme": "Nocturne",
+    "svg": "screens/svg/04-email.svg",
+    "png": "screens/png/04-email.png"
+  },
+  {
+    "id": "05-banner",
+    "title": "Notification banner",
+    "description": "Bottom arrival, foreground retained",
+    "theme": "Nocturne",
+    "svg": "screens/svg/05-banner.svg",
+    "png": "screens/png/05-banner.png"
+  },
+  {
+    "id": "06-dashboard",
+    "title": "Dashboard",
+    "description": "Persistent, actionable bottom history",
+    "theme": "Nocturne",
+    "svg": "screens/svg/06-dashboard.svg",
+    "png": "screens/png/06-dashboard.png"
+  },
+  {
+    "id": "07-wave",
+    "title": "Quick Launch wave",
+    "description": "Hardware gesture area reveals favorites",
+    "theme": "Nocturne",
+    "svg": "screens/svg/07-wave.svg",
+    "png": "screens/png/07-wave.png"
+  },
+  {
+    "id": "08-device-menu",
+    "title": "Device menu",
+    "description": "Status corner, real services",
+    "theme": "Nocturne",
+    "svg": "screens/svg/08-device-menu.svg",
+    "png": "screens/png/08-device-menu.png"
+  },
+  {
+    "id": "09-app-menu",
+    "title": "Application menu",
+    "description": "Top-left app actions",
+    "theme": "Nocturne",
+    "svg": "screens/svg/09-app-menu.svg",
+    "png": "screens/png/09-app-menu.png"
+  },
+  {
+    "id": "10-just-type",
+    "title": "Just Type",
+    "description": "Hardware keyboard starts intent",
+    "theme": "Nocturne",
+    "svg": "screens/svg/10-just-type.svg",
+    "png": "screens/png/10-just-type.png"
+  },
+  {
+    "id": "11-lock",
+    "title": "Lock screen",
+    "description": "Private notifications, protected compositor",
+    "theme": "Nocturne",
+    "svg": "screens/svg/11-lock.svg",
+    "png": "screens/png/11-lock.png"
+  },
+  {
+    "id": "12-authentication",
+    "title": "Authentication",
+    "description": "Keyboard-first account credential",
+    "theme": "Nocturne",
+    "svg": "screens/svg/12-authentication.svg",
+    "png": "screens/png/12-authentication.png"
+  },
+  {
+    "id": "13-incoming-call",
+    "title": "Incoming call",
+    "description": "Trusted urgent controls",
+    "theme": "Nocturne",
+    "svg": "screens/svg/13-incoming-call.svg",
+    "png": "screens/png/13-incoming-call.png"
+  },
+  {
+    "id": "14-active-call",
+    "title": "Active call",
+    "description": "Call-state truth and routes",
+    "theme": "Nocturne",
+    "svg": "screens/svg/14-active-call.svg",
+    "png": "screens/png/14-active-call.png"
+  },
+  {
+    "id": "15-settings",
+    "title": "Settings",
+    "description": "Warm tactile list and toggles",
+    "theme": "Nocturne",
+    "svg": "screens/svg/15-settings.svg",
+    "png": "screens/png/15-settings.png"
+  },
+  {
+    "id": "16-empty-card-view",
+    "title": "Empty card view",
+    "description": "Wallpaper and dock carry composition",
+    "theme": "Nocturne",
+    "svg": "screens/svg/16-empty-card-view.svg",
+    "png": "screens/png/16-empty-card-view.png"
+  },
+  {
+    "id": "17-heritage",
+    "title": "Heritage",
+    "description": "Period color alternative",
+    "theme": "Heritage",
+    "svg": "screens/svg/17-heritage.svg",
+    "png": "screens/png/17-heritage.png"
+  },
+  {
+    "id": "18-vellum",
+    "title": "Vellum",
+    "description": "Warm editorial alternative",
+    "theme": "Vellum",
+    "svg": "screens/svg/18-vellum.svg",
+    "png": "screens/png/18-vellum.png"
+  },
+  {
+    "id": "19-messaging",
+    "title": "Messaging",
+    "description": "Conversations and input ownership",
+    "theme": "Nocturne",
+    "svg": "screens/svg/19-messaging.svg",
+    "png": "screens/png/19-messaging.png"
+  },
+  {
+    "id": "20-boot",
+    "title": "Boot",
+    "description": "Quiet Tarot identity and startup",
+    "theme": "Nocturne",
+    "svg": "screens/svg/20-boot.svg",
+    "png": "screens/png/20-boot.png"
+  },
+  {
+    "id": "21-calendar",
+    "title": "Calendar",
+    "description": "Date and schedule",
+    "theme": "Nocturne",
+    "svg": "screens/svg/21-calendar.svg",
+    "png": "screens/png/21-calendar.png"
+  },
+  {
+    "id": "22-notification-rail",
+    "title": "Notification rail",
+    "description": "Persistent counts at the base",
+    "theme": "Nocturne",
+    "svg": "screens/svg/22-notification-rail.svg",
+    "png": "screens/png/22-notification-rail.png"
+  },
+  {
+    "id": "23-launch-pending",
+    "title": "Launch pending",
+    "description": "One identity, honest waiting state",
+    "theme": "Nocturne",
+    "svg": "screens/svg/23-launch-pending.svg",
+    "png": "screens/png/23-launch-pending.png"
+  },
+  {
+    "id": "24-launch-failed",
+    "title": "Launch failed",
+    "description": "Recover without ghost windows",
+    "theme": "Nocturne",
+    "svg": "screens/svg/24-launch-failed.svg",
+    "png": "screens/png/24-launch-failed.png"
+  },
+  {
+    "id": "25-locked-incoming-call",
+    "title": "Locked incoming call",
+    "description": "Answer without leaking lock context",
+    "theme": "Nocturne",
+    "svg": "screens/svg/25-locked-incoming-call.svg",
+    "png": "screens/png/25-locked-incoming-call.png"
+  },
+  {
+    "id": "26-keyboard-open-search",
+    "title": "Slider open",
+    "description": "Just Type begins with physical keys",
+    "theme": "Nocturne",
+    "svg": "screens/svg/26-keyboard-open-search.svg",
+    "png": "screens/png/26-keyboard-open-search.png"
+  },
+  {
+    "id": "27-keyboard-fallback",
+    "title": "Keyboard fallback",
+    "description": "On-screen keys only where needed",
+    "theme": "Nocturne",
+    "svg": "screens/svg/27-keyboard-fallback.svg",
+    "png": "screens/png/27-keyboard-fallback.png"
+  },
+  {
+    "id": "28-gesture-help",
+    "title": "Gesture area guide",
+    "description": "Hardware-origin gestures explained",
+    "theme": "Nocturne",
+    "svg": "screens/svg/28-gesture-help.svg",
+    "png": "screens/png/28-gesture-help.png"
+  }
+]

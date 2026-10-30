@@ -7,6 +7,11 @@ The newly supplied Fx0 Gold packet is retained as reference. The owner's deferre
 schedules an optional Gold theme and reusable device support/Fx0 port after all
 existing work. It changes no current runtime theme or hardware baseline.
 
+The newly supplied [Pre3 packet](PRE3_REFERENCE.md) is queued as
+[M8](DEVELOPMENT_PLAN.md#m8-deferred-extension-hp-pre3), after Fx0/M7. Its
+original files remain reference material; the owner selected MIT OR Apache-2.0
+for their graphics and authoring source. No Pre3 runtime work has started.
+
 ## Consecutive text-input enables in revision 50
 
 Pinned Smithay retained pending surrounding text, hints/purpose and change cause

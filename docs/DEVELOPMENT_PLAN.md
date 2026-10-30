@@ -516,3 +516,62 @@ PinePhone Pro behavior remains accepted; the actual Fx0 passes its documented
 support scope with reproducible packaging/recovery and measured budgets; and
 adding another device follows the shared profile/capability workflow. A missing
 Fx0 platform prerequisite or unavailable hardware keeps that support claim open.
+
+## M8 Deferred extension: HP Pre3
+
+**Order and dependency:** after the complete M7 Fx0 extension and all preceding
+M0–M6/backlog work. Queued October 30, 2026 at the owner's request. The supplied
+[Pre3 packet](PRE3_REFERENCE.md) is reference material until this phase;
+PinePhone Pro/Nocturne remain the current baseline. Its original graphics and
+authoring source use the owner's selected MIT OR Apache-2.0 license.
+
+**Objective:** use the reusable device/profile boundary to deliver the packet's
+Pre3 experience, with physical keyboard and hardware gesture input, without
+forking the shell or replacing the accepted PinePhone Pro/Fx0 behavior.
+
+1. Audit an actual handset's identity, installed image, kernel, boot/recovery,
+   toolchain target and required process/security primitives. The packet assumes
+   a Nura port for its design scenario; verify actual graphics, input, power,
+   audio and modem support before treating it as a working platform. Missing
+   prerequisites remain recorded blockers, without weakened trust or lock rules.
+2. Start from the proposed 480 × 800 output and 360 × 600 logical geometry at
+   4/3 scale. Prove fractional buffer scaling, pixel/input alignment, damage,
+   native-client viewports, popups, text and protected presentation on the actual
+   backend. Calibrate status/content insets and orientations from device and
+   historical evidence rather than resizing PinePhone/Fx0 artwork wholesale.
+3. Discover the hardware gesture sensor independently of touchscreen input.
+   Implement center tap, Back, upward navigation and held Quick Launch wave
+   through the shared recognizer/policy boundary. Verify input ownership,
+   cancellation, modal/lock/call interruption, device loss and multiple contacts.
+   Do not reserve the normal on-screen strip when hardware navigation works;
+   offer an explicit accessible fallback when that capability is unavailable.
+4. Make the physical slider QWERTY the primary text path. Audit Option, Shift,
+   Sym, Enter, repeats, layout/composition, press/release balance and hotplug.
+   Physical typing starts Just Type from the appropriate overview/Launcher
+   states; ordinary app typing stays with the focused client. Slider state must
+   not imply a new LCD geometry or orientation. Keep the software keyboard as an
+   explicit accessibility/unavailable-hardware fallback, with authenticated lock
+   and stale-input isolation tested in both modes.
+5. Calibrate against a pinned Pre3/webOS 2.2 reference set, including stacks,
+   named Launcher pages, five Quick Launch positions with a fixed Launcher slot,
+   keyboard-first Just Type, menus, bottom notifications, calls and lock. Keep
+   actual service state and native application content; studies do not authorize
+   fabricated app interiors or illustrative clock values in runtime. Reuse theme
+   roles; packet wallpaper/palette variants remain optional, audited choices.
+6. Measure real graphics paths, memory, thermals, idle energy, previews, launch
+   latency and suspend/wake. Treat the proposed three previews/12 MiB cache as
+   starting budgets only, distinct from client/GPU memory. Do not infer Android
+   or Waydroid feasibility from the assumed Nura port. Implement phone services
+   only through verified device adapters, with independent SIM/carrier/audio
+   evidence for calls/messages.
+7. Publish a reproducible install/update/recovery recipe, capability matrix and
+   native acceptance record. Repeat applicable shell, physical input, text,
+   accessibility, protection, service-recovery, resource and suspend gates.
+   Recheck PinePhone Pro and Fx0 after shared changes; preserve every failure and
+   explicitly unsupported feature.
+
+**Exit criteria:** the actual Pre3 passes its documented support scope, including
+physical keyboard/gesture operation, verified scaling and protected recovery,
+with measured budgets and reproducible packaging. The previous supported devices
+remain accepted. Design files or an assumed distribution port alone do not close
+this milestone.
