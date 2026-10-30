@@ -1,0 +1,50 @@
+Tarot Fx0 platform handoff
+29 October 2026
+
+Scope
+
+This is a proposed design adaptation for LG Fx0 LGL25. Hardware facts are verified against manufacturer and carrier documents. No device, running Tarot build, kernel, or installed Nura image was tested. These files do not certify a port and contain no flashing instructions.
+
+Verified hardware
+
+LG specifies a 4.7-inch IPS display at 1280 by 720 pixels, giving a 720 by 1280 portrait canvas and 16:9 aspect ratio. The phone has an MSM8926 processor at 1.2 GHz with four cores, 1.5 GB RAM, 16 GB internal storage, and a 2370 mAh battery. Its body is approximately 139 by 70 by 10.5 mm and weighs 148 g. [F1]
+
+The official manual identifies a physical Home key below the display, volume keys, and a power key. Its diagram places volume on the left side and power on the right. The Home key is separate from the touchscreen; a swipe-sensitive Palm gesture chin is not documented. KDDI identifies the Firefox logo on that key. [F2, F3]
+
+GPU qualification
+
+Qualcomm's Snapdragon 400 family brief lists Adreno A305/A306 hardware and includes MSM8926 among its part numbers. That family document does not establish which Linux graphics path currently works on this handset. Treat acceleration, buffer import, display modes, and compositor compatibility as unverified. [F4]
+
+Proposed adaptation
+
+Use 360 by 640 logical units at integer scale 2. Compared with the PinePhone Pro design, width stays fixed and height decreases by 80 logical units. Reflow vertical content; do not squash text, icons, or touch targets. Preserve chrome hierarchy and card behavior while reducing decorative spacing and initially visible content.
+
+Prefer 48-unit primary hit areas where possible. At the nominal panel size this is approximately 7.8 mm, calculated from the diagonal and resolution. Retain an on-screen gesture region for Back and Quick Launch gestures. Once its input event is verified, map a short physical Home press to Card view as an additional route. Do not imply that the surrounding bezel senses swipes.
+
+With 1.5 GB RAM, bound preview caches, avoid continuous wallpaper animation and repeated full-screen blur, and update live previews only where useful. These are proposed resource policies, not performance measurements. App closure remains a client-close request; background audio must not depend on keeping a live preview.
+
+Verified support evidence and limits
+
+The official package index exposes a historical v24.12 armv7 device-lg-madai package depending on linux-lg-madai, msm-fb-refresher, and mdss-fb-init-hack. Its matching kernel package is version 3.4.0-r1. This establishes a historical downstream port, not present-day accelerated Wayland readiness. [F5, F6]
+
+Upstream lk2nd lists LG Fx0/madai under its msm8226 supported devices. Bootloader support does not establish working display, touch, audio, suspend, or telephony. The current Nura device wiki and live source host were not readable during research; no current device-wide support matrix was verified. [F7]
+
+Proposed implementation validation gates
+
+Graphics: verify an actual output/backend path, pixel format, orientation, rendering capability, buffer lifecycle, and frame pacing on the installed kernel. Provide a tested rendering fallback before claiming compatibility.
+
+Input: verify touchscreen coordinates, cancellation, gesture ownership, keyboard focus/composition, and the Home key event. Confirm that neither a button nor a gesture bypasses lock authentication.
+
+Wake: validate lock-before-suspend, wake input, display restoration, and private-content masking after resume. Do not assume the physical Home key can wake the device.
+
+Telephony and audio: independently validate registration, incoming/outgoing calls, SMS, suspend-time reception, microphone, earpiece, speaker, and route restoration. Show truthful unavailable and pending states. Remove PinePhone-specific EG25 management and privacy-switch assumptions. Use the actual distribution's services without prescribing systemd or OpenRC.
+
+Primary sources
+
+[F1] LG product specifications: https://www.lg.com/jp/lg-mobile-phones/lgl25/
+[F2] LG-hosted official LGL25 manual, page 1 hardware diagram and page 2 specifications: https://gscs-b2c.lge.com/open/downloadFile?fileId=KROWM000605066.pdf
+[F3] KDDI product announcement attachment: https://news.kddi.com/kddi/corporate/english/newsrelease/2014/12/23/besshi844.html
+[F4] Qualcomm Snapdragon 400 product brief: https://www.qualcomm.com/content/dam/qcomm-martech/dm-assets/documents/snapdragon-400-processor-product-brief.pdf
+[F5] Historical device package: https://pkgs.nura.eco/package/v24.12/postmarketos/armv7/device-lg-madai
+[F6] Historical kernel package: https://pkgs.nura.eco/package/v24.12/postmarketos/armv7/linux-lg-madai
+[F7] Upstream lk2nd supported devices: https://github.com/msm8916-mainline/lk2nd/blob/main/Documentation/devices.md

@@ -1,0 +1,61 @@
+HISTORICAL DEVICE ADAPTATION NOTES
+This describes Fx0 edition 0.2. See GOLD_THEME_NOTES.txt for the current Gold revision.
+
+TAROT LG Fx0 ADAPTATION
+Fx0 edition 0.2 | 29 October 2026
+
+BASELINE
+Derived from the Tarot Nocturne packet produced on 28 October 2026.
+The original PinePhone Pro deliverables are retained separately.
+Historical reference remains Palm Pre 2 era webOS 2.x.
+
+GEOMETRY
+Native portrait output: 720 x 1440 -> 720 x 1280.
+Logical canvas at 2x: 360 x 720 -> 360 x 640.
+Status bar remains 32; on-screen gesture strip remains 36.
+Client bounds: (0,32,360,652) -> (0,32,360,572).
+Gesture strip top: 684 -> 604.
+Quick Launch tray top: 611 -> 531; dimensions remain 354 x 69.
+Focused card anchor: (61.2,139) -> (61.2,112); scale remains 0.66.
+Keyboard top: 464 -> 384; keyboard height remains 220.
+Launcher row pitch: 112 -> 96; icon sizes and type remain unchanged.
+Landscape logical canvas: 720 x 360 -> 640 x 360.
+
+CONTENT REFLOW
+Cards use the new client height, with uniform scale and revised anchors.
+Bottom banner, notification rail and expanded Dashboard move with the bottom.
+Just Type shows fewer results when the keyboard is visible; more results scroll.
+Lock, PIN, incoming call and active-call controls are reflowed above the strip.
+Settings preserves normal row and text sizes; overflow uses scrolling.
+Themes, icons, light app chrome, typography and semantic action colors persist.
+
+HARDWARE
+The Fx0's physical Home key provides an additional proposed navigation route:
+app -> Card view; Card view -> Launcher; Launcher -> Card view.
+Map only a verified device input capability; no evdev keycode is presumed.
+Home cannot unlock, accept authentication or leak normal client input.
+Keep the on-screen strip for Back and Quick Launch. Do not assume the lower
+hardware bezel is swipe-sensitive or that Home is a supported wake source.
+
+The overview and PDF use an original schematic Fx0 frame with mostly black
+glass, pale champagne rails and a circular Home key. The 720 x 1280 screen
+exports contain no hardware frame. No Firefox logo is included.
+
+RESOURCE POLICY
+Fx0 hardware memory: 1.5 GB. Keep cached previews bounded; initial proposal
+is at most 8 retained previews and 32 MiB for Tarot-owned preview cache.
+This does not cap client-owned buffers or total compositor RSS.
+Only focused and visible neighboring cards need live redraw. Precompute
+shadows and avoid continuous full-screen blur or wallpaper animation.
+
+EVIDENCE AND VALIDATION
+Manufacturer specs and manual establish display, memory and physical controls.
+Historical device-lg-madai and lk2nd support do not prove current Wayland,
+GPU, suspend, touch, modem or audio readiness. Validate the installed target.
+No repository, live compositor, kernel or Fx0 hardware was tested here.
+
+DELIVERABLES
+32-page revised PDF; 25 editable SVG screens and native PNGs; three native
+wallpapers; reusable icon/glyph/brand art; revised geometry/device and motion
+tokens; revised motion video and visual overview; authoring code; Fx0 platform
+notes and implementation/fidelity acceptance guidance.

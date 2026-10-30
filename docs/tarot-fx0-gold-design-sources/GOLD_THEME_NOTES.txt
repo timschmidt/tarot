@@ -1,0 +1,79 @@
+TAROT - Fx0 GOLD
+Gold edition 0.3 | 30 October 2026
+
+INTENT
+
+A dedicated gold theme for the LG Fx0's champagne hardware. The shell uses
+warm bronze, aged gold, and ivory surfaces, with subtle engraved wallpaper
+linework. The warm material extends through headers, list rows, menus,
+notifications, controls, keyboard, lock, and boot artwork.
+
+MATERIAL ROLES
+
+The wallpaper is darkest near the top and warmer toward the lower edge.
+Fine linework is decorative and static. The Launcher uses a warm dark scrim
+so labels remain readable over the brighter gold portion.
+
+Cooperating apps use light ivory content, shallow champagne header gradients,
+and brown-black text. Secondary text remains dark enough on the deepest
+header stop. Settings section headings use dark text on warm pale fills.
+
+Menus and Dashboard cards use deep bronze with warm white text. Controls
+use aged brass for confirmed ON state and selection. Focus has separate
+light and dark variants according to the neighboring surface.
+
+SEMANTIC AND PICTORIAL COLORS
+
+Pictorial application icons preserve their authored colors and shapes.
+The browser's sample illustration retains its artwork colors. UI-role
+gradients are separate from icon gradients so changing chrome does not
+silently recolor mail, calendar, camera or Launcher artwork.
+
+The status bar remains black with light signal and Wi-Fi glyphs. Battery
+level retains its green indicator. Answer/success actions remain green;
+Decline/End/destructive actions remain red. Their action gradients use
+stronger label contrast than the earlier study. Gold does not imply a
+successful operation while a backend response is still pending.
+
+Off and pending switch labels use dark text on neutral tracks. ON/OFF,
+knob position, spinner, and explicit wording carry state alongside color.
+Disabled controls remain visually quiet; explanatory text remains readable.
+
+GEOMETRY AND BEHAVIOR
+
+The Fx0 layout remains 360 x 640 logical at 2x output, producing 720 x 1280
+screen exports. Cards, stacks, menu anchors, gesture strip, keyboard, call
+controls and Home-key policy retain the earlier Fx0 edition's geometry.
+Only palette/material artwork and theme selection change. The movie keeps
+the same proposed 350 ms minimize and 300 ms maximize timings.
+
+INTEGRATION
+
+Use tokens/fx0-gold.theme.json as the standalone theme definition and
+tokens/tarot.tokens.json for the full design contract. Resolve every UI
+role through the chosen theme; preserve semantic and pictorial resources.
+
+Gold client chrome is a cooperative application design target. A Wayland
+compositor must preserve ordinary clients' submitted pixels; this theme
+file does not provide a universal mechanism for restyling application UIs.
+
+The first screen is 01-card-view-fx0-gold. Three reference cards retain
+Heritage, Vellum and Nocturne. Four native wallpapers are included. The
+complete packet has 33 pages and the source kit has 26 screen studies.
+
+CONTRAST AND VALIDATION
+
+The design targets at least 4.5:1 for essential text and 3:1 for meaningful
+control/focus cues. The palette review checks gradient endpoints and the
+Launcher scrim; it does not certify every application, language, device
+panel, compositor output or runtime state. Check final composited colors,
+including opacity and contrast changes during transitions.
+
+The new theme does not change current device-port readiness, graphics,
+input, modem, audio, wake or lock implementation status. See the existing
+Fx0 platform handoff for those boundaries.
+
+SOURCE GUIDANCE
+https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html
+https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html
+https://www.w3.org/WAI/WCAG22/Understanding/use-of-color.html

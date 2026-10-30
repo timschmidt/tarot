@@ -1,0 +1,61 @@
+Tarot LG Fx0 Gold engineering handoff
+
+Status and scope
+
+Baseline service documentation was checked on 28 October 2026, Fx0 device evidence on 29 October, and Gold palette guidance on 30 October. Verified facts below come from the linked upstream documentation. Everything described as a Tarot behavior, integration choice, or acceptance criterion is proposed. No Tarot repository, running compositor, or target image was inspected. These notes define a contract for implementation rather than documenting existing code.
+
+Verified platform
+
+LG specifies a 4.7-inch IPS 720 by 1280 portrait display, 1.5 GB RAM, and a front physical Home key. Use 360 by 640 logical units at scale 2. Preserve a touch gesture strip for Back and Quick Launch; the Home key is an additional navigation route only after verifying its input event. Source: https://www.lg.com/jp/lg-mobile-phones/lgl25/ and the manual cited in fx0-platform-handoff.txt.
+
+The current graphics, modem, audio, touch and suspend support of the installed image remains unverified. Read fx0-platform-handoff.txt for exact historical package evidence and validation gates.
+
+Nura is the project formerly called postmarketOS. UI packages may support OpenRC, systemd, or both. Tarot must declare and test its supported configurations; no service-manager choice is assumed here. Sources: https://nura.eco/blog/2026/09/27/nura-rename/ and https://nura.eco/edge/2026/07/10/explicit-service-managers/
+
+Proposed integration tiers
+
+Tier 1 comprises shell-owned surfaces: cards, launcher, menus, dashboard, lock presentation, and system prompts. These can implement the complete Tarot interaction contract.
+
+Tier 2 comprises cooperating applications or explicit adapters. They can expose application back navigation, menu commands, and meaningful window relationships. Document support per application; do not infer navigation from a window title.
+
+Tier 3 comprises ordinary unadapted Wayland applications. Tarot supplies composition, focus, card navigation, and window lifecycle, while the application retains its internal controls. Wayland clients draw their own buffers; compositor styling cannot automatically transform arbitrary GTK or Qt content. Core xdg-shell does not supply universal application-back or exported-menu semantics. Sources: https://wayland.freedesktop.org/architecture.html and https://smithay.github.io/smithay/wayland_protocols/xdg/shell/server/xdg_toplevel/struct.XdgToplevel.html
+
+Proposed service map
+
+Launcher: use freedesktop desktop entries, including declared D-Bus activation, for names, icons, and launch actions. https://specifications.freedesktop.org/desktop-entry/latest/
+
+Connectivity: use NetworkManager for connection state, saved networks, activation, and secrets-agent integration. https://networkmanager.dev/docs/developers/
+
+Telephony: use ModemManager for modem, SIM, registration, voice, call, and SMS state. Delegate hardware-specific modem power management to the distribution. https://www.freedesktop.org/software/ModemManager/doc/latest/ModemManager/ref-dbus.html
+
+Audio: use PipeWire and WirePlumber policy for volumes, routes, and call-profile integration. Do not introduce callaudiod as a new dependency: its upstream README marks it deprecated. https://pipewire.pages.freedesktop.org/wireplumber/ and https://gitlab.com/mobian1/callaudiod/-/blob/master/README.md
+
+Bluetooth: use BlueZ Adapter1, Device1, and pairing-agent interfaces. https://github.com/bluez/bluez/blob/master/doc/org.bluez.Adapter.rst and https://github.com/bluez/bluez/blob/master/doc/org.bluez.AgentManager.rst
+
+Power: use UPower for battery reporting and the selected distribution's session/power backend, including login1 where provided, for suspend and inhibitors. https://upower.freedesktop.org/docs/Device.html and https://www.freedesktop.org/software/systemd/man/262/org.freedesktop.login1.html
+
+Dashboard: own the session's org.freedesktop.Notifications service; preserve replacement IDs, actions, and expiry semantics. Use MPRIS for compatible media-player controls. https://specifications.freedesktop.org/notification/latest/basic-design.html and https://specifications.freedesktop.org/mpris/latest/
+
+Prompts: integrate compatible XDG portal backends and a session polkit agent. Service authorization remains authoritative. https://flatpak.github.io/xdg-desktop-portal/docs/ and https://www.freedesktop.org/software/polkit/docs/latest/polkit.8
+
+Proposed input and lifecycle rules
+
+Use 360 by 640 logical units at integer scale 2 as the initial portrait baseline. This is a Tarot choice, not a measured webOS dimension. Reserve an explicit shell-owned gesture region. Touches beginning there must not also activate application content. Establish ownership before dispatch; preserve cancellation and never deliver an incomplete gesture as a surprise application tap. Define landscape and keyboard-visible behavior separately.
+
+Pin keyboard integration to the protocols supported by the selected on-screen keyboard and client toolkits. A common integration uses text-input-v3 with input-method-v2; verify actual versions. Restrict input-method access to trusted clients, update usable content bounds, maintain composition state, and return focus correctly after menus or prompts. Smithay documents an input-method client filter: https://smithay.github.io/smithay/src/smithay/wayland/input_method/mod.rs.html
+
+An upward card dismissal requests xdg_toplevel.close; it does not authorize process termination. The client may refuse or open a save dialog. Keep sufficient card state to reconcile that response, restore the relevant surface when necessary, and expose force-quit only as an explicit exceptional action. The xdg-shell source linked above documents this close contract.
+
+Locking must hide normal content and stop normal-client input. A lock-client crash must not unlock the session. Establish the locked frame before suspend, mask private previews, and treat any drag-to-unlock gesture as entry to configured authentication. https://isaacfreund.com/docs/wayland/ext-session-lock-v1/
+
+Proposed asynchronous state contract
+
+Render from observed service state. A request creates a pending state; success appears only after backend confirmation. Distinguish connecting, connected, disconnected, disabled, unavailable, and permission denied where applicable. Call connection and audio-route readiness are separate facts. Do not inherit PinePhone-specific hardware-switch or modem assumptions. Give failed or timed-out actions a recoverable explanation. Subscribe to changes, reconnect after service restarts, and never block the compositor on D-Bus or network work.
+
+Proposed launch blockers
+
+Block release for credential bypass, private content exposed during resume, duplicated shell/application gesture handling, lost unsaved work during card dismissal, or service waits that stall input or animation. Also require working keyboard composition and focus recovery, reliable application launch/failure handling, readable geometry on the actual panel, and validated incoming-call behavior while locked and after suspend. Test the installed firmware, kernel, and service configuration rather than assuming another distribution's results apply. Current platform maturity statements are device-dependent: https://nura.eco/state/
+
+Gold theme integration
+
+Use tokens/fx0-gold.theme.json for the resolved Fx0 Gold UI palette, focus roles and scrim opacity. Keep the existing geometry, motion and gesture proposals in tokens/tarot.tokens.json. Pictorial icon gradients remain separate from themeable UI gradients; semantic call and status colors retain their roles. Gold app interiors are cooperative design targets. Read GOLD_THEME_NOTES.txt and handoff/gold-contrast-notes.txt for the material and contrast scope.

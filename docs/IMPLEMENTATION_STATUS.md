@@ -2,6 +2,11 @@
 
 Updated October 30, 2026 in Detroit. The active objective is the complete development plan. No full milestone is claimed complete yet.
 
+The newly supplied Fx0 Gold packet is retained as reference. The owner's deferred
+[M7 extension](DEVELOPMENT_PLAN.md#m7-deferred-extension-gold-theme-and-additional-devices)
+schedules an optional Gold theme and reusable device support/Fx0 port after all
+existing work. It changes no current runtime theme or hardware baseline.
+
 ## Cooperating Rust/egui menus and revision 46
 
 The ordinary Rust/egui example now owns its Wayland surface and exports real menus/actions through zbus. Current-Rust portrait/landscape and minimum-Rust portrait checks pass string/boolean/integer callbacks, independent GIO reads/signals, stale held-row rejection, no-claim in-window controls and cooperative close. Both GTK regressions and 237 current/minimum workspace tests pass; strict host/ARM example checks pass. The sample is not a stable app SDK. [Example and reproduction](RUST_APP_MENUS.md).

@@ -1,0 +1,70 @@
+TAROT FIDELITY AUDIT AND REFERENCE CAPTURE PROTOCOL
+
+Status and evidence
+
+This is a proposed acceptance procedure, not a claim that the mockups match a measured device. The canonical reference should be one Palm Pre 2 running one stock webOS 2.x release. The exact release and build have not yet been captured. Keep that gap explicit until reference acquisition is complete. Pre 3 documentation can clarify phone behavior; it must not silently supply different artwork or interaction rules.
+
+Verified historical anchors: Pre 2 cards support horizontal browsing, tap-to-maximize, upward dismissal and task grouping. A stack cannot be dismissed as one object. Quick Launch has five positions including Launcher; Launcher pages are named and reorderable. [R1] Slow upward dragging summons Quick Launch, while a flick performs a different action. Advanced app switching distinguishes a full horizontal stroke from a shorter Back stroke. [R2]
+
+Tarot's on-screen gesture area, keyboard access, rendering scale, timing constants, Linux integration and theme parameters are design proposals. Mark each parameter as documented, measured, inferred or proposed. Never promote a plausible reconstruction to a measured original.
+
+Freeze the reference
+
+Before comparison, record the device model, OS release, complete build identifier, carrier variant, locale, time format, installed patches, accessibility settings and wallpaper. Photograph Device Info and the relevant preference screens. Preserve the original capture dimensions, capture date and file checksums. Record whether the reference came from physical hardware or an emulator. Do not mix captures from several builds in one acceptance set. If the available device differs from the intended baseline, update the manifest before continuing.
+
+Audit in order of visible impact
+
+1. Composition and typography. Compare neutral screenshots at matching apparent phone size. Check status alignment, content density, card scale, neighboring-card exposure, vertical breathing room, icon silhouettes and label baselines. Evaluate type width and line wrapping before decorative details. A substitute font must be named as a substitute. Documented Pre dimensions provide initial guidance, not proof that a recreated screen matches the chosen firmware. [R3]
+
+2. Continuity through transitions. Trace the same window across launch, maximization, minimization, browsing and dismissal. Check position, crop, corner treatment and shadow throughout the transition, not just at the endpoints. Separate application redraws from compositor transforms. Look for a single-frame jump, stale preview, stretched buffer or unexplained change of window identity. Record motion at the highest practical camera frame rate and retain real-time playback for judgment.
+
+3. Gesture ownership. Draw the accepted start regions and log gesture classification. Test slow, fast, diagonal, interrupted and reversed strokes using both hands. An application scroll must not become shell navigation halfway through a gesture. Give every canceled action a coherent return path. Distinguish proposed recognition thresholds from historical behavior; tune thresholds on LG Fx0 hardware.
+
+4. Notifications and interruption. Compare the foreground's movement, available interaction and restoration while banners, dashboard panels and urgent alerts appear. The phone developer guide describes notifications below the application and non-modal dashboard behavior. [R4] Check simultaneous arrivals, replacement, dismissal, overflow and arrival during an existing animation. Validate that the bottom affordances remain understandable when space is scarce.
+
+5. Menus and controls. Inspect anchor placement, opening direction, panel width, row rhythm, separators, submenus, pressed states and dismissal. Include long labels and disabled commands. Application-menu conventions are documented separately from scene controls. [R5] Avoid applying shell menu decoration to arbitrary client content that Tarot cannot actually control.
+
+6. Adaptation boundaries. Exercise a toolkit app with its own navigation, a client that refuses resizing, a modal dialog, a stalled client, rotation, an open keyboard and an active call. State which behavior is shell-owned and which needs client cooperation. Record any deliberate departure in a deviation register with its reason, user-visible effect and proposed acceptance criterion.
+
+7. Theme discipline. Repeat the identical scene set across themes. Geometry, navigation and semantic status colors should remain stable. Evaluate wallpaper, accents and ornament only after the neutral reference passes.
+
+Required capture suite
+
+For every sequence save an initial still, uninterrupted video, final still, input trace and a short observation. These are proposed test scenarios, not additional claims about undocumented firmware internals.
+
+A. Empty Card view, then one, three and seven open windows; inspect the first and last positions.
+B. Open a window; minimize it; browse away; return; maximize; dismiss; repeat with changing content.
+C. Open related windows; inspect the resulting stack; rearrange; separate one card; dismiss one member.
+D. Invoke Quick Launch slowly; traverse every icon; release on a target; cancel by reversing; compare with a brisk upward stroke.
+E. Exercise Back from a detail view and root view. Repeat with advanced gestures disabled and enabled.
+F. Open Launcher; traverse and scroll pages; move an icon; rename and reorder a page.
+G. Open each top menu, expand a submenu, select a command and dismiss without selecting.
+H. Receive one banner; leave it untouched; expand its dashboard entry; receive another; act on and dismiss entries.
+I. Show an urgent alert while editing, while browsing cards and while the keyboard is visible.
+J. Enter Just Type from both entry points; inspect app matches, content results, search providers and an action preserving entered text. [R6]
+K. Lock, wake, authenticate and receive a call; compare return-to-work behavior after interruption.
+L. Repeat the essential sequences on Tarot with reduced motion and enlarged text.
+
+Acceptance record
+
+Compare geometry using normalized coordinates and physical viewing size, retaining native pixels for edge quality. Compare motion by trajectory and phase before duration. Maintain separate scores for appearance, behavior and platform adaptation. Every discrepancy needs a reference frame, severity and decision: fix, measure further or deliberate deviation. A first packet passes as a design proposal; near-indistinguishable fidelity requires these captures and device review.
+
+Sources
+
+[R1] Palm Pre 2 User Guide, printed pages 28–34.
+https://www.rogers.com/cms/support/pdfs/Wireless/English/Palm_Pre2_EN.pdf
+
+[R2] Palm Pre User Guide, gesture and application chapters; advanced gesture preferences.
+https://support.bell.ca/_web/guides/User-Guides/Mobile/PalmOne/Palm-EN/palm_pre_userguide_en(en).pdf
+
+[R3] HP webOS User Interface Summary, preserved manufacturer documentation.
+https://www.banneret.nl/webos/documentation/all/design/mojo/user-interface-summary.html
+
+[R4] HP webOS Dashboards and Notifications, preserved manufacturer documentation.
+https://www.banneret.nl/webos/documentation/all/dev-guide/mojo/dashboards-notifications.html
+
+[R5] HP webOS Menus UI Guidelines, preserved manufacturer documentation.
+https://www.banneret.nl/webos/documentation/all/design/mojo/menus.html
+
+[R6] HP webOS Just Type, preserved manufacturer documentation.
+https://www.banneret.nl/webos/documentation/all/dev-guide/mojo/just-type.html

@@ -26,6 +26,8 @@ Revision 9 introduced [hardware power and volume buttons](docs/BUILDING.md#hardw
 
 Real foot/ash [terminal and clipboard acceptance](docs/TERMINAL_CLIPBOARD.md) now covers native touch typing, Backspace/Enter, exact UTF-8 output and Unicode/newline exchange with GTK through real PAM restoration. Revision 25 adds [touch terminal controls](docs/TERMINAL_CONTROLS.md): one-shot Ctrl/Alt, navigation, Escape/Tab and Paste, with actual shell editing, foreground interruption, exact PTY bytes, helper recovery and fullscreen/PAM checks. A reproduced stuck-Control helper-death bug is corrected before installation. Broader bindings, layouts and clipboard coverage remain open.
 
+The additional [Fx0 Gold packet](docs/FX0_GOLD_REFERENCE.md) is reference material for a deferred optional theme and device-support phase after the existing plan.
+
 ## Build and run
 
 On Linux with Rust, a C linker, libxkbcommon development files, and Wayland/EGL/GLES runtimes for the native keyboard:

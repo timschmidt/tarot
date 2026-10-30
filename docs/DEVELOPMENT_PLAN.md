@@ -316,3 +316,118 @@ The core product direction, project license, development-device authorization an
 - Development availability, language priorities, and app priorities, as scheduling and M4/M5 scope become concrete.
 
 Keep this plan in the repository. After each milestone, update the decision register, measured budgets, tested package/app versions, known failures, and next work items. A changed architecture should replace obsolete instructions rather than leave two competing recipes. Capture device reports and reviewed screenshots/recordings alongside their commit and environment, using a small artifact set rather than checking in large uncurated logs.
+
+## M7 Deferred extension: Gold theme and additional devices
+
+**Order and dependency:** after all existing M0–M6 implementation, acceptance,
+release and backlog work above. Added October 30, 2026 at the owner's request.
+The [Fx0 Gold packet](FX0_GOLD_REFERENCE.md) is reference material for this
+later extension. Nocturne and PinePhone Pro remain the current implementation
+and validation baseline.
+
+**Objective:** offer Gold as an additional theme and support LG Fx0 through an
+architecture that makes later device ports incremental. Theme choice, viewport
+geometry and hardware capabilities must be independent concerns. Adding a
+handset should primarily add an audited profile, packaging and device evidence,
+rather than fork the shell model or copy the PinePhone-specific setup scripts.
+
+### M7.1 Separate theme roles from device profiles
+
+- Define typed semantic color/material roles shared by shell-owned surfaces and
+  cooperating Rust apps: status, menus, prompts, keyboard, notifications, lock,
+  focus, pending, disabled, success and destructive actions. Map the existing
+  Nocturne appearance first and demonstrate equivalent behavior before adding
+  Gold. Keep pictorial/native app icons separate from UI gradients.
+- Treat Gold's standalone theme JSON as a proposed preset, independently of
+  the packet's `active_theme` and Fx0 geometry. Add an explicit user choice,
+  durable settings/migration, invalid-theme fallback and restart behavior.
+  Each supported theme should work with every supported device profile.
+- Preserve real backend state, text labels, focus visibility and reduced-motion
+  behavior across themes. Green/red semantic actions retain their meaning;
+  changing palette must not recolor ordinary client buffers or invent app
+  commands. Cooperating apps may opt into shared components.
+- Validate final composited text/control contrast, gradient/scrim endpoints,
+  disabled explanations, enlarged text, localization and actual output color.
+  The packet's selected-token contrast report is design evidence, not runtime
+  or whole-application accessibility acceptance.
+
+### M7.2 Establish a reusable device capability boundary
+
+- Inventory current hardware assumptions in discovery, rendering, output mode,
+  scale/transform, input mapping, keys, backlight, sensors, audio/modem policy,
+  session startup, build targets and packaging. Keep service-manager and kernel
+  details outside the pure shell model.
+- Represent a device's verified capabilities and defaults separately from its
+  identity: available outputs/render paths, input devices and key meanings,
+  orientation, display scale, power/wake mechanisms, audio routes and optional
+  services. Combine an auditable profile with actual runtime discovery; missing
+  or changed capabilities produce truthful unavailable states.
+- Keep kernel process credentials and trusted-client boundaries capability
+  checked. An older target lacking a required primitive does not gain a numeric
+  PID/UID identity fallback or an authentication exception. Document which
+  optional features remain unavailable on that platform.
+- Share geometry, gesture ownership, lock, window lifecycle and service state
+  machines across profiles. Keep hardware quirks in small adapters with explicit
+  evidence. Build/sysroot/package selection should accept a target profile
+  rather than assume AArch64 or PinePhone device paths.
+- Run the existing PinePhone Pro acceptance after this separation. Add synthetic
+  profiles with different dimensions, scales and absent capabilities to check
+  layout and failure behavior before touching another handset.
+
+### M7.3 Audit and bring up the actual LG Fx0
+
+- Obtain the spare device's identity, access, installed image, kernel, boot and
+  recovery baseline. Recheck current distribution/upstream support and toolchain
+  compatibility at that time. The packet's historical madai package and lk2nd
+  references do not establish a working modern Wayland port.
+- Verify an actual graphics/backend path, modes, pixel formats, EGL/GLES or a
+  deliberately supported rendering fallback, buffer import/release and frame
+  pacing. Resolve any platform prerequisite before claiming Tarot support.
+- Audit touchscreen coordinates/cancellation, physical keys, rotation, panel
+  power and wake, battery/charging, audio routes, modem/SIM and service-manager
+  integration independently. Remove inherited modem-power, privacy-switch and
+  device-path assumptions unless verified on Fx0.
+- Implement only the measured profile and adapters. Preserve ordinary-user
+  authenticated sessions, lock-before-suspend and protected recovery. Do not
+  infer wake support from the presence of a Home key.
+
+### M7.4 Reflow and calibrate the Fx0 experience
+
+- Start from the proposed 360 × 640 logical canvas at scale 2, then confirm it
+  against the real panel. Derive bottom anchors and available content from the
+  viewport; preserve type, icon proportions and primary touch targets instead
+  of compressing the whole PinePhone layout. Cover landscape, keyboard-visible,
+  notifications, menus, calls, accessibility and long/localized content.
+- Keep Back and wave gestures in the reserved on-screen strip. After observing
+  the actual key event, offer the proposed short Home route from app to cards,
+  cards to Launcher and Launcher to cards. Verify one committed action,
+  cancellation/repeat handling and suppression across focus/lock transitions;
+  the key must never unlock or expose private content.
+- Measure preview/GPU memory, idle work, input latency, frame pacing, heat and
+  energy on Fx0. The packet's initial eight-preview/32 MiB cache proposal needs
+  measurement and excludes client-owned buffers and total compositor memory.
+  Prefer visible-card redraw and cached effects; publish device-specific budgets
+  and unsupported capabilities rather than inheriting PinePhone results.
+
+### M7.5 Acceptance and a repeatable next-device workflow
+
+- Publish a capability/support matrix and reproducible build, install, upgrade
+  and recovery recipe for each device. Keep core tests, theme tests and native
+  per-device evidence distinct, with exact package/kernel/service versions.
+- Repeat the applicable existing shell/lock/input/app, service failure, text,
+  accessibility, suspend/wake, resource and packaging gates on Fx0. Calls/SMS and
+  audio require their own verified modem, SIM/carrier and test peer; a rendered
+  dialer is not phone support. Preserve every platform and Tarot failure.
+- Run PinePhone Pro regression acceptance with both themes and Fx0 acceptance
+  with both themes. Document unsupported features explicitly and make no port
+  readiness claim from desktop captures or historical package listings.
+- Write an additional-device checklist covering profile discovery, build target,
+  platform adapters, recovery, measurements and evidence. Demonstrate that a
+  prospective third profile can be described without a shell-code fork; actual
+  hardware support still requires its own bring-up and native acceptance.
+
+**Exit criteria:** Gold is an optional, persistent and accessible theme;
+PinePhone Pro behavior remains accepted; the actual Fx0 passes its documented
+support scope with reproducible packaging/recovery and measured budgets; and
+adding another device follows the shared profile/capability workflow. A missing
+Fx0 platform prerequisite or unavailable hardware keeps that support claim open.

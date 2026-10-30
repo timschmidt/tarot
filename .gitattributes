@@ -10,3 +10,7 @@ packaging/nura/tarot-session-bus/*.patch whitespace=-blank-at-eol
 experiments/menu-export/protocols/GTK-COPYING -whitespace
 
 third-party/gtk/COPYING -whitespace
+
+# Preserve supplied reference sources and font notices byte for byte.
+docs/tarot-fx0-gold-design-sources/fonts/*-OFL.txt -whitespace
+docs/tarot-fx0-gold-design-sources/source/build_packet.py whitespace=-blank-at-eof

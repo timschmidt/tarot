@@ -1,0 +1,90 @@
+TAROT / LG Fx0 Gold: palette contrast check
+
+Selected design-token pairs, gradient stops, and one conservative scrim composite; not whole-app certification.
+Generated: 2026-10-30T04:32:42+00:00
+Input: /workspace/scratch/1b61c130ac4c/output/fx0-gold/tarot-fx0-gold-design-sources/tokens/fx0-gold.theme.json
+Input SHA-256: 49e84951a3800ee9c42208d0b86afac8ffc18e537d97d77b6ad32745c359ea0d
+
+Result
+46 of 46 required color pairs pass.
+Text uses a 4.5:1 target. Meaningful graphics and focus indicators use 3:1.
+Ratios are displayed to six decimal places; pass/fail uses unrounded values.
+
+Required pairs by group
+PASS | Body text: 11.992360:1; target 4.5:1.
+  Weakest pair: app_header.title on email_content.surface.
+PASS | Secondary text: 7.466318:1; target 4.5:1.
+  Weakest pair: app_header.action on email_content.surface.
+PASS | Header primary text: 7.654253:1 to 12.983039:1; target 4.5:1.
+  Weakest pair: app_header.title on gradient.chrome.end.
+PASS | Header secondary text: 4.765457:1 to 8.083104:1; target 4.5:1.
+  Weakest pair: app_header.action on gradient.chrome.end.
+PASS | Focus on light header: 3.448066:1 to 5.848562:1; target 3:1.
+  Weakest pair: focus.on_light on gradient.chrome.end.
+PASS | Light primary button text: 7.416264:1 to 13.451301:1; target 4.5:1.
+  Weakest pair: components.button_label on gradient.button.end.
+PASS | Pressed button text: 6.004747:1; target 4.5:1.
+  Weakest pair: components.pressed_label on components.pressed_surface.
+PASS | Dark menu text: 9.651364:1 to 15.344990:1; target 4.5:1.
+  Weakest pair: full_app.menu_label on gradient.menu.start.
+PASS | Dark menu secondary text: 6.713188:1 to 10.673497:1; target 4.5:1.
+  Weakest pair: full_app.menu_secondary on gradient.menu.start.
+PASS | Focus on dark menu: 6.113349:1 to 9.719795:1; target 3:1.
+  Weakest pair: focus.on_dark on gradient.menu.start.
+PASS | Gold ON and primary action text: 5.141554:1 to 8.462608:1; target 4.5:1.
+  Weakest pair: switch.on_label on gradient.accent.start.
+PASS | Focus inside gold control: 3.256754:1 to 5.360369:1; target 3:1.
+  Weakest pair: focus.on_dark on gradient.accent.start.
+PASS | Answer action text: 4.918377:1 to 7.709591:1; target 4.5:1.
+  Weakest pair: incoming.answer_label on gradient.success_action.start.
+PASS | Decline action text: 5.418234:1 to 8.782994:1; target 4.5:1.
+  Weakest pair: incoming.decline_label on gradient.destructive_action.start.
+PASS | End call action text: 5.418234:1 to 8.782994:1; target 4.5:1.
+  Weakest pair: ongoing_call.end_label on gradient.destructive_action.start.
+PASS | Neutral OFF label: 8.716691:1; target 4.5:1.
+  Weakest pair: switch.off_label on group_box.switch_off_surface.
+PASS | Control state explanation: 7.466318:1; target 4.5:1.
+  Weakest pair: components.label on components.surface.
+PASS | Pending indicator: 5.402284:1; target 3:1.
+  Weakest pair: components.pending_indicator on components.surface.
+PASS | Focus on ivory: 5.402284:1; target 3:1.
+  Weakest pair: focus.on_light on email_content.surface.
+PASS | Status network symbol: 17.370797:1; target 3:1.
+  Weakest pair: status.network_glyph on status.background.
+PASS | Status battery fill: 10.895114:1; target 3:1.
+  Weakest pair: status.battery_charge on status.background.
+PASS | Launcher scrim text: 5.175903:1; target 4.5:1.
+  Weakest pair: launcher.app_label on launcher.scrim over fully opaque wallpaper.glow.
+PASS | Launcher scrim focus: 3.278511:1; target 3:1.
+  Weakest pair: focus.on_dark on launcher.scrim over fully opaque wallpaper.glow.
+
+Launcher scrim and bright wallpaper
+The conservative calculation composites #211B12 at 50% over fully opaque #C8B586. The resulting unrounded sRGB channels are [116.5, 104.0, 76.0].
+Exported Launcher scrim check: matched.
+Opacity source: compositing.launcher_scrim.opacity in the standalone theme JSON.
+The following raw wallpaper pairs are context only, not approved text placements:
+  wallpaper.top: 16.131210:1; passes 4.5:1 without a scrim.
+  wallpaper.mid: 9.071171:1; passes 4.5:1 without a scrim.
+  wallpaper.bottom: 4.123593:1; fails 4.5:1 without a scrim.
+  wallpaper.glow: 1.906324:1; fails 4.5:1 without a scrim.
+
+Limits and handoff
+No whole-app, WCAG, runtime, or device certification is claimed.
+Only the listed color pairs are checked; ordinary client pixels and pictorial icons are outside this check.
+Opacity, antialiasing, typography, wallpaper artwork, shadows, and actual text placement still need rendered review.
+The scrim bound assumes the wallpaper does not exceed the supplied glow color behind the tested area.
+Use the focus token for the adjacent surface; an external ring on ivory needs the dark focus token.
+Disabled controls are not certified by this report; readable unavailable-state explanation is checked separately.
+Color must remain accompanied by existing action labels, switch positions, and state indicators.
+
+Re-run after palette edits
+python source/check_gold_contrast.py
+Optional arguments: --theme PATH --output-dir PATH --launcher-scrim-opacity 0.5
+A required-pair failure or a mismatch in the existing exported Launcher scrim returns exit status 1.
+Missing input or invalid tokens return exit status 2. An absent Launcher SVG is reported as not checked.
+The JSON report contains every foreground, background, source role, exact ratio, and threshold.
+
+References
+https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html
+https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html
+https://www.w3.org/WAI/WCAG22/Understanding/use-of-color.html

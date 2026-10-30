@@ -1,0 +1,34 @@
+{
+  "edition": "Fx0 Gold 0.3",
+  "date": "2026-10-30",
+  "pdf_pages": 33,
+  "screen_svgs": 26,
+  "native_screen_pngs": 26,
+  "screen_output_px": [
+    720,
+    1280
+  ],
+  "screen_viewbox": [
+    0,
+    0,
+    360,
+    640
+  ],
+  "wallpaper_themes": 4,
+  "gold_screen_studies": 23,
+  "reference_theme_studies": 3,
+  "gold_contrast_report": "handoff/gold-contrast-checks.json",
+  "app_icons": 16,
+  "glyphs": 18,
+  "tokens_valid_json": true,
+  "all_svg_xml_valid": true,
+  "movie": {
+    "width": 720,
+    "height": 1280,
+    "r_frame_rate": "60/1",
+    "duration": "7.700000"
+  },
+  "visual_review": "All 26 screen studies and 33 PDF pages reviewed; Gold UI roles, control states and motion inspected.",
+  "hardware_frame": "Original schematic, separate from screen exports.",
+  "status": "Design proposal; device runtime, current port support and historical-capture conformance remain unverified."
+}

@@ -1,0 +1,173 @@
+TAROT Fx0 GOLD DESIGN PACKET SOURCE MANIFEST
+Baseline evidence: 28 October 2026. Fx0 evidence: 29 October 2026. Gold contrast guidance: 30 October 2026.
+
+R1  Palm Pre 2 User Guide
+Palm, 2010; manufacturer PDF hosted by Rogers. Printed pp. 22-42, 52-56, 69-75, 199-200.
+https://www.rogers.com/cms/support/pdfs/Wireless/English/Palm_Pre2_EN.pdf
+
+R2  User Interface Summary
+HP developer documentation, 2011; preserved mirror. Reference dimensions and scene anatomy.
+https://www.banneret.nl/webos/documentation/all/design/mojo/user-interface-summary.html
+
+R3  Menus UI Guidelines
+HP developer documentation, 2011; preserved mirror. Menu ordering and anchors.
+https://www.banneret.nl/webos/documentation/all/design/mojo/menus.html
+
+R4  Dashboards and Notifications
+HP developer documentation, 2011; preserved mirror. Bottom surfaces and urgency.
+https://www.banneret.nl/webos/documentation/all/dev-guide/mojo/dashboards-notifications.html
+
+R5  Just Type
+HP developer documentation, 2011; preserved mirror. Actions, content and search providers.
+https://www.banneret.nl/webos/documentation/all/dev-guide/mojo/just-type.html
+
+R6  Human Interface Guidelines
+HP developer documentation, 2011; preserved mirror. Non-blocking notifications.
+https://www.banneret.nl/webos/documentation/all/design/mojo/hi-guidelines.html
+
+R7  LunaSysMgr Settings.cpp
+Open webOS source. Font names and card-scale seeds; later than Pre 2.
+https://github.com/openwebos/luna-sysmgr/blob/master/Src/base/settings/Settings.cpp
+
+R8  LunaSysMgr StatusBar.cpp
+Open webOS source. Phone black fill and clock placement; later than Pre 2.
+https://github.com/openwebos/luna-sysmgr/blob/master/Src/lunaui/status-bar/StatusBar.cpp
+
+R9  LunaSysMgr animation configuration
+Open webOS source. Provisional duration seeds, not phone motion certification.
+https://github.com/openwebos/luna-sysmgr/blob/master/conf/lunaAnimations.conf
+
+R10  Palm Pre User Guide
+Manufacturer guide hosted by Bell. Earlier phone gesture vocabulary.
+https://support.bell.ca/_web/guides/User-Guides/Mobile/PalmOne/Palm-EN/palm_pre_userguide_en(en).pdf
+
+R11  LunaSysMgr repository
+Official Open webOS source and shell responsibilities.
+https://github.com/openwebos/luna-sysmgr
+
+R12  LG Fx0 / LGL25 specifications
+LG Japan. 4.7-inch 720 × 1280 display, memory and body dimensions.
+https://www.lg.com/jp/lg-mobile-phones/lgl25/
+
+R13  Project rebrand Nura
+Nura, 27 Sep 2026. Current project name.
+https://nura.eco/blog/2026/09/27/nura-rename/
+
+R14  Wayland architecture
+Wayland project. Client buffers and compositor ownership.
+https://wayland.freedesktop.org/architecture.html
+
+R15  Desktop Entry specification
+freedesktop.org. Application discovery and launching.
+https://specifications.freedesktop.org/desktop-entry/latest/
+
+R16  NetworkManager developer resources
+NetworkManager. Network state and connection API.
+https://networkmanager.dev/docs/developers/
+
+R17  ModemManager D-Bus reference
+ModemManager. Modems, SIM, SMS, voice and call objects.
+https://www.freedesktop.org/software/ModemManager/doc/latest/ModemManager/ref-dbus.html
+
+R18  WirePlumber documentation
+PipeWire project. Session and audio policy.
+https://pipewire.pages.freedesktop.org/wireplumber/
+
+R19  BlueZ Adapter API
+BlueZ upstream. Discovery, power and device state.
+https://github.com/bluez/bluez/blob/master/doc/org.bluez.Adapter.rst
+
+R20  UPower Device interface
+UPower. Battery and charging properties.
+https://upower.freedesktop.org/docs/Device.html
+
+R21  login1 D-Bus interface
+systemd project. Session/power contract where provided.
+https://www.freedesktop.org/software/systemd/man/latest/org.freedesktop.login1.html
+
+R22  Desktop Notifications specification
+freedesktop.org. Server, replacement, expiry and actions.
+https://specifications.freedesktop.org/notification/latest/basic-design.html
+
+R23  MPRIS specification
+freedesktop.org. Player metadata and controls.
+https://specifications.freedesktop.org/mpris/latest/
+
+R24  XDG Desktop Portal documentation
+Desktop portals project. Mediated desktop functions.
+https://flatpak.github.io/xdg-desktop-portal/docs/
+
+R25  ext-session-lock-v1
+Protocol author documentation. Lock isolation and lifetime.
+https://isaacfreund.com/docs/wayland/ext-session-lock-v1/
+
+R26  Smithay input-method implementation
+Smithay. Protocol implementation and privileged client filtering.
+https://smithay.github.io/smithay/src/smithay/wayland/input_method/mod.rs.html
+
+R27  Nura service-manager support policy
+Nura, 10 Jul 2026. UI packages can declare supported managers.
+https://nura.eco/edge/2026/07/10/explicit-service-managers/
+
+R28  xdg_toplevel close request
+Smithay generated protocol bindings. Client may refuse or ask to save.
+https://smithay.github.io/smithay/wayland_protocols/xdg/shell/server/xdg_toplevel/struct.XdgToplevel.html
+
+R29  Google Fonts source families
+Lato and Instrument Serif. Font files and OFL notices are included.
+https://github.com/google/fonts
+
+R30  polkit overview
+polkit project. Authorities and authentication agents.
+https://www.freedesktop.org/software/polkit/docs/latest/polkit.8
+
+R31  callaudiod upstream status
+Upstream README marks it deprecated; new call-profile policy is in WirePlumber.
+https://gitlab.com/mobian1/callaudiod/-/blob/master/README.md
+
+R32  Wayland protocol reference
+Wayland project. Surface/output scaling and transforms.
+https://wayland.freedesktop.org/docs/html/apa.html
+
+R33  LG-hosted LGL25 manual
+LG / KDDI. Front Home key, side controls and hardware diagram.
+https://gscs-b2c.lge.com/open/downloadFile?fileId=KROWM000605066.pdf
+
+R34  KDDI Fx0 product announcement
+KDDI. Transparent Gold body and physical Home button.
+https://news.kddi.com/kddi/corporate/english/newsrelease/2014/12/23/besshi844.html
+
+R35  Historical device-lg-madai package
+Nura v24.12 armv7. Downstream device and framebuffer dependencies.
+https://pkgs.nura.eco/package/v24.12/postmarketos/armv7/device-lg-madai
+
+R36  Historical linux-lg-madai package
+Nura v24.12 armv7. Historical downstream kernel; no current readiness claim.
+https://pkgs.nura.eco/package/v24.12/postmarketos/armv7/linux-lg-madai
+
+R37  lk2nd supported device list
+Upstream. Lists Fx0/madai; bootloader evidence only.
+https://github.com/msm8916-mainline/lk2nd/blob/main/Documentation/devices.md
+
+R38  Text contrast guidance
+W3C. Normal text contrast and gradient considerations.
+https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html
+
+R39  Non-text contrast guidance
+W3C. Meaningful control and focus indicators.
+https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html
+
+R40  Use of color guidance
+W3C. Additional visible cues for state and meaning.
+https://www.w3.org/WAI/WCAG22/Understanding/use-of-color.html
+
+Requested starting reference (HTTP 403 during this research; no facts inferred):
+https://lpcwiki.miraheze.org/wiki/LG_Fx0
+
+Hardware frame: original schematic informed by LG official front gallery image.
+https://www.lg.com/content/dam/channel/wcms/jp/images/mobile-phone/lgl25/gallery/hd_001.jpg?w=800
+
+Font source files
+https://raw.githubusercontent.com/google/fonts/main/ofl/lato/Lato-Regular.ttf
+https://raw.githubusercontent.com/google/fonts/main/ofl/instrumentserif/InstrumentSerif-Regular.ttf
+OFL notices are bundled under fonts/.
