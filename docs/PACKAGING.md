@@ -49,6 +49,15 @@ package and acceptance scope](recordings/menu-setup/README.md).
 
 ## Source package
 
+Revision 52 delivers the session-bound Polkit agent and trusted authentication
+modal. Its clean signed package changes all four executable hashes and README,
+adds `polkit-elogind`, and preserves installed PAM, session entry and license
+files. Ordinary-user real authority grant/rejection/cancellation/lock/helper
+checks pass, followed by temporary-policy removal, exact restoration and an
+independent normal Tarot/Panfrost audit. The original container build completed
+successfully after its host output driver ended; lifecycle and package audits
+are retained separately. [Exact source/package and acceptance evidence](recordings/polkit/README.md).
+
 Revision 50 corrects consecutive-enable text-input pending-state reset. Its clean
 signed package changes all four executable hashes, README and THIRD-PARTY
 documentation. The new local Smithay patch retains its MIT license and applies

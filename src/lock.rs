@@ -378,6 +378,9 @@ impl Compositor {
     }
     /// Stop ordinary scene/input before forking or waiting for the trusted client.
     pub fn enter_protection(&mut self) {
+        if let Some(server) = &self.authorization {
+            server.protection(true);
+        }
         if let Some(server) = &self.bluetooth {
             server.context(false, true);
         }

@@ -115,6 +115,9 @@ impl Compositor {
     }
 
     pub fn refresh_keyboard(&mut self) {
+        if let Some(server) = &self.authorization {
+            server.protection(self.protected());
+        }
         if let Some(server) = &self.bluetooth {
             server.context(
                 self.shell.system_menu_open

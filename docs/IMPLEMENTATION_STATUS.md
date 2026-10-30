@@ -12,9 +12,9 @@ The newly supplied [Pre3 packet](PRE3_REFERENCE.md) is queued as
 original files remain reference material; the owner selected MIT OR Apache-2.0
 for their graphics and authoring source. No Pre3 runtime work has started.
 
-## Polkit foundation and motion investigation
+## Polkit integration and motion investigation
 
-The initial [Polkit conversation/model foundation](POLKIT.md) implements private-pipe helper framing, bounded non-serializable responses, stale-turn rejection and cancellation/child cleanup. Its child-process and state tests use synthetic credentials; shell registration, trusted dialog integration and actual authority-grant acceptance remain unfinished. No agent is enabled on the phone by this change.
+The [Polkit agent and trusted dialog](POLKIT.md) now connect session-bound authority registration, the bounded PAM helper conversation, offered-account selection and the shared private keyboard. Private rendered acceptance verifies caller/session/owner validation, prompt replacement, lock cancellation and broker recovery using synthetic credentials. The production trust rule accepts the actual dedicated `polkitd` account (UID 102 on the phone), while login1 requires root. Revision 52 now passes actual system-authority grant/rejection/cancel/lock/helper-failure cases from an ordinary-user graphical-session requester. The temporary auth_self test action had no privileged mechanism and was removed afterward. An independent audit confirms normal default Tarot52, diagnostics off, exact payloads/Panfrost and restored policies/preferences/audio/backlight. All 251 workspace tests pass on current/minimum Rust; strict host/ARM lint and private rendered/shared-credential regressions pass. Interactive NetworkManager callers and broader policy/reliability work remain open. [Native scope and artifacts](recordings/polkit/README.md).
 
 A [read-only double-chop device audit](DOUBLE_CHOP.md) identifies the current MPU-6500 WoM controls and disabled wake configuration, with no exposed DMP loader. Flash current/driver qualification is also required before enabling a continuous torch. No motion, wake or flash configuration was changed. A separate focused host run passes 100 lock/pair/display/capture cycles without reproducing the retained response timeout; that failure remains unexplained.
 

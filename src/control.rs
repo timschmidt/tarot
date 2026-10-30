@@ -59,6 +59,9 @@ enum Request {
     NetworkAction {
         action: tarot_core::network::UiAction,
     },
+    AuthorizationAction {
+        action: tarot_core::authorization::UiAction,
+    },
     BluetoothAction {
         action: tarot_core::bluetooth::UiAction,
     },
@@ -160,6 +163,7 @@ pub fn start(path: &Path, handle: &LoopHandle<'_, CalloopData>) -> Result<Contro
                 Request::SystemMenu {open} => state.apply_command(Command::SystemMenuOpen(open)),
                 Request::PowerAction {action} => state.apply_command(Command::Power(action)),
                 Request::NetworkAction {action} => state.apply_command(Command::Network(action)),
+                Request::AuthorizationAction {action} => state.apply_command(Command::Authorization(tarot_core::authorization::Action::Service(action))),
                 Request::BluetoothAction {action} => state.apply_command(Command::Bluetooth(tarot_core::bluetooth::Action::Service(action))),
                 Request::BluetoothSelect {device} => state.apply_command(Command::Bluetooth(tarot_core::bluetooth::Action::Select(device))),
                 Request::AudioAction {action} =>state.apply_command(Command::Audio(action)),
@@ -248,6 +252,8 @@ pub fn start(path: &Path, handle: &LoopHandle<'_, CalloopData>) -> Result<Contro
                     "prompt":state.shell.bluetooth.prompt.as_ref().map(|p|json!({"id":p.id,"device":p.device,"kind":p.kind})),
                     "error":state.shell.bluetooth.error,"action_error":state.shell.bluetooth.action_error,
                 },
+                "authorization": {"enabled":state.shell.authorization.snapshot.enabled,"available":state.shell.authorization.snapshot.available,"epoch":state.shell.authorization.snapshot.epoch,"generation":state.shell.authorization.snapshot.generation,"error":state.shell.authorization.snapshot.error,
+                    "request":state.shell.authorization.snapshot.request.as_ref().map(|r|json!({"id":r.id,"phase":match &r.phase {tarot_core::authorization::Phase::Choose=>"Choose",tarot_core::authorization::Phase::Starting=>"Starting",tarot_core::authorization::Phase::Checking=>"Checking",tarot_core::authorization::Phase::Question(_)=>"Question"},"turn":match &r.phase {tarot_core::authorization::Phase::Question(q)=>Some(q.id),_=>None},"echo":match &r.phase {tarot_core::authorization::Phase::Question(q)=>Some(q.echo),_=>None}}))},
                 "power": state.shell.power,
                 "audio": {"enabled":state.shell.audio.enabled,"available":state.shell.audio.available,"generation":state.shell.audio.generation,"epoch":state.shell.audio.epoch,"pending":state.shell.audio.pending,"error":state.shell.audio.error,"action_error":state.shell.audio.action_error,"outputs":state.shell.audio.outputs.iter().map(|o|json!({"id":o.id,"percent":o.percent,"muted":o.muted,"default":o.default})).collect::<Vec<_>>()},
                 "notifications": notifications,

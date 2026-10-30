@@ -33,7 +33,11 @@ pub fn show(ctx: &egui::Context, model: &ShellModel, layout: Layout, commands: &
                 .add_sized([64.0, 48.0], egui::Button::new("‹ Back"))
                 .clicked()
             {
-                if model.system_page == SystemPage::Bluetooth && model.bluetooth.prompt.is_some() {
+                if model.system_page == SystemPage::Authorization {
+                    commands.push(Command::SystemMenuOpen(false));
+                } else if model.system_page == SystemPage::Bluetooth
+                    && model.bluetooth.prompt.is_some()
+                {
                     if let Some(p) = &model.bluetooth.prompt {
                         commands.push(Command::Bluetooth(tarot_core::bluetooth::Action::Service(
                             tarot_core::bluetooth::UiAction::Reply {
@@ -52,6 +56,7 @@ pub fn show(ctx: &egui::Context, model: &ShellModel, layout: Layout, commands: &
             }
             let title = match model.system_page {
                 SystemPage::Wifi => "Wi-Fi",
+                SystemPage::Authorization => "Authentication",
                 SystemPage::Bluetooth => "Bluetooth",
                 SystemPage::Audio => "Sound",
                 _ => "Power & display",
@@ -66,6 +71,7 @@ pub fn show(ctx: &egui::Context, model: &ShellModel, layout: Layout, commands: &
         });
         ui.separator();
         match model.system_page {
+            SystemPage::Authorization => super::authorization::show(ui, model, commands),
             SystemPage::Audio => super::audio::show(ui, model, layout, commands),
             SystemPage::Bluetooth => super::bluetooth::show(ui, model, commands),
             SystemPage::Wifi => {

@@ -1,0 +1,111 @@
+{
+  "revision": 52,
+  "date": "2026-10-30",
+  "scope": "Session-bound Polkit agent and trusted modal; full plan remains active",
+  "package_sha256": "a3a0da25c3ac9d2208848306e0e8628f84b5c21056365a3ea85f97bd47e35c9e",
+  "source_sha256": "8b2ab9690719e19db6f816fd37947f037bcceaef01f08cfbade01884f2b7ba94",
+  "binaries_sha256": {
+    "tarot": "5203844a0bd69554a93429ae3781f813f5a143244d6241b65366b5d815a31748",
+    "tarot-session": "dcec1ec7bb4cbec1ec63397c55e371fe2ff0836e55a3991752ec36aaeafe8a53",
+    "tarot-lock": "35f7e8b144ec9e2bd1b789f4b7fa3c41c53c24b41071b730167f6a915fd03088",
+    "tarot-keyboard": "422ba76e7d38156c616b12887daec975611fa67f6bc1e903e09795bbe309aef4"
+  },
+  "host": {
+    "runtime_and_qa_inputs": 540,
+    "source_manifest_sha256": "7ec3fae4245acf59f7eab16a91e875fd0c31c470b9a33ae5d05487729e858996",
+    "frozen_binary_sha256": {
+      "tarot-minimum-final": "6990b41a0b2a3e54eeb1ecaf3755878b9d269a3323bcf04155003f6fde3e2b8b",
+      "tarot-current-final": "ab1ba278ea02a3e434fd469695171d27e0558b53fef2a0486f62981895367d72",
+      "tarot-current": "3ae5977db95dc50f6f3be46a338d8b10156feb06c58ce1136785af2655c0a1b0"
+    },
+    "workspace_tests": {
+      "workspace-tests-final.log": 251,
+      "minimum-workspace-tests-final.log": 251
+    },
+    "private_rendered": {
+      "private-04": true,
+      "private-msrv-01": true,
+      "bluetooth-regression": true
+    },
+    "complete_source_inputs": 616,
+    "complete_source_manifest_sha256": "3642701eb4413d3cd3c9a334126b0727aff29201ca85db035063b1bac08fdfc5",
+    "strict_host_lint": true,
+    "strict_arm_drm_lint": true,
+    "wifi_credentials_regression": true,
+    "native_accepted_by_host_tests": false
+  },
+  "native": {
+    "passed": true,
+    "sha256": "2d249744d813d13441d74137935d26c2dd58916a2aced53a7b0c6e315c40f5f6",
+    "members": 641,
+    "frozen_inputs": 610,
+    "real_authority_decisions": {
+      "correct": true,
+      "wrong": false,
+      "cancel": false,
+      "requester-cancel": false,
+      "helper-killed": false,
+      "lock-unsubmitted": false,
+      "while-locked": false,
+      "lock-checking": false,
+      "fresh-after-lock": true
+    },
+    "actual_pam": true,
+    "normal_default_tarot_and_panfrost": true,
+    "exact_preferences_policies_controls_restored": true,
+    "temporary_policy_removed": true,
+    "suspend_cycles": 0,
+    "roles": {
+      "tarot-session": {
+        "pid": 15882,
+        "start": "20470196",
+        "sha256": "dcec1ec7bb4cbec1ec63397c55e371fe2ff0836e55a3991752ec36aaeafe8a53"
+      },
+      "tarot": {
+        "pid": 15886,
+        "start": "20470197",
+        "sha256": "5203844a0bd69554a93429ae3781f813f5a143244d6241b65366b5d815a31748"
+      },
+      "tarot-lock": {
+        "pid": 15896,
+        "start": "20470238",
+        "sha256": "35f7e8b144ec9e2bd1b789f4b7fa3c41c53c24b41071b730167f6a915fd03088"
+      },
+      "tarot-keyboard": {
+        "pid": 15909,
+        "start": "20470239",
+        "sha256": "422ba76e7d38156c616b12887daec975611fa67f6bc1e903e09795bbe309aef4"
+      }
+    }
+  },
+  "normal": {
+    "passed": true,
+    "diagnostics_and_metadata_off": true,
+    "hardware_keys_on": true,
+    "default_tarot": true,
+    "system_bus_unchanged": true,
+    "temporary_policy_removed": true,
+    "polkit_package_unchanged": true,
+    "services": {
+      "greetd": 0,
+      "polkit": 0,
+      "modemmanager": 0,
+      "networkmanager": 0,
+      "sshd": 0,
+      "iio-sensor-proxy": 0,
+      "bluetooth": 0
+    }
+  },
+  "retained_failures": [
+    "Restricted initial host run rejected its Unix socket operation; final unrestricted run passes.",
+    "Initial minimum-Rust URI-helper test failed; isolated and full unchanged-source rechecks pass; cause remains unproven.",
+    "Private-03 retained a modal after owner replacement; final code dismisses service-loss prompts while retaining explicit authentication failure.",
+    "Host package driver ended 143; the original container build continued to terminal 0, verified through its lifecycle event and independently audited package."
+  ],
+  "limitations": [
+    "Interactive NetworkManager authorization callers remain gated pending their own integration.",
+    "Native system-daemon restarts, broader authentication policy and release reliability remain unverified.",
+    "Cancellation cannot revoke an authorization already accepted by the authority.",
+    "No suspend, live carrier or complete M4/full-plan acceptance is claimed."
+  ]
+}

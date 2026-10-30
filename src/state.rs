@@ -85,6 +85,7 @@ pub struct Compositor {
     pub system_services: Option<crate::power::Server>,
     pub network: Option<crate::network::Server>,
     pub bluetooth: Option<crate::bluetooth::Server>,
+    pub authorization: Option<crate::authorization::Server>,
     pub audio: Option<crate::audio::Server>,
     pub popups: PopupManager,
     pub popup_grab: Option<smithay::desktop::PopupGrab<Self>>,
@@ -263,6 +264,7 @@ impl Compositor {
             system_services: None,
             network: None,
             bluetooth: None,
+            authorization: None,
             audio: None,
             popups,
             popup_grab: None,
@@ -677,6 +679,7 @@ impl Compositor {
                 && !matches!(
                     effect,
                     Effect::Network(tarot_core::network::UiAction::CancelSecrets { .. })
+                        | Effect::Authorization(tarot_core::authorization::UiAction::Cancel { .. })
                         | Effect::Bluetooth(tarot_core::bluetooth::UiAction::Reply {
                             answer: tarot_core::bluetooth::Answer::Reject,
                             ..
@@ -726,6 +729,20 @@ impl Compositor {
                 Effect::Lock => {
                     if let Err(error) = self.request_lock() {
                         tracing::warn!(%error,"lock request rejected");
+                    }
+                }
+                Effect::Authorization(action) => {
+                    if let Some(server) = &self.authorization
+                        && server.action(action).is_err()
+                    {
+                        // A raced question or unavailable bounded queue must not
+                        // leave optimistic Checking state with private entry.
+                        if let Some(cancel) = self.shell.authorization.cancel() {
+                            let _ = server.action(cancel);
+                        }
+                        self.shell.authorization.snapshot.error =
+                            Some("Authentication question ended".into());
+                        self.apply_command(Command::SystemMenuOpen(false));
                     }
                 }
                 Effect::Bluetooth(action) => {

@@ -85,6 +85,7 @@ pub enum SystemPage {
     Power,
     Wifi,
     Bluetooth,
+    Authorization,
     Audio,
     Device,
     Activity,
@@ -126,6 +127,7 @@ pub enum Command {
     Audio(audio::UiAction),
     Network(network::UiAction),
     Bluetooth(bluetooth::Action),
+    Authorization(authorization::Action),
     SystemPage(SystemPage),
     NetworkSetup(u64),
     CredentialText(network::Secret),
@@ -166,6 +168,7 @@ pub enum Effect {
     Audio(audio::UiAction),
     Network(network::UiAction),
     Bluetooth(bluetooth::UiAction),
+    Authorization(authorization::UiAction),
 }
 
 #[derive(Clone, Debug, Default)]
@@ -202,6 +205,7 @@ pub struct ShellModel {
     pub audio: audio::Snapshot,
     pub volume_feedback: Option<audio::KeyFeedback>,
     pub network: network::Snapshot,
+    pub authorization: authorization::State,
     pub bluetooth: bluetooth::Snapshot,
     pub bluetooth_ui: bluetooth::View,
     pub system_page: SystemPage,
@@ -403,10 +407,15 @@ impl ShellModel {
     pub fn cancel_platform_input(&mut self) -> Vec<Effect> {
         let mut effects = self.cancel_network_input();
         effects.extend(self.cancel_bluetooth_input());
+        effects.extend(self.authorization.cancel().map(Effect::Authorization));
         effects
     }
     pub fn credential_keyboard_visible(&self) -> bool {
-        self.bluetooth_keyboard_visible()
+        (self.system_menu_open
+            && self.system_page == SystemPage::Authorization
+            && self.authorization.keyboard
+            && self.authorization.question().is_some())
+            || self.bluetooth_keyboard_visible()
             || self.system_menu_open
                 && self.system_page == SystemPage::Wifi
                 && self
@@ -566,7 +575,9 @@ impl ShellModel {
     }
 
     pub fn apply(&mut self, command: Command) -> Vec<Effect> {
-        if (self.network_input.is_some() || self.bluetooth.prompt.is_some())
+        if (self.network_input.is_some()
+            || self.bluetooth.prompt.is_some()
+            || self.authorization.snapshot.request.is_some())
             && matches!(
                 command,
                 Command::Home
@@ -768,12 +779,25 @@ impl ShellModel {
             }
             Command::Audio(action) => return vec![Effect::Audio(action)],
             Command::Network(action) => return vec![Effect::Network(action)],
+            Command::Authorization(action) => {
+                if self.system_menu_open && self.system_page == SystemPage::Authorization {
+                    return self
+                        .authorization
+                        .apply(action)
+                        .into_iter()
+                        .map(Effect::Authorization)
+                        .collect();
+                }
+                return Vec::new();
+            }
             Command::Bluetooth(action) => return self.bluetooth_action(action),
             Command::SystemPage(page) => {
                 let effects = if page != SystemPage::Wifi {
                     self.cancel_platform_input()
                 } else {
-                    self.cancel_bluetooth_input()
+                    let mut effects = self.cancel_bluetooth_input();
+                    effects.extend(self.authorization.cancel().map(Effect::Authorization));
+                    effects
                 };
                 if self.system_menu_open && self.system_page != page {
                     if self.menus.history.len() >= 8 {
@@ -1226,6 +1250,58 @@ impl Layout {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn authentication_modal_dismissal_retires_entry_and_restores_the_origin() {
+        use authorization::{Action, Challenge, Phase, Request, Response, Snapshot, UiAction};
+        let mut m = model();
+        let origin = m.selected;
+        m.apply(Command::SystemPage(SystemPage::Authorization));
+        assert!(
+            m.apply(Command::SystemMenuOpen(true))
+                .contains(&Effect::Focus(None))
+        );
+        let snapshot = Snapshot {
+            enabled: true,
+            available: true,
+            request: Some(Request {
+                id: 7,
+                action: "org.tarot.Test".into(),
+                message: "Test authentication".into(),
+                identities: Vec::new(),
+                selected: None,
+                phase: Phase::Question(Challenge {
+                    id: 1,
+                    prompt: "Password:".into(),
+                    echo: false,
+                }),
+                info: None,
+            }),
+            ..Default::default()
+        };
+        assert!(m.authorization.sync(snapshot.clone(), true).is_empty());
+        m.apply(Command::Authorization(Action::Text {
+            request: 7,
+            turn: 1,
+            text: Response::new("synthetic-secret".into()).unwrap(),
+        }));
+        assert!(m.credential_keyboard_visible());
+        let effects = m.apply(Command::SystemMenuOpen(false));
+        assert!(effects.contains(&Effect::Authorization(UiAction::Cancel { request: 7 })));
+        assert!(effects.contains(&Effect::Focus(origin)));
+        assert!(m.authorization.input.expose().is_empty());
+        assert!(!m.credential_keyboard_visible());
+        assert!(!m.authorization.may_open(7));
+        m.authorization.sync(snapshot, true);
+        assert!(m.authorization.snapshot.request.is_none());
+        assert!(
+            m.apply(Command::Authorization(Action::Submit {
+                request: 7,
+                turn: 1
+            }))
+            .is_empty()
+        );
+        assert_eq!(m.selected, origin);
+    }
     #[test]
     fn credential_cancel_and_submission_cannot_reopen_a_retired_request() {
         let mut m = model();

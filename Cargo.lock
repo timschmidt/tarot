@@ -3124,6 +3124,7 @@ dependencies = [
  "egui",
  "egui_glow",
  "freedesktop-desktop-entry",
+ "futures-core",
  "glow",
  "libc",
  "libpulse-sys",

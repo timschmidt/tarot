@@ -1,6 +1,7 @@
 mod app_menus;
 mod apps;
 mod audio;
+mod authorization;
 mod bluetooth;
 mod card_renderer;
 mod clock;
@@ -150,6 +151,9 @@ pub struct Options {
     /// Use an isolated diagnostic bus instead of the system bus.
     #[arg(long, requires = "system_services")]
     platform_bus: Option<String>,
+    /// Nonprivileged helper for an explicitly private authorization fixture.
+    #[arg(long, requires = "platform_bus")]
+    authorization_helper: Option<std::path::PathBuf>,
     /// Diagnostic backlight readback directory; writes always use login1.
     #[arg(long, requires = "platform_bus")]
     backlight_root: Option<std::path::PathBuf>,
@@ -348,6 +352,14 @@ fn main() -> Result<()> {
             event_loop.handle(),
             &mut data.state,
             audio_server,
+        )?);
+        data.state.authorization = Some(authorization::start(
+            event_loop.handle(),
+            &mut data.state,
+            authorization::Options {
+                bus: options.platform_bus.clone(),
+                helper: options.authorization_helper.clone(),
+            },
         )?);
         data.state.bluetooth = Some(bluetooth::start(
             event_loop.handle(),

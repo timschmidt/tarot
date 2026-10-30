@@ -98,7 +98,7 @@ pub struct Snapshot {
     pub request: Option<Request>,
     pub error: Option<String>,
 }
-#[derive(Debug, PartialEq, Eq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub enum UiAction {
     Select {
@@ -114,7 +114,7 @@ pub enum UiAction {
         request: u64,
     },
 }
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Action {
     Service(UiAction),
     Text {
@@ -132,7 +132,7 @@ pub enum Action {
     },
     Keyboard(bool),
 }
-#[derive(Debug, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct State {
     pub snapshot: Snapshot,
     pub input: Response,
@@ -141,6 +141,9 @@ pub struct State {
     retired: u64,
 }
 impl State {
+    pub fn may_open(&self, request: u64) -> bool {
+        request > self.retired
+    }
     pub fn question(&self) -> Option<(u64, &Challenge)> {
         let request = self.snapshot.request.as_ref()?;
         match &request.phase {

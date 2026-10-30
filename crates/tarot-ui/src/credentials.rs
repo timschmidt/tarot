@@ -103,17 +103,26 @@ pub fn keyboard(
         ctx.data_mut(|d| d.remove::<super::keyboard::KeyboardUi>(id));
         return;
     }
-    let identity = if model.system_page == tarot_core::SystemPage::Bluetooth {
-        (2u8, model.bluetooth.prompt.as_ref().map_or(0, |p| p.id))
+    let identity = if model.system_page == tarot_core::SystemPage::Authorization {
+        let request = model
+            .authorization
+            .snapshot
+            .request
+            .as_ref()
+            .map_or(0, |r| r.id);
+        let turn = model.authorization.question().map_or(0, |(_, q)| q.id);
+        (3u8, request, turn)
+    } else if model.system_page == tarot_core::SystemPage::Bluetooth {
+        (2u8, model.bluetooth.prompt.as_ref().map_or(0, |p| p.id), 0)
     } else {
         match model.network_input.as_ref().map(|i| i.target) {
-            Some(InputTarget::New(id)) => (0, id),
-            Some(InputTarget::Agent(id)) => (1, id),
-            None => (3, 0),
+            Some(InputTarget::New(id)) => (0, id, 0),
+            Some(InputTarget::Agent(id)) => (1, id, 0),
+            None => (4, 0, 0),
         }
     };
     let context_id = egui::Id::new("credential_keyboard_context");
-    if ctx.data_mut(|d| d.get_temp::<(u8, u64)>(context_id)) != Some(identity) {
+    if ctx.data_mut(|d| d.get_temp::<(u8, u64, u64)>(context_id)) != Some(identity) {
         ctx.data_mut(|d| {
             d.remove::<super::keyboard::KeyboardUi>(id);
             d.insert_temp(context_id, identity);
@@ -148,7 +157,9 @@ pub fn keyboard(
                             true,
                         )
                     {
-                        if model.system_page == tarot_core::SystemPage::Bluetooth {
+                        if model.system_page == tarot_core::SystemPage::Authorization {
+                            super::authorization::key(model, action, commands);
+                        } else if model.system_page == tarot_core::SystemPage::Bluetooth {
                             super::bluetooth::key(model, action, commands);
                         } else {
                             key(action, commands);

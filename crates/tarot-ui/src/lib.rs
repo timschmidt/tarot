@@ -1,5 +1,6 @@
 //! The shared egui shell view; all platform effects are returned as commands.
 pub mod audio;
+pub mod authorization;
 pub mod bluetooth;
 pub mod credentials;
 mod favorite_drag;

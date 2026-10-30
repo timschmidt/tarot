@@ -86,6 +86,29 @@ impl Conversation {
         let name = username(uid)?;
         Self::spawn(Command::new(canonical), &name, cookie)
     }
+    /// Explicit private-bus QA only. Never launches the installed privileged
+    /// helper or accepts a setuid fixture. The agent must also validate its bus.
+    pub fn private_fixture(
+        path: &Path,
+        uid: u32,
+        cookie: Zeroizing<String>,
+        bus: &str,
+    ) -> Result<Self> {
+        ensure!(
+            bus.starts_with("unix:") && !bus.contains("/run/dbus/system_bus_socket"),
+            "A private diagnostic bus is required"
+        );
+        let canonical = path.canonicalize()?;
+        let metadata = canonical.metadata()?;
+        ensure!(
+            canonical != Path::new(SYSTEM_HELPER).canonicalize().unwrap_or_default()
+                && metadata.is_file()
+                && metadata.uid() == unsafe { libc::geteuid() }
+                && metadata.mode() & 0o6022 == 0,
+            "Unsupported authentication fixture"
+        );
+        Self::spawn(Command::new(canonical), &username(uid)?, cookie)
+    }
     fn spawn(mut command: Command, username: &str, cookie: Zeroizing<String>) -> Result<Self> {
         ensure!(
             !cookie.is_empty() && cookie.len() <= 4096 && !cookie.chars().any(char::is_control),
@@ -310,6 +333,10 @@ impl Drop for Conversation {
     }
 }
 
+/// Resolve an offered identity on the authentication worker.
+pub fn account_name(uid: u32) -> Result<String> {
+    username(uid)
+}
 fn username(uid: u32) -> Result<String> {
     let mut storage = vec![0u8; 16384];
     loop {
