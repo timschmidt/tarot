@@ -25,7 +25,8 @@ and source/archive audits pass. General flood/directed-traffic/resource budgets,
 production bus recovery and the remaining full-plan gates stay open.
 [Exact evidence and limits](recordings/menu-signals/README.md).
 
-The owner's optional MPU-6500 DMP double-chop flashlight feature is
+The owner's optional MPU-6500 DMP double-chop flashlight feature, with an
+MPU-6515M extension for LG Fx0 under deferred M7, is
 [planned under M4/T015](DEVELOPMENT_PLAN.md#m4-addition-double-chop-flashlight-from-suspend),
 including a persistent UI switch and real suspend-wake/power validation. It is
 not implemented or established as feasible on the current kernel/firmware yet.

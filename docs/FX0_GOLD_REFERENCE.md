@@ -6,6 +6,12 @@ and LG Fx0 as another device, using reusable device profiles and capabilities.
 [Deferred M7 plan](DEVELOPMENT_PLAN.md#m7-deferred-extension-gold-theme-and-additional-devices).
 Nocturne and PinePhone Pro remain the current implementation baseline.
 
+The owner also requests the double-chop flashlight feature for the Fx0's
+MPU-6515M. Its [M7.3 development work](DEVELOPMENT_PLAN.md#m73-audit-and-bring-up-the-actual-lg-fx0)
+shares the PinePhone Pro feature's UI/policy while requiring separate DMP,
+interrupt, suspend-wake and power validation on Fx0. This remains deferred
+device work and is independent of selecting the Gold theme.
+
 The supplied [33-page packet](tarot-fx0-gold-design-sources/Tarot_Fx0_Design_Packet.pdf),
 [overview](tarot-fx0-gold-design-sources/Tarot_Fx0_Visual_Overview.png),
 [README](tarot-fx0-gold-design-sources/README.txt),

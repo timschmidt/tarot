@@ -228,6 +228,13 @@ bounded flashlight/torch control adapter. Schedule this as PinePhone Pro work
 before the deferred M7 extension; retain shared capability interfaces for future
 devices.
 
+**Fx0 extension, also requested October 30:** include the LG Fx0's MPU-6515M
+as a second sensor target under [M7.3](#m73-audit-and-bring-up-the-actual-lg-fx0).
+Share the gesture/torch policy, event interface and UI switch across devices;
+keep firmware, register access, mount calibration and wake wiring in their
+respective adapters. Fx0 implementation retains the existing deferred M7 order
+and needs its own DMP/deep-suspend evidence.
+
 1. Verify the actual board, installed kernel/IIO driver, IMU power retention,
    interrupt routing and wake-source support during deep suspend. PINE64 lists
    the [MPU-6500 and camera flash hardware](https://pine64.org/documentation/PinePhone_Pro/Hardware/).
@@ -450,6 +457,22 @@ rather than fork the shell model or copy the PinePhone-specific setup scripts.
 - Implement only the measured profile and adapters. Preserve ordinary-user
   authenticated sessions, lock-before-suspend and protected recovery. Do not
   infer wake support from the presence of a Home key.
+- Extend the [double-chop flashlight feature](#m4-addition-double-chop-flashlight-from-suspend)
+  to the Fx0's MPU-6515M. Verify the actual chip/revision, driver interface,
+  firmware programming and redistribution terms, interrupt routing and sensor
+  power retention during deep suspend. The historical
+  [InvenSense MPU-6515 driver documentation](https://android.googlesource.com/kernel/msm/+/android-msm-dory-3.10-kitkat-wear/drivers/iio/imu/inv_mpu6515/README)
+  is an investigation reference, not proof of current Fx0 kernel support or
+  custom double-chop recognition. Do not assume MPU-6500 firmware or register
+  settings are interchangeable with MPU-6515M.
+- Implement Fx0-specific DMP recognition and wake/torch integration behind the
+  shared capability boundary, retaining the same persistent UI toggle and locked
+  flashlight behavior regardless of theme. Calibrate for its sensor mounting;
+  coordinate orientation sensing, camera ownership and resume/re-arm behavior.
+  Repeat T015's physical awake/locked/panel-off/deep-suspend on/off tests,
+  disabled/reboot behavior, false-activation checks and energy measurements on
+  the actual Fx0. Track unsupported DMP/wake paths explicitly; PinePhone Pro
+  results cannot establish Fx0 acceptance.
 
 ### M7.4 Reflow and calibrate the Fx0 experience
 
