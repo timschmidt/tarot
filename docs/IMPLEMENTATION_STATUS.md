@@ -12,7 +12,9 @@ The first revision-44 run still fails fullscreen Firefox Unicode after 21 return
 
 ## Native app-menu ownership experiment
 
-A separate Rust experiment now binds actual GTK surface claims to live kernel process handles from Wayland and D-Bus. Host current/minimum-Rust cases and ARM builds/lint pass wrong-client, retired-choice, owner/surface/revision/lifetime and real callback checks. Its first ordinary-user phone run rejects the missing optional `ProcessFD` credential from stock D-Bus 1.16.2; independent probing confirms the absence. The kernel supports peer handles, while target C socket headers omit the daemon's feature macro. A private daemon comparison is the next gate. Normal default Tarot 44, its processes/preferences/runtime libraries and diagnostics-off state remain unchanged. No production export capability or phone ownership acceptance is claimed. [Executed scope, identities and next work](MENUS_PLAN.md#waylandexport-ownership-experiment-and-target-dependency).
+Private ownership scenarios now pass on the host and PinePhone Pro with current Rust and Rust 1.89, alongside strict host/ARM lint. Actual unmapped GTK surface claims and GIO exports bind through live kernel process handles. Wrong-client claims, retired choices, connection/surface/revision/lifetime changes and actual callback data are checked.
+
+The stock phone daemon omits `ProcessFD`, so its first legitimate ownership case remains failed. A controlled private D-Bus build enables the missing target feature: both unchanged ARM ownership binaries then pass the complete scenario, and four GIO regressions pass across the before/after pair. Independent credential probes and collected-source/daemon verification agree. Normal Tarot 44's exact processes, preferences and runtime libraries remain unchanged, with diagnostics off and hardware keys enabled. Normal-session dependency delivery, mapped real-app exports and production app-menu UI remain open. [Executed scope, identities and next work](MENUS_PLAN.md#waylandexport-ownership-experiment-and-target-dependency) · [Native comparison record](recordings/menu-ownership/README.md).
 
 ## Notification-well development
 
