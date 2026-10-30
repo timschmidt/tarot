@@ -1,9 +1,9 @@
 # Session idle reporting
 
 Tarot has an opt-in publisher for the authenticated GUI session's login1 idle
-hint. This is T016 integration work. Signed revision 58 is installed as the
+hint. This is T016 integration work. Signed revision 59 is installed as the
 phone's normal default session, and its normal launcher leaves the publisher
-disabled. The publisher does not implement automatic sleep by itself, and the
+disabled. Revision 59 adds persistent user settings for the publisher. The publisher does not implement automatic sleep by itself, and the
 phone keeps its existing `IdleAction=ignore` configuration. [Full automatic-suspend plan](DEVELOPMENT_PLAN.md#m4-addition-automatic-suspend-policy).
 
 `--session-idle` requires sleep coordination, the trusted locker, system services
@@ -16,8 +16,33 @@ and an idle policy. The local readiness calculation requires all of the followin
 - An active seat, a healthy armed sleep-delay coordinator, available audio
   observation, and a held audio block when uncorked audio needs one.
 - A known battery/external-power observation. The default allows readiness only
-  on battery; `--session-idle-on-external-power` explicitly permits known external
-  power. Unknown power stays unready under either policy.
+  on battery. The persistent external-power setting, or the diagnostic
+  `--session-idle-on-external-power` override, permits known external power.
+  Unknown power stays unready under either policy.
+- The persistent **Automatic sleep** setting is on, and its configured delay has
+  elapsed since this protected power-off was proven. The delay restarts with
+  each power-off; any wake retires it. A loop timer publishes when it expires,
+  with no further input.
+
+## Power settings
+
+The Power page has an **Automatic sleep** section with three controls:
+
+- **Sleep after the screen turns off** (default off)
+- **Sleep after screen off**: Immediately, 30 seconds, or 1, 2, 5, 10, 15 or 30 minutes (default 1 minute)
+- **Also sleep on external power** (default off)
+
+They are saved under `[display.sleep]` in settings schema 6. A
+version-5 file loads unchanged with defaults and is rewritten only after a
+change. An older schema that contains the newer section is rejected, and the
+original file is preserved. Values over one hour are invalid.
+
+Sessions without the idle publisher show *Automatic sleep is not available in
+this session*. When the manager reports `IdleAction=ignore`, the page says the
+system is not configured to sleep when idle. The publisher still reports the
+hint truthfully, but no sleep follows. Unknown power and publisher errors also
+have explicit status lines. Settings change only while unlocked, through the
+same managed-idle rule as the lock and screen-off timeouts.
 
 Audio playback can coexist with an idle hint once its sleep block is held.
 The manager must still enforce that block. Locking and display off keep their
@@ -89,7 +114,13 @@ default on USB power, the hint stays false with `ExternalPower` readiness. Kerne
 counters are unchanged, and normal Tarot58 is independently restored with the
 hint false. [Native evidence and limits](recordings/session-idle-native/README.md).
 
-Next: persistent Power controls, then resolution of the recorded USB kernel
-sleep failure. After that, complete T016's global-inhibitor, policy
-packaging/rollback and actual automatic-sleep tests. Bluetooth stays
+Signed revision 59 adds the persistent settings and passes native disabled,
+delayed (10 s, bounded by direct reads at 10.007/10.222 s), battery-only and
+persistent external-power cases. The saved schema-6 file is verified between
+logins. Settings were changed through private control, so finger review of the
+Power section remains open. [Evidence](recordings/sleep-settings/README.md).
+
+Next, resolve the recorded USB kernel sleep failure. Then complete T016's
+manager-policy packaging/rollback, global-inhibitor and actual automatic-sleep
+tests. Bluetooth stays
 paused at the owner's request. No complete milestone is closed here.

@@ -827,6 +827,54 @@ mod tests {
     }
 
     #[test]
+    fn automatic_sleep_controls_are_honest_and_emit_one_change_per_touch() {
+        use tarot_core::session_idle::{Readiness, Settings};
+        let ctx = egui::Context::default();
+        let mut model = ShellModel::default();
+        let size = Vec2::new(360.0, 1600.0);
+        model.power.enabled = true;
+        model.lock_available = true;
+        model.display.idle_configurable = true;
+        model.apply(Command::SystemMenuOpen(true));
+        model.apply(Command::SystemPage(SystemPage::Power));
+        let output = settle(&ctx, &model, size);
+        position(&output, "Automatic sleep is not available in this session.");
+        model.display.sleep_available = true;
+        let output = settle(&ctx, &model, size);
+        let toggle = position(&output, "Sleep after the screen turns off");
+        let mut commands = render(&ctx, &model, size, vec![Event::PointerMoved(toggle)]).0;
+        commands.extend(render(&ctx, &model, size, vec![button(toggle, true)]).0);
+        commands.extend(render(&ctx, &model, size, vec![button(toggle, false)]).0);
+        assert_eq!(
+            commands,
+            [Command::SleepSettings(Settings {
+                automatic: true,
+                ..Settings::default()
+            })]
+        );
+        // The UI cannot invent the saved state: repaint before confirmation is quiet.
+        assert!(render(&ctx, &model, size, vec![]).0.is_empty());
+        model.display.sleep.automatic = true;
+        model.display.sleep_manager_action = Some("ignore".into());
+        model.display.sleep_readiness = Readiness::Disabled;
+        let output = settle(&ctx, &model, size);
+        position(&output, "The system is not configured to sleep when idle.");
+        position(&output, "Also sleep on external power");
+        model.display.sleep_manager_action = Some("suspend".into());
+        model.display.sleep_readiness = Readiness::PowerUnknown;
+        position(
+            &settle(&ctx, &model, size),
+            "Power source is unknown, so sleep waits.",
+        );
+        model.display.sleep_error = true;
+        position(&settle(&ctx, &model, size), "Sleep status is unavailable.");
+        model.display.idle_configurable = false;
+        let output = settle(&ctx, &model, size);
+        assert!(!output.shapes.iter().any(|s| matches!(&s.shape,
+            egui::Shape::Text(t) if t.galley.job.text == "Automatic sleep")));
+    }
+
+    #[test]
     fn sound_scroll_survives_service_updates_while_held_route_choices_retire() {
         use tarot_core::audio::{Availability, Output, Port, UiAction};
         for feedback_update in [false, true] {

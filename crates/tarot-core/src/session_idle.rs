@@ -1,5 +1,31 @@
 //! Readiness for the session manager's automatic idle action, not a sleep call.
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
+
+/// Persistent user sleep policy. Off by default; the session manager's own
+/// idle action must still be configured before any sleep can follow.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct Settings {
+    pub automatic: bool,
+    /// Protected screen-off time before the session reports idle.
+    pub after_off_seconds: u32,
+    pub on_external_power: bool,
+}
+impl Default for Settings {
+    fn default() -> Self {
+        Self {
+            automatic: false,
+            after_off_seconds: 60,
+            on_external_power: false,
+        }
+    }
+}
+impl Settings {
+    pub const DELAYS: [u32; 8] = [0, 30, 60, 120, 300, 600, 900, 1800];
+    pub fn valid(self) -> bool {
+        self.after_off_seconds <= 3600
+    }
+}
 
 /// Evidence of a protected KMS completion for the current power-off transaction.
 /// Locker generation/output geometry may change while that panel stays off;
@@ -25,6 +51,8 @@ pub struct Conditions {
     /// None means that external-power observation is unavailable.
     pub external_power: Option<bool>,
     pub allow_external_power: bool,
+    /// The configured delay has elapsed since this protected power-off.
+    pub delay_elapsed: bool,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize)]
@@ -39,6 +67,7 @@ pub enum Readiness {
     AudioBlockPending,
     PowerUnknown,
     ExternalPower,
+    Delay,
     Ready,
 }
 
@@ -62,6 +91,7 @@ impl Conditions {
             match self.external_power {
                 None => Readiness::PowerUnknown,
                 Some(true) if !self.allow_external_power => Readiness::ExternalPower,
+                Some(_) if !self.delay_elapsed => Readiness::Delay,
                 Some(_) => Readiness::Ready,
             }
         }
@@ -93,6 +123,7 @@ mod tests {
             audio_block_ready: true,
             external_power: Some(false),
             allow_external_power: false,
+            delay_elapsed: true,
         }
     }
 
@@ -191,6 +222,66 @@ mod tests {
             }
             .readiness(),
             Readiness::PowerUnknown
+        );
+    }
+    #[test]
+    fn sleep_delay_is_checked_only_after_every_safety_and_power_condition() {
+        let waiting = Conditions {
+            delay_elapsed: false,
+            ..ready()
+        };
+        assert_eq!(waiting.readiness(), Readiness::Delay);
+        for (c, expected) in [
+            (
+                Conditions {
+                    enabled: false,
+                    ..waiting
+                },
+                Readiness::Disabled,
+            ),
+            (
+                Conditions {
+                    output_off: false,
+                    ..waiting
+                },
+                Readiness::Active,
+            ),
+            (
+                Conditions {
+                    external_power: Some(true),
+                    ..waiting
+                },
+                Readiness::ExternalPower,
+            ),
+            (
+                Conditions {
+                    external_power: None,
+                    ..waiting
+                },
+                Readiness::PowerUnknown,
+            ),
+        ] {
+            assert_eq!(c.readiness(), expected);
+        }
+    }
+    #[test]
+    fn settings_default_off_with_bounded_delays() {
+        let settings = Settings::default();
+        assert!(!settings.automatic && !settings.on_external_power && settings.valid());
+        assert!(Settings::DELAYS.contains(&settings.after_off_seconds));
+        assert!(Settings::DELAYS.iter().all(|&after_off_seconds| {
+            Settings {
+                after_off_seconds,
+                ..settings
+            }
+            .valid()
+        }));
+        assert!(
+            !Settings {
+                after_off_seconds: 3601,
+                ..settings
+            }
+            .valid()
         );
     }
     #[test]

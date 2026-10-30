@@ -1,5 +1,7 @@
 """Real session idle hints with protected panel off; IdleAction must stay ignore.
 
+Covers the persistent sleep settings: disabled, delayed and external-power policy.
+
 No Suspend, system policy change, physical audio or Bluetooth operation.
 """
 import hashlib
@@ -159,6 +161,8 @@ def replay(socket, state, before, directory, guard, authenticate, mode, observer
     assert baseline['lock']['session_idle']['allow_external_power'] is expected
     assert baseline['power']['battery']['external_power'] is True, 'Connected external-power policy needs actual observation'
     original_idle = baseline['display_settings']['idle']
+    assert baseline['display_settings']['sleep_available'] is True
+    assert baseline['display_settings']['sleep'] == dict(automatic=False, after_off_seconds=60, on_external_power=False)
     original_audio = snapshot()
     kernel_before = stats()
     panels = [p.parent for p in Path('/sys/class/drm').glob('card*-DSI-*/status') if p.read_text().strip()=='connected']
@@ -195,12 +199,21 @@ def replay(socket, state, before, directory, guard, authenticate, mode, observer
             return [r for r in observer.call(observer.owner,ROOT,MANAGER,'ListInhibitors')[0]
                     if r[1]=='Tarot' and r[2]=='Audio playback or recording is active']
         grant=await_value(grants,bool);assert len(grant)==1 and grant[0][3:] == ('block',10000,before['pid'])
+        def sleep_settings(label,**changes):
+            current=state(label+'-before',lambda s:s['lock']['phase']=='Unlocked')['display_settings']['sleep']
+            wanted=dict(current,**changes)
+            reply=request(socket,'sleep_settings',settings=wanted)
+            assert reply.get('ok',True),reply
+            state(label,lambda s:s['display_settings']['sleep']==wanted and s['display_settings']['settings_saved'])
+            result.setdefault('sleep_settings_applied',[]).append(dict(label=label,settings=wanted))
+        sleep_settings('session-idle-setting-enabled',automatic=True,after_off_seconds=0)
         request(socket,'idle_timeouts',settings=dict(lock_after_seconds=15,off_after_seconds=20,screen_off_enabled=True))
-        def off(label):
+        def off(label,hint=expected,readiness=None):
+            readiness=readiness or ('Ready' if hint else 'ExternalPower')
             value = state(label,lambda s:s['lock']['phase']!='Unlocked' and s['lock']['idle']['output_off']
-                and s['lock']['session_idle']['readiness']==('Ready' if expected else 'ExternalPower')
-                and s['lock']['session_idle']['publisher']['observed_idle'] is expected,seconds=45)
-            assert observer.read()['idle'] is expected
+                and s['lock']['session_idle']['readiness']==readiness
+                and s['lock']['session_idle']['publisher']['observed_idle'] is hint,seconds=45)
+            assert observer.read()['idle'] is hint
             result[label]=dict(status=value,independent=observer.read(),driver=await_value(panel,lambda p:p==dict(dpms='Off',backlight_power=4)))
             return value
         off('session-idle-automatic-off-with-audio'); assert grants()==grant
@@ -241,7 +254,46 @@ def replay(socket, state, before, directory, guard, authenticate, mode, observer
             recovered=authenticate('session-idle-owner-recovery-pam')
             assert recovered['cards']==before['cards'] and recovered['view']==before['view']
             state('session-idle-recovery-wake-cleared',lambda s:s['lock']['session_idle']['publisher']['observed_idle'] is False)
-            keyboard.tap(116);off('session-idle-ready-for-shutdown')
+            # A persistent delay starts at the proven protected off, then a timer
+            # publishes without any further input or service event.
+            sleep_settings('session-idle-setting-delay',after_off_seconds=10)
+            start=len(observer.recorded())
+            waiting_started=time.monotonic()
+            keyboard.tap(116)
+            waiting=off('session-idle-delay-pending',hint=False,readiness='Delay')
+            proven=waiting['lock']['session_idle']['proven_off']
+            assert proven is not None and proven[0]==waiting['lock']['idle']['off_count']
+            # Signal timestamps are dispatch times, an upper bound only. Direct
+            # property reads bound the transition from both sides.
+            reads=[]
+            while not reads or not reads[-1][1]:
+                assert time.monotonic()-waiting_started<40,reads[-3:]
+                if reads:time.sleep(.2)
+                reads.append((time.monotonic(),observer.read()['idle']))
+            last_false=max(t for t,v in reads if not v) if any(not v for _,v in reads) else None
+            assert last_false is not None and last_false-waiting_started>=9.5,(waiting_started,reads[:3],reads[-3:])
+            assert reads[-1][0]-waiting_started<=25
+            events=await_value(observer.recorded,lambda es:any(e['event']=='hint' and e['value'] is True for e in es[start:]),seconds=40)
+            published=next(e for e in events[start:] if e['event']=='hint' and e['value'] is True)
+            ready=state('session-idle-delay-elapsed',lambda s:s['lock']['session_idle']['readiness']=='Ready'
+                and s['lock']['session_idle']['publisher']['observed_idle'] is True)
+            assert ready['lock']['session_idle']['proven_off']==proven and observer.read()['idle'] is True
+            # Session-relative proof time to the independent signal's monotonic time.
+            result['delay']=dict(configured_seconds=10,pending_status_seen=True,hint_signal_monotonic=published['monotonic'],
+                                 last_false_read_after_request=last_false-waiting_started,
+                                 first_true_read_after_request=reads[-1][0]-waiting_started,property_reads=len(reads),
+                                 proven_off_session_seconds=proven[1]['secs']+proven[1]['nanos']/1e9,
+                                 off_requested_monotonic=waiting_started)
+            assert published['monotonic']-waiting_started <= 25, result['delay']
+        else:
+            restored=authenticate('session-idle-battery-policy-wake')
+            assert restored['cards']==before['cards'] and restored['view']==before['view']
+            sleep_settings('session-idle-setting-disabled',automatic=False)
+            keyboard.tap(116);off('session-idle-disabled-power-off',hint=False,readiness='Disabled')
+            authenticate('session-idle-disabled-wake')
+            sleep_settings('session-idle-setting-external-power',automatic=True,on_external_power=True)
+            keyboard.tap(116);off('session-idle-persistent-external-power',hint=True)
+            result['persistent_external_power_allows_idle']=True
         result['left_protected_for_shutdown']=True
         result['kernel_after']=stats();assert result['kernel_after']==kernel_before
         result['passed']=True

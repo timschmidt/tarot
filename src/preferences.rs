@@ -39,7 +39,7 @@ pub struct Preferences {
 impl Default for Preferences {
     fn default() -> Self {
         Self {
-            version: 5,
+            version: 6,
             notifications: Notifications::default(),
             display: tarot_core::display::Preferences::default(),
             quick_launch: None,
@@ -138,22 +138,26 @@ fn read(path: &Path) -> Result<Option<Preferences>> {
     let mut preferences: Preferences = toml::from_str(&text)
         .map_err(|_| anyhow::anyhow!("invalid or unsupported settings schema"))?;
     ensure!(
-        (1..=5).contains(&preferences.version),
+        (1..=6).contains(&preferences.version),
         "unsupported settings version"
     );
-    if preferences.version < 5 {
+    if preferences.version < 6 {
         // Old schemas must not smuggle a later section into a migration.
         let old: toml::Value = toml::from_str(&text)?;
         ensure!(
-            old.get("feedback").is_none()
+            old.get("display")
+                .and_then(|display| display.get("sleep"))
+                .is_none()
+                && (preferences.version >= 5 || old.get("feedback").is_none())
                 && (preferences.version >= 4 || old.get("launcher").is_none())
                 && (preferences.version >= 3 || old.get("quick_launch").is_none())
                 && (preferences.version != 1 || old.get("display").is_none()),
             "invalid mixed settings version"
         );
-        preferences.version = 5;
+        preferences.version = 6;
     }
     ensure!(preferences.display.idle.valid(), "invalid display timeouts");
+    ensure!(preferences.display.sleep.valid(), "invalid sleep settings");
     ensure!(
         preferences.quick_launch.as_ref().is_none_or(|f| f.valid()),
         "invalid Quick Launch favorites"
@@ -167,8 +171,9 @@ fn read(path: &Path) -> Result<Option<Preferences>> {
 
 fn write(path: &Path, preferences: &Preferences) -> Result<()> {
     ensure!(
-        preferences.version == 5
+        preferences.version == 6
             && preferences.display.idle.valid()
+            && preferences.display.sleep.valid()
             && preferences.quick_launch.as_ref().is_none_or(|f| f.valid())
             && preferences.launcher.as_ref().is_none_or(|p| p.valid()),
         "invalid settings"
@@ -275,7 +280,7 @@ mod tests {
         );
         let saved = fs::read_to_string(&path).unwrap();
         for invalid in [
-            saved.replacen("version = 5", "version = 3", 1),
+            saved.replacen("version = 6", "version = 3", 1),
             saved.replacen("inbox = 1", "inbox = 999", 1),
         ] {
             assert_ne!(invalid, saved);
@@ -292,6 +297,45 @@ mod tests {
             let mut next = self.current.clone();
             next.notifications = notifications;
             self.replace(next);
+        }
+    }
+
+    #[test]
+    fn sleep_settings_need_schema_six_and_valid_values() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("settings.toml");
+        let original = "version = 5\n[display]\nrotation_locked = true\n";
+        fs::write(&path, original).unwrap();
+        let mut store = Store::load(path.clone());
+        assert!(store.saved && store.error.is_none());
+        assert_eq!(
+            store.current.display.sleep,
+            tarot_core::session_idle::Settings::default()
+        );
+        assert_eq!(fs::read_to_string(&path).unwrap(), original);
+        let mut next = store.current.clone();
+        next.display.sleep = tarot_core::session_idle::Settings {
+            automatic: true,
+            after_off_seconds: 300,
+            on_external_power: true,
+        };
+        store.replace(next.clone());
+        assert!(store.saved, "{:?}", store.error);
+        let saved = fs::read_to_string(&path).unwrap();
+        assert!(saved.starts_with("version = 6\n") && saved.contains("[display.sleep]"));
+        assert_eq!(Store::load(path.clone()).current, next);
+        for invalid in [
+            // An older schema cannot carry the newer section into a migration.
+            saved.replacen("version = 6", "version = 5", 1),
+            saved.replacen("after_off_seconds = 300", "after_off_seconds = 3601", 1),
+            saved.replacen("automatic = true", "suspend = true", 1),
+        ] {
+            assert_ne!(invalid, saved);
+            fs::write(&path, &invalid).unwrap();
+            let mut bad = Store::load(path.clone());
+            assert!(bad.error.is_some());
+            bad.update(Notifications::default());
+            assert_eq!(fs::read_to_string(&path).unwrap(), invalid);
         }
     }
 
@@ -351,7 +395,7 @@ mod tests {
         fs::write(&path, original).unwrap();
         let mut store = Store::load(path.clone());
         assert!(store.saved && store.current.notifications.dnd);
-        assert_eq!(store.current.version, 5);
+        assert_eq!(store.current.version, 6);
         assert_eq!(fs::read_to_string(&path).unwrap(), original);
         let mut next = store.current.clone();
         next.display.rotation_locked = true;
@@ -403,7 +447,8 @@ mod tests {
         let path = directory.path().join("settings.toml");
         for text in [
             "broken TOML".to_string(),
-            "version = 6\n".into(),
+            "version = 7\n".into(),
+            "version = 5\n[display.sleep]\nautomatic = true\n".into(),
             "version = 1\nunknown = true\n".into(),
             "version = 1\n[display]\nrotation_locked = true\n".into(),
             "version = 2\n[display.idle]\nlock_after_seconds = 0\n".into(),

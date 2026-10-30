@@ -14,6 +14,23 @@ for their graphics and authoring source. No Pre3 runtime work has started.
 
 ## Audio activity and system sleep
 
+Revision 59 T016 step-1 checkpoint, October 30: the Power page adds persistent
+**Automatic sleep** settings, saved in settings schema 6:
+
+- automatic sleep, off by default
+- a delay after protected screen-off, 1 minute by default
+- external-power permission
+
+The idle publisher now also requires the setting and its elapsed delay. Native
+diagnostic sessions verify `Disabled` with the setting off. A saved 10 s delay
+holds the hint false until 10.007 s after the request, and a timer publishes
+it by 10.222 s with no input. The battery-only policy refuses, and the
+persistent external-power setting allows. Saved settings verify between logins.
+Both compilers pass 284 tests and the private matrix; normal Tarot59 is
+independently restored. Finger review of the new section, manager-policy
+packaging and actual automatic sleep remain.
+[Evidence and limits](recordings/sleep-settings/README.md).
+
 Revision 58 native T016 checkpoint, October 30: signed Tarot58 publishes the
 real authenticated GUI session's login1 idle hint behind explicit diagnostic
 flags. The manager action stays `ignore`. With external power allowed, the hint

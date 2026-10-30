@@ -421,7 +421,7 @@ def run(args, password):
             records['session_idle'] = session_idle_replay(socket,state,before,args.output,guard,authenticate,idle_mode,idle_observer)
         records['before-end'] = request(socket, 'status')
         if idle_observer is not None:
-            idle_observer.before_exit(idle_mode == 'external')
+            idle_observer.before_exit(True)
         if sensor_monitor is not None:
             records['sensor_claims'] = sensor_monitor.snapshot()
             sensor_monitor.close()
@@ -449,7 +449,7 @@ def run(args, password):
         assert not socket.exists(), 'Supervisor must remove its diagnostic socket before ending the login session'
         if idle_observer is not None:
             try:
-                records['session_idle_observation'] = idle_observer.finish(require_teardown=True, expect_true=idle_mode=='external')
+                records['session_idle_observation'] = idle_observer.finish(require_teardown=True, expect_true=True)
             finally:idle_observer=None
         records['validation'] = {'passed': True, 'packaged_greetd_session': True, 'root_seatd_used': False, 'protected_startup_and_actual_pam': True, 'native_app_in_same_login_session': True, 'actual_kernel_suspend_cycles': args.cycles, 'audio_ready_checked':args.require_audio, 'compositor_killed': args.crash, 'returned_to_phrog': True, 'login_cgroup_empty': True, 'diagnostic_socket_removed': True, 'native_panel_off_sensor_release_reclaim':getattr(args,'panel_off',False), 'manual_sensor_tested': False, 'password_logged': False}
         print('PASS: installed unprivileged login/session, native app, real PAM and greeter recovery; actual suspend cycles:', len(records['cycles']), flush=True)

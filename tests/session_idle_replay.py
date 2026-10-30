@@ -161,20 +161,29 @@ def main():
             passed('uncertain-shutdown-reports-unknown-instead-of-promising-a-lease')
             # Actual nested compositor wiring must never infer physical panel
             # off from a synthetic lock. The normal launcher omits the opt-in.
-            control = root/'control'; commands = root/'locker.commands'; commands.write_text('')
-            args = [str(binary), '--system-services', '--platform-bus', address,
-                    '--audio-server', 'unix:'+str(root/'missing-audio'), '--sleep-coordination', '--session-idle',
-                    '--idle-lock-ms', '86400000', '--lock-client', str(examples/'lock-probe'),
-                    '--control-socket', str(control), '--exit-after-ms', '15000']
-            for arg in ['--role','locker','--commands',str(commands),'--report',str(out/'locker.jsonl')]:
-                args.append('--lock-client-arg='+arg)
-            gui = subprocess.Popen(args, env=env, stdout=log('compositor.log'), stderr=subprocess.STDOUT)
-            await_value(lambda: control.exists() or gui.poll() is not None, bool)
-            assert gui.poll() is None
-            state = await_value(lambda: request(control,'status'), lambda s:s['lock']['session_idle']['publisher']['available'])
-            assert state['lock']['session_idle']['enabled'] and state['lock']['session_idle']['readiness']=='Active'
-            assert state['lock']['session_idle']['publisher']['observed_idle'] is False and not hint()
-            request(control,'exit'); assert gui.wait(timeout=4)==0; gui = None; assert not hint()
+            # Readiness also needs the persistent user setting, loaded from schema 6.
+            # Without it the same publisher stays Disabled.
+            for label, text, readiness in [('nested-setting-off', None, 'Disabled'),
+                    ('nested-setting-on', 'version = 6\n[display.sleep]\nautomatic = true\nafter_off_seconds = 0\n', 'Active')]:
+                control = root/(label+'.control'); commands = root/(label+'.commands'); commands.write_text('')
+                settings = root/(label+'.toml')
+                if text is not None:
+                    settings.write_text(text); settings.chmod(0o600)
+                args = [str(binary), '--system-services', '--platform-bus', address,
+                        '--audio-server', 'unix:'+str(root/'missing-audio'), '--sleep-coordination', '--session-idle',
+                        '--idle-lock-ms', '86400000', '--lock-client', str(examples/'lock-probe'),
+                        '--control-socket', str(control), '--config-file', str(settings), '--exit-after-ms', '15000']
+                for arg in ['--role','locker','--commands',str(commands),'--report',str(out/(label+'-locker.jsonl'))]:
+                    args.append('--lock-client-arg='+arg)
+                gui = subprocess.Popen(args, env=env, stdout=log(label+'-compositor.log'), stderr=subprocess.STDOUT)
+                await_value(lambda: control.exists() or gui.poll() is not None, bool)
+                assert gui.poll() is None
+                state = await_value(lambda: request(control,'status'), lambda s:s['lock']['session_idle']['publisher']['available'])
+                # Protected status is redacted; readiness shows the loaded setting.
+                assert state['lock']['session_idle']['enabled'] and state['lock']['session_idle']['readiness']==readiness
+                assert state['lock']['session_idle']['publisher']['observed_idle'] is False and not hint()
+                request(control,'exit'); assert gui.wait(timeout=4)==0; gui = None; assert not hint()
+                result[label] = readiness
             passed('nested-compositor-cannot-invent-physical-panel-off-readiness')
             result['passed'] = True
         finally:

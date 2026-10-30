@@ -214,6 +214,7 @@ fn power_controls(
             }
             ui.separator();
             idle_controls(ui, model, commands);
+            sleep_controls(ui, model, commands);
             if model.display.settings_available {
                 if model.display.settings_error.is_some() {
                     ui.colored_label(
@@ -228,7 +229,9 @@ fn power_controls(
 }
 
 fn timeout_label(seconds: u32) -> String {
-    if seconds.is_multiple_of(60) {
+    if seconds == 0 {
+        "Immediately".into()
+    } else if seconds.is_multiple_of(60) {
         format!("{} min", seconds / 60)
     } else {
         format!("{seconds} sec")
@@ -295,5 +298,63 @@ fn idle_controls(ui: &mut egui::Ui, model: &ShellModel, commands: &mut Vec<Comma
                 settings.off_after_seconds.max(settings.lock_after_seconds);
         }
         commands.push(Command::IdleTimeouts(settings));
+    }
+}
+
+/// Persistent automatic-sleep policy. The session only reports protected
+/// idleness; the system's own idle action decides whether sleep follows.
+fn sleep_controls(ui: &mut egui::Ui, model: &ShellModel, commands: &mut Vec<Command>) {
+    use tarot_core::session_idle::{Readiness, Settings};
+    let display = &model.display;
+    if !model.lock_available || !display.idle_configurable {
+        return;
+    }
+    ui.separator();
+    ui.label(egui::RichText::new("Automatic sleep").strong());
+    if !display.sleep_available {
+        ui.label("Automatic sleep is not available in this session.");
+        return;
+    }
+    let previous = display.sleep;
+    let mut settings = previous;
+    ui.scope(|ui| {
+        ui.spacing_mut().interact_size.y = 44.0;
+        ui.checkbox(&mut settings.automatic, "Sleep after the screen turns off");
+        ui.add_enabled_ui(settings.automatic, |ui| {
+            ui.label("Sleep after screen off");
+            egui::ComboBox::from_id_salt("sleep_after_off")
+                .selected_text(timeout_label(settings.after_off_seconds))
+                .width(ui.available_width())
+                .show_ui(ui, |ui| {
+                    for seconds in Settings::DELAYS {
+                        ui.selectable_value(
+                            &mut settings.after_off_seconds,
+                            seconds,
+                            timeout_label(seconds),
+                        );
+                    }
+                });
+            ui.checkbox(
+                &mut settings.on_external_power,
+                "Also sleep on external power",
+            );
+        });
+    });
+    let status = if display.sleep_error {
+        Some("Sleep status is unavailable.")
+    } else if !settings.automatic {
+        None
+    } else if display.sleep_manager_action.as_deref() == Some("ignore") {
+        Some("The system is not configured to sleep when idle.")
+    } else if display.sleep_readiness == Readiness::PowerUnknown {
+        Some("Power source is unknown, so sleep waits.")
+    } else {
+        None
+    };
+    if let Some(status) = status {
+        ui.label(status);
+    }
+    if settings != previous {
+        commands.push(Command::SleepSettings(settings));
     }
 }

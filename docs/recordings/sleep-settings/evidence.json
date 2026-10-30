@@ -1,0 +1,169 @@
+{
+  "date": "2026-10-30",
+  "package": "tarot-0.1.0-r59",
+  "scope": "Persistent automatic-sleep settings (schema 6) gating the session idle publisher: disabled, delayed, external-power and battery-only policies on real GUI sessions with IdleAction ignore; no Suspend call",
+  "native_acceptance": true,
+  "touch_ui_acceptance": false,
+  "automatic_suspend_implemented": false,
+  "normal_launcher_enables_publisher": false,
+  "workspace": {
+    "current": {
+      "compiler": "1.98.1",
+      "passed": 284,
+      "failed": 0,
+      "ignored": 9
+    },
+    "minimum": {
+      "compiler": "1.89.0",
+      "passed": 284,
+      "failed": 0,
+      "ignored": 9
+    }
+  },
+  "private_matrix_cases": {
+    "current": 14,
+    "minimum": 14
+  },
+  "nested_setting_readiness": {
+    "off": "Disabled",
+    "on": "Active"
+  },
+  "source_archive_sha256": "c223bd364b0ccb085e63e4e765072cb1b065cd0d1e38b3045d808cec5e6d7e87",
+  "apk_sha256": "31e09d6b9a10154c52ae56dea57f724ac24210eb46a9b6b4a5e637797e9177f7",
+  "binaries_sha256": {
+    "tarot": "9349fba48913f23672c4284b326b3dcbab501e81556166b4fdc0979eff0b908c",
+    "tarot-session": "1092733d49cf5827f7beed761f917588aca4ed8dd01ce914809506dc05c03f9f",
+    "tarot-lock": "761f09716fb968c941065a2653df4096665facbda630e034f76c0bfa922f67c2",
+    "tarot-keyboard": "3990187b133076f1666dc7c2227bf6f5e03233e588af4a24035b0644e2b55e9c"
+  },
+  "native_payload_sha256": "77784c5387074f9e14e2f7dabd8351dec238a899a21d2eb3f3951a09d1aeba85",
+  "native_evidence_sha256": "fb03ac528447bd0901fc50155336a5b23c93803b319558d1a58406a82f42a04a",
+  "persisted_after_external": {
+    "automatic": true,
+    "after_off_seconds": 10,
+    "on_external_power": false
+  },
+  "modes": {
+    "external": {
+      "passed": true,
+      "hint_events": [
+        true,
+        false,
+        true,
+        false,
+        true,
+        false,
+        "session-removed"
+      ],
+      "false_before_removal_verified": true,
+      "readiness_when_off": {
+        "session-idle-automatic-off-with-audio": "Ready",
+        "session-idle-manual-power-off": "Ready",
+        "session-idle-delay-pending": "Delay"
+      },
+      "settings_applied": [
+        {
+          "label": "session-idle-setting-enabled",
+          "settings": {
+            "after_off_seconds": 0,
+            "automatic": true,
+            "on_external_power": false
+          }
+        },
+        {
+          "label": "session-idle-setting-delay",
+          "settings": {
+            "after_off_seconds": 10,
+            "automatic": true,
+            "on_external_power": false
+          }
+        }
+      ],
+      "kernel_counters_unchanged": true,
+      "suspend_called": false,
+      "delay": {
+        "configured_seconds": 10,
+        "last_false_read_after_request": 10.007035643007839,
+        "first_true_read_after_request": 10.222374583012424,
+        "property_reads": 47
+      }
+    },
+    "battery": {
+      "passed": true,
+      "hint_events": [
+        true,
+        false,
+        "session-removed"
+      ],
+      "false_before_removal_verified": true,
+      "readiness_when_off": {
+        "session-idle-automatic-off-with-audio": "ExternalPower",
+        "session-idle-manual-power-off": "ExternalPower",
+        "session-idle-disabled-power-off": "Disabled",
+        "session-idle-persistent-external-power": "Ready"
+      },
+      "settings_applied": [
+        {
+          "label": "session-idle-setting-enabled",
+          "settings": {
+            "after_off_seconds": 0,
+            "automatic": true,
+            "on_external_power": false
+          }
+        },
+        {
+          "label": "session-idle-setting-disabled",
+          "settings": {
+            "after_off_seconds": 0,
+            "automatic": false,
+            "on_external_power": false
+          }
+        },
+        {
+          "label": "session-idle-setting-external-power",
+          "settings": {
+            "after_off_seconds": 0,
+            "automatic": true,
+            "on_external_power": true
+          }
+        }
+      ],
+      "kernel_counters_unchanged": true,
+      "suspend_called": false
+    }
+  },
+  "normal_restoration": {
+    "audio_modes_restored": true,
+    "audio_block_removed": true,
+    "input_controls_restored": true,
+    "audio_streams_present": false,
+    "feedback_settings_restored": true,
+    "private_trace_removed": true,
+    "passed": true,
+    "system_bus_unchanged": true,
+    "diagnostics_and_metadata_off": true,
+    "hardware_keys_on": true,
+    "default_tarot": true,
+    "fixtures_gone": true,
+    "preferences_policies_and_controls_unchanged": true,
+    "native_qa_passed": true,
+    "temporary_policy_removed": true,
+    "polkit_package_unchanged": true,
+    "normal_idle_hint_false": true,
+    "manager_idle_action_ignore": true,
+    "session_idle_disabled_in_normal": true
+  },
+  "retained_failures": [
+    {
+      "run": "r59-private-first-redacted",
+      "cause": "nested assertion read redacted display settings"
+    },
+    {
+      "run": "r59-failed1",
+      "proof_sha256": "f6e3636bfbc7b2f6cd3abd57ba152b7f9b6a957d3710ab04a276cd6acfa2f624",
+      "cause": "battery baseline expected defaults after external run correctly persisted settings",
+      "runtime_changed": false,
+      "post_failure_normal_audit_passed": true
+    }
+  ]
+}

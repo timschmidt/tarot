@@ -348,6 +348,20 @@ stays false. Normal Tarot58 is independently restored with the publisher
 disabled. A QA-only wake-precondition failure is retained. Steps 1 and 3–5
 remain open. [Native evidence](recordings/session-idle-native/README.md).
 
+T016 step-1 checkpoint, October 30: signed revision 59 adds persistent Power
+settings in schema 6: automatic sleep off by default, a delay after protected
+off, and external-power permission. The publisher's readiness requires them.
+Native sessions verify:
+
+- disabled policy
+- a timer-published 10 s delay
+- battery-only refusal and persistent external-power permission
+- saved settings across logins
+
+Actual-touch review of the section remains. Charging-transition, active
+call/work and pending-authentication policy remain explicit later inputs.
+Steps 2–5 continue. [Evidence](recordings/sleep-settings/README.md).
+
 ### M4 addition: double-chop flashlight from suspend
 
 **Requested October 30, 2026; planned, not implemented.** Recognize a

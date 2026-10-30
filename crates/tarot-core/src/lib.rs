@@ -97,6 +97,7 @@ pub enum SystemPage {
 pub enum Command {
     LoadIcon(String),
     IdleTimeouts(idle::Settings),
+    SleepSettings(session_idle::Settings),
     RotationLock(bool),
     Lock,
     Home,
@@ -153,6 +154,7 @@ pub enum Effect {
         icon: String,
     },
     IdleTimeouts(idle::Settings),
+    SleepSettings(session_idle::Settings),
     RotationLock(bool),
     Lock,
     Focus(Option<WindowId>),
@@ -894,6 +896,9 @@ impl ShellModel {
             Command::Power(action) => return vec![Effect::Power(action)],
             Command::IdleTimeouts(settings) => {
                 return vec![Effect::IdleTimeouts(settings)];
+            }
+            Command::SleepSettings(settings) => {
+                return vec![Effect::SleepSettings(settings)];
             }
             Command::RotationLock(locked) => {
                 self.rotation_locked = locked;

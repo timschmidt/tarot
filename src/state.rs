@@ -729,6 +729,12 @@ impl Compositor {
                         self.persist_display_preferences();
                     }
                 }
+                Effect::SleepSettings(settings) => {
+                    if self.shell.display.idle_configurable && settings.valid() {
+                        self.shell.display.sleep = settings;
+                        self.persist_display_preferences();
+                    }
+                }
                 Effect::RotationLock(locked) => {
                     if locked {
                         self.output_geometry.requested = None;

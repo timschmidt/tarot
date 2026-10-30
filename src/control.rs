@@ -29,6 +29,9 @@ enum Request {
     IdleTimeouts {
         settings: tarot_core::idle::Settings,
     },
+    SleepSettings {
+        settings: tarot_core::session_idle::Settings,
+    },
     RotationLock {
         locked: bool,
     },
@@ -152,6 +155,13 @@ pub fn start(path: &Path, handle: &LoopHandle<'_, CalloopData>) -> Result<Contro
                         return;
                     }
                     state.apply_command(Command::IdleTimeouts(settings));
+                },
+                Request::SleepSettings { settings } => {
+                    if !settings.valid() || !state.shell.display.idle_configurable {
+                        let _ = message.response.send(json!({"ok":false,"error":"Invalid or managed sleep settings"}));
+                        return;
+                    }
+                    state.apply_command(Command::SleepSettings(settings));
                 },
                 Request::Lock => {let response=match state.request_lock() {Ok(())=>json!({"ok":true}),Err(error)=>json!({"ok":false,"error":error.to_string()})};let _=message.response.send(response);return;},
                 Request::Status | Request::Applications => {}

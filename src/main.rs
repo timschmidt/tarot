@@ -300,6 +300,7 @@ fn main() -> Result<()> {
             options.orientation = Some(display.locked_orientation);
         }
         data.state.shell.display.idle = display.idle;
+        data.state.shell.display.sleep = display.sleep;
         data.state.shell.display.idle_configurable =
             options.idle_preferences && options.idle_lock_ms.is_none();
         if data.state.shell.display.idle_configurable {

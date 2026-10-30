@@ -108,6 +108,7 @@ impl Compositor {
                 rotation_locked: self.shell.rotation_locked,
                 locked_orientation: self.output_geometry.orientation,
                 idle: self.shell.display.idle,
+                sleep: self.shell.display.sleep,
             });
             self.refresh_preferences_status();
         }
@@ -247,6 +248,11 @@ mod tests {
                         off_after_seconds: 180,
                         screen_off_enabled: true,
                     },
+                    sleep: tarot_core::session_idle::Settings {
+                        automatic: true,
+                        after_off_seconds: n,
+                        on_external_power: n % 2 == 0,
+                    },
                 });
             }
         });
@@ -282,6 +288,14 @@ mod tests {
             tarot_core::orientation::Orientation::LeftUp
         );
         assert_eq!(loaded.current.display.idle.lock_after_seconds, 129);
+        assert_eq!(
+            loaded.current.display.sleep,
+            tarot_core::session_idle::Settings {
+                automatic: true,
+                after_off_seconds: 99,
+                on_external_power: false,
+            }
+        );
         let pages = loaded.current.launcher.as_ref().unwrap();
         assert_eq!(pages.page(pages.selected).unwrap().name, "Page 99");
         assert_eq!(
