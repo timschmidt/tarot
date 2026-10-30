@@ -10,6 +10,8 @@ use std::{
 };
 
 use serde_json::{Value, json};
+#[path = "../examples/native_menu_egui/gtk.rs"]
+mod gtk_protocol;
 use wayland_client::{
     Connection, Dispatch, EventQueue, QueueHandle, delegate_noop,
     protocol::{
@@ -32,6 +34,8 @@ struct Client {
     shm: Option<wl_shm::WlShm>,
     shell: Option<xdg_wm_base::XdgWmBase>,
     dialogs: Option<xdg_wm_dialog_v1::XdgWmDialogV1>,
+    gtk: Option<gtk_protocol::gtk_shell1::GtkShell1>,
+    gtk_capabilities: Option<u32>,
     viewporter: Option<wp_viewporter::WpViewporter>,
     text_manager: Option<zwp_text_input_manager_v3::ZwpTextInputManagerV3>,
     text_enabled: bool,
@@ -132,6 +136,16 @@ impl Client {
         parent: Option<&xdg_toplevel::XdgToplevel>,
     ) -> Window {
         let surface = self.compositor.as_ref().unwrap().create_surface(qh, ());
+        self.window_on_surface(qh, surface, title, parent)
+    }
+
+    fn window_on_surface(
+        &self,
+        qh: &QueueHandle<Self>,
+        surface: wl_surface::WlSurface,
+        title: &str,
+        parent: Option<&xdg_toplevel::XdgToplevel>,
+    ) -> Window {
         let xdg = self
             .shell
             .as_ref()
@@ -673,6 +687,215 @@ fn drive(request: Value) {
     );
 }
 
+#[test]
+#[ignore = "requires owned display/input and protected session; run transient_session_replay.py --case gtk-modal"]
+fn gtk_modal_hints_combine_with_xdg_and_preserve_focus_boundaries() {
+    fn observe(label: &str, notes: &mut Vec<Value>, focus: bool) -> Value {
+        let s = status();
+        notes.push(json!({"label":label,"status":s,"child_focus":focus}));
+        if let Some(path) = std::env::var_os("TAROT_TEST_CAPTURE_DIR") {
+            std::fs::write(
+                PathBuf::from(path).join("gtk-modal-proof.json"),
+                serde_json::to_vec_pretty(notes).unwrap(),
+            )
+            .unwrap();
+        }
+        s
+    }
+    fn modal(s: &Value, id: &Value) -> bool {
+        s["native_windows"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|w| w["id"] == *id)
+            .unwrap()["modal"]
+            .as_bool()
+            .unwrap()
+    }
+    assert_eq!(status()["cards"], json!([]));
+    let initial = status();
+    let socket = PathBuf::from(std::env::var_os("XDG_RUNTIME_DIR").unwrap())
+        .join(initial["wayland_display"].as_str().unwrap());
+    let connection = Connection::from_socket(UnixStream::connect(socket).unwrap()).unwrap();
+    let mut queue = connection.new_event_queue();
+    let qh = queue.handle();
+    let mut client = Client::default();
+    let mut notes = vec![];
+    connection.display().get_registry(&qh, ());
+    sync(&mut queue, &mut client);
+    assert_eq!(
+        client.gtk_capabilities,
+        Some(0),
+        "no global-menu flags before full acceptance"
+    );
+    let gtk = client.gtk.as_ref().unwrap().clone();
+    let root = client.window(&qh, "GTK modal root");
+    sync(&mut queue, &mut client);
+    root.map();
+    sync(&mut queue, &mut client);
+    let root_id = status()["cards"][0]["id"].clone();
+    let root_gtk = gtk.get_gtk_surface(&root.surface, &qh, ());
+    let surface = client.compositor.as_ref().unwrap().create_surface(&qh, ());
+    let extension = gtk.get_gtk_surface(&surface, &qh, ());
+    extension.set_modal(); // Before xdg_surface and toplevel exist.
+    sync(&mut queue, &mut client);
+    let child = client.window_on_surface(&qh, surface, "Pre-role GTK modal", Some(&root.toplevel));
+    child.surface.commit();
+    sync(&mut queue, &mut client);
+    child.map();
+    sync(&mut queue, &mut client);
+    let s = observe(
+        "pre-role-gtk-mapped",
+        &mut notes,
+        client.focus == Some(child.surface.clone()),
+    );
+    let child_id = s["native_windows"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|w| w["parent"] == root_id)
+        .unwrap()["id"]
+        .clone();
+    assert!(modal(&s, &child_id));
+    assert_eq!(s["cards"].as_array().unwrap().len(), 1);
+    let sibling = client.uncommitted_window(&qh, "Nonmodal sibling", Some(&root.toplevel));
+    sibling.surface.commit();
+    sync(&mut queue, &mut client);
+    sibling.map();
+    sync(&mut queue, &mut client);
+    assert_eq!(
+        client.focus,
+        Some(child.surface.clone()),
+        "GTK modal blocks sibling focus"
+    );
+    let xdg = client
+        .dialogs
+        .as_ref()
+        .unwrap()
+        .get_xdg_dialog(&child.toplevel, &qh, ());
+    xdg.set_modal();
+    extension.unset_modal();
+    sync(&mut queue, &mut client);
+    assert!(modal(
+        &observe(
+            "xdg-survives-gtk-unset",
+            &mut notes,
+            client.focus == Some(child.surface.clone())
+        ),
+        &child_id
+    ));
+    extension.set_modal();
+    xdg.unset_modal();
+    sync(&mut queue, &mut client);
+    assert!(modal(
+        &observe(
+            "gtk-survives-xdg-unset",
+            &mut notes,
+            client.focus == Some(child.surface.clone())
+        ),
+        &child_id
+    ));
+    xdg.set_modal();
+    extension.release();
+    sync(&mut queue, &mut client);
+    assert!(modal(
+        &observe(
+            "xdg-survives-gtk-release",
+            &mut notes,
+            client.focus == Some(child.surface.clone())
+        ),
+        &child_id
+    ));
+    xdg.unset_modal();
+    sync(&mut queue, &mut client);
+    assert!(!modal(
+        &observe(
+            "both-hints-cleared",
+            &mut notes,
+            client.focus == Some(child.surface.clone())
+        ),
+        &child_id
+    ));
+    let replacement = gtk.get_gtk_surface(&child.surface, &qh, ());
+    replacement.set_modal();
+    sync(&mut queue, &mut client);
+    control(json!({"command":"overview"}));
+    sync(&mut queue, &mut client);
+    replacement.present(0);
+    replacement.request_focus(Some("untrusted-startup-token".into()));
+    sync(&mut queue, &mut client);
+    let s = observe(
+        "gtk-focus-hints-under-overview",
+        &mut notes,
+        client.focus == Some(child.surface.clone()),
+    );
+    assert_eq!(s["view"], "Overview");
+    assert!(client.focus.is_none());
+    control(json!({"command":"activate","id":root_id}));
+    sync(&mut queue, &mut client);
+    assert_eq!(client.focus, Some(child.surface.clone()));
+    control(json!({"command":"system_menu","open":true}));
+    sync(&mut queue, &mut client);
+    root_gtk.present(0);
+    root_gtk.request_focus(Some("another-untrusted-token".into()));
+    sync(&mut queue, &mut client);
+    assert!(client.focus.is_none());
+    assert_eq!(
+        observe("gtk-focus-hints-under-menu", &mut notes, false)["system_menu_open"],
+        true
+    );
+    control(json!({"command":"system_menu","open":false}));
+    sync(&mut queue, &mut client);
+    assert_eq!(client.focus, Some(child.surface.clone()));
+    drive(json!({"command":"lock"}));
+    sync(&mut queue, &mut client);
+    replacement.unset_modal();
+    xdg.set_modal();
+    replacement.present(0);
+    replacement.request_focus(Some("locked-token".into()));
+    sync(&mut queue, &mut client);
+    let s = observe(
+        "hints-during-protection",
+        &mut notes,
+        client.focus == Some(child.surface.clone()),
+    );
+    assert_eq!(s.as_object().unwrap().len(), 3);
+    assert!(client.focus.is_none());
+    drive(json!({"command":"unlock"}));
+    sync(&mut queue, &mut client);
+    let s = observe(
+        "protected-return-to-xdg-modal",
+        &mut notes,
+        client.focus == Some(child.surface.clone()),
+    );
+    assert!(modal(&s, &child_id));
+    assert_eq!(client.focus, Some(child.surface.clone()));
+    replacement.release();
+    xdg.unset_modal();
+    sync(&mut queue, &mut client);
+    assert!(!modal(
+        &observe(
+            "final-release-clears-modal",
+            &mut notes,
+            client.focus == Some(child.surface.clone())
+        ),
+        &child_id
+    ));
+    xdg.destroy();
+    sibling.destroy();
+    child.destroy();
+    root_gtk.release();
+    root.destroy();
+    sync(&mut queue, &mut client);
+    assert_eq!(
+        observe("all-surfaces-gone", &mut notes, false)["cards"],
+        json!([])
+    );
+    println!(
+        "GTK pre-role hints, GTK/xdg independent ownership/release, focus-hint isolation and protected changes verified"
+    );
+}
+
 fn output_point(s: &Value, x: f64, y: f64) -> (u32, u32) {
     let g = &s["output"];
     let w = g["physical_width"].as_f64().unwrap();
@@ -770,6 +993,20 @@ fn viewport_crop_scale_commit_and_subsurface_input() {
     sync(&mut queue, &mut client);
     std::thread::sleep(Duration::from_millis(450));
     let point = |x: f64, y: f64| (x, y + area["y"].as_f64().unwrap());
+    // A preceding case can leave a mouse hovering on the shell title. Clear
+    // that real tooltip with a verified root contact before checking client
+    // pixels. The original sample positions and colors remain unchanged.
+    let presses = client.presses.len();
+    let root_local = (f64::from(w) - 4.0, f64::from(h) / 2.0);
+    let root_global = point(root_local.0, root_local.1);
+    drive(
+        json!({"command":"click","x":root_global.0,"y":root_global.1,"output":status()["output"],"key":false}),
+    );
+    sync(&mut queue, &mut client);
+    assert_eq!(client.presses.len(), presses + 1);
+    let (surface, x, y) = client.presses.last().unwrap();
+    assert_eq!(surface, &root.surface);
+    assert!((*x - root_local.0).abs() < 1.5 && (*y - root_local.1).abs() < 1.5);
     assert_eq!(
         captured_pixel("viewport-root-cropped", &status(), point(5.0, 5.0)),
         [32, 128, 72, 255]
@@ -1652,6 +1889,7 @@ impl Dispatch<wl_registry::WlRegistry, ()> for Client {
                 "wl_shm" => state.shm = Some(registry.bind(name, 1, qh, ())),
                 "xdg_wm_base" => state.shell = Some(registry.bind(name, 6, qh, ())),
                 "xdg_wm_dialog_v1" => state.dialogs = Some(registry.bind(name, 1, qh, ())),
+                "gtk_shell1" => state.gtk = Some(registry.bind(name, 4, qh, ())),
                 "wp_viewporter" => state.viewporter = Some(registry.bind(name, 1, qh, ())),
                 "zwp_text_input_manager_v3" => {
                     state.text_manager = Some(registry.bind(name, 1, qh, ()))
@@ -1768,6 +2006,21 @@ delegate_noop!(Client: ignore wp_viewport::WpViewport);
 delegate_noop!(Client: ignore xdg_wm_dialog_v1::XdgWmDialogV1);
 delegate_noop!(Client: ignore xdg_dialog_v1::XdgDialogV1);
 delegate_noop!(Client: ignore xdg_positioner::XdgPositioner);
+delegate_noop!(Client: ignore gtk_protocol::gtk_surface1::GtkSurface1);
+
+impl Dispatch<gtk_protocol::gtk_shell1::GtkShell1, ()> for Client {
+    fn event(
+        state: &mut Self,
+        _: &gtk_protocol::gtk_shell1::GtkShell1,
+        event: gtk_protocol::gtk_shell1::Event,
+        _: &(),
+        _: &Connection,
+        _: &QueueHandle<Self>,
+    ) {
+        let gtk_protocol::gtk_shell1::Event::Capabilities { capabilities } = event;
+        state.gtk_capabilities = Some(capabilities);
+    }
+}
 
 impl Dispatch<xdg_popup::XdgPopup, ()> for Client {
     fn event(

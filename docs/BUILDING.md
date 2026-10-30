@@ -68,15 +68,33 @@ TAROT_SOFTWARE_RENDERER=1 ./scripts/run-nested.sh \
 TAROT_TEST_CONTROL_SOCKET=/tmp/tarot-control/lifecycle.sock \
   cargo test --test wayland_lifecycle -- --ignored --nocapture \
     --test-threads=1 --skip transient_native_input_and_pixels \
-    --skip viewport_crop_scale_commit_and_subsurface_input
+    --skip viewport_crop_scale_commit_and_subsurface_input \
+    --skip gtk_modal_hints_combine_with_xdg_and_preserve_focus_boundaries \
+    --skip notification_well_keeps_oversized_client_input_and_popup_alignment
 target/debug/tarotctl --socket /tmp/tarot-control/lifecycle.sock exit
 ```
 
-The tests resolve Tarot's display from its private control socket; no `WAYLAND_DISPLAY` override is required. `XDG_RUNTIME_DIR` must match the running session. Run these cases serially because each requires an empty session. The two skipped input cases have their own driver below. Ordinary `cargo test --workspace` leaves these tests ignored and runs the independent model/UI/metadata tests.
+The tests resolve Tarot's display from its private control socket; no `WAYLAND_DISPLAY` override is required. `XDG_RUNTIME_DIR` must match the running session. Run these cases serially because each requires an empty session. The skipped input cases have their own drivers below. Ordinary `cargo test --workspace` leaves these tests ignored and runs the independent model/UI/metadata tests.
 
 The expanded case caches a small SHM texture, commits a larger buffer and then a smaller buffer while hidden, returns to the app, and verifies fresh pixels. `tests/lifecycle_session_replay.py --output /absolute/new/lifecycle-evidence` starts the isolated Mesa session and also rejects GL error diagnostics; debug rendering can consume a GL error before a later capture sees it, so capture success alone is insufficient. Build the compositor first with `cargo build --bin tarot`.
 
 Tarot carries Smithay 0.7.0 as a local Cargo patch with the upstream accumulated-SHM-damage bounds fix. Source, original MIT notice, exact upstream revision and the two-line diff are retained under [third-party attribution](../third-party/README.md#smithay-gles-damage-backport). Do not replace this with a moving upstream branch or ignore GL upload errors. The unpatched release produced an out-of-bounds upload in this regression and on the phone after keyboard/launcher transitions.
+
+## Shell hover handoff regression
+
+```sh
+cargo build --locked --offline --bin tarot --example input-probe
+python3 tests/native_pointer_hover_replay.py --xvfb /absolute/path/to/Xvfb \
+  --compositor /absolute/saved-tarot --client /absolute/saved-input-probe \
+  --scale 2 --output /absolute/new/hover-evidence
+```
+
+Repeat with `--scale 1`. This private-display test first shows the real Activity
+menu tooltip, moves into a green native client and requires the original app
+pixels to return and stay clear. It also checks a shell press dragged outside,
+consumed outside dismissal and a fresh native press/release pair. It records
+helper/image hashes and captures, and never targets the host desktop. Native
+phone touch/PAM acceptance is a separate check.
 
 ## Native transient regressions
 
@@ -95,9 +113,11 @@ python3 tests/transient_session_replay.py --xvfb /absolute/path/to/Xvfb \
 
 Python needs the same X11/XTEST libraries as the existing private-display replays. The lifecycle and transient runners invoke Cargo internally; run them after other Cargo jobs finish. [Policy and current evidence](TRANSIENT_WINDOWS.md).
 
-`transient_session_replay.py --case viewport --scale 1` (and `--scale 2`) selects the separate viewport crop/scale, parent-only subsurface move, local input, protected commit and malformed-client isolation case. Give each invocation a fresh `--output` directory and the same private `--xvfb` argument. It requires seven driver requests; the default transient case requires forty. The native fixture runs all six integration cases and requires forty-seven requests. [Browser and viewport scope](BROWSER_COMPATIBILITY.md).
+`transient_session_replay.py --case viewport --scale 1` (and `--scale 2`) selects the separate viewport crop/scale, parent-only subsurface move, local input, protected commit and malformed-client isolation case. Give each invocation a fresh `--output` directory and the same private `--xvfb` argument. The current viewport case requires eight driver requests, including verified root contact before pixel sampling; the default transient case still requires forty. `--case gtk-modal` checks GTK/xdg modal-hint independence, release, focus boundaries and protection with two driver requests. `--case lifecycle` runs all seven non-notification cases serially with fifty requests. Earlier six-case/forty-seven-request records retain their original scope. `--tarot` and `--fixture-bin` select saved compositor and protocol-test executables, with loaded-image hashes checked. [Browser and viewport scope](BROWSER_COMPATIBILITY.md).
 
 Native acceptance uses `--transients` and `--toolkit-dialogs` integration hooks in `phone_installed_session_replay.py`. Revision 19 adds the initial/remap configure-history case and actual widget-size assertions; revision 20 extends the pixel/input case to popup overflow. Revision 21 adds a fifth state-hint case and expands the input/pixel case to fullscreen alpha, rounded backing, top/bottom delivery, gesture navigation and protection (40 driver requests including two protection/unlock pairs). A wrapper stages the cross-built `wayland_lifecycle` test executable at `/home/user/tarot-dev/bin/transient-protocol-test`, records its SHA-256 in `transient-probe-audit.json`, and launches `native_transient_fixture.py` through a temporary `test.tarot.Transients.desktop` entry. Its `--output` directory must be `<replay-output>/transients`, already owned by UID 10000. The root replay owns only the private driver socket and temporary input; the test executable, graphics, keyboard, dialogs and PAM remain in the ordinary login session. The fixture's socket peer is checked against UID, executable hash and login cgroup.
+
+A controller can instead stage fixtures in its own immutable namespace. Pass the paired `--transient-fixture-binary` and `--transient-fixture-audit` options to the installed-session runner (or corresponding `run` attributes). The audit pins `binary_sha256`, `lifecycle_input_count` and `lifecycle_test_count`; the current protocol helper expects 50 requests and seven cases. This avoids replacing earlier global QA fixtures. [GTK compatibility and pointer handoff evidence](recordings/menu-compat/README.md).
 
 Toolkit staging adds `test.tarot.GtkDialog.desktop` and `test.tarot.QtDialog.desktop`, each executing `python3 /home/user/tarot-dev/toolkit_transient_fixture.py --toolkit gtk|qt --report <replay-output>/toolkits/gtk|qt-events.jsonl`. Prepare the UID-10000 output directory before launch and remove these temporary entries after the login ends. GTK/PyGObject and Qt/PySide are external QA dependencies; they are not part of Tarot's runtime or APK dependency list. `phone_toolkit_dialog_replay.py` recognizes actual button pixels only after full card opacity and dock dismissal; long-menu selection must lie outside a conservative centered bound derived from the actual dialog allocation. After opening a menu it waits for final app geometry to remain stable for 350 ms: Qt can asynchronously reopen the input panel. Exact recognized labels still require at least 80% OCR confidence and must match the real widget response. Native field contents come from widget events containing only synthetic fixture text. The fixture also exposes real Maximize, Fullscreen and Restore buttons. Their replay requires toolkit state events and 360×720 fullscreen allocation plus settled native frames; stale events cannot satisfy a later action. It does not invoke toolkit callbacks to simulate success.
 

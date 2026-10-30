@@ -7,6 +7,12 @@ The newly supplied Fx0 Gold packet is retained as reference. The owner's deferre
 schedules an optional Gold theme and reusable device support/Fx0 port after all
 existing work. It changes no current runtime theme or hardware baseline.
 
+## GTK compatibility and revision 47
+
+Revision 47 corrects a reproduced shell tooltip left over native content after pointer handoff. Explicit egui departure clears hover once, while active shell press/touch ownership survives until completion. The focused old-image failure and final scale-1/2 passes remain retained, alongside both original viewport pixel failures. Seven protocol cases/50 requests pass at both host scales; the new GTK modal/focus/protection case also passes with the minimum-Rust client. Current/minimum workspace tests each pass 237, with strict host/ARM checks.
+
+The signed package passes one scoped native login containing all seven protocol cases, real GTK/Qt dialogs/text/fullscreen and GTK/Rust-egui menu acceptance, actual PAM, four protected orientations, Calculator/audio, clean logout and fresh normal Tarot. Independent audits and all collected source/archive hashes verify normal default Tarot, diagnostics off, Panfrost and exact restoration. Broader claim/recovery/resource, physical/accessibility, retained browser and endurance gates remain open. [Exact evidence, identities and remaining scope](recordings/menu-compat/README.md).
+
 ## Cooperating Rust/egui menus and revision 46
 
 The ordinary Rust/egui example now owns its Wayland surface and exports real menus/actions through zbus. Current-Rust portrait/landscape and minimum-Rust portrait checks pass string/boolean/integer callbacks, independent GIO reads/signals, stale held-row rejection, no-claim in-window controls and cooperative close. Both GTK regressions and 237 current/minimum workspace tests pass; strict host/ARM example checks pass. The sample is not a stable app SDK. [Example and reproduction](RUST_APP_MENUS.md).

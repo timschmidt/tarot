@@ -12,11 +12,11 @@ from phone_gesture_replay import request
 from phone_lock_replay import Keyboard
 
 
-def replay(control,screen,guard,state,authenticate,out,session_cgroup,*,notifications=False):
+def replay(control,screen,guard,state,authenticate,out,session_cgroup,*,notifications=False,fixture_binary=None,fixture_audit=None):
     case='notification-well' if notifications else 'transients'
     folder=out/case;assert folder.is_dir() and folder.stat().st_uid==10000
-    audit=json.loads(Path('/home/user/tarot-dev/transient-probe-audit.json').read_text())
-    binary=Path('/home/user/tarot-dev/bin/transient-protocol-test')
+    audit=json.loads(Path(fixture_audit or '/home/user/tarot-dev/transient-probe-audit.json').read_text())
+    binary=Path(fixture_binary or '/home/user/tarot-dev/bin/transient-protocol-test').resolve()
     assert hashlib.sha256(binary.read_bytes()).hexdigest()==audit['binary_sha256']
     before=request(control,'status');assert not before['cards']
     if notifications:
@@ -84,7 +84,7 @@ def replay(control,screen,guard,state,authenticate,out,session_cgroup,*,notifica
                     raise
         result=json.loads((folder/'fixture-result.json').read_text());record['fixture_result']=result
         assert result['passed'] and result['test_exit']==0
-        assert len(record['input'])==(40 if notifications else 47) and record['protected_actual_kms'] and record['actual_pam_unlock']
+        assert len(record['input'])==(40 if notifications else audit.get('lifecycle_input_count',47)) and record['protected_actual_kms'] and record['actual_pam_unlock']
         state('transient-all-windows-gone',lambda s:not s['cards'] and s['lock']['phase']=='Unlocked')
         await_value(lambda:all(not Path('/proc',str(p)).exists() for p in [started['runner_pid'],started['fixture_pid']]),bool,seconds=10)
         if notifications:

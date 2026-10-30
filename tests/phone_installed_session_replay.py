@@ -177,7 +177,9 @@ def run(args, password):
         if getattr(args, 'transients', False):
             from phone_transient_replay import replay as transient_replay
             records['transients'] = transient_replay(socket, screen, guard, state,
-                authenticate, args.output, cgroup)
+                authenticate, args.output, cgroup,
+                fixture_binary=getattr(args,'transient_fixture_binary',None),
+                fixture_audit=getattr(args,'transient_fixture_audit',None))
         if getattr(args, 'notification_well', False):
             from phone_transient_replay import replay as notification_well_replay
             records['notification_well'] = notification_well_replay(socket, screen, guard, state,
@@ -488,6 +490,8 @@ def main():
     parser.add_argument('--stack-matrix', action='store_true')
     parser.add_argument('--gtk-close', action='store_true')
     parser.add_argument('--transients', action='store_true')
+    parser.add_argument('--transient-fixture-binary', type=Path)
+    parser.add_argument('--transient-fixture-audit', type=Path)
     parser.add_argument('--notification-well', action='store_true')
     parser.add_argument('--toolkit-dialogs', action='store_true')
     parser.add_argument('--terminal-clipboard', action='store_true')
@@ -505,6 +509,7 @@ def main():
     parser.add_argument('--native-menus', action='store_true')
     parser.add_argument('--detach', action='store_true')
     args = parser.parse_args()
+    assert bool(args.transient_fixture_binary)==bool(args.transient_fixture_audit)
     assert not args.panel_off or args.observe_sensors
     assert not args.resource_sample or (args.panel_off and args.cycles == 0)
     assert os.geteuid() == 0 and 'PinePhone Pro' in Path('/proc/device-tree/model').read_text() and 0 <= args.cycles <= 20

@@ -76,6 +76,11 @@ catalog launch preserves its PAM cgroup. The controller must retain and restore
 the owner's settings, remove only its created entries after logout, and verify
 the final normal session independently. This case requests no suspend cycles.
 
+The later [revision-47 compatibility checkpoint](recordings/menu-compat/README.md)
+repeats both native producers in the same login as the seven protocol cases and
+real GTK/Qt dialog/text/fullscreen checks. The exporter remains unchanged; a
+separate compositor input fix clears shell hover on native pointer handoff.
+
 Next develop a reusable application API when implementing actual Tarot apps,
 cover dynamic menu lifetimes and richer typed actions, and complete broader
 native compatibility and accessibility. KDE requires its distinct adapter; GMenu

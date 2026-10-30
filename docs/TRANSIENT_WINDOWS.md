@@ -2,6 +2,12 @@
 
 October 28, 2026: revision 21 is installed and native-tested on the PinePhone Pro. Protocol lifecycle, configure/remap history, popup overflow pixels/input, protection and GTK/Qt dialog actions/sizes pass; the initial window-state/fullscreen cases also pass, while fullscreen IME and broader toolkit/window gates remain open. This is progress within M2, not completion of M2 or the development plan.
 
+October 30 follow-up: the [GTK compatibility checkpoint](recordings/menu-compat/README.md)
+adds GTK/xdg modal-hint independence, extension release, focus boundaries and
+protection. Seven protocol cases/50 requests and real GTK/Qt dialogs, text,
+fullscreen and PAM pass on unchanged revision 46 and the signed revision-47
+pointer fix. Earlier revision-specific records below retain their original scope.
+
 ## Card ownership and lifetime
 
 Every xdg toplevel keeps its own stable native `WindowId`, surface tree, buffers, configure sequence and input coordinates. A mapped family root supplies the card's identity and metadata. Parented toplevels belong to that card. Identical application IDs do not combine unrelated roots.
@@ -18,7 +24,7 @@ Each native member has its own fit transform and cached subsurface/popup origins
 
 The active card restores its preferred native member. Mapping a dialog in another card does not switch cards. Mapping while a shell panel or session protection owns focus cannot take keyboard focus. An active window that gains a parent retains native focus while its card identity moves to the family root. Removing a focused child restores a surviving family member.
 
-`xdg_wm_dialog_v1` supplies the separate modal hint. A parent relationship alone is nonmodal: clicking an exposed parent focuses it and typing follows that focus. A modal branch stays above nonmodal siblings. Tarot's mobile policy blocks input to the rest of that card family until the modal branch is addressed; independent cards and shell navigation remain available. Popups retain Smithay's hierarchy/grab validation, use the card as ownership identity and restore the preferred native family member after dismissal.
+`xdg_wm_dialog_v1` and the supported GTK surface extension supply independent modal hints; either keeps the surface modal until cleared or its extension is released. A parent relationship alone is nonmodal: clicking an exposed parent focuses it and typing follows that focus. A modal branch stays above nonmodal siblings. Tarot's mobile policy blocks input to the rest of that card family until the modal branch is addressed; independent cards and shell navigation remain available. Popups retain Smithay's hierarchy/grab validation, use the card as ownership identity and restore the preferred native family member after dismissal.
 
 Closing a card sends `xdg_toplevel.close` to its family root. The client can refuse or present confirmation; Tarot retains the card and all live family surfaces. It does not synthesize a dialog response or terminate the client's processes.
 

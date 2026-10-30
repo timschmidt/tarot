@@ -29,7 +29,7 @@ def main():
     p.add_argument('--output', type=Path, required=True)
     p.add_argument('--xvfb', default='Xvfb')
     p.add_argument('--scale', type=int, choices=[1, 2], default=2)
-    p.add_argument('--case', choices=['transient','viewport','notifications'],default='transient')
+    p.add_argument('--case', choices=['transient','viewport','notifications','gtk-modal','lifecycle'],default='transient')
     p.add_argument('--tarot', type=Path, default=Path('target/debug/tarot'))
     p.add_argument('--fixture-bin', type=Path)
     p.add_argument('--keyboard', type=Path, default=Path('target/debug/tarot-keyboard'))
@@ -162,16 +162,26 @@ def main():
         worker = threading.Thread(target=serve, name='transient-private-input')
         worker.start()
         with (out/'test.log').open('w') as test_log:
-            test_name = {'transient':'transient_native_input_and_pixels','viewport':'viewport_crop_scale_commit_and_subsurface_input','notifications':'notification_well_keeps_oversized_client_input_and_popup_alignment'}[args.case]
+            selected = ['--skip','notification_well_keeps_oversized_client_input_and_popup_alignment'] if args.case=='lifecycle' else [{'transient':'transient_native_input_and_pixels','viewport':'viewport_crop_scale_commit_and_subsurface_input','notifications':'notification_well_keeps_oversized_client_input_and_popup_alignment','gtk-modal':'gtk_modal_hints_combine_with_xdg_and_preserve_focus_boundaries'}[args.case]]
+            test_args=[*selected,'--ignored','--nocapture','--test-threads=1']
             if args.fixture_bin:
                 fixture_bin = args.fixture_bin.resolve()
                 record['fixture_binary_sha256'] = hashlib.sha256(fixture_bin.read_bytes()).hexdigest()
-                test_command = [str(fixture_bin), test_name, '--ignored', '--nocapture']
+                test_command = [str(fixture_bin), *test_args]
             else:
-                test_command = ['cargo', 'test', '--offline', '--locked', '--test', 'wayland_lifecycle', test_name, '--', '--ignored', '--nocapture']
-            test = subprocess.run(test_command, env=env, stdout=test_log, stderr=subprocess.STDOUT, timeout=120)
-        record['test_exit'] = test.returncode
-        if args.case == 'notifications' and test.returncode == 0:
+                test_command = ['cargo', 'test', '--offline', '--locked', '--test', 'wayland_lifecycle', '--', *test_args]
+            test = subprocess.Popen(test_command, env=env, stdout=test_log, stderr=subprocess.STDOUT)
+            try:
+                if args.fixture_bin:
+                    record['loaded_fixture_sha256']=hashlib.sha256(Path('/proc',str(test.pid),'exe').read_bytes()).hexdigest()
+                    assert record['loaded_fixture_sha256']==record['fixture_binary_sha256']
+                record['test_exit']=test.wait(timeout=120)
+            finally:
+                if test.poll() is None:
+                    test.terminate()
+                    try:test.wait(timeout=5)
+                    except subprocess.TimeoutExpired:test.kill();test.wait()
+        if args.case == 'notifications' and record['test_exit'] == 0:
             helper = request(control, 'status')['input_method']
             assert helper['generation'] == 1 and not helper['error'] and not helper['restart_pending']
             record['keyboard_status'] = helper
@@ -181,7 +191,7 @@ def main():
         record['compositor_exit'] = session.wait(timeout=6)
         record['graphics_errors'] = [line for line in (out/'compositor.log').read_text().splitlines() if any(e in line for e in ['GL_INVALID', 'GL_OUT_OF_MEMORY', 'GL error'])]
         assert record['test_exit'] == record['compositor_exit'] == 0 and 'input_error' not in record and not record['graphics_errors'], record
-        assert len(record['input']) == {'transient':40,'viewport':7,'notifications':40}[args.case], record
+        assert len(record['input']) == {'transient':40,'viewport':8,'notifications':40,'gtk-modal':2,'lifecycle':50}[args.case], record
         record['passed'] = True
         print('PASS:',args.case,'native pixels and actual input, scale', args.scale, out)
     finally:

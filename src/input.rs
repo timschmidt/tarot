@@ -303,6 +303,8 @@ impl Compositor {
                         pos.y as f32,
                         u64::from(event.time_msec()),
                     );
+                } else {
+                    self.leave_shell_pointer();
                 }
                 let under = if shell { None } else { self.surface_under(pos) };
                 pointer.motion(
@@ -367,6 +369,7 @@ impl Compositor {
                         });
                     }
                 } else {
+                    self.leave_shell_pointer();
                     let serial = SERIAL_COUNTER.next_serial();
                     if pressed && let Some(focus) = pointer.current_focus() {
                         self.remember_popup_input(serial, &focus.surface);
@@ -406,6 +409,7 @@ impl Compositor {
                     });
                     self.ui_dirty = true;
                 } else {
+                    self.leave_shell_pointer();
                     let frame = AxisFrame::new(event.time_msec())
                         .source(event.source())
                         .value(Axis::Horizontal, horizontal)
@@ -506,6 +510,7 @@ impl Compositor {
                     Target::Shell => {
                         if !self.finish_shell_gesture(i32::from(slot), event.time_msec()) {
                             release_touch_pointer(&mut self.ui_events, self.shell_pointer_position);
+                            self.shell_pointer_present = false;
                         }
                         self.ui_dirty = true;
                     }
@@ -610,6 +615,7 @@ impl Compositor {
     fn cancel_shell_pointer(&mut self) {
         self.advance_presentation();
         tarot_ui::cancel_pointer_input(&mut self.ui_events);
+        self.shell_pointer_present = false;
         self.gestures.cancel();
         self.gesture_started = None;
         self.animation.end_drag();
@@ -649,6 +655,7 @@ impl Compositor {
         self.animation.end_drag();
         if outcome.consumed {
             tarot_ui::cancel_pointer_input(&mut self.ui_events);
+            self.shell_pointer_present = false;
         }
         if let Some(command) = outcome.command {
             self.apply_command(command);
@@ -697,10 +704,25 @@ impl Compositor {
     }
 
     fn shell_pointer_motion(&mut self, position: Point<f64, Logical>) {
+        self.shell_pointer_present = true;
         self.shell_pointer_position = egui::pos2(position.x as f32, position.y as f32);
         self.ui_events
             .push(egui::Event::PointerMoved(self.shell_pointer_position));
         self.ui_dirty = true;
+    }
+
+    fn leave_shell_pointer(&mut self) {
+        // The native route owns this motion. Retire the old shell hover once
+        // so tooltips and hover styles cannot remain over client content.
+        // An active shell press/touch retains its egui pointer sequence.
+        if self.shell_pointer_present
+            && self.pointer_shell_owned != Some(true)
+            && !self.touches.has_shell()
+        {
+            self.shell_pointer_present = false;
+            self.ui_events.push(egui::Event::PointerGone);
+            self.ui_dirty = true;
+        }
     }
 }
 

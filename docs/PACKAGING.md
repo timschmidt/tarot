@@ -31,6 +31,14 @@ upstream COPYING is installed alongside existing notices. Both earlier native
 QA failures and their separate exact normal-session recoveries are retained.
 [Current package and acceptance scope](recordings/menu-egui/README.md).
 
+Revision 47 delivers the native-pointer hover departure fix. Its clean signed
+package changes all four executable hashes and the installed README, preserving
+PAM, session entry, dependencies and notices. Scoped combined native
+protocol/GTK/Qt/menu/PAM acceptance and clean normal restoration pass; broader
+reliability and physical gates remain separate. The prior revision-46
+compatibility run uses unchanged package bytes and its own immutable fixtures.
+[Package identities and acceptance](recordings/menu-compat/README.md).
+
 ## Source package
 
 The [APKBUILD](../packaging/nura/APKBUILD) installs four ordinary root-owned executables, the [Wayland session entry](../packaging/nura/tarot.desktop), the existing [PAM reauthentication service](../packaging/pam/tarot-lock), project licenses and source attribution. It makes no greeter configuration or autologin changes. Dynamically loaded PAM, EGL/GLES, Wayland client/EGL, GPU-driver and keyboard-data dependencies are explicit; abuild also derives ELF library dependencies.
