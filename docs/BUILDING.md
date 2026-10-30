@@ -87,6 +87,30 @@ and trusted keyboard exclusion. Its `--native-menu-claims` phone component uses
 an ordinary catalog-owned pair and actual PAM; phone bus replacement remains a
 separate gate. [Recorded scope](recordings/menu-claims/README.md).
 
+## Menu setup fault injection
+
+```sh
+cargo build --locked --offline --bin tarot --example native-menu-egui
+python3 tests/native_menu_setup_replay.py --xvfb /absolute/path/to/Xvfb \
+  --compositor /absolute/saved-tarot --producer /absolute/saved-native-menu-egui \
+  --fault auth --cancel --output /absolute/fresh-setup-evidence
+```
+
+Use `--fault auth|hello|backlog` with and without `--cancel` for the six setup
+cases. `auth-flood`, `auth-fds`, `oversize`, `oversize-be` and `fields` select the
+five receive-budget cases; add `--fragment-header` to the big-endian case.
+Each run owns its X display, fake Unix endpoint, real private bus and producer.
+The fake retains the stalled socket until the client closes it; cleanup cannot
+satisfy the observation gate. After retirement, the real listener replaces the
+fake path and actual rendered input must produce a fresh callback. Raw messages
+contain only synthetic fixture data. [Exact scope and results](recordings/menu-setup/README.md).
+
+The root library's two socket tests also exercise a full pending writer, atomic
+received-descriptor flags, the allowed descriptor budget and truncation. Run
+`cargo test --locked --offline --lib`. The native controller can execute the
+cross-built library test binary as the ordinary development account before
+installation; record that SSH-cgroup scope separately from real PAM/UI tests.
+
 ## Shell hover handoff regression
 
 ```sh

@@ -12,7 +12,7 @@ use std::{
     time::{Duration, Instant},
 };
 use zbus::{
-    blocking::{Connection, connection::Builder},
+    blocking::Connection,
     names::OwnedUniqueName,
     zvariant::{Fd, OwnedObjectPath, OwnedValue, Signature, Structure, Value},
 };
@@ -26,6 +26,7 @@ const MAX_DEPTH: usize = 8;
 const MAX_TEXT: usize = 512;
 const MAX_ACTIONS: usize = 256;
 pub const METHOD_TIMEOUT: Duration = Duration::from_millis(500);
+pub(super) use super::socket::Cancellation;
 
 /// Owning surface/claim authority. Dropping or retiring it invalidates all
 /// worker leases; a lease cannot extend its authority.
@@ -215,11 +216,14 @@ type ActionWire = HashMap<String, (bool, Signature, Vec<OwnedValue>)>;
 type Address = (u32, u32);
 
 pub fn session_connection() -> Result<Connection> {
+    session_connection_cancellable(Arc::new(Cancellation::new(Arc::new(AtomicBool::new(
+        false,
+    )))))
+}
+
+pub(super) fn session_connection_cancellable(cancel: Arc<Cancellation>) -> Result<Connection> {
     let address = std::env::var("DBUS_SESSION_BUS_ADDRESS")?;
-    Ok(Builder::address(address.as_str())?
-        .method_timeout(METHOD_TIMEOUT)
-        .max_queued(16)
-        .build()?)
+    super::socket::connect(&address, cancel)
 }
 
 /// Owned worker-side binding to one original bus connection, unique exporter,

@@ -75,11 +75,18 @@ state or target types leave their rows unavailable; arguments are not coerced.
 Action lookup routes `app.` and `win.` through their respective declared paths
 on the same validated unique connection. Unknown actions remain unavailable.
 
-These are accepted-message and parser/graph bounds. They do **not** bound memory
-before zbus has received a complete frame. Transport queue/framing budgets,
-connection-setup cancellation and complete worker teardown still require their
-own integration and adversarial checks.
-The timeout is per RPC. Snapshot loading also checks an overall two-second
+These parser/graph limits now sit behind the revision-48
+[guarded socket](../src/native_menu/socket.rs). Concrete local Unix connect,
+authentication and initial Hello have a two-second budget; retirement shuts down
+an owned descriptor without waiting for zbus's writer lock. The receive path
+rejects body lengths over 64 KiB, header fields over 16 KiB and excess descriptors
+before forwarding complete primary headers to zbus. Authentication has bounded
+line/total bytes. Four syscall descriptor slots, truncation rejection and atomic
+close-on-exec supplement the four-descriptor per-message limit. Zbus retains its
+own decoder and receive positions. The queue remains sixteen messages.
+[Reproduced failures, finite bounds and current acceptance](recordings/menu-setup/README.md).
+General flood/CPU/latency budgets and exhaustive teardown/recovery remain open.
+Method calls retain a separate 500 ms per-RPC timeout. Snapshot loading also checks an overall two-second
 deadline between RPCs, with additional bounded RPC/barrier cleanup waits; this
 is not a hard transport deadline. Automatic recovery and reconnect/backoff
 acceptance remain open.

@@ -39,6 +39,14 @@ reliability and physical gates remain separate. The prior revision-46
 compatibility run uses unchanged package bytes and its own immutable fixtures.
 [Package identities and acceptance](recordings/menu-compat/README.md).
 
+Revision 48 delivers the guarded local bus connection: bounded setup and
+cancellation, pre-allocation frame checks and atomic received-descriptor flags.
+The first signed candidate was withheld before installation; the final package
+uses a second clean source/build directory. Its runtime dependency list, PAM,
+session entry and notices remain unchanged. Native kernel tests and combined
+protocol/toolkit/menu/claim/PAM acceptance pass. [Exact candidate, source,
+package and acceptance scope](recordings/menu-setup/README.md).
+
 ## Source package
 
 The [APKBUILD](../packaging/nura/APKBUILD) installs four ordinary root-owned executables, the [Wayland session entry](../packaging/nura/tarot.desktop), the existing [PAM reauthentication service](../packaging/pam/tarot-lock), project licenses and source attribution. It makes no greeter configuration or autologin changes. Dynamically loaded PAM, EGL/GLES, Wayland client/EGL, GPU-driver and keyboard-data dependencies are explicit; abuild also derives ELF library dependencies.

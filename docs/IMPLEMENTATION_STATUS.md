@@ -7,6 +7,12 @@ The newly supplied Fx0 Gold packet is retained as reference. The owner's deferre
 schedules an optional Gold theme and reusable device support/Fx0 port after all
 existing work. It changes no current runtime theme or hardware baseline.
 
+## Menu setup and receive bounds in revision 48
+
+A guarded Rust Unix socket now bounds connection setup and authentication/Hello, cancels without waiting for the async writer lock, and rejects excessive frame lengths/descriptors before zbus allocation. Received descriptors are atomically close-on-exec. Reproduced old cancellation/Hello stalls and a 64 MiB allocation remain retained; eleven final host fault/recovery cases, minimum-Rust checks and real GTK/egui/typed/malformed/claim regressions pass. Both compilers pass 239 workspace tests.
+
+The clean signed revision-48 package passes both kernel socket tests on the phone, then one native protocol/GTK/Qt/menu/claim/actual-PAM login, protected orientations, app/audio, teardown and fresh normal Tarot. Collected source/archive verification and independent normal/Panfrost/restoration audits pass. Broader traffic/resource/recovery, physical/accessibility and unfinished plan gates stay open. [Precise bounds, measurements and delivery evidence](recordings/menu-setup/README.md).
+
 ## Mapped menu claim and lifecycle acceptance
 
 The expanded Rust fixture now tests actual mapped claims without synthetic action invocation. Host current/minimum runs pass foreign-process rejection, release/reclaim, held input, finite claim churn, same-bus exporter reconnect and exact-name reuse on a replacement private bus with a different GUID. The trusted input-method connection remains excluded. All 237 current/minimum workspace tests and the earlier typed/GIO/fallback regression pass.

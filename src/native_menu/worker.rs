@@ -12,7 +12,7 @@ use std::{
     thread::JoinHandle,
 };
 use tarot_core::app_menu::{Kind, Node, Status};
-use zbus::blocking::{Connection, MessageIterator};
+use zbus::blocking::MessageIterator;
 
 pub struct Update {
     pub revision: u64,
@@ -28,14 +28,14 @@ struct Shared {
     processed: Mutex<zbus::message::Sequence>,
     progressed: Condvar,
     done: AtomicBool,
-    stop: AtomicBool,
+    stop: Arc<AtomicBool>,
+    cancel: Arc<transport::Cancellation>,
     broken: AtomicBool,
     dirty: AtomicBool,
     revision: AtomicU64,
     authority: Mutex<Option<Authority>>,
     latest: Mutex<Option<Update>>,
     notify: Arc<dyn Fn() + Send + Sync>,
-    connection: Mutex<Option<Connection>>,
 }
 impl Shared {
     fn publish(&self, update: Update) {
@@ -65,18 +65,19 @@ impl Watch {
         epoch: Arc<Mutex<Option<String>>>,
         notify: Arc<dyn Fn() + Send + Sync>,
     ) -> std::io::Result<Self> {
+        let stop = Arc::new(AtomicBool::new(false));
         let shared = Arc::new(Shared {
             processed: Mutex::new(Default::default()),
             progressed: Condvar::new(),
             done: AtomicBool::new(false),
-            stop: AtomicBool::new(false),
+            cancel: Arc::new(transport::Cancellation::new(stop.clone())),
+            stop,
             broken: AtomicBool::new(false),
             dirty: AtomicBool::new(false),
             revision: AtomicU64::new(1),
             authority: Mutex::new(None),
             latest: Mutex::new(None),
             notify,
-            connection: Mutex::new(None),
         });
         let (send, receive) = mpsc::sync_channel(16);
         let state = shared.clone();
@@ -85,8 +86,8 @@ impl Watch {
             .name("tarot-app-menu".into())
             .spawn(move || {
                 let result = (|| -> anyhow::Result<()> {
-                    let connection = transport::session_connection()?;
-                    *state.connection.lock().unwrap() = Some(connection.clone());
+                    let connection =
+                        transport::session_connection_cancellable(state.cancel.clone())?;
                     if state.stop.load(Ordering::Acquire) {
                         connection.close()?;
                         return Ok(());
@@ -291,9 +292,6 @@ impl Watch {
                         nodes: vec![],
                     });
                 }
-                if let Some(connection) = state.connection.lock().unwrap().take() {
-                    let _ = connection.close();
-                }
                 state.done.store(true, Ordering::Release);
                 (state.notify)();
             })?;
@@ -325,12 +323,9 @@ impl Watch {
                 .is_ok()
     }
     pub fn stop(&self) {
-        self.shared.stop.store(true, Ordering::Release);
+        self.shared.cancel.cancel();
         self.shared.authority.lock().unwrap().take();
         let _ = self.commands.try_send(Command::Stop);
-        if let Some(connection) = self.shared.connection.lock().unwrap().as_ref() {
-            let _ = connection.clone().close();
-        }
     }
     pub fn finished(&self) -> bool {
         self.shared.done.load(Ordering::Acquire)

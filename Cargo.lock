@@ -3117,6 +3117,8 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-channel",
+ "async-io",
+ "async-trait",
  "bitflags 2.13.2",
  "clap",
  "egui",
