@@ -36,6 +36,10 @@ const SCAN: &str = "org.freedesktop.NetworkManager.wifi.scan";
 const CONTROL: &str = "org.freedesktop.NetworkManager.network-control";
 const RADIO: &str = "org.freedesktop.NetworkManager.enable-disable-wifi";
 const CREATE: &str = "org.freedesktop.NetworkManager.settings.modify.own";
+// Add-and-activate can authorize network control and profile creation in
+// successive conversations. Keep their bounded human time separate from reads.
+const WRITE_TIMEOUT: Duration = Duration::from_secs(400);
+type Connections = Arc<Mutex<Vec<Connection>>>;
 
 enum Event {
     Wake,
@@ -50,14 +54,16 @@ struct Shared {
     stop: AtomicBool,
     lost: AtomicBool,
     busy: AtomicBool,
+    in_flight: AtomicBool,
     watching: AtomicBool,
     wake_queued: AtomicBool,
     agent: Arc<agent::State>,
+    authorization: crate::authorization::Readiness,
 }
 impl Shared {
     fn publish(&self, mut value: Snapshot, force: bool) {
         value.enabled = true;
-        value.busy = self.busy.load(Ordering::Acquire);
+        value.busy = self.busy.load(Ordering::Acquire) || self.in_flight.load(Ordering::Acquire);
         let mut latest = self.latest.lock().unwrap();
         value.generation = latest.generation;
         if *latest == value && !force {
@@ -76,7 +82,7 @@ impl Shared {
 }
 pub struct Server {
     shared: Arc<Shared>,
-    connection: Arc<Mutex<Option<Connection>>>,
+    connections: Connections,
     worker: Option<JoinHandle<()>>,
 }
 impl Server {
@@ -92,6 +98,10 @@ impl Server {
             UiAction::CancelSecrets { request } => return self.shared.agent.respond(request, None),
             _ => {}
         }
+        ensure!(
+            !self.shared.in_flight.load(Ordering::Acquire),
+            "A Wi-Fi request is still ending"
+        );
         ensure!(
             self.shared
                 .busy
@@ -109,10 +119,7 @@ impl Server {
 impl Drop for Server {
     fn drop(&mut self) {
         self.shared.stop.store(true, Ordering::Release);
-        let connection = self.connection.lock().unwrap().take();
-        if let Some(connection) = connection {
-            let _ = connection.close();
-        }
+        close_connections(&self.connections);
         let _ = self.shared.sender.try_send(Event::Stop);
         if let Some(worker) = self.worker.take() {
             let _ = worker.join();
@@ -123,6 +130,7 @@ pub fn start(
     handle: LoopHandle<'static, CalloopData>,
     state: &mut Compositor,
     bus: Option<String>,
+    authorization: crate::authorization::Readiness,
 ) -> Result<Server> {
     let (ping, source) = make_ping()?;
     let (sender, receiver) = mpsc::sync_channel(64);
@@ -134,15 +142,19 @@ pub fn start(
         stop: AtomicBool::new(false),
         lost: AtomicBool::new(false),
         busy: AtomicBool::new(false),
+        in_flight: AtomicBool::new(false),
         watching: AtomicBool::new(false),
         wake_queued: AtomicBool::new(false),
         agent: Arc::new(agent::State::new(weak.clone())),
+        authorization,
     });
     let updates = shared.clone();
     handle
         .insert_source(source, move |(), _, data| {
-            if let Some(mut snapshot) = updates.updates.lock().unwrap().take() {
-                snapshot.busy = updates.busy.load(Ordering::Acquire);
+            let snapshot = { updates.updates.lock().unwrap().take() };
+            if let Some(mut snapshot) = snapshot {
+                snapshot.busy = updates.busy.load(Ordering::Acquire)
+                    || updates.in_flight.load(Ordering::Acquire);
                 let before = data.state.shell.network_input.as_ref().map(|i| i.target);
                 let mut effects = data.state.shell.sync_network(snapshot);
                 if data.state.protected() {
@@ -161,8 +173,8 @@ pub fn start(
             }
         })
         .map_err(|e| anyhow::anyhow!(e.to_string()))?;
-    let connection = Arc::new(Mutex::new(None));
-    let saved = connection.clone();
+    let connections = Arc::new(Mutex::new(Vec::new()));
+    let saved = connections.clone();
     let worker_shared = shared.clone();
     state.shell.network.enabled = true;
     let worker = std::thread::Builder::new()
@@ -170,7 +182,7 @@ pub fn start(
         .spawn(move || supervise(worker_shared, receiver, saved, bus))?;
     Ok(Server {
         shared,
-        connection,
+        connections,
         worker: Some(worker),
     })
 }
@@ -247,10 +259,87 @@ struct Operation {
     observed_active: bool,
 }
 
+fn close_connections(saved: &Connections) {
+    let connections = std::mem::take(&mut *saved.lock().unwrap());
+    for connection in connections {
+        let _ = connection.close();
+    }
+}
+struct Call {
+    epoch: u64,
+    kind: Pending,
+    deadline: Instant,
+    receiver: mpsc::Receiver<Result<Operation>>,
+    thread: Option<JoinHandle<()>>,
+}
+struct InFlight(Arc<Shared>);
+impl Drop for InFlight {
+    fn drop(&mut self) {
+        self.0.in_flight.store(false, Ordering::Release);
+        self.0.wake();
+    }
+}
+fn begin_call(
+    shared: &Arc<Shared>,
+    connection: &Connection,
+    inventory: Inventory,
+    action: UiAction,
+) -> Result<Call> {
+    let kind = match &action {
+        UiAction::Scan => Pending::Scan,
+        UiAction::Radio { enabled } => Pending::Radio(*enabled),
+        UiAction::Disconnect => Pending::Disconnect,
+        UiAction::Connect { network, .. } | UiAction::Create { network, .. } => {
+            Pending::Connect(*network)
+        }
+        _ => bail!("Password request ended"),
+    };
+    ensure!(
+        shared
+            .in_flight
+            .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
+            .is_ok(),
+        "A Wi-Fi request is still ending"
+    );
+    let epoch = inventory.snapshot.epoch;
+    let connection = connection.clone();
+    let worker = shared.clone();
+    let (sender, receiver) = mpsc::sync_channel(1);
+    let thread = match std::thread::Builder::new()
+        .name("tarot-wifi-call".into())
+        .spawn(move || {
+            let _guard = InFlight(worker.clone());
+            let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                request(
+                    &connection,
+                    &inventory,
+                    action,
+                    &worker.agent,
+                    &worker.authorization,
+                )
+            }))
+            .unwrap_or_else(|_| Err(anyhow::anyhow!("Wi-Fi request worker ended")));
+            let _ = sender.send(result);
+        }) {
+        Ok(thread) => thread,
+        Err(error) => {
+            shared.in_flight.store(false, Ordering::Release);
+            return Err(error.into());
+        }
+    };
+    Ok(Call {
+        epoch,
+        kind,
+        deadline: Instant::now() + WRITE_TIMEOUT,
+        receiver,
+        thread: Some(thread),
+    })
+}
+
 fn supervise(
     shared: Arc<Shared>,
     receiver: mpsc::Receiver<Event>,
-    saved: Arc<Mutex<Option<Connection>>>,
+    saved: Connections,
     bus: Option<String>,
 ) {
     let mut registry = Registry::default();
@@ -260,10 +349,7 @@ fn supervise(
         let started = Instant::now();
         let result = run(&shared, &receiver, &saved, bus.as_deref(), &mut registry);
         shared.agent.clear();
-        let connection = saved.lock().unwrap().take();
-        if let Some(connection) = connection {
-            let _ = connection.close();
-        }
+        close_connections(&saved);
         registry.disconnected();
         shared.busy.store(false, Ordering::Release);
         if let Err(_error) = result {
@@ -330,7 +416,7 @@ fn watch(
 fn run(
     shared: &Arc<Shared>,
     receiver: &mpsc::Receiver<Event>,
-    saved: &Arc<Mutex<Option<Connection>>>,
+    saved: &Connections,
     bus: Option<&str>,
     registry: &mut Registry,
 ) -> Result<()> {
@@ -343,20 +429,35 @@ fn run(
         .method_timeout(Duration::from_secs(5))
         .serve_at(agent::PATH, agent::Agent(shared.agent.clone()))?
         .build()?;
-    *saved.lock().unwrap() = Some(connection.clone());
+    saved.lock().unwrap().push(connection.clone());
+    // Keep a separate, long-lived write connection for human authentication.
+    // Read/registration calls retain their short timeout and can keep reporting
+    // service state while a privileged mechanism waits for the user.
+    let writer = if let Some(bus) = bus {
+        Builder::address(bus)?
+    } else {
+        Builder::system()?
+    }
+    .method_timeout(WRITE_TIMEOUT)
+    .build()?;
+    saved.lock().unwrap().push(writer.clone());
+    ensure!(
+        connection.server_guid() == writer.server_guid(),
+        "Wi-Fi bus replaced during setup"
+    );
     if shared.stop.load(Ordering::Acquire) {
         return Ok(());
     }
     let properties = watch(
         shared.clone(),
         &connection,
-        "type='signal',path_namespace='/org/freedesktop/NetworkManager'",
+        "type='signal',sender='org.freedesktop.NetworkManager',path_namespace='/org/freedesktop/NetworkManager'",
         false,
     )?;
     let owners = match watch(
         shared.clone(),
         &connection,
-        "type='signal',interface='org.freedesktop.DBus',member='NameOwnerChanged'",
+        "type='signal',sender='org.freedesktop.DBus',interface='org.freedesktop.DBus',member='NameOwnerChanged',arg0='org.freedesktop.NetworkManager'",
         true,
     ) {
         Ok(value) => value,
@@ -368,6 +469,7 @@ fn run(
     };
     let result = (|| -> Result<()> {
         let mut operation: Option<Operation> = None;
+        let mut call: Option<Call> = None;
         let mut action_error = None;
         let mut agent_owner = String::new();
         let mut agent_available = false;
@@ -378,6 +480,29 @@ fn run(
             }
             if shared.lost.load(Ordering::Acquire) {
                 bail!("system bus disconnected");
+            }
+            if let Some(pending) = &mut call {
+                let result = match pending.receiver.try_recv() {
+                    Ok(result) => Some(result),
+                    Err(mpsc::TryRecvError::Disconnected) => {
+                        Some(Err(anyhow::anyhow!("Wi-Fi request ended")))
+                    }
+                    Err(mpsc::TryRecvError::Empty) => None,
+                };
+                if let Some(result) = result {
+                    if let Some(thread) = pending.thread.take() {
+                        let _ = thread.join();
+                    }
+                    match result {
+                        Ok(observation) => operation = Some(observation),
+                        Err(_) => {
+                            shared.agent.clear();
+                            shared.busy.store(false, Ordering::Release);
+                            action_error = Some("Wi-Fi request was not completed or authorized; check state before retrying".into());
+                        }
+                    }
+                    call = None;
+                }
             }
             let inventory = read_inventory(&connection, registry);
             if let Ok(i) = &inventory {
@@ -415,6 +540,27 @@ fn run(
             }
             snapshot.agent_available = agent_available;
             snapshot.secret_prompt = shared.agent.prompt();
+            if call
+                .as_ref()
+                .is_some_and(|c| !snapshot.available || c.epoch != snapshot.epoch)
+            {
+                // Do not retry an uncertain write against a replacement daemon.
+                // The in-flight guard keeps admission closed until its bounded
+                // worker really ends, even after this observation is retired.
+                call = None;
+                shared.agent.clear();
+                shared.busy.store(false, Ordering::Release);
+                action_error = Some(
+                    "Wi-Fi service disappeared during the request; check state before retrying"
+                        .into(),
+                );
+            }
+            if call.as_ref().is_some_and(|c| Instant::now() >= c.deadline) {
+                call = None;
+                shared.agent.clear();
+                shared.busy.store(false, Ordering::Release);
+                action_error = Some("Wi-Fi request timed out; check state before retrying".into());
+            }
             if let Some(op) = &mut operation {
                 if op
                     .active
@@ -470,10 +616,15 @@ fn run(
                     shared.busy.store(false, Ordering::Release);
                 }
             }
-            snapshot.pending = operation.as_ref().map(|o| o.kind.clone());
+            snapshot.pending = call
+                .as_ref()
+                .map(|c| c.kind.clone())
+                .or_else(|| operation.as_ref().map(|o| o.kind.clone()));
             snapshot.action_error = action_error.clone();
             shared.publish(snapshot.clone(), false);
-            let mut timeout = if operation.is_some() {
+            let mut timeout = if let Some(c) = &call {
+                Some(c.deadline.saturating_duration_since(Instant::now()))
+            } else if operation.is_some() {
                 operation
                     .as_ref()
                     .map(|o| o.deadline.saturating_duration_since(Instant::now()))
@@ -504,8 +655,8 @@ fn run(
                     action_error = None;
                     // Refresh before resolving an intent; stale IDs never map to a new owner.
                     let fresh = read_inventory(&connection, registry);
-                    match fresh.and_then(|i| request(&connection, &i, action, &shared.agent)) {
-                        Ok(value) => operation = Some(value),
+                    match fresh.and_then(|i| begin_call(shared, &writer, i, action)) {
+                        Ok(value) => call = Some(value),
                         Err(_error) => {
                             shared.agent.clear();
                             shared.busy.store(false, Ordering::Release);
@@ -517,12 +668,16 @@ fn run(
                     }
                     let mut value = shared.latest.lock().unwrap().clone();
                     value.action_error = action_error.clone();
-                    value.pending = operation.as_ref().map(|o| o.kind.clone());
+                    value.pending = call
+                        .as_ref()
+                        .map(|c| c.kind.clone())
+                        .or_else(|| operation.as_ref().map(|o| o.kind.clone()));
                     shared.publish(value, true);
                 }
             }
         }
     })();
+    let _ = writer.close();
     let _ = connection.close();
     let _ = properties.join();
     let _ = owners.join();
@@ -552,7 +707,13 @@ fn request(
     inventory: &Inventory,
     action: UiAction,
     agent: &agent::State,
+    authorization: &crate::authorization::Readiness,
 ) -> Result<Operation> {
+    let owner = DBusProxy::new(connection)?.get_name_owner(NM.try_into()?)?;
+    ensure!(
+        owner.as_str() == inventory.owner,
+        "Wi-Fi service replaced before request"
+    );
     let snapshot = &inventory.snapshot;
     let manager = Proxy::new(connection, inventory.owner.as_str(), ROOT, NM)?;
     let mut operation = Operation {
@@ -568,7 +729,11 @@ fn request(
     match action {
         UiAction::Scan => {
             ensure!(
-                snapshot.scan_permission.allowed() && snapshot.radio && snapshot.hardware,
+                snapshot
+                    .scan_permission
+                    .can_request(authorization.can_prompt())
+                    && snapshot.radio
+                    && snapshot.hardware,
                 "Wi-Fi scanning is not authorized/available"
             );
             Proxy::new(
@@ -581,7 +746,10 @@ fn request(
         }
         UiAction::Radio { enabled } => {
             ensure!(
-                snapshot.radio_permission.allowed() && (!enabled || snapshot.hardware),
+                snapshot
+                    .radio_permission
+                    .can_request(authorization.can_prompt())
+                    && (!enabled || snapshot.hardware),
                 "Wi-Fi radio control is not authorized/available"
             );
             Proxy::new(
@@ -595,7 +763,9 @@ fn request(
         }
         UiAction::Disconnect => {
             ensure!(
-                snapshot.control_permission.allowed(),
+                snapshot
+                    .control_permission
+                    .can_request(authorization.can_prompt()),
                 "Wi-Fi control is not authorized"
             );
             Proxy::new(
@@ -609,7 +779,11 @@ fn request(
         }
         UiAction::Connect { network, profile } => {
             ensure!(
-                snapshot.control_permission.allowed() && snapshot.radio && snapshot.hardware,
+                snapshot
+                    .control_permission
+                    .can_request(authorization.can_prompt())
+                    && snapshot.radio
+                    && snapshot.hardware,
                 "Wi-Fi connection is not authorized/available"
             );
             let profile = inventory
@@ -648,8 +822,12 @@ fn request(
             remember,
         } => {
             ensure!(
-                snapshot.control_permission.allowed()
-                    && snapshot.create_permission.allowed()
+                snapshot
+                    .control_permission
+                    .can_request(authorization.can_prompt())
+                    && snapshot
+                        .create_permission
+                        .can_request(authorization.can_prompt())
                     && snapshot.radio
                     && snapshot.hardware,
                 "New Wi-Fi connection is not authorized/available"
@@ -736,6 +914,12 @@ fn request(
             bail!("Password request ended")
         }
     }
+    operation.deadline = Instant::now()
+        + if matches!(operation.kind, Pending::Connect(_)) {
+            Duration::from_secs(45)
+        } else {
+            Duration::from_secs(20)
+        };
     Ok(operation)
 }
 fn owned<'a>(value: impl Into<Value<'a>>) -> Result<OwnedValue> {

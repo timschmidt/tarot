@@ -117,6 +117,9 @@ impl Permission {
     pub fn allowed(self) -> bool {
         self == Self::Yes
     }
+    pub fn can_request(self, can_prompt: bool) -> bool {
+        self.allowed() || self == Self::Authentication && can_prompt
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize)]

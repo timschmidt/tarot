@@ -366,10 +366,17 @@ fn main() -> Result<()> {
             &mut data.state,
             options.platform_bus.clone(),
         )?);
+        let authorization_readiness = data
+            .state
+            .authorization
+            .as_ref()
+            .map(authorization::Server::readiness)
+            .unwrap_or_default();
         data.state.network = Some(network::start(
             event_loop.handle(),
             &mut data.state,
             options.platform_bus.clone(),
+            authorization_readiness,
         )?);
         data.state.system_services = Some(power::start(
             event_loop.handle(),

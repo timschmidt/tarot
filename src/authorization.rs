@@ -33,6 +33,15 @@ const LOGIN: &str = "org.freedesktop.login1";
 const SESSION: &str = "org.freedesktop.login1.Session";
 const SHORT: Duration = Duration::from_secs(3);
 const REQUEST_TIME: Duration = Duration::from_secs(180);
+/// Read-only admission hint for explicit platform actions. The mechanism and
+/// authority must still make their own actual authorization decision.
+#[derive(Clone, Default)]
+pub struct Readiness(Arc<AtomicBool>);
+impl Readiness {
+    pub fn can_prompt(&self) -> bool {
+        self.0.load(Ordering::Acquire)
+    }
+}
 type Properties = HashMap<String, OwnedValue>;
 type Subject = (String, HashMap<String, OwnedValue>);
 #[derive(Clone)]
@@ -74,13 +83,19 @@ struct Shared {
     stop_rx: async_channel::Receiver<()>,
     protected: AtomicBool,
     busy: AtomicBool,
+    readiness: Readiness,
     options: Options,
 }
 impl Shared {
     fn publish(&self, d: &mut Data, error: Option<String>) {
+        let can_prompt = d.enrollment.as_ref().is_some_and(|e| e.active)
+            && !self.protected.load(Ordering::Acquire)
+            && !self.stop.load(Ordering::Acquire);
+        self.readiness.0.store(can_prompt, Ordering::Release);
         let mut next = Snapshot {
             enabled: true,
             available: d.enrollment.is_some(),
+            can_prompt,
             epoch: d.epoch,
             generation: d.snapshot.generation,
             request: d.current.as_ref().map(|c| c.request.clone()),
@@ -95,11 +110,27 @@ impl Shared {
         self.ping.ping();
     }
     fn cancel(&self, id: Option<u64>) {
+        self.cancel_context(id, false);
+    }
+    fn deactivate(&self) {
+        self.cancel_context(None, true);
+    }
+    fn cancel_context(&self, id: Option<u64>, deactivate: bool) {
         let mut d = self.data.lock().unwrap();
+        if deactivate {
+            self.readiness.0.store(false, Ordering::Release);
+            if let Some(e) = &mut d.enrollment {
+                e.active = false;
+            }
+        }
         if d.current
             .as_ref()
             .is_none_or(|c| id.is_some_and(|id| id != c.request.id))
         {
+            if deactivate {
+                let error = d.snapshot.error.clone();
+                self.publish(&mut d, error);
+            }
             return;
         }
         let current = d.current.take().unwrap();
@@ -111,7 +142,7 @@ impl Shared {
         )));
     }
     fn reset(&self) {
-        self.cancel(None);
+        self.deactivate();
         let mut d = self.data.lock().unwrap();
         d.enrollment = None;
         self.publish(
@@ -174,11 +205,20 @@ pub struct Server {
     worker: Option<JoinHandle<()>>,
 }
 impl Server {
+    pub fn readiness(&self) -> Readiness {
+        self.shared.readiness.clone()
+    }
     pub fn protection(&self, protected: bool) {
-        self.shared.protected.store(protected, Ordering::Release);
+        if self.shared.protected.swap(protected, Ordering::AcqRel) == protected {
+            return;
+        }
         if protected {
+            self.shared.readiness.0.store(false, Ordering::Release);
             self.shared.cancel(None);
         }
+        let mut d = self.shared.data.lock().unwrap();
+        let error = d.snapshot.error.clone();
+        self.shared.publish(&mut d, error);
     }
     pub fn action(&self, action: UiAction) -> Result<()> {
         if let UiAction::Cancel { request } = action {
@@ -212,6 +252,7 @@ impl Server {
 impl Drop for Server {
     fn drop(&mut self) {
         self.shared.stop.store(true, Ordering::Release);
+        self.shared.readiness.0.store(false, Ordering::Release);
         let _ = self.shared.stop_tx.try_send(());
         self.shared.cancel(None);
         if let Some(w) = self.worker.take().filter(|w| w.is_finished()) {
@@ -239,6 +280,7 @@ pub fn start(
         stop_rx,
         protected: AtomicBool::new(state.protected()),
         busy: AtomicBool::new(false),
+        readiness: Readiness::default(),
         options,
     });
     let updates = shared.clone();
@@ -552,7 +594,10 @@ fn run(s: &Arc<Shared>) -> Result<()> {
                             .contains(&key.as_str())
                     })
                 {
-                    s.cancel(None);
+                    // Revoke the admission hint before the fresh property RPC;
+                    // a rapid inactive/active transition must still retire the
+                    // old conversation and block new actions during the check.
+                    s.deactivate();
                 }
                 let mut checked = enrollment(&c, s.options.bus.is_some())?;
                 checked.epoch = e.epoch;
@@ -701,47 +746,36 @@ fn authenticate(
 }
 impl Compositor {
     fn sync_authorization(&mut self, snapshot: Snapshot) {
-        let previous = self
-            .shell
-            .authorization
-            .snapshot
-            .request
-            .as_ref()
-            .map(|r| r.id);
-        let incoming = snapshot.request.as_ref().map(|r| r.id);
-        if incoming.is_some_and(|id| self.shell.authorization.may_open(id))
-            && incoming != previous
-            && !self.protected()
-        {
-            // Route before installing entry so navigation cannot cancel its own
-            // new request. Existing network/Bluetooth conversations end first.
-            let effects = self.shell.cancel_platform_input();
-            self.apply_effects(effects);
-            self.apply_command(tarot_core::Command::SystemPage(
-                tarot_core::SystemPage::Authorization,
-            ));
-            self.apply_command(tarot_core::Command::SystemMenuOpen(true));
-        }
+        let route = (
+            self.shell.system_page,
+            self.shell.system_menu_open,
+            self.shell.menus.revision,
+        );
         let old = self.shell.authorization.snapshot.request.clone();
-        let effects = self
-            .shell
-            .authorization
-            .sync(snapshot, !self.protected())
-            .into_iter()
-            .map(tarot_core::Effect::Authorization)
-            .collect();
-        if old != self.shell.authorization.snapshot.request {
+        let effects = self.shell.sync_authorization(snapshot, !self.protected());
+        if old != self.shell.authorization.snapshot.request
+            || route
+                != (
+                    self.shell.system_page,
+                    self.shell.system_menu_open,
+                    self.shell.menus.revision,
+                )
+        {
             self.shell.menus.invalidate();
             self.cancel_input_sequences();
         }
         self.apply_effects(effects);
-        if previous.is_some()
-            && self.shell.authorization.snapshot.request.is_none()
-            && (!self.shell.authorization.snapshot.available
-                || self.shell.authorization.snapshot.error.is_none())
-            && self.shell.system_page == tarot_core::SystemPage::Authorization
-        {
-            self.apply_command(tarot_core::Command::SystemMenuOpen(false));
+        if let Some(server) = &self.system_services {
+            server.watch(
+                self.shell.system_menu_open
+                    && self.shell.system_page != tarot_core::SystemPage::Activity,
+            );
+        }
+        if let Some(server) = &self.network {
+            server.watch(
+                self.shell.system_menu_open
+                    && self.shell.system_page == tarot_core::SystemPage::Wifi,
+            );
         }
         self.refresh_keyboard();
         self.ui_dirty = true;
@@ -752,6 +786,64 @@ impl Compositor {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn prompt_readiness_tracks_active_enrollment_protection_and_retirement() {
+        let (ping, _source) = make_ping().unwrap();
+        let (stop_tx, stop_rx) = async_channel::bounded(1);
+        let shared = Arc::new(Shared {
+            data: Mutex::new(Data::default()),
+            update: Mutex::new(None),
+            ping,
+            stop: AtomicBool::new(false),
+            stop_tx,
+            stop_rx,
+            protected: AtomicBool::new(false),
+            busy: AtomicBool::new(false),
+            readiness: Readiness::default(),
+            options: Options {
+                bus: None,
+                helper: None,
+            },
+        });
+        let server = Server {
+            shared: shared.clone(),
+            worker: None,
+        };
+        let readiness = server.readiness();
+        {
+            let mut data = shared.data.lock().unwrap();
+            data.enrollment = Some(Enrollment {
+                authority: ":1.2".into(),
+                login: ":1.3".into(),
+                session: OwnedObjectPath::try_from("/session/test").unwrap(),
+                id: "test".into(),
+                active: false,
+                epoch: 1,
+            });
+            shared.publish(&mut data, None);
+            assert!(data.snapshot.available);
+            assert!(!data.snapshot.can_prompt);
+            assert!(!readiness.can_prompt());
+            data.enrollment.as_mut().unwrap().active = true;
+            shared.publish(&mut data, None);
+            assert!(data.snapshot.can_prompt);
+        }
+        assert!(readiness.can_prompt());
+        server.protection(true);
+        assert!(!readiness.can_prompt());
+        server.protection(false);
+        assert!(readiness.can_prompt());
+        shared.deactivate();
+        assert!(!readiness.can_prompt());
+        // Unlocking cannot reactivate an enrollment retired by login1.
+        server.protection(true);
+        server.protection(false);
+        assert!(!readiness.can_prompt());
+        shared.reset();
+        assert!(!shared.data.lock().unwrap().snapshot.available);
+        drop(server);
+        assert!(!readiness.can_prompt());
+    }
     #[test]
     fn authority_accepts_the_dedicated_daemon_account_but_login_requires_root() {
         assert!(trusted_service(AUTHORITY, 102, 10000, Some(102)));

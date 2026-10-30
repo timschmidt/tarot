@@ -93,6 +93,9 @@ impl std::fmt::Debug for Request {
 pub struct Snapshot {
     pub enabled: bool,
     pub available: bool,
+    /// The enrolled local session can currently present an authentication
+    /// request. This is an affordance, never a policy grant.
+    pub can_prompt: bool,
     pub epoch: u64,
     pub generation: u64,
     pub request: Option<Request>,
@@ -139,6 +142,15 @@ pub struct State {
     pub keyboard: bool,
     pub input_error: bool,
     retired: u64,
+}
+/// Settings navigation to restore after an authentication modal. It deliberately
+/// excludes private entry, native command targets and menu revisions.
+#[derive(Clone, Debug)]
+pub struct Return {
+    pub page: crate::SystemPage,
+    pub entry: crate::SystemPage,
+    pub history: Vec<crate::SystemPage>,
+    pub restore_shell_text_focus: bool,
 }
 impl State {
     pub fn may_open(&self, request: u64) -> bool {

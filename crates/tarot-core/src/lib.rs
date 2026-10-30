@@ -206,6 +206,7 @@ pub struct ShellModel {
     pub volume_feedback: Option<audio::KeyFeedback>,
     pub network: network::Snapshot,
     pub authorization: authorization::State,
+    pub authorization_return: Option<authorization::Return>,
     pub bluetooth: bluetooth::Snapshot,
     pub bluetooth_ui: bluetooth::View,
     pub system_page: SystemPage,
@@ -574,7 +575,89 @@ impl ShellModel {
         Vec::new()
     }
 
+    pub fn can_request_new_network(&self) -> bool {
+        let n = &self.network;
+        n.available
+            && n.radio
+            && n.hardware
+            && !n.busy
+            && n.create_permission
+                .can_request(self.authorization.snapshot.can_prompt)
+            && n.control_permission
+                .can_request(self.authorization.snapshot.can_prompt)
+    }
+
+    pub fn sync_authorization(
+        &mut self,
+        mut snapshot: authorization::Snapshot,
+        may_present: bool,
+    ) -> Vec<Effect> {
+        snapshot.can_prompt &= may_present;
+        if self.system_menu_open
+            && self.system_page == SystemPage::Wifi
+            && self.authorization.snapshot.can_prompt != snapshot.can_prompt
+        {
+            self.menus.invalidate();
+        }
+        let previous = self.authorization.snapshot.request.as_ref().map(|r| r.id);
+        let incoming = snapshot.request.as_ref().map(|r| r.id);
+        let mut effects = Vec::new();
+        if !may_present {
+            self.authorization_return = None;
+        }
+        if may_present
+            && incoming != previous
+            && incoming.is_some_and(|id| self.authorization.may_open(id))
+        {
+            if self.system_page != SystemPage::Authorization {
+                self.authorization_return = self.system_menu_open.then(|| authorization::Return {
+                    page: self.system_page,
+                    entry: self.menus.entry,
+                    history: self.menus.history.clone(),
+                    restore_shell_text_focus: self.menus.restore_shell_text_focus,
+                });
+            }
+            // Route before installing the new private request, so navigation
+            // cannot cancel its own incoming conversation.
+            effects.extend(self.cancel_platform_input());
+            effects.extend(self.apply(Command::SystemPage(SystemPage::Authorization)));
+            effects.extend(self.apply(Command::SystemMenuOpen(true)));
+        }
+        effects.extend(
+            self.authorization
+                .sync(snapshot, may_present)
+                .into_iter()
+                .map(Effect::Authorization),
+        );
+        if previous.is_some()
+            && self.authorization.snapshot.request.is_none()
+            && (!self.authorization.snapshot.available
+                || self.authorization.snapshot.error.is_none())
+            && self.system_page == SystemPage::Authorization
+            && !self.menu_visual().closing
+        {
+            effects.extend(self.apply(Command::SystemMenuOpen(false)));
+        }
+        effects
+    }
+
     pub fn apply(&mut self, command: Command) -> Vec<Effect> {
+        if matches!(
+            command,
+            Command::Home
+                | Command::Overview
+                | Command::Launcher
+                | Command::Activate(_)
+                | Command::Launch(_)
+                | Command::QuickLaunch(_)
+                | Command::EditFavorites(_)
+                | Command::NotificationsOpen(_)
+                | Command::Lock
+                | Command::Menu(menu::Action::ToggleDevice | menu::Action::ToggleActivity)
+        ) || matches!(command, Command::SystemPage(page) if page != SystemPage::Authorization)
+        {
+            self.authorization_return = None;
+        }
         if (self.network_input.is_some()
             || self.bluetooth.prompt.is_some()
             || self.authorization.snapshot.request.is_some())
@@ -595,7 +678,17 @@ impl ShellModel {
         }
         match command {
             Command::JustType(action) => return self.just_type(action),
-            Command::Menu(action) => return self.menu_action(action),
+            Command::Menu(action) => {
+                let mut effects = if self.system_page == SystemPage::Authorization
+                    && matches!(action, menu::Action::Dismiss | menu::Action::Back)
+                {
+                    self.cancel_platform_input()
+                } else {
+                    Vec::new()
+                };
+                effects.extend(self.menu_action(action));
+                return effects;
+            }
             Command::LoadIcon(id) => {
                 if let Some(icon) = self
                     .applications
@@ -656,8 +749,7 @@ impl ShellModel {
             Command::NetworkSetup(id) => {
                 if self.system_menu_open
                     && self.system_page == SystemPage::Wifi
-                    && !self.network.busy
-                    && self.network.create_permission.allowed()
+                    && self.can_request_new_network()
                     && let Some(row) = self.network.networks.iter().find(|r| r.id == id)
                     && let Some(kind) = row.password_kind
                 {
@@ -700,6 +792,14 @@ impl ShellModel {
                 if self
                     .network_input
                     .as_ref()
+                    .is_some_and(|i| matches!(i.target, network::InputTarget::New(_)))
+                    && !self.can_request_new_network()
+                {
+                    return Vec::new();
+                }
+                if self
+                    .network_input
+                    .as_ref()
                     .is_some_and(|i| i.kind.accepts(&i.password))
                 {
                     let input = self.network_input.take().unwrap();
@@ -722,6 +822,22 @@ impl ShellModel {
             }
             Command::CredentialCancel => return self.cancel_platform_input(),
             Command::SystemMenuOpen(open) => {
+                if !open
+                    && self.system_page == SystemPage::Authorization
+                    && let Some(origin) = self.authorization_return.take()
+                {
+                    let mut effects = self.cancel_platform_input();
+                    self.system_page = origin.page;
+                    self.system_menu_open = true;
+                    self.shell_text_focus = false;
+                    self.launcher.menu_open =
+                        origin.page == SystemPage::Activity && self.view == View::Launcher;
+                    self.menus.open(self.view, origin.entry);
+                    self.menus.history = origin.history;
+                    self.menus.restore_shell_text_focus = origin.restore_shell_text_focus;
+                    effects.push(Effect::Focus(None));
+                    return effects;
+                }
                 let was_open = self.system_menu_open;
                 let restore_owner = !was_open || self.menus.owner == Some(self.view);
                 let restore_text = self.shell_text_focus
@@ -1250,6 +1366,179 @@ impl Layout {
 #[cfg(test)]
 mod tests {
     use super::*;
+    fn authentication(id: u64) -> authorization::Snapshot {
+        use authorization::{Challenge, Identity, Phase, Request, Snapshot};
+        Snapshot {
+            enabled: true,
+            available: true,
+            can_prompt: true,
+            request: Some(Request {
+                id,
+                action: "org.tarot.Test".into(),
+                message: "Test authentication".into(),
+                identities: vec![Identity {
+                    uid: 10000,
+                    name: "Test user".into(),
+                }],
+                selected: Some(10000),
+                phase: Phase::Question(Challenge {
+                    id: 1,
+                    prompt: "Password:".into(),
+                    echo: false,
+                }),
+                info: None,
+            }),
+            ..Default::default()
+        }
+    }
+    fn authentication_ended(error: Option<&str>) -> authorization::Snapshot {
+        authorization::Snapshot {
+            enabled: true,
+            available: true,
+            can_prompt: true,
+            error: error.map(str::to_owned),
+            ..Default::default()
+        }
+    }
+    fn wifi_model() -> ShellModel {
+        let mut m = model();
+        m.apply(Command::SystemPage(SystemPage::Wifi));
+        m.apply(Command::SystemMenuOpen(true));
+        m.menus.entry = SystemPage::Device;
+        m.menus.history = vec![SystemPage::Power];
+        m
+    }
+    #[test]
+    fn authentication_returns_to_settings_and_retires_both_private_fields() {
+        let mut m = wifi_model();
+        let selected = m.selected;
+        m.network_input = Some(network::Input {
+            target: network::InputTarget::Agent(9),
+            label: "Fixture".into(),
+            kind: network::PasswordKind::Psk,
+            password: network::Secret::new("old-private-entry".into()),
+            remember: false,
+            keyboard: true,
+        });
+        let effects = m.sync_authorization(authentication(1), true);
+        assert!(
+            effects.contains(&Effect::Network(network::UiAction::CancelSecrets {
+                request: 9
+            }))
+        );
+        assert!(m.network_input.is_none());
+        assert_eq!(m.system_page, SystemPage::Authorization);
+        m.apply(Command::Authorization(authorization::Action::Text {
+            request: 1,
+            turn: 1,
+            text: authorization::Response::new("pam-private-entry".into()).unwrap(),
+        }));
+        assert!(!m.authorization.input.expose().is_empty());
+        let effects = m.sync_authorization(authentication_ended(None), true);
+        assert!(effects.contains(&Effect::Focus(None)));
+        assert!(m.system_menu_open);
+        assert_eq!(m.system_page, SystemPage::Wifi);
+        assert_eq!(m.menus.entry, SystemPage::Device);
+        assert_eq!(m.menus.history, vec![SystemPage::Power]);
+        assert_eq!(m.selected, selected);
+        assert!(m.authorization.input.expose().is_empty() && !m.credential_keyboard_visible());
+        m.sync_network(network::Snapshot {
+            available: true,
+            secret_prompt: Some(network::SecretPrompt {
+                id: 9,
+                label: "Fixture".into(),
+                kind: network::PasswordKind::Psk,
+            }),
+            ..Default::default()
+        });
+        assert!(m.network_input.is_none());
+    }
+    #[test]
+    fn authentication_cancel_ends_entry_before_animated_retirement_and_keeps_settings_focus() {
+        let mut m = wifi_model();
+        m.advance_menus(std::time::Duration::from_secs(1));
+        m.sync_authorization(authentication(1), true);
+        m.advance_menus(std::time::Duration::from_secs(2));
+        let effects = m.apply(Command::Menu(menu::Action::Dismiss));
+        assert!(
+            effects.contains(&Effect::Authorization(authorization::UiAction::Cancel {
+                request: 1
+            }))
+        );
+        assert!(!effects.iter().any(|e| matches!(e, Effect::Focus(Some(_)))));
+        assert!(m.authorization.snapshot.request.is_none() && !m.credential_keyboard_visible());
+        assert!(m.menu_visual().closing && m.system_menu_open);
+        m.advance_menus(std::time::Duration::from_secs(3));
+        let token = m.menu_retirement_token().unwrap();
+        let effects = m.present_menus(token);
+        assert_eq!(effects, vec![Effect::Focus(None)]);
+        assert!(m.system_menu_open && !m.menu_visual().closing);
+        assert_eq!(m.system_page, SystemPage::Wifi);
+        assert!(m.menus.revision > token);
+        assert!(m.authorization_return.is_none());
+    }
+    #[test]
+    fn authentication_failure_close_returns_to_settings_but_navigation_and_protection_do_not_reopen_it()
+     {
+        let mut m = wifi_model();
+        m.sync_authorization(authentication(1), true);
+        m.sync_authorization(authentication_ended(Some("Authentication failed")), true);
+        assert_eq!(m.system_page, SystemPage::Authorization);
+        assert!(m.system_menu_open);
+        m.apply(Command::SystemMenuOpen(false));
+        assert!(m.system_menu_open);
+        assert_eq!(m.system_page, SystemPage::Wifi);
+        m.sync_authorization(authentication(2), true);
+        m.apply(Command::Home);
+        m.sync_authorization(authentication_ended(None), true);
+        assert!(!m.system_menu_open);
+        assert_eq!(m.view, View::Home);
+        m.sync_authorization(authentication(2), true);
+        assert!(!m.system_menu_open);
+        m.apply(Command::SystemPage(SystemPage::Wifi));
+        m.apply(Command::SystemMenuOpen(true));
+        m.sync_authorization(authentication(3), true);
+        m.sync_authorization(authentication(3), false);
+        assert!(!m.system_menu_open && m.authorization_return.is_none());
+        assert!(!m.authorization.snapshot.can_prompt);
+    }
+    #[test]
+    fn new_network_entry_requires_a_live_authentication_affordance_for_auth_permissions() {
+        let mut m = wifi_model();
+        m.network = network::Snapshot {
+            enabled: true,
+            available: true,
+            radio: true,
+            hardware: true,
+            create_permission: network::Permission::Authentication,
+            control_permission: network::Permission::Authentication,
+            networks: vec![network::Network {
+                id: 77,
+                label: "Fixture".into(),
+                security: network::Security::Personal,
+                strength: 80,
+                connected: false,
+                profiles: vec![],
+                password_kind: Some(network::PasswordKind::Psk),
+            }],
+            ..Default::default()
+        };
+        m.apply(Command::NetworkSetup(77));
+        assert!(m.network_input.is_none());
+        m.authorization.snapshot.can_prompt = true;
+        m.apply(Command::NetworkSetup(77));
+        assert!(m.network_input.is_some());
+        m.apply(Command::CredentialCancel);
+        m.network.create_permission = network::Permission::No;
+        m.apply(Command::NetworkSetup(77));
+        assert!(m.network_input.is_none());
+        m.network.create_permission = network::Permission::Yes;
+        m.network.control_permission = network::Permission::No;
+        m.apply(Command::NetworkSetup(77));
+        assert!(m.network_input.is_none());
+        assert!(!network::Permission::Authentication.allowed());
+    }
+
     #[test]
     fn authentication_modal_dismissal_retires_entry_and_restores_the_origin() {
         use authorization::{Action, Challenge, Phase, Request, Response, Snapshot, UiAction};

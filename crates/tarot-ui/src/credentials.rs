@@ -77,7 +77,9 @@ pub fn show(ui: &mut egui::Ui, model: &ShellModel, commands: &mut Vec<Command>) 
     ui.horizontal(|ui| {
         if ui
             .add_enabled(
-                input.kind.accepts(&input.password),
+                input.kind.accepts(&input.password)
+                    && (matches!(input.target, InputTarget::Agent(_))
+                        || model.can_request_new_network()),
                 egui::Button::new("Connect").min_size(Vec2::new(120.0, 48.0)),
             )
             .clicked()

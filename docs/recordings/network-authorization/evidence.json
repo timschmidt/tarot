@@ -1,0 +1,142 @@
+{
+  "revision": 53,
+  "date": "2026-10-30",
+  "scope": "NetworkManager authorization integration and scoped native scan/PAM acceptance; full goal active",
+  "package_sha256": "92f86457761200b2945ca9d5d2f1057fb3bead5f6f969ea0403de5ba6f7e962f",
+  "source_sha256": "ec5c887d1109d0a7d7c919f6742cca67a84271040a969e19f54fba7e84a27907",
+  "binaries_sha256": {
+    "tarot": "b06cc3841fbc28ad8a0e4d9c5c9e69150dc41c09ebda63cf07bfde8af07ee682",
+    "tarot-session": "fe5c42503c8472317e87b6c41682f6a6d601e13dbd8c6ec287237407a330d732",
+    "tarot-lock": "188bb9813be15c74beb8ab829f7151e96b364d19e4ef1d1afd23ee6eb41a98fc",
+    "tarot-keyboard": "af368a649f78b8c318d67eff739e5f9b13b2bac0572a2db9aa4e929239a5898d"
+  },
+  "host": {
+    "rust_current": "1.98.1",
+    "rust_minimum": "1.89.0",
+    "workspace_tests_each": 256,
+    "workspace_ignored_each": 9,
+    "strict_host_lint": true,
+    "strict_arm_drm_lint": true,
+    "accepted_private_runs": {
+      "accepted-current": {
+        "binary_sha256": {
+          "tarot": "4599ecec3db76b7d9815dbb5984741b7fe45e1c4987c783ed1caab151962d20d",
+          "network-probe": "798ab1cec80d9c057e6244e8d6255085321ccb00cf1315024710ac48a08b562d",
+          "lock-probe": "3195b384f6cf1b7a4cd0a7d888a490685bafd3e4b1295d6e7eff490e325787bb"
+        },
+        "source_sha256": {
+          "polkit_fixture.py": "c7869c9df45ff9d0afc518acd89fd1918fb79584f07f059a1f71aa8af5e57e82",
+          "network_authorization_replay.py": "22647e278cf6d53b7dd960d925c31c46fc34cfa402272fbde963c6a37ad72f69",
+          "with_xvfb.py": "a6faa051214551666345ef074687dfc3ee28825f34fe8f6d81ae07022a3eb510",
+          "phone_touch_keyboard.py": "3b4c73d87d4c474590e970af6dcba54a67dc434f286408bf96c004813af2380d",
+          "phone_gesture_replay.py": "a3924439120181758fa314fd604b1e2f8701a1b4fbcd95b9f8d116d0efc15367",
+          "notification_replay.py": "214680a5c965a61fde9152336753e07fa508dab490a49f33f10bfe943ad1eb62",
+          "lock_replay.py": "4da33abf77a6c2407ac2548cc92b120d167884c7796e472c4fe1617581662f4b",
+          "hardware_replay.py": "75bfb723243773590c6186c69896d5b6aeb2429f1f4383d796dfaada028e8b05",
+          "x11_replay_input.py": "bf2463a41c873ff9eae1d15eb851f820b89f07c185b0929de8a9c562157fc2e8",
+          "dialog_button.py": "7044baca5f396188b5fad087ff6fe27a8c564c93984c9c58652ee667b0aaae65"
+        },
+        "shutdown_seconds": 0.027881060988875106,
+        "result_sha256": "88afe817b6844cfe8d73603810b3cbbb1d21f14472e76a75c1c15e32dc786aee"
+      },
+      "accepted-minimum": {
+        "binary_sha256": {
+          "tarot": "716efcea9819399fa49d30c620cec8e8ca9dbcfdef22fca7d3a9124df5cf4766",
+          "network-probe": "0189314d5f30d377e63afb49101419b11b36701d8cdbf0895211ae27c475ae5c",
+          "lock-probe": "6fdd7b108415cd39c19494ad55987192fe800f37ba2bea846b8f0f1a126a1214"
+        },
+        "source_sha256": {
+          "polkit_fixture.py": "c7869c9df45ff9d0afc518acd89fd1918fb79584f07f059a1f71aa8af5e57e82",
+          "network_authorization_replay.py": "22647e278cf6d53b7dd960d925c31c46fc34cfa402272fbde963c6a37ad72f69",
+          "with_xvfb.py": "a6faa051214551666345ef074687dfc3ee28825f34fe8f6d81ae07022a3eb510",
+          "phone_touch_keyboard.py": "3b4c73d87d4c474590e970af6dcba54a67dc434f286408bf96c004813af2380d",
+          "phone_gesture_replay.py": "a3924439120181758fa314fd604b1e2f8701a1b4fbcd95b9f8d116d0efc15367",
+          "notification_replay.py": "214680a5c965a61fde9152336753e07fa508dab490a49f33f10bfe943ad1eb62",
+          "lock_replay.py": "4da33abf77a6c2407ac2548cc92b120d167884c7796e472c4fe1617581662f4b",
+          "hardware_replay.py": "75bfb723243773590c6186c69896d5b6aeb2429f1f4383d796dfaada028e8b05",
+          "x11_replay_input.py": "bf2463a41c873ff9eae1d15eb851f820b89f07c185b0929de8a9c562157fc2e8",
+          "dialog_button.py": "7044baca5f396188b5fad087ff6fe27a8c564c93984c9c58652ee667b0aaae65"
+        },
+        "shutdown_seconds": 0.018335514003410935,
+        "result_sha256": "8438000d7831e2ac7b3a6cf531c8728089bb469347896c5fd61a80970bca805b"
+      }
+    },
+    "wifi_credentials_regression": true,
+    "polkit_agent_regression": true,
+    "native_authority_proven_by_host": false
+  },
+  "native": {
+    "passed": true,
+    "sha256": "05cddf16c12923c2680b3404b773aafbeed64c8667cac0b9758df7c0101cb738",
+    "members": 650,
+    "frozen_inputs": 614,
+    "real_networkmanager_method_errors": {
+      "correct-scan-observed": false,
+      "wrong-denied-by-mechanism": true,
+      "cancel-denied-by-mechanism": true,
+      "lock-denied-by-mechanism": true,
+      "fresh-scan-observed": false
+    },
+    "native_networkmanager_restarted": false,
+    "radio_or_profiles_changed": false,
+    "actual_pam": true,
+    "normal_default_tarot_and_panfrost": true,
+    "exact_preferences_policies_controls_restored": true,
+    "temporary_policy_removed": true,
+    "suspend_cycles": 0,
+    "roles": {
+      "tarot-session": {
+        "pid": 25634,
+        "start": "21368196",
+        "sha256": "fe5c42503c8472317e87b6c41682f6a6d601e13dbd8c6ec287237407a330d732"
+      },
+      "tarot": {
+        "pid": 25638,
+        "start": "21368197",
+        "sha256": "b06cc3841fbc28ad8a0e4d9c5c9e69150dc41c09ebda63cf07bfde8af07ee682"
+      },
+      "tarot-lock": {
+        "pid": 25648,
+        "start": "21368239",
+        "sha256": "188bb9813be15c74beb8ab829f7151e96b364d19e4ef1d1afd23ee6eb41a98fc"
+      },
+      "tarot-keyboard": {
+        "pid": 25661,
+        "start": "21368241",
+        "sha256": "af368a649f78b8c318d67eff739e5f9b13b2bac0572a2db9aa4e929239a5898d"
+      }
+    }
+  },
+  "normal": {
+    "passed": true,
+    "diagnostics_and_metadata_off": true,
+    "hardware_keys_on": true,
+    "default_tarot": true,
+    "system_bus_unchanged": true,
+    "temporary_policy_removed": true,
+    "polkit_package_unchanged": true,
+    "services": {
+      "greetd": 0,
+      "polkit": 0,
+      "modemmanager": 0,
+      "networkmanager": 0,
+      "sshd": 0,
+      "iio-sensor-proxy": 0,
+      "bluetooth": 0
+    }
+  },
+  "temporary_rule": "AUTH_SELF only for verified GUI PID/user/active-local session; removed; original permissions restored",
+  "native_profile_radio_changes": false,
+  "native_daemon_restarts": false,
+  "physical_bluetooth_deferred": true,
+  "retained_setup_notes": [
+    "First scp staging failed because remote binary was absent; transfer completed through the existing SSH connection before installation.",
+    "Idle builder required SIGKILL after clean package build exit 0."
+  ],
+  "limitations": [
+    "Native radio/profile authorization and daemon/broker restart are not accepted.",
+    "Host fixtures use synthetic credentials and a nonprivileged helper.",
+    "Hidden/enterprise/VPN/profile management and broader policy/reliability remain open.",
+    "No suspend, live carrier, complete M4 or full-plan acceptance."
+  ]
+}

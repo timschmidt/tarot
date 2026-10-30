@@ -14,11 +14,11 @@ report=a.report.open('x',buffering=1)
 def emit(event,**fields):report.write(json.dumps(dict(event=event,**fields))+'\n')
 AUTH='org.freedesktop.PolicyKit1';AUTH_PATH='/org/freedesktop/PolicyKit1/Authority';AUTH_IFACE=AUTH+'.Authority';AGENT=AUTH+'.AuthenticationAgent';LOGIN='org.freedesktop.login1';SESSION='/org/freedesktop/login1/session/fixture';SI=LOGIN+'.Session';uid=os.geteuid()
 xml='''<node>
-<interface name="org.freedesktop.PolicyKit1.Authority"><method name="RegisterAuthenticationAgent"><arg type="(sa{sv})" direction="in"/><arg type="s" direction="in"/><arg type="s" direction="in"/></method><method name="UnregisterAuthenticationAgent"><arg type="(sa{sv})" direction="in"/><arg type="s" direction="in"/></method><method name="AuthenticationAgentResponse2"><arg type="u" direction="in"/><arg type="s" direction="in"/><arg type="(sa{sv})" direction="in"/></method></interface>
+<interface name="org.freedesktop.PolicyKit1.Authority"><method name="CheckAuthorization"><arg type="(sa{sv})" direction="in"/><arg type="s" direction="in"/><arg type="a{ss}" direction="in"/><arg type="u" direction="in"/><arg type="s" direction="in"/><arg type="(bba{ss})" direction="out"/></method><method name="CancelCheckAuthorization"><arg type="s" direction="in"/></method><method name="RegisterAuthenticationAgent"><arg type="(sa{sv})" direction="in"/><arg type="s" direction="in"/><arg type="s" direction="in"/></method><method name="UnregisterAuthenticationAgent"><arg type="(sa{sv})" direction="in"/><arg type="s" direction="in"/></method><method name="AuthenticationAgentResponse2"><arg type="u" direction="in"/><arg type="s" direction="in"/><arg type="(sa{sv})" direction="in"/></method></interface>
 <interface name="org.freedesktop.login1.Manager"><method name="GetSessionByPID"><arg type="u" direction="in"/><arg type="o" direction="out"/></method></interface>
 <interface name="org.freedesktop.login1.Session"><property name="Id" type="s" access="read"/><property name="User" type="(uo)" access="read"/><property name="Active" type="b" access="read"/><property name="Remote" type="b" access="read"/><property name="Type" type="s" access="read"/><property name="LockedHint" type="b" access="read"/></interface></node>'''
 info={i.name:i for i in Gio.DBusNodeInfo.new_for_xml(xml).interfaces};props={'Id':GLib.Variant('s','fixture-1'),'User':GLib.Variant('(uo)',(uid,'/org/freedesktop/login1/user/_'+str(uid))),'Active':GLib.Variant('b',True),'Remote':GLib.Variant('b',False),'Type':GLib.Variant('s','wayland'),'LockedHint':GLib.Variant('b',False)}
-loop=GLib.MainLoop();bus=None;registered=None;pending={};last_cookie=None;previous_cookie=None;consumed=0;mode='password';mode_path=a.helper.with_suffix('.mode');helper_report=a.helper.with_suffix('.jsonl')
+loop=GLib.MainLoop();bus=None;registered=None;pending={};last_cookie=None;previous_cookie=None;consumed=0;check_count=0;checks={};mode='password';mode_path=a.helper.with_suffix('.mode');helper_report=a.helper.with_suffix('.jsonl')
 helper_code='''#!/usr/bin/python3
 import json,os,sys,time,pwd
 from pathlib import Path
@@ -53,8 +53,29 @@ def success(inv):inv.return_value(GLib.Variant('()',()))
 def fail(inv,name=AUTH+'.Error.Failed'):inv.return_dbus_error(name,'Synthetic fixture result')
 def getprop(c,sender,path,interface,name):return props.get(name)
 def method(c,sender,path,interface,name,parameters,inv):
- global registered
+ global registered,check_count
  values=parameters.unpack()
+ if name=='CheckAuthorization':
+  subject,action,details,flags,cancellation=values
+  if registered is None or not flags&1:
+   inv.return_value(GLib.Variant('((bba{ss}))',((False,True,{}),)));return
+  expected=bus.call_sync('org.freedesktop.DBus','/org/freedesktop/DBus','org.freedesktop.DBus','GetConnectionUnixProcessID',GLib.Variant('(s)',(registered[0],)),None,Gio.DBusCallFlags.NONE,3000,None).unpack()[0]
+  if subject[0]=='unix-process':
+   process=subject[1].get('pid');process_uid=subject[1].get('uid');start_time=subject[1].get('start-time')
+   valid=process==expected and process_uid==uid and start_time==int(Path('/proc',str(expected),'stat').read_text().rsplit(')',1)[1].split()[19])
+  else:valid=False
+  if not valid:fail(inv);return
+  check_count+=1;case='mechanism-'+str(check_count);key=(sender,cancellation)
+  emit('check',case=case,action=action,subject_pid=expected,subject_kind=subject[0],interaction=bool(flags&1))
+  def complete(ok,granted,error):
+   checks.pop(key,None)
+   authorized=ok and granted and props['Active'].unpack() and not props['LockedHint'].unpack()
+   inv.return_value(GLib.Variant('((bba{ss}))',((authorized,False,{}),)))
+  checks[key]=start(case,action=action,completed=complete);return
+ if name=='CancelCheckAuthorization':
+  cookie=checks.get((sender,values[0]))
+  if cookie:call_agent(bus,'CancelAuthentication',GLib.Variant('(s)',(cookie,)),lambda ok,error:None)
+  success(inv);return
  if name=='GetSessionByPID':emit('session-query',pid=values[0]);inv.return_value(GLib.Variant('(o)',(SESSION,)));return
  if name=='RegisterAuthenticationAgent':
   subject,locale,path=values
@@ -66,13 +87,20 @@ def method(c,sender,path,interface,name,parameters,inv):
   emit('unregistered');success(inv);return
  if name=='AuthenticationAgentResponse2':
   client,cookie,identity=values;entry=pending.get(cookie)
-  if client!=uid or entry is None or identity[0]!='unix-user' or identity[1].get('uid') not in entry['uids']:fail(inv);return
+  if client!=uid or entry is None or entry.get('revoked',False) or identity[0]!='unix-user' or identity[1].get('uid') not in entry['uids']:fail(inv);return
   entry['granted']=True;emit('helper-grant',case=entry['case']);success(inv);return
  fail(inv)
 def owner_lost(c,sender,path,interface,signal,parameters,*unused):
  global registered
  name,old,new=parameters.unpack()
  if registered and name==registered[0] and not new:registered=None;emit('agent-gone')
+ if not new:
+  for key,cookie in list(checks.items()):
+   if key[0]==name:
+    if cookie in pending:pending[cookie]['revoked']=True
+    if registered is not None:call_agent(bus,'CancelAuthentication',GLib.Variant('(s)',(cookie,)),lambda ok,error:None)
+    emit('mechanism-gone')
+
 def connect():
  global bus,registered
  bus=Gio.DBusConnection.new_for_address_sync(address,Gio.DBusConnectionFlags.AUTHENTICATION_CLIENT|Gio.DBusConnectionFlags.MESSAGE_BUS_CONNECTION,None,None);bus.set_exit_on_close(False);registered=None
@@ -87,16 +115,18 @@ def call_agent(connection,name,arguments,callback):
   try:c.call_finish(result);callback(True,None)
   except GLib.Error as error:callback(False,Gio.DBusError.get_remote_error(error))
  connection.call(registered[0],registered[1],AGENT,name,arguments,None,Gio.DBusCallFlags.NONE,190000,None,finished,None)
-def start(case,spoof=False,identities=None):
+def start(case,spoof=False,identities=None,action=None,completed=None):
  global last_cookie,previous_cookie
  previous_cookie=last_cookie;last_cookie=uuid.uuid4().hex;cookie=last_cookie;uids=identities if identities is not None else [uid]
  pending[cookie]={'case':case,'granted':False,'uids':uids}
  connection=Gio.DBusConnection.new_for_address_sync(address,Gio.DBusConnectionFlags.AUTHENTICATION_CLIENT|Gio.DBusConnectionFlags.MESSAGE_BUS_CONNECTION,None,None) if spoof else bus
  def finished(ok,error):
   entry=pending.pop(cookie,{'granted':False});emit('result',case=case,agent_reply=ok,granted=entry['granted'],error=error)
+  if completed is not None:completed(ok,entry['granted'],error)
   if spoof:connection.close_sync(None)
- arguments=GLib.Variant('(sssa{ss}sa(sa{sv}))',('org.tarot.Fixture','Fixture action needs authentication','',{},cookie,[('unix-user',{'uid':GLib.Variant('u',u)}) for u in uids]))
+ arguments=GLib.Variant('(sssa{ss}sa(sa{sv}))',(action or 'org.tarot.Fixture','Fixture action needs authentication','',{},cookie,[('unix-user',{'uid':GLib.Variant('u',u)}) for u in uids]))
  call_agent(connection,'BeginAuthentication',arguments,finished)
+ return cookie
 def changed(values):
  props.update(values);bus.emit_signal(None,SESSION,'org.freedesktop.DBus.Properties','PropertiesChanged',GLib.Variant('(sa{sv}as)',(SI,values,[])))
 def command(value):
@@ -111,7 +141,7 @@ def command(value):
  elif name=='active':changed({'Active':GLib.Variant('b',value['value'])})
  elif name=='rapid-inactive':changed({'Active':GLib.Variant('b',False)});changed({'Active':GLib.Variant('b',True)})
  elif name=='session-replace':changed({'Id':GLib.Variant('s','fixture-'+uuid.uuid4().hex)})
- elif name=='replace-owner':pending.clear();bus.close_sync(None);connect()
+ elif name=='replace-owner':pending.clear();checks.clear();bus.close_sync(None);connect()
  elif name=='quit':loop.quit()
  else:raise AssertionError(name)
  emit('command',name=name,request=value['request'])

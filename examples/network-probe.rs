@@ -40,6 +40,8 @@ struct Options {
     commands: PathBuf,
     #[arg(long)]
     credentials: bool,
+    #[arg(long)]
+    authorization: bool,
 }
 struct Data {
     radio: bool,
@@ -52,6 +54,7 @@ struct Data {
     requested: u8,
     second: bool,
     credentials: bool,
+    authorization: bool,
     created: HashMap<u8, HashMap<String, HashMap<String, OwnedValue>>>,
     agent: Option<String>,
 }
@@ -66,6 +69,74 @@ impl Shared {
         f.flush().unwrap();
     }
 }
+async fn authorize(
+    shared: &Shared,
+    bus: &zbus::Connection,
+    header: &zbus::message::Header<'_>,
+    action: &str,
+) -> fdo::Result<()> {
+    let (permission, enabled) = {
+        let d = shared.data.lock().unwrap();
+        (d.permission.clone(), d.authorization)
+    };
+    if permission == "yes" {
+        return Ok(());
+    }
+    let denied = || fdo::Error::AccessDenied("Fixture authorization was not granted".into());
+    if permission != "auth" || !enabled {
+        return Err(denied());
+    }
+    let sender = header.sender().ok_or_else(denied)?;
+    let broker = zbus::fdo::DBusProxy::new(bus).await.map_err(|_| denied())?;
+    let pid = broker
+        .get_connection_unix_process_id(sender.clone().into())
+        .await
+        .map_err(|_| denied())?;
+    let uid = broker
+        .get_connection_unix_user(sender.clone().into())
+        .await
+        .map_err(|_| denied())?;
+    let stat = std::fs::read_to_string(format!("/proc/{pid}/stat")).map_err(|_| denied())?;
+    let start: u64 = stat
+        .rsplit(')')
+        .next()
+        .and_then(|s| s.split_whitespace().nth(19))
+        .and_then(|v| v.parse().ok())
+        .ok_or_else(denied)?;
+    let subject = (
+        "unix-process",
+        HashMap::from([
+            ("pid", OwnedValue::from(pid)),
+            ("uid", OwnedValue::from(uid)),
+            ("start-time", OwnedValue::from(start)),
+        ]),
+    );
+    shared.record(json!({"event":"authorization-check","action":action,"pid":pid}));
+    let authority = zbus::Proxy::new(
+        bus,
+        "org.freedesktop.PolicyKit1",
+        "/org/freedesktop/PolicyKit1/Authority",
+        "org.freedesktop.PolicyKit1.Authority",
+    )
+    .await
+    .map_err(|_| denied())?;
+    let (granted, _, _): (bool, bool, HashMap<String, String>) = authority
+        .call(
+            "CheckAuthorization",
+            &(
+                subject,
+                format!("{NM}.{action}"),
+                HashMap::<String, String>::new(),
+                1u32,
+                format!("fixture-{action}-{pid}"),
+            ),
+        )
+        .await
+        .map_err(|_| denied())?;
+    shared.record(json!({"event":"authorization-result","action":action,"granted":granted}));
+    if granted { Ok(()) } else { Err(denied()) }
+}
+
 struct Manager(Arc<Shared>);
 #[zbus::interface(name = "org.freedesktop.NetworkManager")]
 impl Manager {
@@ -84,12 +155,15 @@ impl Manager {
         .map(|name| (format!("{NM}.{name}"), permission.clone()))
         .collect()
     }
-    fn activate_connection(
+    async fn activate_connection(
         &self,
         connection: OwnedObjectPath,
         device: OwnedObjectPath,
         specific_object: OwnedObjectPath,
+        #[zbus(connection)] bus: &zbus::Connection,
+        #[zbus(header)] header: zbus::message::Header<'_>,
     ) -> fdo::Result<OwnedObjectPath> {
+        authorize(&self.0, bus, &header, "network-control").await?;
         let mut d = self.0.data.lock().unwrap();
         self.0.record(json!({"event":"activate","profile":connection.as_str(),"device":device.as_str(),"ap":specific_object.as_str()}));
         if d.deny {
@@ -115,17 +189,23 @@ impl Manager {
         d.requested = index;
         Ok(active(index))
     }
-    fn add_and_activate_connection2(
+    async fn add_and_activate_connection2(
         &self,
         mut settings: HashMap<String, HashMap<String, OwnedValue>>,
         device: OwnedObjectPath,
         specific_object: OwnedObjectPath,
         options: HashMap<String, OwnedValue>,
+        #[zbus(connection)] bus: &zbus::Connection,
+        #[zbus(header)] header: zbus::message::Header<'_>,
     ) -> fdo::Result<(
         OwnedObjectPath,
         OwnedObjectPath,
         HashMap<String, OwnedValue>,
     )> {
+        // NetworkManager authorizes activation before adding the new profile;
+        // its profile-creation authorization follows that first conversation.
+        authorize(&self.0, bus, &header, "network-control").await?;
+        authorize(&self.0, bus, &header, "settings.modify.own").await?;
         let mut d = self.0.data.lock().unwrap();
         if d.deny {
             return Err(fdo::Error::AccessDenied("Denied".into()));
@@ -178,7 +258,15 @@ impl Manager {
         self.0.data.lock().unwrap().radio
     }
     #[zbus(property)]
-    fn set_wireless_enabled(&self, value: bool) -> fdo::Result<()> {
+    async fn set_wireless_enabled(
+        &self,
+        value: bool,
+        #[zbus(connection)] bus: &zbus::Connection,
+        #[zbus(header)] header: Option<zbus::message::Header<'_>>,
+    ) -> fdo::Result<()> {
+        let header = header
+            .ok_or_else(|| fdo::Error::AccessDenied("Fixture request has no caller".into()))?;
+        authorize(&self.0, bus, &header, "enable-disable-wifi").await?;
         let mut d = self.0.data.lock().unwrap();
         self.0.record(json!({"event":"radio","enabled":value}));
         if d.deny {
@@ -242,7 +330,12 @@ impl Device {
             active(d.connected)
         }
     }
-    fn disconnect(&self) -> fdo::Result<()> {
+    async fn disconnect(
+        &self,
+        #[zbus(connection)] bus: &zbus::Connection,
+        #[zbus(header)] header: zbus::message::Header<'_>,
+    ) -> fdo::Result<()> {
+        authorize(&self.shared, bus, &header, "network-control").await?;
         self.shared
             .record(json!({"event":"disconnect","usb":self.usb}));
         if self.usb {
@@ -271,8 +364,15 @@ impl Wireless {
         }
         points
     }
-    fn request_scan(&self, _options: HashMap<String, OwnedValue>) -> fdo::Result<()> {
+    async fn request_scan(
+        &self,
+        _options: HashMap<String, OwnedValue>,
+        #[zbus(connection)] bus: &zbus::Connection,
+        #[zbus(header)] header: zbus::message::Header<'_>,
+    ) -> fdo::Result<()> {
         self.0.record(json!({"event":"scan"}));
+        authorize(&self.0, bus, &header, "wifi.scan").await?;
+        self.0.record(json!({"event":"scan-authorized"}));
         if self.0.data.lock().unwrap().deny {
             Err(fdo::Error::AccessDenied("Denied".into()))
         } else {
@@ -438,6 +538,7 @@ fn main() -> Result<()> {
             requested: 0,
             second: true,
             credentials: options.credentials,
+            authorization: options.authorization,
             created: HashMap::new(),
             agent: None,
         }),
@@ -450,7 +551,7 @@ fn main() -> Result<()> {
         ),
     });
     let mut builder = Builder::session()?
-        .method_timeout(Duration::from_secs(150))
+        .method_timeout(Duration::from_secs(400))
         .serve_at(ROOT, Manager(shared.clone()))?
         .serve_at(
             DEV,

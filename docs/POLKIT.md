@@ -4,8 +4,9 @@ October 30, 2026. M4 requires a standard Polkit authentication agent so native
 Linux applications and system controls can request authorization. The Rust agent now registers for its actual local elogind session and presents
 a compositor-owned authentication dialog using the shared keyboard. Private-bus
 acceptance covers the real agent object, synthetic helper and rendered dialog.
-Revision 52 is installed and passes actual phone enrollment and system-authority
-grant acceptance. Normal Tarot remains the default, with diagnostics off.
+Revision 52 passes actual phone enrollment and system-authority grant acceptance.
+Revision 53 now adds accepted native authenticated Wi-Fi scanning. Normal Tarot
+remains the default, with diagnostics off.
 [Exact evidence and remaining gates](recordings/polkit/README.md).
 
 ## Authority boundary
@@ -124,10 +125,12 @@ A separate audit verifies installed/loaded revision-52 hashes, normal default
 Tarot, actual session/UID, Panfrost, services and diagnostics off. The package adds
 `polkit-elogind` as an explicit runtime dependency; the pre-existing service,
 helper and policy packages were unchanged. Native daemon restart and broader
-policy behavior remain unverified. Interactive NetworkManager callers still
-need separate integration and acceptance before enabling auth-required controls.
+policy behavior remain unverified. The follow-up
+[NetworkManager integration](WIFI_AUTHORIZATION.md) now passes isolated rendered
+acceptance on both compilers and scoped native scan/PAM/cancel/lock acceptance.
+Other native authorization policies and daemon restarts remain open.
 
-Current Rust 1.98.1 and minimum 1.89.0 each pass all 251 workspace tests,
+Current Rust 1.98.1 and minimum 1.89.0 each pass all 256 workspace tests,
 including private helper-process, pure request-state, modal focus/retirement
 and dedicated daemon-principal cases. Strict host and aarch64-musl/DRM lint
 pass, along with the shared Wi-Fi credential and Bluetooth regressions. These checks are recorded separately from

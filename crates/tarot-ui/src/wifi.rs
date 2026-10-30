@@ -8,6 +8,7 @@ fn action(commands: &mut Vec<Command>, action: UiAction) {
 }
 pub fn show(ui: &mut egui::Ui, model: &ShellModel, _layout: Layout, commands: &mut Vec<Command>) {
     let network = &model.network;
+    let can_prompt = model.authorization.snapshot.can_prompt;
     if ui
         .add_sized(
             [ui.available_width(), 48.0],
@@ -28,7 +29,7 @@ pub fn show(ui: &mut egui::Ui, model: &ShellModel, _layout: Layout, commands: &m
         .add_enabled(
             network.available
                 && !network.busy
-                && network.radio_permission.allowed()
+                && network.radio_permission.can_request(can_prompt)
                 && (radio || network.hardware),
             egui::Checkbox::new(&mut radio, "Wi-Fi enabled"),
         )
@@ -54,7 +55,7 @@ pub fn show(ui: &mut egui::Ui, model: &ShellModel, _layout: Layout, commands: &m
                     && network.radio
                     && network.hardware
                     && !network.busy
-                    && network.scan_permission.allowed(),
+                    && network.scan_permission.can_request(can_prompt),
                 egui::Button::new("Scan").min_size(Vec2::new(96.0, 48.0)),
             )
             .clicked()
@@ -65,7 +66,7 @@ pub fn show(ui: &mut egui::Ui, model: &ShellModel, _layout: Layout, commands: &m
             .add_enabled(
                 network.state == State::Connected
                     && !network.busy
-                    && network.control_permission.allowed(),
+                    && network.control_permission.can_request(can_prompt),
                 egui::Button::new("Disconnect").min_size(Vec2::new(144.0, 48.0)),
             )
             .clicked()
@@ -80,7 +81,11 @@ pub fn show(ui: &mut egui::Ui, model: &ShellModel, _layout: Layout, commands: &m
     ]
     .contains(&Permission::Authentication)
     {
-        ui.label("Some actions need system authorization.");
+        ui.label(if can_prompt {
+            "Some actions require authentication."
+        } else {
+            "Authentication is temporarily unavailable."
+        });
     }
     if network.busy {
         ui.label(match network.pending {
@@ -124,8 +129,12 @@ pub fn show(ui: &mut egui::Ui, model: &ShellModel, _layout: Layout, commands: &m
                                                 && network.radio
                                                 && network.hardware
                                                 && !network.busy
-                                                && network.create_permission.allowed()
-                                                && network.control_permission.allowed(),
+                                                && network
+                                                    .create_permission
+                                                    .can_request(can_prompt)
+                                                && network
+                                                    .control_permission
+                                                    .can_request(can_prompt),
                                             egui::Button::new("Connect to network…")
                                                 .min_size(Vec2::new(ui.available_width(), 48.0)),
                                         )
@@ -149,7 +158,7 @@ pub fn show(ui: &mut egui::Ui, model: &ShellModel, _layout: Layout, commands: &m
                                             && network.radio
                                             && network.hardware
                                             && !network.busy
-                                            && network.control_permission.allowed(),
+                                            && network.control_permission.can_request(can_prompt),
                                         egui::Button::new(text)
                                             .min_size(Vec2::new(ui.available_width(), 48.0)),
                                     )
