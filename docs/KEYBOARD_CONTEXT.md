@@ -16,6 +16,10 @@ typing, actual PAM and normal-session restoration. This does not change the
 keyboard's release-based submission or canceled-contact guard, and it does not
 resolve the Firefox overlap. [Failure, source and native scope](recordings/text-enable-reset/README.md).
 
+Two later unchanged-package sessions pass real GTK/Qt fields and the complete
+21-return Firefox component. Their metadata contains no held-contact resets,
+so the earlier overlap remains open. [Comparison and limits](recordings/text-enable-reset/README.md#unchanged-package-gtkqt-and-firefox-comparison).
+
 Revision 31 destroys and recreates the native keyboard on every input-method activation. Re-enabling an unchanged field therefore temporarily removes its input surface and sends the application through unnecessary resize/configure work. Retained native browser failures include a fresh, focused field with an unchanged value after a key press, and no keyboard down/up delivery to either adjacent generation. A separate deterministic synthetic fixture reproduces the needless replacement: re-enabling the same normal-purpose field changes surface generation 1 to 2.
 
 Revision 32 separates context reset from surface teardown. Repeated activation discards complete queued clicks, cancels egui's held pointer outside all keys, suppresses held touchscreen contacts until release, and resets shift/symbol/terminal selections and surrounding-text state. The new input-method batch supplies its content type and surrounding state. A fresh click can then commit with the new serial. The existing egui context, fonts, graphics and pending frame callback remain usable. [Implementation](../crates/tarot-keyboard/src/main.rs).

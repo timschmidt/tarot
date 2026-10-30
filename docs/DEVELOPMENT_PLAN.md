@@ -26,6 +26,13 @@ Revision-43 development: the shared notification well/source rail and exposed fo
 
 Revision-50 update: a real protocol regression exposes earlier pending fields surviving consecutive text-input enables. Clearing the complete pending state fixes that boundary; current/minimum composition/isolation and rendered terminal/held-reset checks pass, with 239 workspace tests per compiler. The signed phone package passes actual keyboard layout resets, fresh touch text, PAM and normal restoration. The retained Firefox held-activation failure is separate and remains unresolved; all broader milestones stay open. [Scope and evidence](recordings/text-enable-reset/README.md).
 
+Unchanged revision-50 comparisons: separate fresh GTK3/Qt6 and complete Firefox
+sessions pass their original native text/PAM/fullscreen and 21-return browser
+gates. Independent collected-source/archive and normal/Panfrost/restoration
+audits pass. The browser has no held-contact resets in this run; it does not
+resolve the retained overlap or close a whole milestone. Advance the remaining
+M4 service/agent work alongside that explicit reliability gate.
+
 Revision-49 update: a reproduced unrelated-broadcast failure is corrected by exact exporter/endpoint match rules at the broker, retaining the local reply-ordering barrier and receive limits. Three host traffic/claim runs and valid GTK menu replacement pass; both compilers pass 239 workspace checks. Signed native traffic/GTK-egui/claim/touch/key/actual-PAM acceptance and independent normal-session/restoration/Panfrost/source audits pass. General flood/directed-traffic/resource, wider recovery and unfinished milestones remain open. The requested double-chop flashlight feature is added under M4/T015 with a DMP/suspend feasibility gate. [Current evidence](recordings/menu-signals/README.md).
 
 Revision-48 update: measured menu authentication/Hello stalls and pre-parser oversized allocation are corrected with owned nonblocking Unix setup, a two-second setup deadline, direct socket cancellation, primary-header limits and syscall descriptor budgets/close-on-exec. Eleven final host fault/recovery cases, minimum-Rust cases and prior typed/malformed/GTK-egui/claim matrices pass; both compilers pass 239 workspace checks. Native kernel tests and the final package's combined protocol/toolkit/menu/claim/actual-PAM login pass before fresh normal Tarot; independent restoration/normal/Panfrost and collected-source/archive audits also pass. General traffic/flood/resource/latency, wider recovery and remaining milestones retain their scope. [Evidence and explicit limits](recordings/menu-setup/README.md).

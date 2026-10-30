@@ -31,6 +31,14 @@ its metadata cannot establish whether stale pending fields caused the captured
 missing character. No key-timing or canceled-contact policy changes are made.
 [Exact evidence and limitations](recordings/text-enable-reset/README.md).
 
+Unchanged-package follow-up: separate fresh GTK3/Qt6 and full Firefox sessions
+pass native fields, dialogs/fullscreen, 21 browser returns, PAM, password/history/
+popup/Unicode and clean normal restoration. The browser observer records 160
+heartbeats and zero transport failures. Its 54 context resets have no held
+contacts, so the retained overlap is not resolved. All 882 collected members and
+524 frozen inputs match their hashes; independent normal/Panfrost/restoration
+audits pass. [Comparison scope](recordings/text-enable-reset/README.md#unchanged-package-gtkqt-and-firefox-comparison).
+
 ## Menu broadcast subscriptions in revision 49
 
 An unrelated 96 KiB broadcast reproduces a real revision-48 regression: the

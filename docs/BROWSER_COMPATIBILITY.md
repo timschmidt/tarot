@@ -2,6 +2,22 @@
 
 Revision 32 remains the last accepted complete scoped native checkpoint. Revision 34 later loses a browser character during a held-key context reset; passing revision-35 follow-ups do not resolve that intermittent failure. Consult the [implementation status](IMPLEMENTATION_STATUS.md) for the installed package and [revision-35 comparisons](recordings/r35/README.md#subsequent-browser-and-recorder-investigation) for the subsequent unchanged-runtime passes and separate recorder failure. Media, permissions, portals, downloads and broad site compatibility retain separate gates.
 
+## Revision 50 unchanged-package comparison
+
+After the separate native pending-state reset component, the unchanged signed
+revision-50 package passes a fresh full Firefox component: 21 card returns,
+queued native taps, exact text/Backspace, actual PAM, masked password, history,
+popup input/close and fullscreen Unicode. The fixture/replay match the retained
+revision-44 failure exactly. The observer records 160 heartbeats and zero
+transport failures; its maximum receipt-minus-browser timestamp is 547.9 ms.
+
+The fixed server/helper metadata contains 1,124 keyboard records and 54 context
+resets, all without held contacts. This is a passing comparison, not evidence
+that the earlier held-reset failure is fixed. A separate fresh session also
+passes GTK3/Qt6 dialog/text/fullscreen checks. Both retain actual PAM, complete
+teardown and independently audited normal/default Tarot/Panfrost restoration;
+there is no package reinstall, reboot or suspend. [Exact scope and archive](recordings/text-enable-reset/README.md#unchanged-package-gtkqt-and-firefox-comparison).
+
 ## Real Firefox baseline
 
 Revision 50 corrects a separate text-input-v3 pending-state leak found while

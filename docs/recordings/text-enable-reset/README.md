@@ -117,13 +117,44 @@ All collected file hashes and source/executable identities match the immutable
 staging ledger and were verified again on the host. Raw evidence remains private
 under ignored `artifacts/m2/text-reset/`.
 
+## Unchanged-package GTK/Qt and Firefox comparison
+
+Two subsequent fresh authenticated sessions use the exact same signed revision
+50, without installing or changing packages. Both pass their original checks:
+
+- GTK 3.24.52-r0 and Qt 6.11.1-r0: separate modal dialogs, exact native touch
+  text, child-popup selection outside parent bounds, refused unsaved close,
+  Cancel/Apply, maximize/fullscreen restoration, keyboard hide/reopen/Card View,
+  fullscreen field text `tarotxza`, actual PAM and cooperative teardown.
+- Firefox ESR 140.12.0-r0 with mobile-config-firefox 5.4.1-r0: queued native
+  keyboard taps, 21 exact-text card returns, text/Backspace, PAM, masked password,
+  history, popup entry/close and fullscreen `café`. Its observer records 160
+  heartbeats, zero reported transport failures and a maximum receipt-minus-
+  browser timestamp of 547.9 ms. Input remains native; no WebDriver input,
+  browser-sandbox change, typing slowdown or relaxed deadline is introduced.
+
+The executed browser fixture/replay match their exact bytes at the retained
+revision-44 failure. The two sessions retain separate results and do not become
+one combined full-plan acceptance run. Their fixed-schema keyboard metadata
+contains 662/1,124 records respectively, with 16/54 context resets and **zero
+held-contact resets**. Consequently the passing browser run does not exercise
+the earlier held-reset overlap or establish a fix for that intermittent failure.
+
+The controller returns to normal default Tarot 50. Independent loaded-program,
+ordinary-user VT7, Panfrost, service, preference/MIME/control/policy/platform/
+system-bus and fixture cleanup audits pass; diagnostics/metadata are off and
+hardware keys remain on. No reinstall, reboot, Phosh restore or suspend cycle
+is requested. The independently rechecked private comparison archive has 882
+members and 524 frozen inputs, SHA-256
+`c029c806785b4681ba42d31996d8b1abef2d2926011824234c90b6cf23dfd878`.
+
 ## Remaining work
 
 The Firefox held-activation failure remains unresolved. Equal surface or layout
 metadata cannot identify a DOM field; there is no unsafe retained-key replay or
-serial-validation exception in this correction. The new native component uses
-an audited synthetic app and the real keyboard/PAM path; it is not renewed
-Firefox/GTK/Qt application acceptance. Wider toolkit/browser comparisons,
+serial-validation exception in this correction. The initial native reset
+component uses an audited synthetic app; the separate GTK/Qt/Firefox comparisons
+above extend its scope without resolving the prior overlap. Wider application coverage,
 physical/reference/accessibility review, current-binary endurance, platform
 services, phone applications and the remaining full development plan stay open.
 The DMP double-chop features remain planned; Fx0/Gold retains its deferred order.
