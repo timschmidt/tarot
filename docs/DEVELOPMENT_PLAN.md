@@ -362,6 +362,16 @@ Actual-touch review of the section remains. Charging-transition, active
 call/work and pending-authentication policy remain explicit later inputs.
 Steps 2–5 continue. [Evidence](recordings/sleep-settings/README.md).
 
+T016 step-5 USB checkpoint, October 30: the `fe800000.usb` `-11` failure is
+isolated to the bound postmarketOS NCM gadget with no USB host attached. An
+unbound control sleeps successfully. Signed revision 60 packages a Rust elogind
+system-sleep hook that unbinds and records only detached gadgets, then restores
+them. Ten real RTC-woken root `SuspendWithFlags(1)` deep cycles succeed in
+normal Tarot (kernel successes 1→11, failures unchanged), each with the gadget
+restored. Battery, attached-host, endurance and protected-resume/PAM coverage
+on this binary remain. Steps 2–4 and automatic-sleep acceptance continue.
+[Evidence](recordings/usb-sleep/README.md).
+
 ### M4 addition: double-chop flashlight from suspend
 
 **Requested October 30, 2026; planned, not implemented.** Recognize a

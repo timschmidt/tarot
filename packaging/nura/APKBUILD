@@ -1,7 +1,7 @@
 # Local source-snapshot recipe. Keep Phosh installed as a recovery session.
 pkgname=tarot
 pkgver=0.1.0
-pkgrel=59
+pkgrel=60
 pkgdesc="Rust phone shell and Wayland compositor (development preview)"
 url="https://github.com/timschmidt/tarot"
 arch="aarch64"
@@ -37,6 +37,9 @@ package() {
 	for program in tarot tarot-session tarot-keyboard tarot-lock; do
 		install -Dm755 "target/$_rust_target/release/$program" "$pkgdir/usr/bin/$program"
 	done
+	# elogind runs this around every system sleep; it only unbinds detached gadgets.
+	install -Dm755 "target/$_rust_target/release/tarot-usb-sleep-hook" \
+		"$pkgdir/usr/libexec/elogind/system-sleep/tarot-usb-gadget"
 	install -Dm644 packaging/nura/tarot.desktop "$pkgdir/usr/share/wayland-sessions/tarot.desktop"
 	install -Dm644 packaging/pam/tarot-lock "$pkgdir/etc/pam.d/tarot-lock"
 	install -Dm644 LICENSE-MIT "$pkgdir/usr/share/licenses/tarot/LICENSE-MIT"

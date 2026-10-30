@@ -73,7 +73,7 @@ GTK/egui menu, actual-PAM and normal-session audits pass; the earlier unchanged
 protocol/kernel cases retain their revision-48 scope. [Source/package identities
 and acceptance limits](recordings/menu-signals/README.md).
 
-The [APKBUILD](../packaging/nura/APKBUILD) installs four ordinary root-owned executables, the [Wayland session entry](../packaging/nura/tarot.desktop), the existing [PAM reauthentication service](../packaging/pam/tarot-lock), project licenses and source attribution. It makes no greeter configuration or autologin changes. Dynamically loaded PAM, EGL/GLES, Wayland client/EGL, GPU-driver and keyboard-data dependencies are explicit; abuild also derives ELF library dependencies.
+The [APKBUILD](../packaging/nura/APKBUILD) installs four ordinary root-owned executables, the [USB-gadget elogind sleep hook](recordings/usb-sleep/README.md) at `/usr/libexec/elogind/system-sleep/tarot-usb-gadget` (from revision 60), the [Wayland session entry](../packaging/nura/tarot.desktop), the existing [PAM reauthentication service](../packaging/pam/tarot-lock), project licenses and source attribution. It makes no greeter configuration or autologin changes. Dynamically loaded PAM, EGL/GLES, Wayland client/EGL, GPU-driver and keyboard-data dependencies are explicit; abuild also derives ELF library dependencies.
 
 Create a source snapshot from the exact lockfile, including vendored registry sources:
 

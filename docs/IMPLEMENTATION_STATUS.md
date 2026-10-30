@@ -14,6 +14,15 @@ for their graphics and authoring source. No Pre3 runtime work has started.
 
 ## Audio activity and system sleep
 
+Revision 60 USB sleep checkpoint, October 30: the retained dwc3 `-11` suspend
+failure occurs with the phone's NCM gadget bound and no USB host attached;
+unbinding it lets deep sleep succeed. The package now installs a Rust elogind
+system-sleep hook. It unbinds only detached gadgets, after recording them under
+`/run`, and rebinds them on resume. Ten real RTC-woken deep cycles pass in
+normal Tarot with the gadget restored each time, and both compilers pass 288
+tests. A controller-only restoration failure is retained. Automatic idle action
+remains `ignore`. [Evidence and limits](recordings/usb-sleep/README.md).
+
 Revision 59 T016 step-1 checkpoint, October 30: the Power page adds persistent
 **Automatic sleep** settings, saved in settings schema 6:
 

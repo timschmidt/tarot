@@ -120,7 +120,9 @@ persistent external-power cases. The saved schema-6 file is verified between
 logins. Settings were changed through private control, so finger review of the
 Power section remains open. [Evidence](recordings/sleep-settings/README.md).
 
-Next, resolve the recorded USB kernel sleep failure. Then complete T016's
-manager-policy packaging/rollback, global-inhibitor and actual automatic-sleep
-tests. Bluetooth stays
+Revision 60 isolates the USB kernel sleep failure to a bound gadget with no
+host attached. It packages a reversible elogind hook, and ten real deep cycles
+succeed. [USB evidence](recordings/usb-sleep/README.md). Next, complete
+T016's manager-policy packaging/rollback, global-inhibitor and actual
+automatic-sleep tests. Bluetooth stays
 paused at the owner's request. No complete milestone is closed here.

@@ -1,0 +1,197 @@
+{
+  "date": "2026-10-30",
+  "package": "tarot-0.1.0-r60",
+  "kernel": "7.0.0",
+  "scope": "dwc3 gadget suspend -EAGAIN isolation and packaged elogind system-sleep hook; real RTC-woken root SuspendWithFlags(1) deep sleep in normal Tarot on USB power without a USB host",
+  "probe": [
+    {
+      "label": "gadget-bound-control",
+      "succeeded": false,
+      "success": [
+        0,
+        0
+      ],
+      "fail": [
+        4,
+        6
+      ]
+    },
+    {
+      "label": "gadget-unbound",
+      "succeeded": true,
+      "success": [
+        0,
+        1
+      ],
+      "fail": [
+        6,
+        6
+      ]
+    }
+  ],
+  "apk_sha256": "af300055385003734a7f757c5b635639c9706ffd5476d845245744d1e5d97521",
+  "hook_path": "/usr/libexec/elogind/system-sleep/tarot-usb-gadget",
+  "hook_sha256": "81df915502cb85844d66061b66d6ad6f26b04f7e7592ca399f8c6084918d15fb",
+  "binaries_sha256": {
+    "tarot": "ac8ab274d125cefbbc0f68eab8b3e64e5e44c4d8897465219706642d17b59e96",
+    "tarot-session": "0a7742e94ed4f6f58ea051c82af62ed939322ac82cbf1917c8991289670a60da",
+    "tarot-lock": "265bf455d661bc24374bdac738d77b31b380c0c75c9ff5314d39346585a267ac",
+    "tarot-keyboard": "d4f3ee2c93f37dcd96d6e105d7ba4f7b8b2588375c61b6d8c769a0b62940e9ac"
+  },
+  "source_archive_sha256": "38d6546e7d247127604d9e66d954417792eeb696eca9ea88f8231bf03449c3eb",
+  "workspace": {
+    "current": {
+      "passed": 288,
+      "failed": 0,
+      "ignored": 9
+    },
+    "minimum": {
+      "passed": 288,
+      "failed": 0,
+      "ignored": 9
+    }
+  },
+  "accepted_cycles": [
+    {
+      "index": 0,
+      "succeeded": true,
+      "before": {
+        "success": "6",
+        "fail": "6",
+        "last_failed_dev": "fe800000.usb"
+      },
+      "after": {
+        "success": "7",
+        "fail": "6",
+        "last_failed_dev": "fe800000.usb"
+      },
+      "udc_after": "fe800000.usb",
+      "record_removed": true,
+      "udc_state_after": "not attached",
+      "compositor": {
+        "pid": 4834,
+        "start": "24284974"
+      }
+    },
+    {
+      "index": 1,
+      "succeeded": true,
+      "before": {
+        "success": "7",
+        "fail": "6",
+        "last_failed_dev": "fe800000.usb"
+      },
+      "after": {
+        "success": "8",
+        "fail": "6",
+        "last_failed_dev": "fe800000.usb"
+      },
+      "udc_after": "fe800000.usb",
+      "record_removed": true,
+      "udc_state_after": "not attached",
+      "compositor": {
+        "pid": 4834,
+        "start": "24284974"
+      }
+    },
+    {
+      "index": 2,
+      "succeeded": true,
+      "before": {
+        "success": "8",
+        "fail": "6",
+        "last_failed_dev": "fe800000.usb"
+      },
+      "after": {
+        "success": "9",
+        "fail": "6",
+        "last_failed_dev": "fe800000.usb"
+      },
+      "udc_after": "fe800000.usb",
+      "record_removed": true,
+      "udc_state_after": "not attached",
+      "compositor": {
+        "pid": 4834,
+        "start": "24284974"
+      }
+    },
+    {
+      "index": 3,
+      "succeeded": true,
+      "before": {
+        "success": "9",
+        "fail": "6",
+        "last_failed_dev": "fe800000.usb"
+      },
+      "after": {
+        "success": "10",
+        "fail": "6",
+        "last_failed_dev": "fe800000.usb"
+      },
+      "udc_after": "fe800000.usb",
+      "record_removed": true,
+      "udc_state_after": "not attached",
+      "compositor": {
+        "pid": 4834,
+        "start": "24284974"
+      }
+    },
+    {
+      "index": 4,
+      "succeeded": true,
+      "before": {
+        "success": "10",
+        "fail": "6",
+        "last_failed_dev": "fe800000.usb"
+      },
+      "after": {
+        "success": "11",
+        "fail": "6",
+        "last_failed_dev": "fe800000.usb"
+      },
+      "udc_after": "fe800000.usb",
+      "record_removed": true,
+      "udc_state_after": "not attached",
+      "compositor": {
+        "pid": 4834,
+        "start": "24284974"
+      }
+    }
+  ],
+  "battery_driver_seconds_asleep_per_resume": 15,
+  "normal_restoration": {
+    "audio_modes_restored": true,
+    "audio_block_removed": true,
+    "input_controls_restored": true,
+    "audio_streams_present": false,
+    "feedback_settings_restored": true,
+    "private_trace_removed": true,
+    "passed": true,
+    "system_bus_unchanged": true,
+    "diagnostics_and_metadata_off": true,
+    "hardware_keys_on": true,
+    "default_tarot": true,
+    "fixtures_gone": true,
+    "preferences_policies_and_controls_unchanged": true,
+    "native_qa_passed": true,
+    "temporary_policy_removed": true,
+    "polkit_package_unchanged": true,
+    "normal_idle_hint_false": true,
+    "manager_idle_action_ignore": true,
+    "session_idle_disabled_in_normal": true,
+    "usb_hook_installed": true,
+    "usb_gadget_rebound": true
+  },
+  "native_evidence_sha256": "2df376a1b17cc526c41b93d74649eea16f03670174df65366074a34232bd93fb",
+  "retained_failures": [
+    {
+      "run": "r60-failed1",
+      "proof_sha256": "5cb580d233c68d58a836e78853d7a8897835c4ae6d0a066d25cb73fe41b5d358",
+      "cycles_succeeded": 5,
+      "cause": "controller reused the restoration baseline variable for kernel counters; restoration stopped before normal login",
+      "runtime_changed": false
+    }
+  ],
+  "automatic_suspend_enabled": false,
+  "manager_idle_action": "ignore"
+}
