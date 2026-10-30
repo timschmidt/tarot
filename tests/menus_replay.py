@@ -24,6 +24,8 @@ def main():
     parser.add_argument('--xvfb', default='Xvfb')
     parser.add_argument('--scale', type=int, choices=[1, 2], default=1)
     parser.add_argument('--landscape', action='store_true')
+    parser.add_argument('--require-export-peer', action='store_true',
+                        help='Require a retained live process handle for the real native client')
     args = parser.parse_args()
     out = args.output.resolve(); out.mkdir(mode=0o700, parents=True, exist_ok=False)
     root = Path.cwd(); width, height = (720, 360) if args.landscape else (360, 720)
@@ -83,6 +85,9 @@ def main():
             children.append(process)
             value = state(label+'-mapped', lambda s: isinstance(s['view'], dict) and len(s['cards']) == 1 and bool(s['presentation']['windows']) and s['presentation']['windows'][0]['opacity'] == 1)
             await_value(lambda: any(e['event'] == 'keyboard_enter' for e in app_events(report)), bool)
+            if args.require_export_peer:
+                assert value['native_export_peers'] == [value['cards'][0]['id']]
+                records['native_export_peer_verified'] = True
             return process, report, value['cards'][0]['id']
         try:
             read, write = os.pipe()

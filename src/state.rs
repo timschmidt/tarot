@@ -128,6 +128,27 @@ pub struct Compositor {
 }
 
 impl Compositor {
+    pub fn native_export_peer(
+        &self,
+        surface: &WlSurface,
+    ) -> Option<(
+        Arc<tarot::process_identity::Process>,
+        tarot::native_menu::transport::Lease,
+    )> {
+        use smithay::reexports::wayland_server::Resource;
+        let client = self.display_handle.get_client(surface.id()).ok()?;
+        let data = client.get_data::<ClientState>()?;
+        if data.trusted_input_method || data.locker.is_some() {
+            return None;
+        }
+        let lease = data.export_authority.as_ref()?.lease();
+        if !lease.is_active() {
+            return None;
+        }
+        let process = data.peer_process.as_ref()?;
+        process.is_live().ok()?.then(|| (process.clone(), lease))
+    }
+
     pub fn new(event_loop: &mut EventLoop<CalloopData>, display: Display<Self>) -> Self {
         let start_time = std::time::Instant::now();
 
@@ -300,13 +321,25 @@ impl Compositor {
 
         loop_handle
             .insert_source(listening_socket, move |client_stream, _, state| {
-                // Inside the callback, you should insert the client into the display.
-                //
-                // You may also associate some data with the client when inserting the client.
-                if let Err(error) = state
-                    .display_handle
-                    .insert_client(client_stream, Arc::new(ClientState::default()))
+                // A retained process descriptor belongs to this actual accepted
+                // peer. Unsupported kernels keep ordinary Wayland/card support;
+                // they cannot authorize exported application commands.
+                let peer_process = match tarot::process_identity::Process::from_peer(&client_stream)
                 {
+                    Ok(process) => Some(Arc::new(process)),
+                    Err(error) => {
+                        tracing::debug!(%error, "native export process ownership unavailable");
+                        None
+                    }
+                };
+                if let Err(error) = state.display_handle.insert_client(
+                    client_stream,
+                    Arc::new(ClientState {
+                        peer_process,
+                        export_authority: Some(Default::default()),
+                        ..Default::default()
+                    }),
+                ) {
                     tracing::warn!(%error, "accepting Wayland client");
                 }
             })
@@ -846,6 +879,8 @@ impl Compositor {
 #[derive(Default)]
 pub struct ClientState {
     pub compositor_state: CompositorClientState,
+    pub peer_process: Option<Arc<tarot::process_identity::Process>>,
+    pub export_authority: Option<tarot::native_menu::transport::Authority>,
     pub trusted_input_method: bool,
     pub locker: Option<Arc<crate::lock::Permission>>,
 }
@@ -853,6 +888,9 @@ pub struct ClientState {
 impl ClientData for ClientState {
     fn initialized(&self, _client_id: ClientId) {}
     fn disconnected(&self, _client_id: ClientId, _reason: DisconnectReason) {
+        if let Some(authority) = &self.export_authority {
+            authority.retire();
+        }
         if let Some(permission) = &self.locker {
             permission
                 .allowed
@@ -862,5 +900,38 @@ impl ClientData for ClientState {
                 .store(false, std::sync::atomic::Ordering::Release);
             permission.ping.ping();
         }
+    }
+}
+
+#[cfg(test)]
+mod export_peer_tests {
+    use super::*;
+    use std::os::unix::net::{UnixListener, UnixStream};
+
+    #[test]
+    fn disconnect_retires_client_authority_while_its_process_survives() {
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("peer.sock");
+        let listener = UnixListener::bind(&path).unwrap();
+        let socket = UnixStream::connect(&path).unwrap();
+        let (accepted, _) = listener.accept().unwrap();
+        let peer = Arc::new(tarot::process_identity::Process::from_peer(&accepted).unwrap());
+        let data = Arc::new(ClientState {
+            peer_process: Some(peer.clone()),
+            export_authority: Some(Default::default()),
+            ..Default::default()
+        });
+        let lease = data.export_authority.as_ref().unwrap().lease();
+        let mut display = Display::<()>::new().unwrap();
+        let _client = display.handle().insert_client(accepted, data).unwrap();
+        assert!(lease.is_active());
+        drop(socket);
+        let deadline = Instant::now() + std::time::Duration::from_secs(1);
+        while lease.is_active() && Instant::now() < deadline {
+            display.dispatch_clients(&mut ()).unwrap();
+            std::thread::sleep(std::time::Duration::from_millis(1));
+        }
+        assert!(!lease.is_active());
+        assert!(peer.is_live().unwrap());
     }
 }

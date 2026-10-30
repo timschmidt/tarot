@@ -2,6 +2,12 @@
 
 Updated October 29, 2026 in Detroit. The active objective is the complete development plan. No full milestone is claimed complete yet.
 
+## Native Rust menu transport development
+
+The development compositor now retains ordinary accepted-client process handles and retires client authority on actual Wayland disconnect. Trusted keyboard/locker socketpairs remain excluded. The shared direct Rust/zbus adapter reads bounded typed menus/actions, binds live process descriptors, rejects stale/disabled/retired choices and reports uncertain post-dispatch outcomes without retry. No Cargo dependency changes. All 234 workspace tests pass on current/minimum Rust, with strict host/ARM lint and both ARM builds. Exact-image portrait/landscape host menu regressions verify mapped client ownership.
+
+Both compiler variants pass the complete real-GIO adapter matrix on host and the phone's actual normal revision-45 bus, including pending-load retirement, typed arguments/state, replacement/exit and fifteen malformed/resource cases. Collected callbacks, source/binary hashes, unchanged installed processes/settings/platform, cleanup and independent normal/Panfrost audit verify locally. The installed compositor remains revision 45. Actual surface claims, signal-driven worker/presentation and visible exported menus are still required; no global-menu capability is advertised. [Adapter contract](NATIVE_MENU_ADAPTER.md) · [Evidence and explicit limits](recordings/menu-adapter/README.md).
+
 ## Revision 45 session-bus prerequisite
 
 Revision 45 is installed as normal default Tarot with a separately packaged D-Bus session daemon. The target-header fix enables real process credentials without replacing the system bus or shared client library. Only Tarot's session executable changes; compositor/keyboard/locker bytes match revision 44. Both authenticated diagnostic and normal session buses pass current/minimum-Rust ownership and GIO cases, plus activation and process-credential probes. Native protected startup/orientations, actual PAM, GTK app/audio, clean login teardown and independent normal/Panfrost/policy/settings/system-bus audits pass. Diagnostics are off and hardware keys remain enabled. Zero suspend cycles are requested.

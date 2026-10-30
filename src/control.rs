@@ -253,6 +253,11 @@ pub fn start(path: &Path, handle: &LoopHandle<'_, CalloopData>) -> Result<Contro
                 Some(json!({"id":id,"fullscreen":state.fullscreen_window(*id),
                     "geometry":{"x":geometry.loc.x,"y":geometry.loc.y,"width":geometry.size.w,"height":geometry.size.h}}))
             }).collect::<Vec<_>>());
+            response["native_export_peers"] = json!(state.space.elements().filter_map(|window| {
+                let id = window.user_data().get::<WindowId>()?;
+                let top = window.toplevel()?;
+                state.native_export_peer(top.wl_surface()).map(|_| *id)
+            }).collect::<Vec<_>>());
             response["top_menu"] = json!({"revision":state.shell.menus.revision,"owner":state.shell.menus.owner,"entry":state.shell.menus.entry,"history":state.shell.menus.history,"panel":state.shell.menus.panel,"selected":state.shell.menus.selected,"motion":state.shell.menu_visual()});
             response["hardware_keys"] = json!(state.hardware.enabled);
             response["volume_feedback"] = json!(state.shell.volume_feedback);
