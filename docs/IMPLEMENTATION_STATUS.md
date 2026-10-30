@@ -18,6 +18,10 @@ The [Polkit agent and trusted dialog](POLKIT.md) now connect session-bound autho
 
 A [read-only double-chop device audit](DOUBLE_CHOP.md) identifies the current MPU-6500 WoM controls and disabled wake configuration, with no exposed DMP loader. Flash current/driver qualification is also required before enabling a continuous torch. No motion, wake or flash configuration was changed. A separate focused host run passes 100 lock/pair/display/capture cycles without reproducing the retained response timeout; that failure remains unexplained.
 
+## Physical headset follow-up, deferred
+
+The owner's JLab Studio pairs through the revision-52 UI, and Trust changes have independent ordinary-user readback. Stable connection fails; a separate ordinary-user client reports `br-connection-page-timeout`, with no proven cause. A2DP/acoustic tests were not reached and no tones played. Further physical Bluetooth testing is deferred at the owner's request. A final independent audit verifies normal Tarot52, diagnostics/discovery off, exact preferences/policies/audio/backlight restoration and the saved pairing untrusted/disconnected. The full development goal continues with work that needs no owner input. [Partial results and failures](recordings/headphones/README.md).
+
 ## Bluetooth in revision 51
 
 The initial [BlueZ adapter and pairing agent](BLUETOOTH.md) implements radio/discovery, PIN/passkey/confirmation entry and display, service authorization, explicit trust, connect/disconnect and confirmed Forget. Both compilers pass all 241 workspace tests and the frozen-image private protocol/rendered matrix, including five lock cycles each, spoof rejection, stale identities and daemon/broker recovery. The shared Wi-Fi credential regression and strict host/ARM lint pass.

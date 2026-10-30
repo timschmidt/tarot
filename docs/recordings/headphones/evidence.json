@@ -1,0 +1,58 @@
+{
+  "date": "2026-10-30",
+  "revision": 52,
+  "runtime_unchanged_after_polkit_delivery": true,
+  "owner_identified_alias": "JLab Studio",
+  "physical_pairing_observed": true,
+  "trust_on_and_restoration_observed": true,
+  "complete_native_attempt_passed": false,
+  "stable_connection_verified": false,
+  "a2dp_playback_reached": false,
+  "acoustic_output_verified": false,
+  "cause_of_connection_failure_proven": false,
+  "independent_ordinary_user_error": {
+    "name": "org.bluez.Error.Failed",
+    "reason": "br-connection-page-timeout",
+    "request_uid": 10000,
+    "request_cgroup": "SSH diagnostic, separate from GUI acceptance"
+  },
+  "owner_deferred_further_testing": true,
+  "cleanup": {
+    "owner_deferred_further_bluetooth": true,
+    "further_tests_stopped": true,
+    "normal52_independent_audit_passed": true,
+    "no_tones_played": true,
+    "no_headphone_qa_processes": true,
+    "saved_pairing_untrusted_disconnected": true,
+    "diagnostics_and_discovery_off": true,
+    "preferences_audio_and_policies_restored": true
+  },
+  "normal_audit": {
+    "passed": true,
+    "diagnostics_and_metadata_off": true,
+    "hardware_keys_on": true,
+    "default_tarot": true,
+    "system_bus_unchanged": true,
+    "headphones_paired_untrusted_disconnected": true,
+    "discovery_and_incoming_visibility_off": true,
+    "adapter_powered": true,
+    "preferences_policies_and_controls_unchanged": true
+  },
+  "failed_01_06": {
+    "sha256": "6181215aa1eefc800485db826f948e4e56820b31af9bb499540c478554280e3b",
+    "members": 994,
+    "all_six_normal_restorations_passed": true
+  },
+  "canceled_07": {
+    "sha256": "2fbd5bb06451192d8b2f1f8d87a92590e834711778b84e91df43a9e0d0096791",
+    "members": 170,
+    "independent_normal_restoration_passed": true
+  },
+  "no_kernel_firmware_radio_or_audio_configuration_changes": true,
+  "remaining": [
+    "Stable headset connection and A2DP/acoustic acceptance",
+    "Hands-free profile, microphone and call audio",
+    "Physical Forget/re-pair acceptance",
+    "Root cause of page timeout"
+  ]
+}

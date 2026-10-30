@@ -222,6 +222,9 @@ def run(args, password):
         assert candidates and all(p['cgroup'] == cgroup for p in candidates)
         records['native_app_processes'] = candidates
         capture('app-before')
+        if getattr(args, 'headphones', False):
+            from phone_headphones_replay import replay as headphones_replay
+            records['headphones'] = headphones_replay(socket,screen,tap,state,capture,before,args.output,authenticate)
         if getattr(args, 'authorization', False):
             from phone_authorization_replay import replay as authorization_replay
             records['authorization'] = authorization_replay(socket,screen,tap,state,capture,before,args.output,cgroup,authenticate,password)
@@ -523,6 +526,7 @@ def main():
     parser.add_argument('--native-menu-traffic', action='store_true')
     parser.add_argument('--bluetooth', action='store_true')
     parser.add_argument('--authorization', action='store_true')
+    parser.add_argument('--headphones', action='store_true', help='Owner-assisted JLab Studio test; requires live readiness handoff and independent normal-session audit')
     parser.add_argument('--text-enable-reset', action='store_true')
     parser.add_argument('--detach', action='store_true')
     args = parser.parse_args()

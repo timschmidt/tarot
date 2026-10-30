@@ -80,6 +80,14 @@ ordinary-user property readback, actual PAM and normal-session restoration.
 file transfer, battery reporting, rfkill controls, accessibility acceptance or
 multiple physical adapters are claimed by this initial fixture. M4 remains open.
 
+A separate revision-52 check with the owner's JLab Studio observes real pairing
+and Trust changes, but subsequent connection attempts fail; an independent
+ordinary-user client reports `br-connection-page-timeout`. A2DP/acoustic checks
+were not reached. The cause remains unproven. Further physical tests are deferred
+at the owner's request; normal Tarot52 is independently restored with discovery
+off and the saved pairing untrusted/disconnected.
+[Partial results and retained failures](recordings/headphones/README.md).
+
 API references: [Adapter1](https://bluez.readthedocs.io/en/latest/adapter-api/),
 [Device1](https://bluez.readthedocs.io/en/latest/device-api/) and
 [Agent1](https://bluez.readthedocs.io/en/latest/agent-api/).
