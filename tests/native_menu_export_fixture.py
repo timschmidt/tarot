@@ -20,9 +20,9 @@ parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--peer', required=True)
 parser.add_argument('--report', type=Path, required=True)
 parser.add_argument('--mode', default='normal', choices=[
-    'normal', 'unsupported', 'many-actions', 'slow-load', 'short-link', 'wrong-link',
+    'normal', 'empty', 'empty-submenu', 'unsupported', 'many-actions', 'slow-load', 'short-link', 'wrong-link',
     'cycle', 'deep', 'groups', 'expanded', 'oversized', 'long-label',
-    'many-items', 'attributes', 'total-bytes', 'missing-root', 'fd', 'silent'])
+    'many-items', 'attributes', 'total-bytes', 'foreign-group', 'fd', 'silent'])
 args = parser.parse_args()
 peer = socket.socket(socket.AF_UNIX)
 peer.connect(args.peer)
@@ -90,9 +90,13 @@ def build_exports():
     section = Gio.Menu()
     section.append('Another toggle', 'app.toggle')
     root.append_section('Other', section)
+    if args.mode in ['empty', 'empty-submenu']:
+        root.remove_all()
+        if args.mode == 'empty-submenu':
+            root.append_submenu('Empty submenu', Gio.Menu())
     connection.export_action_group('/org/tarot/NativeMenu/app', app)
     connection.export_action_group('/org/tarot/NativeMenu/window', win)
-    if args.mode in ['normal', 'unsupported', 'many-actions']:
+    if args.mode in ['normal', 'empty', 'empty-submenu', 'unsupported', 'many-actions']:
         connection.export_menu_model('/org/tarot/NativeMenu/menu', root)
     else:
         node = Gio.DBusNodeInfo.new_for_xml('''<node><interface name="org.gtk.Menus">
@@ -137,8 +141,8 @@ def build_exports():
                 content = [(0, 0, [{**{'label': GLib.Variant('s', 'Item')}, **{'extra' + str(i): GLib.Variant('u', i) for i in range(17)}}])]
             elif args.mode == 'total-bytes':
                 content = [(group, 0, [{'label': GLib.Variant('s', 'Next'), ':submenu': GLib.Variant('(uu)', (group+1, 0)), 'extra': GLib.Variant('s', 'x' * 60000)}])]
-            elif args.mode == 'missing-root':
-                content = [(0, 1, [{'label': GLib.Variant('s', 'Not root')}])]
+            elif args.mode == 'foreign-group':
+                content = [(group+1, 0, [{'label': GLib.Variant('s', 'Wrong group')}])]
             else:
                 fdlist = Gio.UnixFDList.new()
                 fd = os.open('/dev/null', os.O_RDONLY)

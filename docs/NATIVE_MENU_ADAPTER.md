@@ -59,6 +59,12 @@ integer fields; an unchecked library tuple conversion is deliberately avoided.
 | Combined action descriptions / state values per action | 256 / 1 |
 | Endpoint paths / unique name bytes | 1,024 / 255 |
 
+GLib omits empty menus from successful group replies. An omitted root or linked
+menu therefore becomes a valid empty model after its group is subscribed; an
+RPC failure remains an error. Real GIO empty-root and empty-submenu regressions
+cover this distinction. Reply entries from a different requested group are
+rejected.
+
 Plain UTF-8 labels, submenu/section links, enabled actions, string/integer targets
 and boolean/scalar state are represented as owned Rust data. Supported scalar
 signatures are `b`, `s`, `i`, `u`, `x`, `t`, and finite `d`. Unsupported parameter,
@@ -91,6 +97,9 @@ must subscribe before loading, track menu/action changes and bus epochs, retire
 pressed-row generations even if state later changes back, publish immutable
 presentation rows, and dispatch only after the existing menu-retirement frame.
 Snapshot comparison alone does not establish that complete interaction contract.
+The current reader uses temporary Start/End subscriptions. The worker must retain
+menu-group subscriptions across a published view; a D-Bus match rule alone cannot
+receive menu changes after the exporter has no subscribers.
 
 ## Replays
 

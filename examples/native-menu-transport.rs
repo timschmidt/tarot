@@ -224,6 +224,19 @@ fn run(options: &Options) -> Result<Value> {
     pending_authority.retire();
     ensure!(worker.join().expect("snapshot worker panicked").is_err());
     ensure!(pending.events()? == vec![json!({"stage":"Start entered"})]);
+    for mode in ["empty", "empty-submenu"] {
+        let producer = Producer::start(&options.fixture, &options.output, mode, mode)?;
+        let binding = producer.binding(&authority)?;
+        let snapshot = binding.snapshot()?;
+        if mode == "empty" {
+            ensure!(snapshot.items.is_empty());
+        } else {
+            ensure!(
+                matches!(&snapshot.items[..], [Item::Submenu { label, items }] if label == "Empty submenu" && items.is_empty())
+            );
+        }
+        ensure!(producer.events()?.is_empty());
+    }
     let unsupported = Producer::start(
         &options.fixture,
         &options.output,
@@ -256,7 +269,7 @@ fn run(options: &Options) -> Result<Value> {
         "many-items",
         "attributes",
         "total-bytes",
-        "missing-root",
+        "foreign-group",
         "fd",
         "silent",
     ] {
@@ -276,7 +289,7 @@ fn run(options: &Options) -> Result<Value> {
     ensure!(unrelated.snapshot().is_err());
     ensure!(Process::from_fd(File::open("/dev/null")?.into()).is_err());
     Ok(
-        json!({"passed":true,"wrong_process_rejected":true,"typed_targets_and_state":true,"disabled_and_stale_choices_rejected":true,"retired_claim_and_foreign_binding_rejected":true,"retirement_during_pending_load":true,"composed_client_claim_authorities":true,"unsupported_typed_target_disabled":true,"same_process_connection_replacement":true,"process_exit":true,"uncertain_timeout_executes_later_without_retry":true,"actual_callbacks":left.events()?,"malformed_producers_rejected":rejected,"phone_ui_tested":false}),
+        json!({"passed":true,"wrong_process_rejected":true,"typed_targets_and_state":true,"disabled_and_stale_choices_rejected":true,"retired_claim_and_foreign_binding_rejected":true,"retirement_during_pending_load":true,"composed_client_claim_authorities":true,"unsupported_typed_target_disabled":true,"real_empty_root_and_submenu":true,"same_process_connection_replacement":true,"process_exit":true,"uncertain_timeout_executes_later_without_retry":true,"actual_callbacks":left.events()?,"malformed_producers_rejected":rejected,"phone_ui_tested":false}),
     )
 }
 fn main() -> Result<()> {

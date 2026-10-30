@@ -525,9 +525,13 @@ fn tree(
     rendered: &mut usize,
 ) -> Result<Vec<Item>> {
     ensure!(depth <= MAX_DEPTH && path.insert(at), "cyclic or deep menu");
-    let rows = menus
-        .get(&at)
-        .ok_or_else(|| anyhow::anyhow!("missing linked menu"))?;
+    // GLib omits empty menus from Start replies, including the root and linked
+    // submenus. Every referenced group was subscribed above; absence is an
+    // authoritative empty model, not a loading error or a fabricated action.
+    let Some(rows) = menus.get(&at) else {
+        path.remove(&at);
+        return Ok(Vec::new());
+    };
     let mut result = Vec::new();
     for attrs in rows {
         *rendered += 1;

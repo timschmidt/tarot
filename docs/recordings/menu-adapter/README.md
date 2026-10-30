@@ -41,8 +41,18 @@ The passing matrix checks:
 Fifteen malformed/resource cases reject without an action callback: excessive
 actions; short/wrong-type links; cycles; depth; group count; expanded shared
 graph size; oversized replies; long labels; item/attribute limits; combined reply
-bytes; missing root; attached descriptors; and a silent method. Actual GIO
+bytes; foreign group; attached descriptors; and a silent method. Actual GIO
 models test supported behavior; manual wire producers supply malformed cases.
+
+Real empty roots and empty linked submenus also pass. The initial decoder
+incorrectly treated an omitted menu as a missing-link error. An added real-GIO
+regression fails on that source with `missing linked menu`; the retained binary,
+fixture, source hashes and failure remain separate. GLib's group subscriber
+omits empty menus by design. The corrected decoder returns a successful empty
+snapshot after a successful group reply, while failed calls still return errors.
+The earlier missing-root negative was a protocol misclassification; a genuine
+foreign-group reply replaces it, with all fifteen current malformed cases still
+rejecting and the two real empty cases passing on host and phone.
 
 An independent phone audit verifies the same normal session/default, loaded
 revision-45 binaries, active ordinary-user Wayland login, running system
@@ -55,19 +65,19 @@ No package/policy is changed and no suspend is requested.
 ## Identities and evidence
 
 Fourteen frozen compiler/test/configuration inputs have canonical SHA-256
-`e96ea55e3218f98d0d2ae668923a03eb23d56ecdb8ab42b07ec0d6d8e591fe15`.
+`acfb5b7b7d21b03d817abae5830063c1e56618eee9e695e763d7d763a8c5ac15`.
 
 | Executable | SHA-256 |
 | --- | --- |
-| Host current adapter | `e247e1cf4d6bedfb73170a22ea506dc1557aa52fd287d6fa0c98b41099bdeea2` |
-| Host Rust-1.89 adapter | `3af5f292c3f32c98b8973cbcd2c5ebb61a33df9ff480760418a174062012eb5b` |
-| ARM current adapter | `19fe4efb9a3f43b5ba603bea4f8c37d1e2f083dcb8ff860a052764f3211b6583` |
-| ARM Rust-1.89 adapter | `920fd455d62fd949d7563ca9e3afbf9fa8832a67b0620985243269810d646f62` |
-| Nested compositor | `c72f435414ec666cd579a27b9cc83e35371c049e4f5f168217d8ae1bcd5dc6a2` |
+| Host current adapter | `337869cc3fa4ebc796b809fa2d1d2f233653c68667946858b25bff495e2aac94` |
+| Host Rust-1.89 adapter | `ece3f9e2bc9f3f5fbd12e49da6826765a4a861d2e0e594a2015f00a84decd676` |
+| ARM current adapter | `f5805a565049be1ffd6b3c5fb97667900ef97991ce785921d45a092f7d7b5555` |
+| ARM Rust-1.89 adapter | `177c07244c25d49c57688fd42df0b6222e8e06dd7f2bdc784739182ac448f862` |
+| Nested compositor | `29b1d4913620a82d0b9f77aba431ec0eb3f8e05ad8d4694c4e3380d9edb3fcde` |
 
 The collected phone archive is
-`561201bc2f71b98ffb3316e8700894ff547f375c68e69f88eacf2643448a0259`
-(69,725 bytes, 111 safe members). Local verification checks frozen source/runner
+`545fcbb7a1ab8cabdfd6531eacfdd57d39d9b57fcb339f90ab2433f3f7d7dc72`
+(70,427 bytes, 119 safe members). Local verification checks frozen source/runner
 hashes, exact staged ELF hashes, both reports, each actual callback file, empty
 malformed/unsupported producer callback files, pending-load retirement, baseline
 equality and the fresh independent audit. ELF files are retained separately
@@ -76,8 +86,10 @@ with the frozen manifest. Raw evidence stays private.
 The first phone preflight stops before any case because its staging manifest
 also lists host-only files. That failed namespace/log is retained. A new
 phone-only manifest runs the unchanged ARM binaries; it does not alter their
-source or retract the original failure. Earlier host matrices remain separate
-from the final stronger pending-load and composed-authority checks.
+source or retract the original failure. Earlier host matrices and the nonempty phone archive
+`561201bc2f71b98ffb3316e8700894ff547f375c68e69f88eacf2643448a0259`
+remain historical scopes. The final corrected matrix includes empty-model,
+pending-load and composed-authority checks.
 
 ## Remaining acceptance
 
