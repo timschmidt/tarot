@@ -14,6 +14,8 @@ M0 remains in progress. The phone has been upgraded through supported releases t
 
 Tarot is now the default login session on the development phone, with the normal installed entry running and diagnostics disabled. The retained revision 8 → 5 → 8 package round trip passes real PAM, native app/audio and cleanup checks on both revisions.
 
+Revision 51 adds [Bluetooth settings and a BlueZ pairing agent](docs/BLUETOOTH.md): discovery, PIN/passkey/confirmation prompts, explicit trust, connection controls and confirmed Forget. Current/minimum Rust each pass 241 tests and isolated rendered/protocol checks; native radio/discovery/visibility/PAM and independent normal-session audits pass. The phone defaults to normal Tarot with diagnostics off. Physical peripheral pairing and audio profiles remain unverified. [Evidence and remaining gates](docs/recordings/bluetooth/README.md).
+
 Revision 50 clears stale pending text-input state across consecutive enables. Current/minimum protocol and workspace checks pass, followed by native keyboard layout/input/PAM acceptance and independently verified normal Tarot with diagnostics off. The retained Firefox activation race remains open. [Current scope and evidence](docs/recordings/text-enable-reset/README.md).
 
 Revision 49 fixes unrelated large broadcasts retiring native app menus by narrowing subscriptions at the broker. Host and phone broadcast/claim/menu/PAM checks pass. [Earlier scope and evidence](docs/recordings/menu-signals/README.md).

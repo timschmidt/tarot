@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 
 pub mod app_menu;
 pub mod audio;
+pub mod bluetooth;
 pub mod deck;
 pub mod design;
 pub mod display;
@@ -82,6 +83,7 @@ pub enum SystemPage {
     #[default]
     Power,
     Wifi,
+    Bluetooth,
     Audio,
     Device,
     Activity,
@@ -122,6 +124,7 @@ pub enum Command {
     Power(power::UiAction),
     Audio(audio::UiAction),
     Network(network::UiAction),
+    Bluetooth(bluetooth::Action),
     SystemPage(SystemPage),
     NetworkSetup(u64),
     CredentialText(network::Secret),
@@ -161,6 +164,7 @@ pub enum Effect {
     Power(power::UiAction),
     Audio(audio::UiAction),
     Network(network::UiAction),
+    Bluetooth(bluetooth::UiAction),
 }
 
 #[derive(Clone, Debug, Default)]
@@ -197,6 +201,8 @@ pub struct ShellModel {
     pub audio: audio::Snapshot,
     pub volume_feedback: Option<audio::KeyFeedback>,
     pub network: network::Snapshot,
+    pub bluetooth: bluetooth::Snapshot,
+    pub bluetooth_ui: bluetooth::View,
     pub system_page: SystemPage,
     pub network_input: Option<network::Input>,
     retired_secret_request: u64,
@@ -393,13 +399,19 @@ impl ShellModel {
             _ => Vec::new(),
         }
     }
+    pub fn cancel_platform_input(&mut self) -> Vec<Effect> {
+        let mut effects = self.cancel_network_input();
+        effects.extend(self.cancel_bluetooth_input());
+        effects
+    }
     pub fn credential_keyboard_visible(&self) -> bool {
-        self.system_menu_open
-            && self.system_page == SystemPage::Wifi
-            && self
-                .network_input
-                .as_ref()
-                .is_some_and(|i| i.keyboard && i.kind != network::PasswordKind::Open)
+        self.bluetooth_keyboard_visible()
+            || self.system_menu_open
+                && self.system_page == SystemPage::Wifi
+                && self
+                    .network_input
+                    .as_ref()
+                    .is_some_and(|i| i.keyboard && i.kind != network::PasswordKind::Open)
     }
     pub fn sync_network(&mut self, snapshot: network::Snapshot) -> Vec<Effect> {
         let valid = self
@@ -418,7 +430,7 @@ impl ShellModel {
         let mut effects = if valid {
             Vec::new()
         } else {
-            self.cancel_network_input()
+            self.cancel_platform_input()
         };
         if let Some(prompt) = &snapshot.secret_prompt
             && prompt.id > self.retired_secret_request
@@ -427,7 +439,7 @@ impl ShellModel {
                 .as_ref()
                 .is_none_or(|i| i.target != network::InputTarget::Agent(prompt.id))
         {
-            effects.extend(self.cancel_network_input());
+            effects.extend(self.cancel_platform_input());
             self.system_page = SystemPage::Wifi;
             effects.extend(self.apply(Command::SystemMenuOpen(true)));
             self.network_input = Some(network::Input {
@@ -553,7 +565,7 @@ impl ShellModel {
     }
 
     pub fn apply(&mut self, command: Command) -> Vec<Effect> {
-        if self.network_input.is_some()
+        if (self.network_input.is_some() || self.bluetooth.prompt.is_some())
             && matches!(
                 command,
                 Command::Home
@@ -565,7 +577,7 @@ impl ShellModel {
                     | Command::EditFavorites(_)
             )
         {
-            let mut effects = self.cancel_network_input();
+            let mut effects = self.cancel_platform_input();
             effects.extend(self.apply(command));
             return effects;
         }
@@ -696,14 +708,14 @@ impl ShellModel {
                 }
                 return Vec::new();
             }
-            Command::CredentialCancel => return self.cancel_network_input(),
+            Command::CredentialCancel => return self.cancel_platform_input(),
             Command::SystemMenuOpen(open) => {
                 let was_open = self.system_menu_open;
                 let restore_owner = !was_open || self.menus.owner == Some(self.view);
                 let restore_text = self.shell_text_focus
                     || was_open && restore_owner && self.menus.restore_shell_text_focus;
                 let canceled = if !open {
-                    self.cancel_network_input()
+                    self.cancel_platform_input()
                 } else {
                     Vec::new()
                 };
@@ -755,11 +767,12 @@ impl ShellModel {
             }
             Command::Audio(action) => return vec![Effect::Audio(action)],
             Command::Network(action) => return vec![Effect::Network(action)],
+            Command::Bluetooth(action) => return self.bluetooth_action(action),
             Command::SystemPage(page) => {
                 let effects = if page != SystemPage::Wifi {
-                    self.cancel_network_input()
+                    self.cancel_platform_input()
                 } else {
-                    Vec::new()
+                    self.cancel_bluetooth_input()
                 };
                 if self.system_menu_open && self.system_page != page {
                     if self.menus.history.len() >= 8 {
@@ -772,7 +785,7 @@ impl ShellModel {
                 return effects;
             }
             Command::NotificationsOpen(open) => {
-                let canceled = self.cancel_network_input();
+                let canceled = self.cancel_platform_input();
                 self.system_menu_open = false;
                 self.menus.dismiss();
                 self.notifications_open = open;

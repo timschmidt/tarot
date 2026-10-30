@@ -115,6 +115,13 @@ impl Compositor {
     }
 
     pub fn refresh_keyboard(&mut self) {
+        if let Some(server) = &self.bluetooth {
+            server.context(
+                self.shell.system_menu_open
+                    && self.shell.system_page == tarot_core::SystemPage::Bluetooth,
+                self.protected(),
+            );
+        }
         let height = if self.shell_keyboard_visible() {
             240.0_f32.min(self.layout.height * 0.5)
         } else if self.native_keyboard_visible() {

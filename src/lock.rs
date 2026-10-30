@@ -378,7 +378,10 @@ impl Compositor {
     }
     /// Stop ordinary scene/input before forking or waiting for the trusted client.
     pub fn enter_protection(&mut self) {
-        let effects = self.shell.cancel_network_input();
+        if let Some(server) = &self.bluetooth {
+            server.context(false, true);
+        }
+        let effects = self.shell.cancel_platform_input();
         self.apply_effects(effects);
         self.shell.system_menu_open = false;
         self.shell.launcher.menu_open = false;

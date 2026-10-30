@@ -103,6 +103,22 @@ pub fn keyboard(
         ctx.data_mut(|d| d.remove::<super::keyboard::KeyboardUi>(id));
         return;
     }
+    let identity = if model.system_page == tarot_core::SystemPage::Bluetooth {
+        (2u8, model.bluetooth.prompt.as_ref().map_or(0, |p| p.id))
+    } else {
+        match model.network_input.as_ref().map(|i| i.target) {
+            Some(InputTarget::New(id)) => (0, id),
+            Some(InputTarget::Agent(id)) => (1, id),
+            None => (3, 0),
+        }
+    };
+    let context_id = egui::Id::new("credential_keyboard_context");
+    if ctx.data_mut(|d| d.get_temp::<(u8, u64)>(context_id)) != Some(identity) {
+        ctx.data_mut(|d| {
+            d.remove::<super::keyboard::KeyboardUi>(id);
+            d.insert_temp(context_id, identity);
+        });
+    }
     let rect = layout.keyboard();
     let mut keyboard = ctx
         .data_mut(|d| d.get_temp::<super::keyboard::KeyboardUi>(id))
@@ -123,8 +139,20 @@ pub fn keyboard(
                 .fill(Color32::from_rgb(38, 40, 44))
                 .inner_margin(5.0)
                 .show(ui, |ui| {
-                    for action in keyboard.show_in_ui(ui, false, true) {
-                        key(action, commands);
+                    for action in
+                        keyboard.show_in_ui(
+                            ui,
+                            model.bluetooth.prompt.as_ref().is_some_and(|p| {
+                                p.kind == tarot_core::bluetooth::PromptKind::Passkey
+                            }) && model.system_page == tarot_core::SystemPage::Bluetooth,
+                            true,
+                        )
+                    {
+                        if model.system_page == tarot_core::SystemPage::Bluetooth {
+                            super::bluetooth::key(model, action, commands);
+                        } else {
+                            key(action, commands);
+                        }
                     }
                 });
         });

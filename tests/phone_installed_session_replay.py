@@ -225,6 +225,9 @@ def run(args, password):
         if getattr(args, 'native_menus', False):
             from phone_native_menu_replay import replay as native_menu_replay
             records['native_menus'] = native_menu_replay(socket,screen,state,capture,before,args.output,cgroup,authenticate)
+        if getattr(args, 'bluetooth', False):
+            from phone_bluetooth_replay import replay as bluetooth_replay
+            records['bluetooth'] = bluetooth_replay(socket,tap,state,capture,before,args.output,authenticate)
         if getattr(args, 'text_enable_reset', False):
             from phone_text_enable_reset_replay import replay as text_reset_replay
             records['text_enable_reset'] = text_reset_replay(socket,tap,state,capture,before,args.output,cgroup,authenticate)
@@ -515,6 +518,7 @@ def main():
     parser.add_argument('--native-menus', action='store_true')
     parser.add_argument('--native-menu-claims', action='store_true')
     parser.add_argument('--native-menu-traffic', action='store_true')
+    parser.add_argument('--bluetooth', action='store_true')
     parser.add_argument('--text-enable-reset', action='store_true')
     parser.add_argument('--detach', action='store_true')
     args = parser.parse_args()

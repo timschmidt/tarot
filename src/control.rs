@@ -59,6 +59,12 @@ enum Request {
     NetworkAction {
         action: tarot_core::network::UiAction,
     },
+    BluetoothAction {
+        action: tarot_core::bluetooth::UiAction,
+    },
+    BluetoothSelect {
+        device: u64,
+    },
     NetworkSetup {
         network: u64,
     },
@@ -154,6 +160,8 @@ pub fn start(path: &Path, handle: &LoopHandle<'_, CalloopData>) -> Result<Contro
                 Request::SystemMenu {open} => state.apply_command(Command::SystemMenuOpen(open)),
                 Request::PowerAction {action} => state.apply_command(Command::Power(action)),
                 Request::NetworkAction {action} => state.apply_command(Command::Network(action)),
+                Request::BluetoothAction {action} => state.apply_command(Command::Bluetooth(tarot_core::bluetooth::Action::Service(action))),
+                Request::BluetoothSelect {device} => state.apply_command(Command::Bluetooth(tarot_core::bluetooth::Action::Select(device))),
                 Request::AudioAction {action} =>state.apply_command(Command::Audio(action)),
                 Request::NetworkSetup {network} =>state.apply_command(Command::NetworkSetup(network)),
                 Request::CredentialText {value}=>state.apply_command(Command::CredentialText(value)),
@@ -228,6 +236,18 @@ pub fn start(path: &Path, handle: &LoopHandle<'_, CalloopData>) -> Result<Contro
                 "system_page": state.shell.system_page,
                 "credential_input":credential_input,
                 "network":network,
+                "bluetooth": {
+                    "enabled":state.shell.bluetooth.enabled,"available":state.shell.bluetooth.available,
+                    "generation":state.shell.bluetooth.generation,"epoch":state.shell.bluetooth.epoch,
+                    "scanning":state.shell.bluetooth.scanning,"visible":state.shell.bluetooth.visible,
+                    "agent_available":state.shell.bluetooth.agent_available,"default_agent":state.shell.bluetooth.default_agent,
+                    "pending":state.shell.bluetooth.pending,"busy":state.shell.bluetooth.busy,
+                    "selected_adapter":state.shell.bluetooth.selected_adapter,"selected_device":state.shell.bluetooth_ui.selected,
+                    "adapters":state.shell.bluetooth.adapters.iter().map(|a|json!({"id":a.id,"powered":a.powered,"discovering":a.discovering,"discoverable":a.discoverable})).collect::<Vec<_>>(),
+                    "devices":state.shell.bluetooth.devices.iter().map(|d|json!({"id":d.id,"paired":d.paired,"trusted":d.trusted,"connected":d.connected,"blocked":d.blocked})).collect::<Vec<_>>(),
+                    "prompt":state.shell.bluetooth.prompt.as_ref().map(|p|json!({"id":p.id,"device":p.device,"kind":p.kind})),
+                    "error":state.shell.bluetooth.error,"action_error":state.shell.bluetooth.action_error,
+                },
                 "power": state.shell.power,
                 "audio": {"enabled":state.shell.audio.enabled,"available":state.shell.audio.available,"generation":state.shell.audio.generation,"epoch":state.shell.audio.epoch,"pending":state.shell.audio.pending,"error":state.shell.audio.error,"action_error":state.shell.audio.action_error,"outputs":state.shell.audio.outputs.iter().map(|o|json!({"id":o.id,"percent":o.percent,"muted":o.muted,"default":o.default})).collect::<Vec<_>>()},
                 "notifications": notifications,

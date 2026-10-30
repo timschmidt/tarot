@@ -221,6 +221,8 @@ The single-output compositor lock boundary now has nested and native presentatio
 
 Call this a **shell alpha**, with a documented list of unsupported apps/features and remaining platform faults. It is not yet a tested replacement for every phone function.
 
+Bluetooth implementation checkpoint, October 30: the initial Rust BlueZ adapter and KeyboardDisplay agent now provide discovery, PIN/passkey/confirmation and authorization prompts, explicit trust, connection controls and confirmed Forget. Private rendered/protocol checks cover lock cancellation, stale identities and daemon/broker recovery. Signed revision 51 passes native radio/discovery/visibility controls, independent ordinary-user BlueZ readback, actual PAM and normal-session restoration. Physical peripheral acceptance remains open; generic Connect does not establish Bluetooth audio or call support. [Contract and remaining work](BLUETOOTH.md).
+
 ### M4 addition: double-chop flashlight from suspend
 
 **Requested October 30, 2026; planned, not implemented.** Recognize a

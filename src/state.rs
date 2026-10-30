@@ -84,6 +84,7 @@ pub struct Compositor {
     pub icons: Option<crate::icons::Server>,
     pub system_services: Option<crate::power::Server>,
     pub network: Option<crate::network::Server>,
+    pub bluetooth: Option<crate::bluetooth::Server>,
     pub audio: Option<crate::audio::Server>,
     pub popups: PopupManager,
     pub popup_grab: Option<smithay::desktop::PopupGrab<Self>>,
@@ -261,6 +262,7 @@ impl Compositor {
             icons: None,
             system_services: None,
             network: None,
+            bluetooth: None,
             audio: None,
             popups,
             popup_grab: None,
@@ -484,7 +486,7 @@ impl Compositor {
                 | Command::QuickLaunch(_)
                 | Command::EditFavorites(_)
         ) {
-            let effects = self.shell.cancel_network_input();
+            let effects = self.shell.cancel_platform_input();
             self.apply_effects(effects);
         }
         if command == Command::CancelGesture {
@@ -675,6 +677,11 @@ impl Compositor {
                 && !matches!(
                     effect,
                     Effect::Network(tarot_core::network::UiAction::CancelSecrets { .. })
+                        | Effect::Bluetooth(tarot_core::bluetooth::UiAction::Reply {
+                            answer: tarot_core::bluetooth::Answer::Reject,
+                            ..
+                        })
+                        | Effect::Bluetooth(tarot_core::bluetooth::UiAction::CancelPairing)
                 )
             {
                 continue;
@@ -719,6 +726,13 @@ impl Compositor {
                 Effect::Lock => {
                     if let Err(error) = self.request_lock() {
                         tracing::warn!(%error,"lock request rejected");
+                    }
+                }
+                Effect::Bluetooth(action) => {
+                    if let Some(server) = &self.bluetooth
+                        && let Err(error) = server.action(action)
+                    {
+                        self.shell.bluetooth.action_error = Some(error.to_string());
                     }
                 }
                 Effect::Network(action) => {

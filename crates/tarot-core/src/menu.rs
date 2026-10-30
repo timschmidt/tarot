@@ -173,6 +173,13 @@ pub fn items(model: &ShellModel) -> Vec<Item> {
                 detail: sound,
                 ..Item::submenu("Sound", Page(SystemPage::Audio))
             },
+            Item {
+                detail: model.bluetooth.adapter().map_or_else(
+                    || "Unavailable".into(),
+                    |a| if a.powered { "On".into() } else { "Off".into() },
+                ),
+                ..Item::submenu("Bluetooth", Page(SystemPage::Bluetooth))
+            },
             Item::submenu("Power & display", Page(SystemPage::Power)),
             Item::new("Notifications", Notifications),
         ];

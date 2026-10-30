@@ -1,6 +1,7 @@
 mod app_menus;
 mod apps;
 mod audio;
+mod bluetooth;
 mod card_renderer;
 mod clock;
 mod control;
@@ -120,7 +121,7 @@ pub struct Options {
     /// Override the versioned shell settings file (defaults to XDG_CONFIG_HOME).
     #[arg(long)]
     config_file: Option<std::path::PathBuf>,
-    /// Enable battery, display, Wi-Fi and audio controls.
+    /// Enable battery, display, Wi-Fi, Bluetooth and audio controls.
     #[arg(long)]
     system_services: bool,
     /// Hold a login1 sleep-delay inhibitor until a new protected frame completes.
@@ -347,6 +348,11 @@ fn main() -> Result<()> {
             event_loop.handle(),
             &mut data.state,
             audio_server,
+        )?);
+        data.state.bluetooth = Some(bluetooth::start(
+            event_loop.handle(),
+            &mut data.state,
+            options.platform_bus.clone(),
         )?);
         data.state.network = Some(network::start(
             event_loop.handle(),

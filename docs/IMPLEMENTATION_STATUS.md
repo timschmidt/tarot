@@ -12,6 +12,12 @@ The newly supplied [Pre3 packet](PRE3_REFERENCE.md) is queued as
 original files remain reference material; the owner selected MIT OR Apache-2.0
 for their graphics and authoring source. No Pre3 runtime work has started.
 
+## Bluetooth in revision 51
+
+The initial [BlueZ adapter and pairing agent](BLUETOOTH.md) implements radio/discovery, PIN/passkey/confirmation entry and display, service authorization, explicit trust, connect/disconnect and confirmed Forget. Both compilers pass all 241 workspace tests and the frozen-image private protocol/rendered matrix, including five lock cycles each, spoof rejection, stale identities and daemon/broker recovery. The shared Wi-Fi credential regression and strict host/ARM lint pass.
+
+Signed revision 51 is installed. Native touch radio/discovery/visibility controls, ordinary-user independent BlueZ readback, protected command denial and actual PAM pass. Independent normal/default Tarot, loaded-program/Panfrost and exact restoration audits pass; diagnostics and metadata are off. All 559 native archive members and 532 frozen inputs verify. Physical peer pairing and audio/profile acceptance remain open, as does an earlier unreproduced host response timeout. [Evidence and limitations](recordings/bluetooth/README.md).
+
 ## Consecutive text-input enables in revision 50
 
 Pinned Smithay retained pending surrounding text, hints/purpose and change cause

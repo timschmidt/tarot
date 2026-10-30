@@ -8,6 +8,7 @@ pub const QUERY_BYTES: usize = QUERY_CHARS * 4;
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub enum Setting {
     Wifi,
+    Bluetooth,
     Audio,
     Display,
     Notifications,
@@ -15,8 +16,9 @@ pub enum Setting {
 }
 
 impl Setting {
-    pub const ALL: [Self; 5] = [
+    pub const ALL: [Self; 6] = [
         Self::Wifi,
+        Self::Bluetooth,
         Self::Audio,
         Self::Display,
         Self::Notifications,
@@ -25,6 +27,7 @@ impl Setting {
     pub fn title(self) -> &'static str {
         match self {
             Self::Wifi => "Wi-Fi",
+            Self::Bluetooth => "Bluetooth",
             Self::Audio => "Sound",
             Self::Display => "Rotation & idle lock",
             Self::Notifications => "Notifications",
@@ -34,6 +37,7 @@ impl Setting {
     pub fn detail(self) -> &'static str {
         match self {
             Self::Wifi => "Networks and saved connections",
+            Self::Bluetooth => "Pair and connect Bluetooth devices",
             Self::Audio => "Volume and audio outputs",
             Self::Display => "Orientation, screen off and automatic locking",
             Self::Notifications => "Dashboard, Do Not Disturb and private previews",
@@ -43,6 +47,7 @@ impl Setting {
     pub fn page(self) -> SystemPage {
         match self {
             Self::Wifi => SystemPage::Wifi,
+            Self::Bluetooth => SystemPage::Bluetooth,
             Self::Audio => SystemPage::Audio,
             _ => SystemPage::Power,
         }
@@ -50,6 +55,7 @@ impl Setting {
     pub fn matches(self, words: &[String]) -> bool {
         let aliases = match self {
             Self::Wifi => "wifi wi fi wlan wireless internet",
+            Self::Bluetooth => "bluetooth pairing paired headset headphones keyboard",
             Self::Audio => "sound volume audio speaker speakers mute",
             Self::Display => {
                 "rotate rotation orientation display screen brightness idle lock automatic"
