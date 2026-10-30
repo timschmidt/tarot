@@ -295,6 +295,7 @@ fn run(options: Options) -> Result<()> {
         "/usr/bin/tarot-keyboard",
         "/usr/bin/tarot-session",
         "/usr/bin/dbus-run-session",
+        "/usr/libexec/tarot-dbus-daemon",
     ] {
         trusted_program(Path::new(program))?;
     }
@@ -309,6 +310,7 @@ fn run(options: Options) -> Result<()> {
         // A new bus belongs to this display session, never a previous greeter or
         // same-UID desktop. Its supervisor follows this session's lifetime.
         let mut command = Command::new("/usr/bin/dbus-run-session");
+        command.arg("--dbus-daemon=/usr/libexec/tarot-dbus-daemon");
         command.args(["--", "/usr/bin/tarot-session", "--inside-session-bus"]);
         command.args(["--audio-service", options.audio_service.argument()]);
         if options.diagnostics {

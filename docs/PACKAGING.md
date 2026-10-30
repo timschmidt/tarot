@@ -16,6 +16,12 @@ Private session logs live under `$XDG_STATE_HOME/tarot/sessions` or `~/.local/st
 
 The supervisor holds an exclusive user-session lock, removes only an owned stale diagnostic socket before startup, and removes that entry again after compositor exit. A socket destructor alone is insufficient after SIGKILL. Files, symlinks and wrong-owner entries are preserved. The supervisor does not restart a dead compositor into an ordinary session. It observes exit before reaping its process-group leader, cleans that group while its ID cannot be reused, then asks elogind to terminate its verified PAM session, including the private bus and applications. Greetd should return to Phrog, where another login requires authentication. Actual device crash and cleanup evidence determines whether this contract is met; compositor startup protection alone is insufficient.
 
+## Session-bus dependency
+
+Revision 45 selects `/usr/libexec/tarot-dbus-daemon` through the standard `dbus-run-session` supervisor and requires the separate `tarot-session-bus` package. Its target-header detection enables process credentials for native-menu ownership. The stock system bus, shared library and session configuration remain distribution-owned. Build and audit this package before installing the new Tarot launcher; a missing daemon fails the existing trusted-program prerequisite. [Source, license and build contract](../packaging/nura/tarot-session-bus/README.md).
+
+The signed phone delivery passes real diagnostic/normal greetd logins, actual process credentials and service activation, protected KMS/PAM, native app/audio and complete test-login cleanup. Normal Tarot remains default with diagnostics off. This dependency result does not implement exported application menus or certify the complete upstream D-Bus target suite. [Exact revision-45 evidence](recordings/r45/README.md).
+
 ## Source package
 
 The [APKBUILD](../packaging/nura/APKBUILD) installs four ordinary root-owned executables, the [Wayland session entry](../packaging/nura/tarot.desktop), the existing [PAM reauthentication service](../packaging/pam/tarot-lock), project licenses and source attribution. It makes no greeter configuration or autologin changes. Dynamically loaded PAM, EGL/GLES, Wayland client/EGL, GPU-driver and keyboard-data dependencies are explicit; abuild also derives ELF library dependencies.

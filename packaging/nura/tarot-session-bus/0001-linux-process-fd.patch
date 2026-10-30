@@ -1,0 +1,19 @@
+--- a/meson.build
++++ b/meson.build
+@@ -198,6 +198,16 @@
+ 
+ compile_args_c = cc.get_supported_arguments(compile_args)
+ add_project_arguments(compile_args_c, language: 'c')
++
++# musl can support passing pidfds before sys/socket.h exposes this Linux option.
++# Read the architecture's UAPI definition instead of guessing its numeric value.
++if host_os == 'linux' and not cc.has_header_symbol('sys/socket.h', 'SO_PEERPIDFD', args: compile_args_c)
++    peerpidfd = cc.get_define('SO_PEERPIDFD', prefix: '#include <asm/socket.h>', args: compile_args_c)
++    if peerpidfd == ''
++        error('Linux headers with SO_PEERPIDFD are required for Tarot session credentials')
++    endif
++    config.set('SO_PEERPIDFD', peerpidfd)
++endif
+ 
+ if using_cpp
+     compile_args_cpp = cpp.get_supported_arguments(compile_args)

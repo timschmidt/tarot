@@ -1,0 +1,70 @@
+# Session-only D-Bus dependency; never replaces the distribution system bus.
+pkgname=tarot-session-bus
+pkgver=1.16.2
+pkgrel=0
+pkgdesc="D-Bus session daemon with Linux process credentials for Tarot"
+url="https://www.freedesktop.org/wiki/Software/dbus/"
+arch="aarch64"
+license="AFL-2.1 OR GPL-2.0-or-later"
+depends="dbus~$pkgver"
+makedepends="expat-dev glib-dev libsm-dev libx11-dev linux-headers meson"
+source="https://dbus.freedesktop.org/releases/dbus/dbus-$pkgver.tar.xz
+	0001-linux-process-fd.patch
+	cross-cc.sh
+	"
+builddir="$srcdir/dbus-$pkgver"
+
+build() {
+	if [ -n "${TAROT_SYSROOT:-}" ]; then
+		# abuild-meson supplies the architecture; this overlay supplies the
+		# verified SDK and clang driver used by the Tarot cross builder.
+		export PKG_CONFIG_SYSROOT_DIR="$TAROT_SYSROOT"
+		export PKG_CONFIG_LIBDIR="$TAROT_SYSROOT/usr/lib/pkgconfig:$TAROT_SYSROOT/usr/share/pkgconfig"
+		cat > "$srcdir/tarot-sdk.cross" <<-EOF
+		[binaries]
+		c = '$srcdir/cross-cc.sh'
+		strip = 'llvm-strip'
+		readelf = 'llvm-readelf'
+		objcopy = 'llvm-objcopy'
+		[properties]
+		sys_root = '$TAROT_SYSROOT'
+		pkg_config_libdir = ['$TAROT_SYSROOT/usr/lib/pkgconfig', '$TAROT_SYSROOT/usr/share/pkgconfig']
+		EOF
+		set -- --cross-file="$srcdir/tarot-sdk.cross"
+	else
+		set --
+	fi
+	# Keep the OpenRC baseline's daemon features and native regression tests.
+	# Static internal libdbus keeps the header fix inside
+	# this executable; no private shared library shadows the platform library.
+	abuild-meson "$@" \
+		--default-library=static \
+		-Dsystem_pid_file=/run/dbus/dbus.pid \
+		-Dmodular_tests=enabled \
+		-Dx11_autolaunch=enabled \
+		-Dsystemd=disabled \
+		-Ddoxygen_docs=disabled -Dducktype_docs=disabled \
+		-Dqt_help=disabled -Dxml_docs=disabled \
+		output .
+	meson compile -C output
+}
+
+check() {
+	meson test --print-errorlogs -C output
+}
+
+package() {
+	install -Dm755 output/bus/dbus-daemon "$pkgdir/usr/libexec/tarot-dbus-daemon"
+	install -Dm644 COPYING "$pkgdir/usr/share/licenses/$pkgname/COPYING"
+	local notice
+	for notice in LICENSES/*.txt; do
+		install -Dm644 "$notice" "$pkgdir/usr/share/licenses/$pkgname/$notice"
+	done
+}
+
+# Source and patch checksums are pinned; run abuild checksum after edits.
+sha512sums="
+5c26f52d85984bb9ae1dde8d7e73921eacbdf020a61ff15f00a4c240cb38a121553ee04bd66e62b28425ff9bc50f4f5e15135166573ac0888332a01a0db1faa2  dbus-1.16.2.tar.xz
+325af9844311e539d6d1383b909cef5dca186e9e7430c59a785f95ae4bd122802de6d7e1989d041fa2399f774c80e579dbf43b0c67ba7c1d2f35d0dceb5ca95b  0001-linux-process-fd.patch
+0dd7d2db2bfb3e90a5cff204fea2ebe1f2805f171431f25ee724d4888859827fd53fcea2f545f8827535a932b979c6aa3b66669d3daf49a70e869926faef2aa6  cross-cc.sh
+"

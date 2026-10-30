@@ -1,6 +1,6 @@
 # Native menu ownership and the phone bus feature
 
-October 29, 2026. The [Rust experiment](../../../experiments/menu-export/README.md) now passes its complete ownership scenario on PinePhone Pro with a privately built, feature-enabled D-Bus daemon. The stock installed daemon still omits the required credential. Normal-session dependency delivery and actual app-menu UI integration remain open; the installed Tarot package stays at revision 44.
+October 29, 2026. The [Rust experiment](../../../experiments/menu-export/README.md) now passes its complete ownership scenario on PinePhone Pro with a privately built, feature-enabled D-Bus daemon. The stock installed daemon still omits the required credential. This record preserves the revision-44 experiment. [Revision 45](../r45/README.md) subsequently delivers a separate session-only daemon to the normal login; actual app-menu UI integration remains open.
 
 ## Executed scope
 
@@ -49,4 +49,4 @@ The initial host malformed-descriptor failure remains retained separately. Bound
 
 ## Remaining delivery
 
-Choose and package the normal-session dependency fix with target-header feature detection and capability checks, preserving existing service behavior. Integrate real compositor client/surface/bus generations with bounded menu state and stale pressed-row rejection. Prove mapped GTK/KDE exports and a cooperating Rust/egui producer, compare GIO with the direct Rust D-Bus path, and run installed touch/rotation/PAM/restart and physical/accessibility checks. The [menu plan](../../MENUS_PLAN.md) and complete development plan retain their original scope.
+[Revision 45](../r45/README.md) subsequently packages and verifies the normal-session dependency fix. Next, integrate real compositor client/surface/bus generations with bounded menu state and stale pressed-row rejection. Prove mapped GTK/KDE exports and a cooperating Rust/egui producer, compare GIO with the direct Rust D-Bus path, and run installed touch/rotation/PAM/restart and physical/accessibility checks. The [menu plan](../../MENUS_PLAN.md) and complete development plan retain their original scope.
