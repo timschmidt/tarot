@@ -432,6 +432,53 @@ and disables detection across restarts; measured recognition and power results
 justify the selected thresholds and operating mode. Retain kernel/firmware
 identities, failures and unsupported states with the device evidence.
 
+### M4 addition: boot destination setting
+
+**Requested October 30, 2026 by the owner; planned, not implemented.** Add a
+Settings choice for what Nura shows at boot:
+- **Login screen:** the distribution's greeter (currently Phrog) offers the
+  session list and authenticates. This is today's behavior.
+- **Tarot:** greetd starts the owner's Tarot session directly.
+
+The Tarot choice must not weaken authentication. Tarot already presents a
+protected lock surface as its first frame and requires actual PAM before any
+app or notification content appears. Booting directly to Tarot is therefore a
+**locked** Tarot session, not an unlocked desktop.
+
+1. **Mechanism.** Use greetd's own `initial_session` for the selected user and
+   the installed `tarot-session` command, keeping the greeter as
+   `default_session`. Logging out, or a failed or crashed initial session, then
+   returns to the greeter. Do not use PAM autologin hacks, a modified Phrog, or
+   changes to Phrog's own session selection, which stays separate (see
+   [packaging](PACKAGING.md)). Check how the installed greetd version handles
+   `initial_session`, including whether it applies once per boot.
+2. **Privileged change.** The greeter configuration is root-owned. A small
+   Rust helper validates and atomically rewrites only Tarot's managed setting,
+   preserving the rest of the file and its ownership/mode, and keeps a rollback
+   copy. It is reachable only through a Polkit action that requires
+   administrator authentication. The installed Polkit agent and its
+   compositor-owned modal handle that authentication. The Settings
+   page shows the current state read from the file, pending/denied/failed
+   results, and never assumes success.
+3. **Consequences shown in Settings.** Booting directly into a session skips
+   the password at login, so anything that relies on login-time unlocking
+   (for example a keyring or encrypted home) may stay locked until the first
+   Tarot unlock. Audit what this image actually uses and either integrate
+   unlock at the first PAM authentication or state the limitation. The choice
+   is per device, applies to one configured user, and is off by default.
+4. **Recovery.** A Tarot crash at boot or a crash loop must fall back to the
+   greeter and its Phosh recovery session, not repeat indefinitely. Record the
+   SSH/TTY route to reset the setting, and make package removal restore the
+   greeter-only configuration.
+
+**Acceptance:** on the PinePhone Pro, switch to Tarot by finger and see the
+Polkit prompt reject a wrong password and accept the right one. Then reboot into
+a protected Tarot lock with no content exposed before PAM. Log out to the
+greeter. Force a startup failure to confirm fallback. Switch back to the login
+screen and reboot into Phrog. Finally, remove the package and confirm the
+original greeter configuration is restored, with every step's file state
+independently verified.
+
 ## M5 Add phone capabilities
 
 **Dependency:** M4 and a recorded stock-platform modem/carrier baseline.

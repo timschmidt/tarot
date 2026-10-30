@@ -7,6 +7,11 @@ The newly supplied Fx0 Gold packet is retained as reference. The owner's deferre
 schedules an optional Gold theme and reusable device support/Fx0 port after all
 existing work. It changes no current runtime theme or hardware baseline.
 
+A Settings choice between booting to the greeter and booting directly
+into a locked Tarot session is now planned as an
+[M4 addition](DEVELOPMENT_PLAN.md#m4-addition-boot-destination-setting).
+It is not yet implemented.
+
 Android applications through Waydroid are now planned as
 [M6A](DEVELOPMENT_PLAN.md#m6a-android-applications-as-cards-through-waydroid),
 after M6 and before the Fx0/Pre3 extensions, at the owner's request. Each app
