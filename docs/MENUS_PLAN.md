@@ -145,7 +145,14 @@ Revision 48 adds a [guarded local bus socket](recordings/menu-setup/README.md): 
 
 ### Next delivery
 
+Revision 49 resolves the reproduced unrelated-broadcast regression with exact
+exporter/path/interface/member rules at the broker and an owner-specific bus
+rule. It retains the unfiltered local reply iterator. Three host traffic/claim
+runs and the scoped native traffic/GTK-egui/claim/PAM run pass; actual GTK menu
+replacement also passes on the host. General flood/directed-traffic budgets and
+the remaining gates below stay open. [Evidence](recordings/menu-signals/README.md).
+
 1. **Delivered in revision 45:** the separate session-only daemon uses target-header feature detection and passes actual credentials, activation, normal-login and independent restoration checks. The stock failure and private before/after evidence remain retained. [Package contract](../packaging/nura/tarot-session-bus/README.md) · [Installed acceptance scope](recordings/r45/README.md).
 2. **Mapped GTK commands implemented and host-tested:** extend the passing mapped claim/epoch/protection/held-key/private-bus matrix to destructive socket/surface cases, managed-locker exclusion, broader cancellation/traffic, adversarial resources and production phone bus crash/recovery. Retiring an undispatched choice must not imply cancellation of an already dispatched action.
 3. **Cooperating Rust/egui producer and scoped native GTK/egui acceptance pass:** complete broader activation policy, malformed/deep/oversized menus through the shell and lifecycle recovery. Retain the measured GIO comparison and implement/prove KDE's separate protocol adapter.
-4. **Revision 48 packaged and scoped combined compatibility/menu checks pass:** guarded setup/receive bounds follow revision 47’s pointer-hover fix; ordinary-user protocol/toolkit/menu touch/rotation/PAM, clean restart and independent restoration audits pass; broader reliability and physical/accessibility review remain open. Keep shell card controls usable until a real app capability is validated; advertise no global-menu capability before its complete acceptance.
+4. **Revision 49 packaged with scoped broadcast/claim/menu checks:** retain revision 48's separate protocol/toolkit/kernel evidence and the current ordinary-user traffic/menu touch/key/rotation/PAM, clean restart and independent restoration audits. Broader reliability and physical/accessibility review remain open. Keep shell card controls usable until a real app capability is validated; advertise no global-menu capability before its complete acceptance.

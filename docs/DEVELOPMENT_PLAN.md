@@ -24,6 +24,8 @@ Unchanged revision-42 follow-up: focused Firefox and combined Firefox/fourteen-s
 
 Revision-43 development: the shared notification well/source rail and exposed foreground now have real client/popup/keyboard/rotation/protection component evidence on host and phone. The broader native run passes ten components, then fails the first favorite drop at an obsolete QA tray coordinate; independent restoration/normal/Panfrost checks pass. A focused additional reproduction finds cancellation of a landscape favorite hold when hiding its keyboard restores the rail. Revision-44 development corrects both paths. Its first native run repeats the held-activation browser failure after 21 returns, with normal-session/preference/policy/Panfrost restoration verified; a separate unchanged-package run passes ten components including the native favorite correction before an obsolete Calendar coordinate fails. A subsequent run passes actual DND-off notification coverage, then its QA fling skips Calendar. Overlapping scans then pass complete Quick Launch, followed by a landscape pixel QA failure: a fixed inset enters the smaller rounded shape. The final unchanged-package run passes all seven enabled components, full pages and saved restart after the QA correction. Together with the earlier prefix, fifteen non-browser components have passing evidence across separate runs; this is not a single combined pass. Retain the browser failure and all original QA failures. Preserve original failures, exact package/source identities and the separate browser/endurance/accessibility/export gates. [Contract](NOTIFICATIONS.md) · [Revision-43 failures](recordings/r43/README.md) · [Revision-44 evidence](recordings/r44/README.md).
 
+Revision-49 update: a reproduced unrelated-broadcast failure is corrected by exact exporter/endpoint match rules at the broker, retaining the local reply-ordering barrier and receive limits. Three host traffic/claim runs and valid GTK menu replacement pass; both compilers pass 239 workspace checks. Signed native traffic/GTK-egui/claim/touch/key/actual-PAM acceptance and independent normal-session/restoration/Panfrost/source audits pass. General flood/directed-traffic/resource, wider recovery and unfinished milestones remain open. The requested double-chop flashlight feature is added under M4/T015 with a DMP/suspend feasibility gate. [Current evidence](recordings/menu-signals/README.md).
+
 Revision-48 update: measured menu authentication/Hello stalls and pre-parser oversized allocation are corrected with owned nonblocking Unix setup, a two-second setup deadline, direct socket cancellation, primary-header limits and syscall descriptor budgets/close-on-exec. Eleven final host fault/recovery cases, minimum-Rust cases and prior typed/malformed/GTK-egui/claim matrices pass; both compilers pass 239 workspace checks. Native kernel tests and the final package's combined protocol/toolkit/menu/claim/actual-PAM login pass before fresh normal Tarot; independent restoration/normal/Panfrost and collected-source/archive audits also pass. General traffic/flood/resource/latency, wider recovery and remaining milestones retain their scope. [Evidence and explicit limits](recordings/menu-setup/README.md).
 
 Mapped claim lifecycle update: actual-shell current/minimum host checks now reject foreign exporter processes, retire held input, cover release/reclaim and finite claim churn, exclude the trusted keyboard connection, and reject an old claim when an exact unique name is reused on a replacement private bus GUID. The unchanged revision-47 phone passes its claim/touch/key/reconnect/protected-claim/PAM component and independent exact restoration/normal/Panfrost audits. General setup/auth/resource bounds, destructive lifetime cases, production phone bus crash/recovery and KDE remain open. [Scoped evidence](recordings/menu-claims/README.md).
@@ -194,6 +196,7 @@ Hardware-key checkpoint: the revision 8 read-only snapshot identifies separate `
 - Ship a working trusted on-screen keyboard path. After protocol validation, build the initial Rust/egui keyboard layout if it can meet the quality gate; otherwise label the compatible external keyboard as a temporary alpha dependency with a tracked replacement task. Cover shell search, external app fields, password entry, and a physical keyboard.
 - Implement the trusted locker and compositor lock enforcement, platform authentication, startup/restart policy, notification redaction, and input/capture restrictions. Test actual failures, not only the unlock animation.
 - Coordinate idle, locking, display off, audio/call inhibitors, suspend, and resume with the chosen session stack. Keep the initial service-manager configuration explicit in packaging.
+- Add the optional PinePhone Pro [double-chop flashlight gesture](#m4-addition-double-chop-flashlight-from-suspend), including a simple persistent Settings toggle and actual suspend-wake validation.
 
 Implementation checkpoint, October 27: the initial standard notification service, banners/dashboard, replacement/actions/expiry, DND and banner-preview settings now have native phone evidence, including installed libnotify delivery and input isolation. Notification settings persist through versioned atomic TOML saves; notification-bus restart/name-release recovery has isolated integration evidence. This does not complete M4: broader service adapters/reconnection, startup readiness, durable history/general preferences, authenticated lock redaction and the remaining platform controls are outstanding. [Current notification evidence](IMPLEMENTATION_STATUS.md#native-notification-service)
 
@@ -208,6 +211,56 @@ The single-output compositor lock boundary now has nested and native presentatio
 **Exit criteria:** from a fresh installation, use touch to connect to Wi-Fi, launch a native app, enter text, switch and stack apps, receive and act on a notification, change audio/brightness, lock, suspend, resume, and authenticate. Repeat with service disconnects and rejected authorization. Killing the locker leaves the session protected; compositor failure returns to a protected startup path. No test requires root access for normal shell use.
 
 Call this a **shell alpha**, with a documented list of unsupported apps/features and remaining platform faults. It is not yet a tested replacement for every phone function.
+
+### M4 addition: double-chop flashlight from suspend
+
+**Requested October 30, 2026; planned, not implemented.** Recognize a
+Motorola-style double chop using the PinePhone Pro MPU-6500's Digital Motion
+Processor (DMP) while the application processor is suspended. A recognized
+gesture wakes the phone to toggle the flashlight; repeating it turns the light
+off. Provide one accessible, persistent **“Double chop for flashlight”** switch
+in Settings, initially off. Keep the session locked and permit the flashlight
+action without authentication; waking for this action need not illuminate the
+display. Unsupported hardware must show an honest unavailable state.
+
+**Dependencies:** M3 suspend/wake reliability, the M4 sensor adapter and a
+bounded flashlight/torch control adapter. Schedule this as PinePhone Pro work
+before the deferred M7 extension; retain shared capability interfaces for future
+devices.
+
+1. Verify the actual board, installed kernel/IIO driver, IMU power retention,
+   interrupt routing and wake-source support during deep suspend. PINE64 lists
+   the [MPU-6500 and camera flash hardware](https://pine64.org/documentation/PinePhone_Pro/Hardware/).
+   TDK documents [DMP gesture processing and programmable interrupts](https://www.invensense.tdk.com/en-us/products/inertial-sensors/mpu-6500)
+   and a separate [low-power wake-on-motion mode](https://invensense.tdk.com/wp-content/uploads/2020/06/PS-MPU-6500A-01-v1.3.pdf).
+   These establish investigation paths, not proof that a custom double-chop
+   classifier can run in the DMP under the required suspend power state.
+2. Investigate DMP programming, firmware/tool availability, redistribution
+   licensing and the kernel interface. Implement and calibrate recognition on
+   the sensor, with a bounded two-chop window, rejection of a single chop,
+   debounce and re-arm rules. Record any required driver/device-tree work.
+   If custom DMP recognition is unavailable, record the blocker and separately
+   evaluate motion-triggered wake followed by host classification; that fallback
+   needs an explicit revised design and power measurements. Continuous host
+   polling or preventing suspend does not satisfy the requested feature.
+3. Deliver each accepted event exactly once through a narrow Rust-owned adapter
+   to the torch control path. Serialize it with manual flashlight use and camera
+   ownership, respect hardware brightness/thermal limits, and handle resume,
+   service restart and stale events without a second toggle. Coordinate sensor
+   ownership with orientation sensing. Turning the setting off disarms this
+   gesture's wake source without disabling other sensor consumers.
+4. Validate physical double chops while awake, locked, panel-off and in verified
+   kernel deep suspend, covering flashlight on and off, different orientations,
+   repeated gestures, reboot persistence and disabling the setting. Record
+   misses, latency and false activations during walking, pocket/bag handling,
+   ordinary pickup and single chops. Compare suspend residency, wake counts and
+   energy with the setting on/off; measure torch-on power behavior separately.
+
+**Acceptance:** physical gestures wake from actual suspend and toggle the light
+once without unlocking or exposing app content; the UI switch reliably enables
+and disables detection across restarts; measured recognition and power results
+justify the selected thresholds and operating mode. Retain kernel/firmware
+identities, failures and unsupported states with the device evidence.
 
 ## M5 Add phone capabilities
 
@@ -308,6 +361,7 @@ These are proposed work items, not completed tasks. Each should become a reviewa
 | T012 | Implement desktop-entry discovery/launching | T011 | Selected native apps launch with correct metadata and failure reporting |
 | T013 | Prove external keyboard/text-input interoperability | T011 | Composed text reaches GTK/Qt fields and shell search correctly |
 | T014 | Implement stacks and run the first app compatibility matrix | T011, T012, T013 | M2 behavior is recorded across toolkits |
+| T015 | Program MPU-6500 DMP double-chop recognition, suspend wake and flashlight toggle; add a persistent UI switch | M3 suspend/wake, M4 sensor and torch adapters | Physical awake/locked/deep-suspend on/off tests, disabled-state tests and measured false-activation/power results pass; see the [feature plan](#m4-addition-double-chop-flashlight-from-suspend) |
 
 The first concrete engineering deliverable is **T003 through T005: one real native app and egui shell content composited on the actual PinePhone Pro**, with T001/T002 preparing its platform.
 

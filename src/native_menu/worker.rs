@@ -125,13 +125,18 @@ impl Watch {
                         }
                     }
                     let mut stream = MessageIterator::from(&connection);
-                    connection.call_method(
-                        Some("org.freedesktop.DBus"),
-                        "/org/freedesktop/DBus",
-                        Some("org.freedesktop.DBus"),
-                        "AddMatch",
-                        &("type='signal'",),
-                    )?;
+                    // Filter broadcasts at the broker before the frame budget
+                    // sees unrelated traffic. Keep the unfiltered local stream
+                    // so all method replies still advance the ordering barrier.
+                    for rule in export.signal_rules()? {
+                        connection.call_method(
+                            Some("org.freedesktop.DBus"),
+                            "/org/freedesktop/DBus",
+                            Some("org.freedesktop.DBus"),
+                            "AddMatch",
+                            &(rule,),
+                        )?;
+                    }
                     let observed = state.clone();
                     let target = export.clone();
                     let watcher = std::thread::Builder::new()

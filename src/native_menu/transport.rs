@@ -78,6 +78,40 @@ impl Export {
     pub fn owner(&self) -> &str {
         self.owner.as_str()
     }
+    pub(super) fn signal_rules(&self) -> Result<Vec<String>> {
+        use zbus::{MatchRule, message::Type};
+        let mut rules = vec![
+            MatchRule::builder()
+                .msg_type(Type::Signal)
+                .sender("org.freedesktop.DBus")?
+                .path("/org/freedesktop/DBus")?
+                .interface("org.freedesktop.DBus")?
+                .member("NameOwnerChanged")?
+                .arg(0, self.owner.as_str())?
+                .build()
+                .to_string(),
+        ];
+        for (interface, path) in [
+            ("org.gtk.Menus", Some(&self.menu)),
+            ("org.gtk.Actions", self.application.as_ref()),
+            ("org.gtk.Actions", self.window.as_ref()),
+        ] {
+            if let Some(path) = path {
+                let rule = MatchRule::builder()
+                    .msg_type(Type::Signal)
+                    .sender(self.owner.as_str())?
+                    .path(path.as_str())?
+                    .interface(interface)?
+                    .member("Changed")?
+                    .build()
+                    .to_string();
+                if !rules.contains(&rule) {
+                    rules.push(rule);
+                }
+            }
+        }
+        Ok(rules)
+    }
     pub fn relevant_signal(&self, message: &zbus::Message) -> bool {
         let h = message.header();
         if !h

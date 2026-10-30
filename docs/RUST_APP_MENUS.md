@@ -104,6 +104,15 @@ app input does. `--export-only --qa-stdin` supplies the independent process's
 static exports without creating a Wayland window. This remains a synthetic QA
 interface, with no claim of production stdin resource isolation.
 
+Add `--traffic` to the host claim replay to send eleven synthetic 96 KiB
+broadcasts before the claim matrix. The QA-only `noise CASE` stdin command emits
+traffic without activating actions. An independent GIO observer verifies actual
+sender/path/interface/member/size: eight unrelated broadcasts must preserve the
+complete menu and stamp; three relevant oversized broadcasts must retire it and
+allow fresh claims. The observer's broad subscription is test machinery; the
+production worker subscribes only to its validated export's endpoints and owner
+changes. [Reproduced failure and recorded scope](recordings/menu-signals/README.md).
+
 For the installed runner's `--native-menu-claims` hook, prepare the user-owned
 `<output>/native-menu-claims` directory, its mode-0600 `commands.fifo` and
 `fixture-audit.json` containing `producer_sha256` and `python_sha256`. A temporary
@@ -115,6 +124,15 @@ hashes/start times/cgroup; actual touch/key input supplies every callback.
 Preserve exact owner preferences, remove only the temporary entry, end the test
 login and independently verify normal/default Tarot and Panfrost afterward.
 This device component does not replace its bus or request kernel sleep.
+
+The installed runner's `--native-menu-traffic` flag includes the claim component.
+Also prepare an owned mode-0600 `foreign.fifo` in the same directory and add
+`--traffic` to the catalog wrapper's `native_menu_claim_fixture.py` arguments.
+Stage `native_menu_traffic_observer.py` and `native_menu_traffic_cases.py` beside
+the fixture. The wrapper launches the observer in the ordinary PAM cgroup;
+the replay verifies its UID, executable hash and process lifetime along with
+both exporters. Require all eleven independently observed packets, zero foreign
+callbacks and observer/fixture teardown before normal-session acceptance.
 
 Next develop a reusable application API when implementing actual Tarot apps,
 cover dynamic menu lifetimes and richer typed actions, and complete broader

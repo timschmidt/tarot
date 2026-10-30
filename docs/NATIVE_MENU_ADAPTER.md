@@ -86,6 +86,12 @@ close-on-exec supplement the four-descriptor per-message limit. Zbus retains its
 own decoder and receive positions. The queue remains sixteen messages.
 [Reproduced failures, finite bounds and current acceptance](recordings/menu-setup/README.md).
 General flood/CPU/latency budgets and exhaustive teardown/recovery remain open.
+Revision 49 scopes broadcast subscriptions at the broker to the exporter's exact
+menu/action endpoints and its bus-owner changes. The local iterator stays
+unfiltered so method replies still advance the receive-sequence barrier.
+Unrelated oversized broadcasts no longer retire commands; oversized relevant
+or directed traffic retains the frame limits. This is not a general flood or
+directed-message resource bound. [Failure and acceptance scope](recordings/menu-signals/README.md).
 Method calls retain a separate 500 ms per-RPC timeout. Snapshot loading also checks an overall two-second
 deadline between RPCs, with additional bounded RPC/barrier cleanup waits; this
 is not a hard transport deadline. Automatic recovery and reconnect/backoff

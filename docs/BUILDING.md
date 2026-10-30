@@ -89,6 +89,13 @@ separate gate. [Recorded scope](recordings/menu-claims/README.md).
 
 ## Menu setup fault injection
 
+For the broadcast subscription regression, run the
+[claim replay](RUST_APP_MENUS.md#claim-and-lifecycle-qa) with `--traffic` in fresh
+portrait and landscape directories. It independently observes eight unrelated
+and three relevant oversized broadcasts, then runs the existing claim matrix.
+The real GTK replay additionally accepts `--dynamic-menu` to test replacing a
+held row and invoking its fresh renamed command. [Results and limits](recordings/menu-signals/README.md).
+
 ```sh
 cargo build --locked --offline --bin tarot --example native-menu-egui
 python3 tests/native_menu_setup_replay.py --xvfb /absolute/path/to/Xvfb \

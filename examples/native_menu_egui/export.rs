@@ -338,6 +338,42 @@ impl Export {
     }
     /// Synthetic QA mutations never activate an action or invoke a callback.
     pub fn mutate(&self, command: &str) -> Result<()> {
+        if let Some(case) = command.strip_prefix("noise ") {
+            let (path, interface, member) = match case {
+                "unrelated" => ("/org/tarot/Noise", "org.tarot.Noise", "Changed"),
+                "actions-path" => ("/org/tarot/Noise", "org.gtk.Actions", "Changed"),
+                "actions-interface" => (APP, "org.tarot.Noise", "Changed"),
+                "actions-member" => (APP, "org.gtk.Actions", "Noise"),
+                "menus-path" => ("/org/tarot/Noise", "org.gtk.Menus", "Changed"),
+                "menus-interface" => (MENU, "org.tarot.Noise", "Changed"),
+                "menus-member" => (MENU, "org.gtk.Menus", "Noise"),
+                "app-relevant" => (APP, "org.gtk.Actions", "Changed"),
+                "window-relevant" => (WINDOW, "org.gtk.Actions", "Changed"),
+                "menu-relevant" => (MENU, "org.gtk.Menus", "Changed"),
+                _ => anyhow::bail!("unknown synthetic signal case"),
+            };
+            self.connection.emit_signal(
+                None::<&str>,
+                path,
+                interface,
+                member,
+                &(vec![42u8; 96 * 1024],),
+            )?;
+            // Confirm daemon processing without invoking an app action.
+            self.connection.call_method(
+                Some("org.freedesktop.DBus"),
+                "/org/freedesktop/DBus",
+                Some("org.freedesktop.DBus"),
+                "GetId",
+                &(),
+            )?;
+            self.shared
+                .0
+                .lock()
+                .unwrap()
+                .record(json!({"event":"noise","case":case,"payload_bytes":96*1024}));
+            return Ok(());
+        }
         if !matches!(command, "flip" | "disable") {
             anyhow::bail!("unknown QA mutation");
         }

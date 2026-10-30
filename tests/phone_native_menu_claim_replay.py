@@ -15,9 +15,10 @@ from dialog_button import locate
 from notification_replay import await_value
 from phone_gesture_replay import request
 from phone_lock_replay import Keyboard
+from native_menu_traffic_cases import UNRELATED,RELEVANT,COUNT,verify as verify_noise
 
 
-def replay(control, screen, state, capture, before, out, cgroup, authenticate, guard):
+def replay(control, screen, state, capture, before, out, cgroup, authenticate, guard, *, traffic=False):
     folder = out/'native-menu-claims'
     audit = json.loads((folder/'fixture-audit.json').read_text())
     result = {'passed': False, 'physical_finger_tested': False, 'processes': {},
@@ -88,13 +89,34 @@ def replay(control, screen, state, capture, before, out, cgroup, authenticate, g
         mapped=observe('unclaimed-mapped',lambda s:len(s['cards'])==len(before['cards'])+1 and isinstance(s['view'],dict) and s['app_menu']['status']=='Absent')
         owner=next(c['id'] for c in mapped['cards'] if c['id'] not in [v['id'] for v in before['cards']])
         await_value(lambda:(folder/'processes.json').exists(),bool);processes=json.loads((folder/'processes.json').read_text())
-        for name in ['runner','fixture','foreign']:
+        for name in ['runner','fixture','foreign']+(['observer'] if traffic else []):
             actual=processes[name];p=Path('/proc',str(actual['pid']));assert p.stat().st_uid==actual['uid']==10000 and (p/'cgroup').read_text()==actual['cgroup']==cgroup
             assert (p/'stat').read_text().rsplit(')',1)[1].split()[19]==actual['start']
-            assert hashlib.sha256((p/'exe').read_bytes()).hexdigest()==actual['executable_sha256']==audit['python_sha256' if name=='runner' else 'producer_sha256']
+            assert hashlib.sha256((p/'exe').read_bytes()).hexdigest()==actual['executable_sha256']==audit['python_sha256' if name in ['runner','observer'] else 'producer_sha256']
         assert processes['fixture']['pid']!=processes['foreign']['pid'];result['processes']=processes
         await_value(lambda:events('foreign'),lambda es:any(e['event']=='export' for e in es));foreign_owner=next(e['owner'] for e in events('foreign') if e['event']=='export')
-        mutate('claim-self');observe('own-available',lambda s:s['app_menu']['status']=='Available' and s['app_menu']['owner']==owner);choose('first',1)
+        mutate('claim-self');observe('own-available',lambda s:s['app_menu']['status']=='Available' and s['app_menu']['owner']==owner)
+        if traffic:
+            def observed():
+                path=folder/'traffic.jsonl';return [json.loads(l) for l in path.read_text().splitlines()] if path.exists() else []
+            await_value(observed,lambda es:any(e['event']=='ready' for e in es));owners={'foreign':foreign_owner,'fixture':next(e['owner'] for e in events('fixture') if e['event']=='export')};result['traffic']=[]
+            def noise(entry):
+                case,name=entry[:2];prior=len([e for e in events(name) if e['event']=='noise']);seen=len([e for e in observed() if e['event']=='signal']);path=folder/('commands.fifo' if name=='fixture' else 'foreign.fifo');fd=os.open(path,os.O_WRONLY|os.O_NONBLOCK|os.O_NOFOLLOW)
+                try:
+                    meta=os.fstat(fd);assert stat.S_ISFIFO(meta.st_mode) and meta.st_uid==10000 and stat.S_IMODE(meta.st_mode)==0o600
+                    data=('noise '+case+'\n').encode();assert os.write(fd,data)==len(data)
+                finally:os.close(fd)
+                await_value(lambda:events(name),lambda es:len([e for e in es if e['event']=='noise'])==prior+1)
+                es=await_value(observed,lambda es:len([e for e in es if e['event']=='signal'])==seen+1);record=[e for e in es if e['event']=='signal'][-1];verify_noise(record,entry,owners);result['traffic'].append(record)
+            for entry in UNRELATED:
+                baseline=status()['app_menu'];noise(entry);until=time.monotonic()+.8
+                while time.monotonic()<until:
+                    assert observe('noise-stable-'+entry[0]+'-'+entry[1])['app_menu']==baseline;time.sleep(.04)
+                counts(0)
+            for entry in RELEVANT:
+                noise(entry);observe('noise-relevant-rejected-'+entry[0],lambda s:s['app_menu']['status']=='Unavailable' and not s['app_menu']['nodes']);counts(0);mutate('claim-self');observe('noise-reclaimed-'+entry[0],lambda s:s['app_menu']['status']=='Available')
+            await_value(observed,lambda es:es[-1]=={'event':'passed','count':COUNT});result['traffic_observer_passed']=True
+        choose('first',1)
         rotate('left-up');prefs('foreign-held');down(*point('Choose','foreign-held-row'));time.sleep(.08);held=status()
         mutate('claim-other '+foreign_owner);changed=observe('foreign-rejected',lambda s:s['app_menu']['status']=='Unavailable' and not s['app_menu']['nodes'])
         assert changed['top_menu']['revision']!=held['top_menu']['revision'];screen.up();time.sleep(.15);counts(1);point('Show','foreign-fallback')
@@ -114,7 +136,7 @@ def replay(control, screen, state, capture, before, out, cgroup, authenticate, g
         observe('protected-claim-returned',lambda s:s['view']=={'App':owner} and not s['system_menu_open'] and s['app_menu']['status']=='Available' and s['app_menu']['stamp']['source']!=old_source);choose('fresh-after-pam',4)
         touch(40,16);observe('close-root',lambda s:s['system_menu_open']);row('Close','cooperative-close');observe('all-gone',lambda s:s['cards']==before['cards'] and not s['system_menu_open'])
         await_value(lambda:(folder/'result.json').exists(),bool);exits=json.loads((folder/'result.json').read_text());assert exits['passed'] and exits['fixture_exit']==exits['foreign_exit']==0
-        await_value(lambda:all(not Path('/proc',str(processes[n]['pid'])).exists() for n in ['runner','fixture','foreign']),bool,seconds=10);counts(4)
+        await_value(lambda:all(not Path('/proc',str(processes[n]['pid'])).exists() for n in ['runner','fixture','foreign']+(['observer'] if traffic else [])),bool,seconds=10);counts(4)
         request(control,'activate',id=before['cards'][0]['id']);observe('original-card-restored',lambda s:s['view']==before['view'] and s['cards']==before['cards'])
         result.update(passed=True,callbacks=callbacks('fixture'),foreign_callbacks=callbacks('foreign'),actual_pam=True,held_key_retired=True,held_touch_retired=True,release_reclaim=True,same_bus_reconnect=True,processes_gone=True,orientations=['normal','left-up','normal'],bus_replacement_tested=False)
     finally:

@@ -14,7 +14,9 @@ M0 remains in progress. The phone has been upgraded through supported releases t
 
 Tarot is now the default login session on the development phone, with the normal installed entry running and diagnostics disabled. The retained revision 8 → 5 → 8 package round trip passes real PAM, native app/audio and cleanup checks on both revisions.
 
-Revision 48 bounds native-menu connection setup and cancellation, rejects oversized frames before allocation and marks received descriptors close-on-exec. Eleven host fault/recovery cases and 239 current/minimum-Rust tests pass, followed by native kernel tests and a combined protocol/toolkit/menu/claim/PAM login. [Current scope and evidence](docs/recordings/menu-setup/README.md).
+Revision 49 fixes unrelated large broadcasts retiring native app menus by narrowing subscriptions at the broker. Current/minimum Rust each pass 239 workspace tests; host and phone broadcast/claim/menu/PAM checks pass, followed by independently verified normal Tarot with diagnostics off. [Current scope and evidence](docs/recordings/menu-signals/README.md).
+
+Revision 48 bounds native-menu connection setup and cancellation, rejects oversized frames before allocation and marks received descriptors close-on-exec. Eleven host fault/recovery cases pass, followed by native kernel tests and a combined protocol/toolkit/menu/claim/PAM login. [Earlier scope and evidence](docs/recordings/menu-setup/README.md).
 
 Revision 47 fixes a reproduced stale shell tooltip over native app content. Final host pointer/lifecycle checks pass at both scales, and a combined native login passes seven protocol cases, real GTK/Qt dialogs/text/fullscreen, GTK/Rust-egui menus and actual PAM before restoring normal Tarot. All 237 current/minimum-Rust workspace tests pass. [Package evidence and limits](docs/recordings/menu-compat/README.md). The unchanged package also passes native foreign-claim/release/reconnect/held-input/PAM checks; host cases cover exact-name reuse across private bus replacement. [Mapped claim lifecycle evidence](docs/recordings/menu-claims/README.md). The full development plan remains unfinished.
 

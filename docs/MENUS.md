@@ -1,6 +1,8 @@
 # App and device menus
 
-The compositor now displays validated GTK/GIO and cooperating Rust/egui app commands. Revision 46 is installed with scoped native touch/rotation/PAM, stale-choice and close acceptance; broader compatibility and physical review remain open. [Rust example and current evidence](recordings/menu-egui/README.md) · [Earlier mapped-app development scope](recordings/menu-ui/README.md).
+The compositor now displays validated GTK/GIO and cooperating Rust/egui app commands. Revision 46 introduced scoped native touch/rotation/PAM, stale-choice and close acceptance; broader compatibility and physical review remain open. [Rust example and initial evidence](recordings/menu-egui/README.md) · [Earlier mapped-app development scope](recordings/menu-ui/README.md).
+
+Revision 49 filters broadcasts at the broker to the validated exporter's exact menu/action endpoints and owner changes. This fixes unrelated large signals retiring app commands, while preserving the local reply-ordering barrier and receive limits. Host and native traffic/claim/menu/PAM checks pass; general flood, directed traffic and wider recovery budgets remain open. [Retained failure and current evidence](recordings/menu-signals/README.md).
 
 Revision 48 bounds local menu-bus setup, authentication/Hello and receive frames/descriptors, while cancellation avoids waiting on the async writer lock. The original stalls/allocation failure and final host/native scope are [recorded separately](recordings/menu-setup/README.md). Card controls remain available when exported commands fail; uncertain dispatched actions are never retried.
 

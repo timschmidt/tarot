@@ -8,6 +8,7 @@ from hardware_replay import PrivateInput
 from notification_replay import await_value
 from phone_gesture_replay import request
 from with_xvfb import read_display_number
+from native_menu_traffic_cases import UNRELATED,RELEVANT,COUNT,verify as verify_noise
 
 p=argparse.ArgumentParser(description=__doc__)
 p.add_argument('--output',type=Path,required=True)
@@ -15,6 +16,7 @@ p.add_argument('--compositor',type=Path,required=True)
 p.add_argument('--producer',type=Path,required=True)
 p.add_argument('--xvfb',default='Xvfb')
 p.add_argument('--landscape',action='store_true')
+p.add_argument('--traffic',action='store_true')
 a=p.parse_args();root=Path.cwd();out=a.output.resolve();out.mkdir(parents=True,exist_ok=False)
 width,height=(720,360) if a.landscape else (360,720)
 def sha(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
@@ -91,7 +93,29 @@ with tempfile.TemporaryDirectory(prefix='tarot-menu-claims-') as temporary:
    path=Path('/proc',str(child.pid));r['processes'][name]={'pid':child.pid,'uid':path.stat().st_uid,'cgroup':(path/'cgroup').read_text(),'sha256':sha(path/'exe')}
   assert r['processes']['fixture']['uid']==r['processes']['foreign']['uid'] and r['processes']['fixture']['cgroup']==r['processes']['foreign']['cgroup'] and fixture.pid!=foreign.pid
   state('unclaimed-mapped',lambda s:len(s['cards'])==1 and isinstance(s['view'],dict) and s['app_menu']['status']=='Absent' and s['presentation']['windows'][0]['opacity']==1)
-  command('claim-self');state('own-ready',lambda s:s['app_menu']['status']=='Available');choose('own-command',1)
+  command('claim-self');state('own-ready',lambda s:s['app_menu']['status']=='Available')
+  if a.traffic:
+   owner=next(e['owner'] for e in events() if e['event']=='export');noise_report=out/'traffic.jsonl'
+   observer=subprocess.Popen(['python3',str(root/'tests/native_menu_traffic_observer.py'),'--owners',owner,foreign_owner,'--count',str(COUNT),'--report',str(noise_report)],env=native,stdout=log('traffic-observer.log'),stderr=subprocess.STDOUT);children.append(observer)
+   def observed():return [json.loads(l) for l in noise_report.read_text().splitlines()] if noise_report.exists() else []
+   await_value(observed,lambda es:any(e['event']=='ready' for e in es));r['traffic']=[]
+   def noise(case,process,name):
+    prior=len([e for e in events(name) if e['event']=='noise']);seen=len([e for e in observed() if e['event']=='signal'])
+    process.stdin.write('noise '+case+'\n');process.stdin.flush()
+    await_value(lambda:events(name),lambda es:len([e for e in es if e['event']=='noise'])==prior+1)
+    es=await_value(observed,lambda es:len([e for e in es if e['event']=='signal'])==seen+1);signal=[e for e in es if e['event']=='signal'][-1];r['traffic'].append(signal);return signal
+   owners={'fixture':owner,'foreign':foreign_owner}
+   for entry in UNRELATED:
+    case,name=entry[:2];process=fixture if name=='fixture' else foreign
+    before=state('noise-before-'+case+'-'+name)['app_menu'];verify_noise(noise(case,process,name),entry,owners)
+    until=time.monotonic()+.8
+    while time.monotonic()<until:
+     current=state('noise-stable-'+case+'-'+name)['app_menu'];assert current==before,'Unrelated broadcast retired or changed app commands';time.sleep(.04)
+    count(0)
+   for entry in RELEVANT:
+    case=entry[0];verify_noise(noise(case,fixture,'fixture'),entry,owners);state('noise-relevant-rejected-'+case,lambda s:s['app_menu']['status']=='Unavailable' and not s['app_menu']['nodes']);count(0);command('claim-self');state('noise-reclaimed-'+case,lambda s:s['app_menu']['status']=='Available')
+   assert observer.wait(timeout=5)==0 and observed()[-1]=={'event':'passed','count':COUNT};r['traffic_observer_passed']=True
+  choose('own-command',1)
   prefs('held-foreign');xy=point('Choose','held-foreign-row');mouse.move(*xy);mouse.button(True);time.sleep(.06);old=state('held-before')
   command('claim-other '+foreign_owner);blocked=state('foreign-rejected',lambda s:s['app_menu']['status']=='Unavailable' and not s['app_menu']['nodes']);assert blocked['app_menu']['stamp']!=old['app_menu']['stamp'] and blocked['top_menu']['revision']!=old['top_menu']['revision'];mouse.button(False);time.sleep(.15);count(1);point('Show','foreign-fallback')
   for text,status_name in [('clear-claim','Absent'),('claim-other org.tarot.MenuEgui','Absent'),('claim-other :9999.9999','Unavailable'),('release-claim','Absent')]:

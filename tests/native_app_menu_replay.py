@@ -8,7 +8,7 @@ from hardware_replay import PrivateInput
 from dialog_button import locate
 from with_xvfb import read_display_number
 from PIL import Image
-p=argparse.ArgumentParser();p.add_argument('--output',type=Path,required=True);p.add_argument('--landscape',action='store_true');p.add_argument('--compositor',type=Path);p.add_argument('--producer',type=Path,help='Optional cooperating Rust/egui example binary');a=p.parse_args()
+p=argparse.ArgumentParser();p.add_argument('--output',type=Path,required=True);p.add_argument('--landscape',action='store_true');p.add_argument('--dynamic-menu',action='store_true');p.add_argument('--compositor',type=Path);p.add_argument('--producer',type=Path,help='Optional cooperating Rust/egui example binary');a=p.parse_args()
 out=a.output.resolve();out.mkdir(parents=True,exist_ok=False);root=Path.cwd();width,height=(720,360) if a.landscape else (360,720)
 compositor_binary=(a.compositor or root/'target/debug/tarot').resolve()
 r={'passed':False,'phone_kms_tested':False,'landscape':a.landscape,'compositor_sha256':hashlib.sha256(compositor_binary.read_bytes()).hexdigest(),'producer':'rust-egui' if a.producer else 'gtk','producer_sha256':hashlib.sha256(a.producer.resolve().read_bytes()).hexdigest() if a.producer else None,'executed_sources_sha256':{name:hashlib.sha256((root/'tests'/name).read_bytes()).hexdigest() for name in ['native_app_menu_replay.py','native_app_menu_fixture.py','native_menu_egui_consumer.py','native_menu_session.conf','notification_replay.py','phone_gesture_replay.py','hardware_replay.py','dialog_button.py','with_xvfb.py']},'observations':{},'visible_targets':[]}
@@ -90,7 +90,17 @@ with tempfile.TemporaryDirectory(prefix='tarot-native-menu-') as temporary:
    assert [e for e in events() if e['event']=='action'][-1]=={'event':'action','name':'window','target':7};capture('window-result')
   fixture.stdin.write('disable\n');fixture.stdin.flush();state('disabled-update',lambda s:s['app_menu']['status']=='Available' and not s['app_menu']['nodes'][0]['kind']['Submenu'][0]['enabled'])
   prefs('disabled');row('Choose','disabled-choice');time.sleep(.15);assert len([e for e in events() if e['event']=='action'])==callback_count
-  capture('disabled-visible');fixture.terminate();fixture.wait(timeout=5);state('owner-dead',lambda s:not s['cards'] and s['app_menu']['status']=='Absent')
+  capture('disabled-visible')
+  if a.dynamic_menu:
+   assert not a.producer,'Dynamic GMenuModel fixture is GTK-only'
+   fixture.stdin.write('flip\n');fixture.stdin.flush();state('rename-enabled',lambda s:s['app_menu']['status']=='Available' and s['app_menu']['nodes'][0]['kind']['Submenu'][0]['enabled'])
+   click(40,16);state('rename-dismiss-disabled',lambda s:not s['system_menu_open']);prefs('rename-held');x,y=point('Choose','rename-held-row');mouse.move(x,y);mouse.button(True);time.sleep(.06);old=state('rename-before')
+   fixture.stdin.write('rename\n');fixture.stdin.flush()
+   state('rename-updated',lambda s:s['app_menu']['status']=='Available' and s['app_menu']['stamp']!=old['app_menu']['stamp'] and s['app_menu']['nodes'][0]['kind']['Submenu'][0]['label']=='Renamed command')
+   mouse.button(False);time.sleep(.15);assert len([e for e in events() if e['event']=='action'])==callback_count
+   row('Preferences','rename-fresh-preferences');state('rename-fresh-submenu',lambda s:isinstance(s['top_menu']['panel'],dict) and 'Native' in s['top_menu']['panel']);row('Renamed','rename-fresh-choice')
+   callback_count+=1;await_value(lambda:[e for e in events() if e['event']=='action'],lambda es:len(es)==callback_count);state('rename-closed',lambda s:not s['system_menu_open']);assert [e for e in events() if e['event']=='action'][-1]=={'event':'action','name':'toggle','target':None};r['dynamic_menu_passed']=True
+  fixture.terminate();fixture.wait(timeout=5);state('owner-dead',lambda s:not s['cards'] and s['app_menu']['status']=='Absent')
   if observer is not None:
    assert observer.wait(timeout=5)==0,(out/'gio.log').read_text();assert json.loads((out/'gio.jsonl').read_text().splitlines()[-1])['event']=='passed';r['independent_gio_consumer_passed']=True
   r['actual_callbacks']=[e for e in events() if e['event']=='action']

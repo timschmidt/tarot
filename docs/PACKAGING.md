@@ -49,6 +49,13 @@ package and acceptance scope](recordings/menu-setup/README.md).
 
 ## Source package
 
+Revision 49 narrows native-menu broadcast subscriptions without changing runtime
+dependencies or platform policies. The clean signed package changes all four
+executable hashes and the installed README. Scoped native broadcast/claim,
+GTK/egui menu, actual-PAM and normal-session audits pass; the earlier unchanged
+protocol/kernel cases retain their revision-48 scope. [Source/package identities
+and acceptance limits](recordings/menu-signals/README.md).
+
 The [APKBUILD](../packaging/nura/APKBUILD) installs four ordinary root-owned executables, the [Wayland session entry](../packaging/nura/tarot.desktop), the existing [PAM reauthentication service](../packaging/pam/tarot-lock), project licenses and source attribution. It makes no greeter configuration or autologin changes. Dynamically loaded PAM, EGL/GLES, Wayland client/EGL, GPU-driver and keyboard-data dependencies are explicit; abuild also derives ELF library dependencies.
 
 Create a source snapshot from the exact lockfile, including vendored registry sources:

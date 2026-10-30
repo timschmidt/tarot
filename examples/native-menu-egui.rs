@@ -462,6 +462,7 @@ fn main() -> Result<()> {
         for command in pending.try_iter().take(16) {
             match command.as_str() {
                 "flip" | "disable" => export.mutate(&command)?,
+                _ if command.starts_with("noise ") => export.mutate(&command)?,
                 "release-claim" => {
                     if let Some(extension) = extension.take() {
                         extension.release();

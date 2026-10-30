@@ -7,6 +7,29 @@ The newly supplied Fx0 Gold packet is retained as reference. The owner's deferre
 schedules an optional Gold theme and reusable device support/Fx0 port after all
 existing work. It changes no current runtime theme or hardware baseline.
 
+## Menu broadcast subscriptions in revision 49
+
+An unrelated 96 KiB broadcast reproduces a real revision-48 regression: the
+all-signals subscription delivers it to the menu worker, where the receive cap
+retires commands. Exact exporter/path/interface/member rules now filter
+broadcasts at the broker; a separate owner-specific bus rule retains owner-loss
+handling. The unfiltered local iterator preserves method-reply ordering.
+
+Portrait, landscape and minimum-Rust host traffic/claim matrices pass, as does
+valid GTK menu replacement under a held row. All 239 workspace tests pass on
+both compilers, with strict host/AArch64 lint. Signed revision 49 passes the
+native eleven-broadcast matrix, GTK/egui menu actions, held touch/key retirement,
+claim reconnect, actual PAM, protected orientations, app/audio, teardown and
+normal-session restoration. Independent loaded-program/Panfrost/default-session
+and source/archive audits pass. General flood/directed-traffic/resource budgets,
+production bus recovery and the remaining full-plan gates stay open.
+[Exact evidence and limits](recordings/menu-signals/README.md).
+
+The owner's optional MPU-6500 DMP double-chop flashlight feature is
+[planned under M4/T015](DEVELOPMENT_PLAN.md#m4-addition-double-chop-flashlight-from-suspend),
+including a persistent UI switch and real suspend-wake/power validation. It is
+not implemented or established as feasible on the current kernel/firmware yet.
+
 ## Menu setup and receive bounds in revision 48
 
 A guarded Rust Unix socket now bounds connection setup and authentication/Hello, cancels without waiting for the async writer lock, and rejects excessive frame lengths/descriptors before zbus allocation. Received descriptors are atomically close-on-exec. Reproduced old cancellation/Hello stalls and a 64 MiB allocation remain retained; eleven final host fault/recovery cases, minimum-Rust checks and real GTK/egui/typed/malformed/claim regressions pass. Both compilers pass 239 workspace tests.
