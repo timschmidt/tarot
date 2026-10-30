@@ -1,6 +1,6 @@
 # App and device menus
 
-The development compositor now also displays validated GTK/GIO app commands; installed phone revision 45 remains unchanged pending native acceptance. [Mapped-app development scope](recordings/menu-ui/README.md).
+The compositor now displays validated GTK/GIO and cooperating Rust/egui app commands. Revision 46 is installed with scoped native touch/rotation/PAM, stale-choice and close acceptance; broader compatibility and physical review remain open. [Rust example and current evidence](recordings/menu-egui/README.md) · [Earlier mapped-app development scope](recordings/menu-ui/README.md).
 
 Revision 42 supplies the earlier combined scoped checkpoint. All fourteen scoped native shell components, full Launcher pages and saved restart pass, with independent exact restoration/normal-session/Panfrost audits. Both held-key directions and completed-touch menu/page/favorite interactions pass. The original revision-41 search failure is corrected; browser/endurance and broader calibration remain open. [Current evidence and limits](recordings/r42/README.md).
 
@@ -20,7 +20,7 @@ Revision 40 adds a proposed 160 ms opening and 120 ms closing fade with 16 logic
 
 The implementation draws service glyphs and page selection marks as vectors, separates the brightness rail/fill/thumb while retaining the real slider's interaction and service guards, and fixes empty-detail label alignment. Long submenu headings truncate within a fixed header; Back remains pinned while rows scroll. Credentials scroll above the landscape keyboard. Host and scoped native checks cover these changes, with the additional reverse-direction key failure retained. [Revision 40 record](recordings/r40/README.md).
 
-Enlarged text calibration, packet G physical/visual approval, GTK/KDE exported app actions and the cooperating Rust app spike remain open. These menus do not close the retained browser input failures, notification composition, device endurance or any unfinished M0–M6 milestone.
+Enlarged text calibration, packet G physical/visual approval, complete native exported-action acceptance, KDE and a reusable Rust app API remain open. The initial GTK and cooperating Rust/egui host proofs are recorded separately. These menus do not close the retained browser input failures, notification composition, device endurance or any unfinished M0–M6 milestone.
 
 Revision 41 is the correction for the retained reverse-direction key failure. It clears held seat/forwarded state after removing native focus and consumes the remaining physical releases. The same production routine serves shell entry and existing protection cleanup. The exact previously failing host replays now pass unchanged; expanded tests also hold a native key through dismissal and require fresh zero-held input afterward. Both native runs pass these cases, then fail a separate rotated search-scroll gate. Remaining components/pages/restart were not reached. [Current evidence](recordings/r41/README.md).
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Real mapped GTK surface claims and visible exported-menu interactions."""
+"""Real mapped GTK or cooperating Rust/egui exported-menu interactions."""
 import argparse,json,os,subprocess,tempfile,time,hashlib
 from pathlib import Path
 from notification_replay import await_value
@@ -8,10 +8,10 @@ from hardware_replay import PrivateInput
 from dialog_button import locate
 from with_xvfb import read_display_number
 from PIL import Image
-p=argparse.ArgumentParser();p.add_argument('--output',type=Path,required=True);p.add_argument('--landscape',action='store_true');p.add_argument('--compositor',type=Path);a=p.parse_args()
+p=argparse.ArgumentParser();p.add_argument('--output',type=Path,required=True);p.add_argument('--landscape',action='store_true');p.add_argument('--compositor',type=Path);p.add_argument('--producer',type=Path,help='Optional cooperating Rust/egui example binary');a=p.parse_args()
 out=a.output.resolve();out.mkdir(parents=True,exist_ok=False);root=Path.cwd();width,height=(720,360) if a.landscape else (360,720)
 compositor_binary=(a.compositor or root/'target/debug/tarot').resolve()
-r={'passed':False,'phone_kms_tested':False,'landscape':a.landscape,'compositor_sha256':hashlib.sha256(compositor_binary.read_bytes()).hexdigest(),'observations':{}}
+r={'passed':False,'phone_kms_tested':False,'landscape':a.landscape,'compositor_sha256':hashlib.sha256(compositor_binary.read_bytes()).hexdigest(),'producer':'rust-egui' if a.producer else 'gtk','producer_sha256':hashlib.sha256(a.producer.resolve().read_bytes()).hexdigest() if a.producer else None,'executed_sources_sha256':{name:hashlib.sha256((root/'tests'/name).read_bytes()).hexdigest() for name in ['native_app_menu_replay.py','native_app_menu_fixture.py','native_menu_egui_consumer.py','native_menu_session.conf','notification_replay.py','phone_gesture_replay.py','hardware_replay.py','dialog_button.py','with_xvfb.py']},'observations':{},'visible_targets':[]}
 children=[];logs=[];mouse=None
 with tempfile.TemporaryDirectory(prefix='tarot-native-menu-') as temporary:
  work=Path(temporary);control=work/'control.sock'
@@ -29,8 +29,15 @@ with tempfile.TemporaryDirectory(prefix='tarot-native-menu-') as temporary:
  def point(word,label):
   image=capture(label)
   with Image.open(image) as im:
-   im.crop((0,28,260,height-36)).save(out/(label+'-menu.png'))
-  found=locate(out/(label+'-menu.png'),word,vertical=(0,1));return (found['point'][0],found['point'][1]+28)
+   # Follow the visible panel's inner gradient, excluding its border/shadow
+   # and native app text beneath it. Keep the OCR confidence gate unchanged.
+   rgb=im.convert('RGB');bottom=height-36
+   for y in range(48,height-36):
+    red,green,blue=rgb.getpixel((8,y))
+    if not (30<=red<=85 and 0<=green-red<=16 and 0<=blue-red<=16):bottom=y;break
+   assert bottom>80,(label,bottom)
+   bounds=(12,40,232,bottom-4);im.crop(bounds).save(out/(label+'-menu.png'))
+  found=locate(out/(label+'-menu.png'),word,vertical=(0,1),scale=2);point=(found['point'][0]+bounds[0],found['point'][1]+bounds[1]);r['visible_targets'].append({'label':label,'bounds':bounds,'point':point,'ocr':found});return point
  def row(word,label):click(*point(word,label))
  def prefs(label):
   click(40,16);state(label+'-open',lambda s:s['system_menu_open']);row('Preferences',label+'-preferences');state(label+'-submenu',lambda s:isinstance(s['top_menu']['panel'],dict) and 'Native' in s['top_menu']['panel'])
@@ -47,9 +54,15 @@ with tempfile.TemporaryDirectory(prefix='tarot-native-menu-') as temporary:
   await_value(lambda:control.exists() or compositor.poll() is not None,bool);assert compositor.poll() is None
   ready=state('ready');mouse=PrivateInput(compositor.pid,xvfb,env['DISPLAY']);await_value(mouse.find,bool)
   native=dict(env,WAYLAND_DISPLAY=ready['wayland_display'],GDK_BACKEND='wayland');native.pop('DISPLAY',None)
-  fixture=subprocess.Popen(['python3',str(root/'tests/native_app_menu_fixture.py'),'--report',str(out/'fixture.jsonl')],env=native,stdin=subprocess.PIPE,text=True,stdout=log('fixture.log'),stderr=subprocess.STDOUT);children.append(fixture)
+  fixture_command=[str(a.producer.resolve()),'--qa-stdin'] if a.producer else ['python3',str(root/'tests/native_app_menu_fixture.py')]
+  fixture=subprocess.Popen([*fixture_command,'--report',str(out/'fixture.jsonl')],env=native,stdin=subprocess.PIPE,text=True,stdout=log('fixture.log'),stderr=subprocess.STDOUT);children.append(fixture)
   available=state('export-ready',lambda s:s.get('app_menu',{}).get('status')=='Available')
   assert available['app_menu']['nodes'] and available['app_menu']['nodes'][0]['label']=='Preferences'
+  observer=None
+  if a.producer:
+   owner=next(e['owner'] for e in events() if e['event']=='export')
+   observer=subprocess.Popen(['python3',str(root/'tests/native_menu_egui_consumer.py'),'--owner',owner,'--report',str(out/'gio.jsonl')],env=native,stdout=log('gio.log'),stderr=subprocess.STDOUT);children.append(observer)
+   await_value(lambda:(out/'gio.jsonl').exists() and any(json.loads(line)['event']=='ready' for line in (out/'gio.jsonl').read_text().splitlines()),bool)
   prefs('choose');row('Choose','choose-night');await_value(lambda:[e for e in events() if e['event']=='action'],lambda es:len(es)==1);state('choose-closed',lambda s:not s['system_menu_open'])
   assert [e for e in events() if e['event']=='action']==[{'event':'action','name':'choose','target':'night'}]
   previous_source=state('before-cards')['app_menu']['stamp']['source']
@@ -65,11 +78,37 @@ with tempfile.TemporaryDirectory(prefix='tarot-native-menu-') as temporary:
   # Menu remains at its root after a source revision; re-enter with fresh input.
   row('Preferences','after-flip-preferences');state('fresh-submenu',lambda s:isinstance(s['top_menu']['panel'],dict) and 'Native' in s['top_menu']['panel'])
   row('Choose','after-flip-choice');await_value(lambda:[e for e in events() if e['event']=='action'],lambda es:len(es)==3);state('fresh-closed',lambda s:not s['system_menu_open'])
+  callback_count=3
+  if a.producer:
+   prefs('window')
+   if a.landscape:
+    mouse.move(160,210);assert mouse.focus()[0]==mouse.window and mouse.pointer()['root_child']==mouse.frame_window
+    for _ in range(2):
+     assert mouse.xtest.XTestFakeButtonEvent(mouse.display,5,1,0);assert mouse.xtest.XTestFakeButtonEvent(mouse.display,5,0,0)
+    mouse.x.XSync(mouse.display,0);time.sleep(.15)
+   row('Window','window-seven');await_value(lambda:[e for e in events() if e['event']=='action'],lambda es:len(es)==4);state('window-closed',lambda s:not s['system_menu_open']);callback_count=4
+   assert [e for e in events() if e['event']=='action'][-1]=={'event':'action','name':'window','target':7};capture('window-result')
   fixture.stdin.write('disable\n');fixture.stdin.flush();state('disabled-update',lambda s:s['app_menu']['status']=='Available' and not s['app_menu']['nodes'][0]['kind']['Submenu'][0]['enabled'])
-  prefs('disabled');row('Choose','disabled-choice');time.sleep(.15);assert len([e for e in events() if e['event']=='action'])==3
+  prefs('disabled');row('Choose','disabled-choice');time.sleep(.15);assert len([e for e in events() if e['event']=='action'])==callback_count
   capture('disabled-visible');fixture.terminate();fixture.wait(timeout=5);state('owner-dead',lambda s:not s['cards'] and s['app_menu']['status']=='Absent')
-  r['actual_callbacks']=[e for e in events() if e['event']=='action'];r['passed']=True
-  print('PASS real mapped GTK exports, visible commands/state, held-row flip retirement, fresh choice, disabled and owner-death behavior')
+  if observer is not None:
+   assert observer.wait(timeout=5)==0,(out/'gio.log').read_text();assert json.loads((out/'gio.jsonl').read_text().splitlines()[-1])['event']=='passed';r['independent_gio_consumer_passed']=True
+  r['actual_callbacks']=[e for e in events() if e['event']=='action']
+  if a.producer:
+   fallback_report=out/'fallback.jsonl'
+   fallback=subprocess.Popen([str(a.producer.resolve()),'--no-claim','--report',str(fallback_report)],env=native,stdout=log('fallback.log'),stderr=subprocess.STDOUT);children.append(fallback)
+   state('fallback-mapped',lambda s:len(s['cards'])==1 and isinstance(s['view'],dict) and 'App' in s['view'] and s['app_menu']['status']=='Absent')
+   click(40,16);state('fallback-card-menu',lambda s:s['system_menu_open']);point('Show','fallback-controls');click(40,16);state('fallback-menu-closed',lambda s:not s['system_menu_open'])
+   for word in ['Choose','Toggle']:
+    image=capture('fallback-local-'+word)
+    with Image.open(image) as im:im.crop((0,32,width,height-36)).save(out/('fallback-local-'+word+'-app.png'))
+    found=locate(out/('fallback-local-'+word+'-app.png'),word,vertical=(0,1),scale=2);target=(found['point'][0],found['point'][1]+32);r['visible_targets'].append({'label':'fallback-local-'+word,'point':target,'ocr':found});click(*target)
+    expected=1 if word=='Choose' else 2
+    await_value(lambda:[json.loads(line) for line in fallback_report.read_text().splitlines() if json.loads(line)['event']=='action'],lambda es:len(es)==expected)
+   capture('fallback-local-result');click(40,16);state('fallback-close-menu',lambda s:s['system_menu_open']);row('Close','fallback-close');state('fallback-gone',lambda s:not s['cards'] and s['app_menu']['status']=='Absent');assert fallback.wait(timeout=5)==0
+   r['fallback_callbacks']=[json.loads(line) for line in fallback_report.read_text().splitlines() if json.loads(line)['event']=='action'];assert r['fallback_callbacks']==[{'event':'action','name':'choose','target':'night'},{'event':'action','name':'toggle','target':None}]
+  r['passed']=True
+  print('PASS real mapped',r['producer'],'exports, visible commands/state, held-row flip retirement, fresh choice, disabled and owner-death behavior')
  finally:
   if mouse is not None:mouse.close()
   for child in reversed(children):

@@ -9,8 +9,8 @@ card controls available.
 
 The shared [Rust library](../src/lib.rs) supplies process identity and a direct
 `zbus` menu transport. It adds no Cargo dependency and does not link GIO into the
-adapter. The installed phone remains revision 45: this development compositor
-and adapter have not yet been packaged as a new phone UI. The subsequent
+adapter. Revision 46 packages the compositor and passes scoped native
+GTK/egui menu, touch, rotation and PAM checks in the [Rust/egui checkpoint](recordings/menu-egui/README.md). The preceding
 [mapped GTK checkpoint](recordings/menu-ui/README.md) adds surface claims, a
 signal-driven worker and visible app commands on the host, while global-menu
 capability flags remain zero.
@@ -131,8 +131,8 @@ unprotected diagnostic metadata. Its ordinary fallback mode remains usable on
 hosts without pidfs support. Protection continues to redact that metadata.
 
 The mapped GTK development checkpoint supplies surface claims, combined modal
-hints, the owned signal worker and presentation models. Next prove cooperating
-egui exports and native phone behavior, complete adversarial claim/protection
+hints, the owned signal worker and presentation models. Cooperating egui exports
+now have host and native phone evidence. Next finish broader compatibility and adversarial claim/protection
 and recovery checks, and implement KDE's distinct adapter. Preserve card
 controls while capabilities are absent.
 [Complete delivery plan](MENUS_PLAN.md#next-delivery).

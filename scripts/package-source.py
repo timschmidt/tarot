@@ -24,7 +24,7 @@ def main():
     repo = Path(__file__).resolve().parent.parent
     vendor = args.vendor.resolve()
     out = args.output.resolve()
-    roots = ['src', 'crates', 'third-party', 'scripts', 'packaging', 'tests', 'docs']
+    roots = ['src', 'crates', 'examples', 'third-party', 'scripts', 'packaging', 'tests', 'docs']
     assert vendor.is_dir() and not out.is_relative_to(vendor)
     assert not any(out.is_relative_to(repo/name) for name in roots), 'Stage outside packaged source directories'
     out.mkdir(parents=True, exist_ok=True)

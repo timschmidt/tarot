@@ -2,6 +2,12 @@
 
 Updated October 30, 2026 in Detroit. The active objective is the complete development plan. No full milestone is claimed complete yet.
 
+## Cooperating Rust/egui menus and revision 46
+
+The ordinary Rust/egui example now owns its Wayland surface and exports real menus/actions through zbus. Current-Rust portrait/landscape and minimum-Rust portrait checks pass string/boolean/integer callbacks, independent GIO reads/signals, stale held-row rejection, no-claim in-window controls and cooperative close. Both GTK regressions and 237 current/minimum workspace tests pass; strict host/ARM example checks pass. The sample is not a stable app SDK. [Example and reproduction](RUST_APP_MENUS.md).
+
+The clean signed revision-46 APK is installed as normal default Tarot. Final scoped native checks pass GTK and Rust/egui callbacks/state, portrait/landscape touch, Card View/return, stale held-row rejection, disabled choices, actual PAM/menu retirement and cooperative close. Protected startup covers four orientations; Calculator/audio, login teardown and a fresh normal login pass. Independent audits verify loaded payloads, Panfrost, diagnostics off and exact settings/policy/raw-control restoration. Both earlier native QA failures and their separate recoveries remain preserved; broader compatibility/physical/resource acceptance stays open. [Exact scope, preserved failures and package identities](recordings/menu-egui/README.md).
+
 ## Mapped GTK menu development
 
 The development compositor now binds GTK surface claims to retained client/process authority and displays real app commands through the existing activity menu. The owned Rust worker retains subscriptions, orders signal processing against replies, invalidates held rows for every export revision and dispatches opaque choices after the matching menu-retirement frame. App state/check marks update, while separately labeled card controls remain available. GTK global-menu flags stay zero.

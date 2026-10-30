@@ -3133,6 +3133,7 @@ dependencies = [
  "smithay",
  "tarot-core",
  "tarot-ui",
+ "tarot-wayland-egui",
  "tempfile",
  "toml",
  "tracing",

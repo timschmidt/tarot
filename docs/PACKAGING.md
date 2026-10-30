@@ -22,6 +22,15 @@ Revision 45 selects `/usr/libexec/tarot-dbus-daemon` through the standard `dbus-
 
 The signed phone delivery passes real diagnostic/normal greetd logins, actual process credentials and service activation, protected KMS/PAM, native app/audio and complete test-login cleanup. Normal Tarot remains default with diagnostics off. This dependency result does not implement exported application menus or certify the complete upstream D-Bus target suite. [Exact revision-45 evidence](recordings/r45/README.md).
 
+Revision 46 adds mapped GTK menu claims, the Rust worker and app-command UI,
+with a cooperating Rust/egui producer supplied as a development example. Its
+clean signed package is installed; scoped native GTK/egui touch, rotation, PAM,
+close and independent normal-session/restoration checks pass.
+All four executable hashes change in this rebuild, and the GTK protocol's
+upstream COPYING is installed alongside existing notices. Both earlier native
+QA failures and their separate exact normal-session recoveries are retained.
+[Current package and acceptance scope](recordings/menu-egui/README.md).
+
 ## Source package
 
 The [APKBUILD](../packaging/nura/APKBUILD) installs four ordinary root-owned executables, the [Wayland session entry](../packaging/nura/tarot.desktop), the existing [PAM reauthentication service](../packaging/pam/tarot-lock), project licenses and source attribution. It makes no greeter configuration or autologin changes. Dynamically loaded PAM, EGL/GLES, Wayland client/EGL, GPU-driver and keyboard-data dependencies are explicit; abuild also derives ELF library dependencies.
@@ -33,7 +42,7 @@ cargo vendor --locked --versioned-dirs /absolute/vendor
 python3 scripts/package-source.py --vendor /absolute/vendor --output /absolute/aports/local/tarot
 ```
 
-The snapshot command verifies vendor package/file checksums, excludes device artifacts/git/build outputs/user Cargo credentials, fixes tar ownership/timestamps and stages a recipe with the actual source archive SHA-512. It also writes a SHA-256 source manifest. The recipe builds offline/frozen from that archive. A package and a source archive are separate artifacts; retain both with build logs and the compiler/platform record.
+The snapshot command verifies vendor package/file checksums, includes project examples, excludes device artifacts/git/build outputs/user Cargo credentials, fixes tar ownership/timestamps and stages a recipe with the actual source archive SHA-512. It also writes a SHA-256 source manifest. The recipe builds offline/frozen from that archive. A package and a source archive are separate artifacts; retain both with build logs and the compiler/platform record.
 
 Use abuild's complete build sequence when changing snapshots. Do not retain a previous extracted source tree's Cargo target directory while overwriting it with another fixed-timestamp archive: Cargo can miss changed source contents when mtimes stay fixed. A fresh source/target tree and clean package staging are required; verify expected launcher options and binary hashes in the resulting artifact. Incremental rootpkg-only revisions can also retain old automatically generated command-provider metadata if the package staging tree is reused.
 
