@@ -75,7 +75,11 @@ def replay(socket, screen, state, tap, capture, before, out, session_cgroup):
             def posed(x,y):
                 angle=math.radians(v.get('rotation',0));cx=r['x']+r['width']/2;cy=r['y']+r['height']/2
                 return cx+math.cos(angle)*(x-cx)-math.sin(angle)*(y-cy),cy+math.sin(angle)*(x-cx)+math.cos(angle)*(y-cy)
-            top_corner=posed(r['x']+1,r['y']+1);inside=posed(r['x']+radius+2,r['y']+1)
+            # A fixed one-unit inset enters the rounded shape when the reserved
+            # well makes a landscape preview small. Keep this sample inside
+            # the rectangular buffer but outside its radius-relative curve.
+            inset=radius/8
+            top_corner=posed(r['x']+inset,r['y']+inset);inside=posed(r['x']+radius+2,r['y']+1)
             # Opposite fan angles can expose wallpaper at the top corner.
             # Select a rounded corner that is actually backed by the red card.
             lower=window(s,red);lr=lower['rect'];la=math.radians(-lower.get('rotation',0))
@@ -97,7 +101,7 @@ def replay(socket, screen, state, tap, capture, before, out, session_cgroup):
             assert cp[0]>2*max(cp[1:]),(orientation,'corner',cp)
             assert ip[2]>2*ip[0] and ip[2]>1.3*ip[1],(orientation,'inner subsurface',ip)
             assert 90<shadow[0]<230 and shadow[0]>2*max(shadow[1:]),(orientation,'shadow',shadow)
-            record['samples'].append({'orientation':orientation,'corner':cp,'inside':ip,'shadow':shadow,'radius':radius,'rotation':v.get('rotation',0)})
+            record['samples'].append({'orientation':orientation,'corner':cp,'inside':ip,'shadow':shadow,'radius':radius,'rotation':v.get('rotation',0),'top_corner_inset':inset,'top_corner_pixel':tc})
             click(s,*corner)
             state('rounded-corner-selects-red-'+orientation,lambda s:ordinary(s) and s['view']=={'App':red}
                   and window(s,red)['corner_radius']==0 and window(s,red)['rect']==s['app_area'])

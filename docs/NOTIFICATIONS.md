@@ -2,7 +2,7 @@
 
 Tarot implements the notification service and shell presentation in Rust. Standard Linux clients use `org.freedesktop.Notifications`. The original design packet's [banner](Tarot_Design_Packet/screens/png/05-banner.png), [dashboard](Tarot_Design_Packet/screens/png/06-dashboard.png) and [rail](Tarot_Design_Packet/screens/png/22-notification-rail.png) studies guide the composition. These are contemporary design references, not measured historical specifications.
 
-Revision 43 development replaces the full-content dashboard scrim with one reserved well. Native acceptance and physical/visual calibration remain separate gates; revision 43 passes its native notification component but stops at a later favorite test using an obsolete tray coordinate. Revision-44 development corrects that QA coordinate and the separately reproduced landscape drag handoff; its native favorite and notification components pass, with remaining shell acceptance open.
+Revision 43 development replaces the full-content dashboard scrim with one reserved well. Native acceptance and physical/visual calibration remain separate gates; revision 43 passes its native notification component but stops at a later favorite test using an obsolete tray coordinate. Revision-44 development corrects that QA coordinate and the separately reproduced landscape drag handoff; its native favorite and notification components pass, with fifteen non-browser shell components covered across separate runs and full native acceptance still open.
 
 ## Geometry and input
 
@@ -33,10 +33,22 @@ Protected status remains redacted to `ok`, `pid` and `lock`; captures and ordina
 
 ## Verification and remaining work
 
-A focused additional check exposes a held-favorite regression with a retained notification in landscape: hiding the shell keyboard changes the well from zero to 48 units, causing the active drag to cancel. The identical gesture without a retained notification commits. Revision-44 development defers the compact search rail through keyboard hiding and passes the focused reproduction, while still canceling on explicit dashboard interruption. Broader native acceptance remains pending; unrelated layout, panel and context changes retain cancellation.
+A focused additional check exposes a held-favorite regression with a retained notification in landscape: hiding the shell keyboard changes the well from zero to 48 units, causing the active drag to cancel. The identical gesture without a retained notification commits. Revision-44 development defers the compact search rail through keyboard hiding and passes the focused reproduction, while still canceling on explicit dashboard interruption. The native favorite component also passes; unrelated layout, panel and context changes retain cancellation.
 
 The isolated protocol fixture uses a real Wayland client with a committed 160×1000 minimum/buffer, actual native pointer/key delivery, grabbed popup pixels/input, fullscreen, four orientations and return, text-input-v3 with the trusted Rust keyboard, source separation and protocol protection during motion. It checks boundary agreement on newly visible frames and exact restoration after clearing. Host protocol protection does not certify native KMS or PAM. Earlier native controllers enable DND, so their arrival captures exercise the rail; their “banner” filename labels alone are not banner acceptance. A subsequent unchanged revision-44 native case temporarily disables DND, observes banner/dashboard/rail/hidden states across all 40 inputs and restores the original policy. Actual KMS/PAM and exact restoration audits pass. Physical banner/action usability and reference review remain separate checks.
 
-Native acceptance must run the same client through the installed ordinary-user session, real touchscreen/keyboard routing, Panfrost and actual PAM, followed by independent restoration audits. Shell search, menu cancellation, notification replacement/expiry/disconnection, overflow, settings, launch/restart and browser compatibility also remain regression gates. Earlier failures must be retained with their executed source and binary identities.
+The signed revision-44 case runs the same client through the installed ordinary-user session, real touchscreen/keyboard routing, Panfrost and actual PAM, followed by independent restoration audits. Separate current-package runs cover the fifteen non-browser shell components, full pages and saved restart. Browser compatibility remains open; search, menu cancellation, notification replacement/expiry/disconnection, overflow, settings and launch/restart remain ongoing regression requirements. Earlier failures stay retained with their executed source and binary identities.
 
 Remaining product work includes verified artwork, durable history, real media integration, text enlargement and accessibility review, interaction/animation calibration, packet-H captures and physical visual acceptance. No complete development-plan milestone or historical fidelity claim follows from this composition alone.
+
+## Reproducing the isolated client check
+
+With the [host build dependencies](BUILDING.md) installed, build the compositor, trusted keyboard and example locker, then run the notification case on its owned display and session bus:
+
+```sh
+cargo build --locked --workspace --bins --examples
+python3 tests/transient_session_replay.py --case notifications --scale 1 --output artifacts/notification-well-scale1
+python3 tests/transient_session_replay.py --case notifications --scale 2 --output artifacts/notification-well-scale2
+```
+
+Each output directory must be new. The driver runs the ignored real-Wayland test with actual input and captures; ordinary workspace tests do not run this display-dependent case. For frozen-build comparisons, `--tarot`, `--keyboard` and `--fixture-bin` select explicit artifacts. Passing these host commands does not establish phone PAM/KMS acceptance. The installed-session runner exposes a separate `--notification-well` component using the staged, audited native fixture; its results and failed surrounding runs are recorded in the [revision-44 evidence](recordings/r44/README.md).
