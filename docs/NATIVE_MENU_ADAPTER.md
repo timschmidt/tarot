@@ -10,8 +10,10 @@ card controls available.
 The shared [Rust library](../src/lib.rs) supplies process identity and a direct
 `zbus` menu transport. It adds no Cargo dependency and does not link GIO into the
 adapter. The installed phone remains revision 45: this development compositor
-and adapter have not yet been packaged as a new phone UI. No GTK global-menu
-capability or user-facing exported app command is advertised by this checkpoint.
+and adapter have not yet been packaged as a new phone UI. The subsequent
+[mapped GTK checkpoint](recordings/menu-ui/README.md) adds surface claims, a
+signal-driven worker and visible app commands on the host, while global-menu
+capability flags remain zero.
 [Executed evidence and remaining integration](recordings/menu-adapter/README.md).
 
 ## Ownership and lifecycle
@@ -26,9 +28,10 @@ of its close-on-exec descriptor.
 
 Dropping or retiring a client/surface/claim authority invalidates its leases.
 Leases can intersect so any participating authority can retire pending work.
-This checkpoint wires the **client** authority into actual compositor acceptance
-and disconnect handling; GTK surface and claim authorities still need their
-protocol integration. A snapshot belongs to one binding, and another binding
+The development compositor wires client authority into acceptance/disconnect
+and claim authority into GTK property replacement, release and surface
+retirement. Foreground/protection changes retire the active worker and its
+published choices. A snapshot belongs to one binding, and another binding
 cannot activate it. The adapter never reconnects an old binding to a new bus.
 
 All RPCs require a connection configured with at most a 500 ms method timeout.
@@ -76,8 +79,10 @@ These are accepted-message and parser/graph bounds. They do **not** bound memory
 before zbus has received a complete frame. Transport queue/framing budgets,
 connection-setup cancellation and complete worker teardown still require their
 own integration and adversarial checks.
-The timeout is per RPC; the worker also needs an overall loading deadline and
-reconnect/backoff policy.
+The timeout is per RPC. Snapshot loading also checks an overall two-second
+deadline between RPCs, with additional bounded RPC/barrier cleanup waits; this
+is not a hard transport deadline. Automatic recovery and reconnect/backoff
+acceptance remain open.
 
 ## Choosing an action
 
@@ -92,14 +97,16 @@ Once a call is attempted, a timeout, disconnect or invalid response returns
 callback executing after the waiting deadline. Retirement cannot revoke a call
 already sent; application acknowledgement/idempotency is a separate contract.
 
-This transport is a building block, not a complete menu worker. The compositor
+The transport is used by an owned foreground menu worker in the mapped GTK
+checkpoint. Its remaining acceptance gates are recorded separately. The compositor
 must subscribe before loading, track menu/action changes and bus epochs, retire
 pressed-row generations even if state later changes back, publish immutable
 presentation rows, and dispatch only after the existing menu-retirement frame.
 Snapshot comparison alone does not establish that complete interaction contract.
-The current reader uses temporary Start/End subscriptions. The worker must retain
-menu-group subscriptions across a published view; a D-Bus match rule alone cannot
-receive menu changes after the exporter has no subscribers.
+The standalone reader retains its temporary Start/End mode. `watched_snapshot`
+keeps one baseline reference per current group; the worker registers its signal
+reader before loading and balances unused/extra references on refresh. A D-Bus
+match rule alone cannot receive menu changes after the exporter has no subscribers.
 
 ## Replays
 
@@ -123,7 +130,9 @@ that the real mapped native client's identity appears in the owner-only
 unprotected diagnostic metadata. Its ordinary fallback mode remains usable on
 hosts without pidfs support. Protection continues to redact that metadata.
 
-Next, wire GTK surface claims and modal/focus policy, an owned signal-driven
-worker and presentation models, then prove mapped GTK/KDE and cooperating
-egui exports through the actual shell. Preserve card controls while capabilities
-are absent. [Complete delivery plan](MENUS_PLAN.md#next-delivery).
+The mapped GTK development checkpoint supplies surface claims, combined modal
+hints, the owned signal worker and presentation models. Next prove cooperating
+egui exports and native phone behavior, complete adversarial claim/protection
+and recovery checks, and implement KDE's distinct adapter. Preserve card
+controls while capabilities are absent.
+[Complete delivery plan](MENUS_PLAN.md#next-delivery).

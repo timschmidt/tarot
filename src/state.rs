@@ -44,6 +44,7 @@ use crate::CalloopData;
 pub type DmabufImporter = Box<dyn FnMut(&Dmabuf) -> bool>;
 
 pub struct Compositor {
+    pub app_menus: crate::app_menus::State,
     pub start_time: std::time::Instant,
     pub socket_name: OsString,
     pub display_handle: DisplayHandle,
@@ -218,7 +219,9 @@ impl Compositor {
 
         let mut shell = ShellModel::default();
         shell.advance_menus(std::time::Duration::ZERO);
+        let app_menus = crate::app_menus::State::new(&dh, event_loop.handle());
         Self {
+            app_menus,
             start_time,
             display_handle: dh,
 
@@ -675,6 +678,9 @@ impl Compositor {
                 continue;
             }
             match effect {
+                Effect::NativeMenu { owner, stamp, id } => {
+                    self.dispatch_app_menu(owner, stamp, id);
+                }
                 Effect::OpenUri { generation, uri } => {
                     if let Some(sender) = &self.app_events {
                         let _ = sender.send(crate::apps::AppEvent::OpenUri {

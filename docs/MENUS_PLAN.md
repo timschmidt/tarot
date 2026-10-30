@@ -119,11 +119,21 @@ The same official D-Bus source now cross-builds before/after with identical norm
 
 The [shared adapter](NATIVE_MENU_ADAPTER.md) now passes real-GIO current/minimum-Rust matrices on host and the actual normal phone bus. It uses existing zbus with explicit method deadlines, typed bounds, exact successful reply senders, process handles, intersected authorities, fresh pre-dispatch comparison and uncertain-outcome reporting. Fifteen malformed/resource cases, typed callbacks/state, valid empty roots/submenus, pending-load retirement and owner/connection/process changes pass. A real empty-menu failure is retained; successful empty replies are now distinguished from loading errors. The compositor captures peer handles at real acceptance; actual disconnect retires client authority even while its process survives. Host mapped-client/menu regressions pass in both poses. [Verified scope](recordings/menu-adapter/README.md).
 
-This selects the direct Rust path for the initial GMenu adapter. It does not finish export integration: add surface/claim generations, subscribe before loading, handle signals/bus replacement and publish immutable presentation rows. Do not substitute snapshot comparison for pressed-row generation retirement. GTK/KDE claims, mapped apps, cooperating egui UI and phone interaction acceptance remain required.
+This selected the direct Rust path for the initial GMenu adapter. The subsequent
+checkpoint below adds GTK surface/claim generations, subscriptions, signal
+revisions and immutable presentation rows. Do not substitute snapshot comparison
+for pressed-row generation retirement. Bus replacement, KDE, cooperating egui
+and phone interaction acceptance remain required.
+
+### Mapped GTK surface and UI checkpoint
+
+The [mapped GTK replay](recordings/menu-ui/README.md) now validates real surface properties, persistent subscriptions, ordered signal revisions and visible app-owned commands in both host poses. Actual callbacks, Card View/return, check state, held-pointer flip-back retirement, disabled items and owner exit pass. Presented-retirement and opaque row identity have model checks. The phone stays on normal revision 45; no global-menu flags are enabled.
+
+Next complete the cooperating egui fixture and installed phone acceptance, then the additional surface/claim/protection, modal, held-key, bus replacement/recovery, worker churn and resource cases. The receive-sequence and bus-GUID guards are implemented; their broader fault-injection acceptance is not implied by the simple mapped app run. KDE remains a separate protocol task.
 
 ### Next delivery
 
 1. **Delivered in revision 45:** the separate session-only daemon uses target-header feature detection and passes actual credentials, activation, normal-login and independent restoration checks. The stock failure and private before/after evidence remain retained. [Package contract](../packaging/nura/tarot-session-bus/README.md) · [Installed acceptance scope](recordings/r45/README.md).
-2. **Client acceptance implemented and host-tested:** integrate the remaining surface/claim/bus epochs and bounded, versioned export state with a signal-driven worker and real presentation. Exercise stale pressed rows through the real shell, protection, worker timeout and bus-daemon replacement. Retiring an undispatched choice must not imply cancellation of an already dispatched action.
-3. Prove actual mapped GTK/KDE exports and a cooperating Rust/egui app, including typed/disabled/stateful actions, activation policy, malformed/deep/oversized menus and lifecycle recovery. Use the selected direct Rust GMenu path; retain the measured GIO comparison and implement a separate KDE protocol adapter where required.
+2. **Mapped GTK commands implemented and host-tested:** finish adversarial surface/claim/bus epoch, protection, held-key, worker timeout/churn and daemon-replacement acceptance. Retiring an undispatched choice must not imply cancellation of an already dispatched action.
+3. Add a cooperating Rust/egui export producer and native GTK acceptance, including typed/disabled/stateful actions, activation policy, malformed/deep/oversized menus and lifecycle recovery. Use the selected direct Rust GMenu path; retain the measured GIO comparison and implement/prove KDE's separate protocol adapter.
 4. Package the chosen adapter and repeat ordinary-user installed touch/rotation/PAM/restart and independent restoration audits, followed by physical/accessibility review. Keep shell card controls usable until a real app capability is validated; advertise no global-menu support from this isolated experiment.

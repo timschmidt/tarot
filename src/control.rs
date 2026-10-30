@@ -258,6 +258,7 @@ pub fn start(path: &Path, handle: &LoopHandle<'_, CalloopData>) -> Result<Contro
                 let top = window.toplevel()?;
                 state.native_export_peer(top.wl_surface()).map(|_| *id)
             }).collect::<Vec<_>>());
+            response["app_menu"] = json!(state.shell.app_menu);
             response["top_menu"] = json!({"revision":state.shell.menus.revision,"owner":state.shell.menus.owner,"entry":state.shell.menus.entry,"history":state.shell.menus.history,"panel":state.shell.menus.panel,"selected":state.shell.menus.selected,"motion":state.shell.menu_visual()});
             response["hardware_keys"] = json!(state.hardware.enabled);
             response["volume_feedback"] = json!(state.shell.volume_feedback);

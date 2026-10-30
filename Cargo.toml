@@ -23,6 +23,8 @@ serde = { version = "1", features = ["derive"] }
 
 [dependencies]
 async-channel = "=2.5.0"
+wayland-scanner = "=0.31.11"
+wayland-backend = "=0.3.17"
 anyhow = "1"
 bitflags = "2"
 clap = { version = "4", features = ["derive"] }

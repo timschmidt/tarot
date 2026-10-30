@@ -10,6 +10,7 @@ mod transition_tests;
 pub enum Panel {
     #[default]
     Root,
+    Native(u64),
     Pages,
     Page(launcher::PageId),
     Arrange(WindowId),
@@ -54,6 +55,14 @@ impl State {
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash, Serialize)]
 pub enum Target {
+    NativePage {
+        stamp: crate::app_menu::Stamp,
+        id: u64,
+    },
+    NativeAction {
+        stamp: crate::app_menu::Stamp,
+        id: u64,
+    },
     Page(SystemPage),
     Brightness {
         generation: u64,
@@ -176,6 +185,17 @@ pub fn items(model: &ShellModel) -> Vec<Item> {
         return vec![];
     }
     match model.menus.panel {
+        Panel::Native(id) => {
+            if !model.app_menu_current() {
+                return vec![];
+            }
+            match model.app_menu.node(id).map(|n| &n.kind) {
+                Some(crate::app_menu::Kind::Submenu(nodes)) => {
+                    native_items(nodes, model.app_menu.stamp)
+                }
+                _ => vec![],
+            }
+        }
         Panel::Pages => model
             .launcher
             .settings
@@ -294,6 +314,9 @@ pub fn items(model: &ShellModel) -> Vec<Item> {
         Panel::Root => {
             let mut rows = vec![];
             if let View::App(id) = model.view {
+                if model.app_menu_current() {
+                    rows.extend(native_items(&model.app_menu.nodes, model.app_menu.stamp));
+                }
                 rows.push(Item::new("Show cards", Launcher));
                 if model.cards.iter().any(|c| c.id == id && !c.closing) {
                     rows.push(Item::new("Close card", CloseCard(id)));
@@ -315,6 +338,37 @@ pub fn items(model: &ShellModel) -> Vec<Item> {
             rows
         }
     }
+}
+
+fn native_items(nodes: &[crate::app_menu::Node], stamp: crate::app_menu::Stamp) -> Vec<Item> {
+    use crate::app_menu::Kind;
+    let mut rows = Vec::new();
+    for node in nodes {
+        match &node.kind {
+            Kind::Section(children) => {
+                if !node.label.is_empty() {
+                    rows.push(Item {
+                        enabled: false,
+                        ..Item::new(&node.label, Target::NativePage { stamp, id: node.id })
+                    });
+                }
+                rows.extend(native_items(children, stamp));
+            }
+            kind => rows.push(Item {
+                label: node.label.clone(),
+                detail: String::new(),
+                enabled: node.enabled,
+                checked: node.checked,
+                submenu: matches!(kind, Kind::Submenu(_)),
+                target: if matches!(kind, Kind::Submenu(_)) {
+                    Target::NativePage { stamp, id: node.id }
+                } else {
+                    Target::NativeAction { stamp, id: node.id }
+                },
+            }),
+        }
+    }
+    rows
 }
 
 impl ShellModel {
@@ -406,6 +460,12 @@ impl ShellModel {
     fn finish_menu_choice(&mut self, target: Target) -> Vec<Effect> {
         let previous = self.view;
         let mut effects = self.apply(Command::SystemMenuOpen(false));
+        if let Target::NativeAction { stamp, id } = target {
+            if let View::App(owner) = previous {
+                effects.push(Effect::NativeMenu { owner, stamp, id });
+            }
+            return effects;
+        }
         let command = match target {
             Target::Lock => Command::Lock,
             Target::Notifications => Command::NotificationsOpen(true),
@@ -484,6 +544,9 @@ impl ShellModel {
                 }
                 if self.system_page == SystemPage::Activity && self.menus.panel != Panel::Root {
                     self.menus.panel = match self.menus.panel {
+                        Panel::Native(id) => {
+                            self.app_menu.parent(id).map_or(Panel::Root, Panel::Native)
+                        }
                         Panel::Page(_) => Panel::Pages,
                         _ => Panel::Root,
                     };
@@ -566,6 +629,13 @@ impl ShellModel {
                 }
                 match target {
                     Target::Page(page) => self.apply(Command::SystemPage(page)),
+                    Target::NativePage { stamp, id }
+                        if self.app_menu_current() && stamp == self.app_menu.stamp =>
+                    {
+                        self.menus.panel = Panel::Native(id);
+                        self.menus.invalidate();
+                        vec![]
+                    }
                     Target::Pages => {
                         self.menus.panel = Panel::Pages;
                         self.menus.invalidate();

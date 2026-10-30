@@ -1,3 +1,4 @@
+mod app_menus;
 mod apps;
 mod audio;
 mod card_renderer;
@@ -8,6 +9,7 @@ mod drm;
 mod families;
 mod focus;
 mod grabs;
+mod gtk_protocol;
 mod handlers;
 mod hardware;
 mod icons;
@@ -447,6 +449,7 @@ fn main() -> Result<()> {
 
     let handle = event_loop.handle();
     event_loop.run(None, &mut data, |data| {
+        data.state.sync_app_menu();
         data.state.hardware_tick();
         data.state.idle_tick();
         if let Err(error) = data.state.schedule_hardware(&handle) {

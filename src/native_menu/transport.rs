@@ -6,10 +6,10 @@ use serde::Serialize;
 use std::{
     collections::{BTreeMap, BTreeSet, HashMap},
     sync::{
-        Arc,
+        Arc, Mutex,
         atomic::{AtomicBool, AtomicU64, Ordering},
     },
-    time::Duration,
+    time::{Duration, Instant},
 };
 use zbus::{
     blocking::{Connection, connection::Builder},
@@ -74,6 +74,30 @@ pub struct Export {
     window: Option<OwnedObjectPath>,
 }
 impl Export {
+    pub fn owner(&self) -> &str {
+        self.owner.as_str()
+    }
+    pub fn relevant_signal(&self, message: &zbus::Message) -> bool {
+        let h = message.header();
+        if !h
+            .sender()
+            .is_some_and(|s| s.as_str() == self.owner.as_str())
+            || h.member().map(|s| s.as_str()) != Some("Changed")
+        {
+            return false;
+        }
+        match (
+            h.interface().map(|s| s.as_str()),
+            h.path().map(|s| s.as_str()),
+        ) {
+            (Some("org.gtk.Menus"), Some(p)) => p == self.menu.as_str(),
+            (Some("org.gtk.Actions"), Some(p)) => {
+                self.application.as_ref().is_some_and(|v| v.as_str() == p)
+                    || self.window.as_ref().is_some_and(|v| v.as_str() == p)
+            }
+            _ => false,
+        }
+    }
     pub fn new(
         owner: &str,
         menu: &str,
@@ -207,6 +231,8 @@ pub struct Binding {
     exporter: Process,
     lease: Lease,
     id: u64,
+    barrier: Option<Arc<dyn Fn(zbus::message::Sequence) -> Result<()> + Send + Sync>>,
+    subscriptions: Mutex<BTreeSet<u32>>,
 }
 impl Binding {
     pub fn new(
@@ -235,11 +261,26 @@ impl Binding {
             exporter,
             lease,
             id: NEXT_ID.fetch_add(1, Ordering::Relaxed),
+            subscriptions: Mutex::new(BTreeSet::new()),
+            barrier: None,
         };
         binding.valid()?;
         Ok(binding)
     }
 
+    pub fn with_barrier(
+        mut self,
+        barrier: Arc<dyn Fn(zbus::message::Sequence) -> Result<()> + Send + Sync>,
+    ) -> Self {
+        self.barrier = Some(barrier);
+        self
+    }
+    fn ordered(&self, message: &zbus::Message) -> Result<()> {
+        if let Some(barrier) = &self.barrier {
+            barrier(message.recv_position())?;
+        }
+        Ok(())
+    }
     fn valid(&self) -> Result<()> {
         ensure!(self.lease.is_active(), "retired export claim");
         ensure!(
@@ -261,6 +302,7 @@ impl Binding {
             method,
             args,
         )?;
+        self.ordered(&reply)?;
         self.valid()?;
         ensure!(
             reply
@@ -280,6 +322,18 @@ impl Binding {
     /// remains the compositor worker's responsibility; dispatch also reloads and
     /// compares the entire displayed tree immediately before invoking a choice.
     pub fn snapshot(&self) -> Result<Snapshot> {
+        self.snapshot_mode(false)
+    }
+
+    /// Keep one baseline subscription per current group until the binding closes.
+    /// Install signal matches before calling this method.
+    pub fn watched_snapshot(&self) -> Result<Snapshot> {
+        self.snapshot_mode(true)
+    }
+
+    fn snapshot_mode(&self, retain: bool) -> Result<Snapshot> {
+        let mut baseline = self.subscriptions.lock().unwrap();
+        let deadline = Instant::now() + Duration::from_secs(2);
         self.valid()?;
         let current = credentials(&self.connection, &self.export.owner)?;
         ensure!(
@@ -293,6 +347,7 @@ impl Binding {
             ("win", &self.export.window),
         ] {
             if let Some(path) = path {
+                ensure!(Instant::now() < deadline, "menu loading deadline");
                 let message = self.call(path.as_str(), "org.gtk.Actions", "DescribeAll", &())?;
                 bytes += message.body().len();
                 let wire: ActionWire = message.body().deserialize()?;
@@ -331,6 +386,7 @@ impl Binding {
             let mut pending = BTreeSet::from([0u32]);
             let mut count = 0usize;
             while let Some(group) = pending.pop_first() {
+                ensure!(Instant::now() < deadline, "menu loading deadline");
                 ensure!(subscribed.len() < MAX_GROUPS, "too many menu groups");
                 // Record even a timed-out Start so End is still attempted.
                 subscribed.insert(group);
@@ -377,6 +433,7 @@ impl Binding {
             let mut rendered = 0usize;
             let items = tree((0, 0), &menus, &actions, &mut path, 0, &mut rendered)?;
             self.valid()?;
+            ensure!(Instant::now() < deadline, "menu loading deadline");
             Ok(Snapshot {
                 binding: self.id,
                 items,
@@ -384,14 +441,28 @@ impl Binding {
         })();
         // Each Start has a matching End on this same connection. End failure
         // invalidates the candidate; closing the binding releases lost remotes.
+        let end_groups = if retain && result.is_ok() {
+            // Existing baseline references are replaced by this load's Start;
+            // each old reference (including unused groups) is ended once.
+            baseline.iter().copied().collect::<Vec<_>>()
+        } else {
+            let mut groups = subscribed.iter().copied().collect::<Vec<_>>();
+            if retain {
+                groups.extend(baseline.iter().copied());
+            }
+            groups
+        };
         let cleanup = self.connection.call_method(
             Some(self.export.owner.as_str()),
             self.export.menu.as_str(),
             Some("org.gtk.Menus"),
             "End",
-            &(subscribed.into_iter().collect::<Vec<_>>(),),
+            &(end_groups,),
         );
         let cleanup = cleanup.and_then(|reply| {
+            if self.ordered(&reply).is_err() {
+                return Err(zbus::Error::Failure("menu signal barrier failed".into()));
+            }
             if reply
                 .header()
                 .sender()
@@ -407,6 +478,13 @@ impl Binding {
         if cleanup.is_err() {
             let _ = self.connection.clone().close();
         }
+        if retain {
+            *baseline = if result.is_ok() && cleanup.is_ok() {
+                subscribed
+            } else {
+                BTreeSet::new()
+            };
+        }
         result.and_then(|snapshot| {
             cleanup?;
             self.valid()?;
@@ -415,6 +493,23 @@ impl Binding {
     }
 
     pub fn activate(&self, snapshot: &Snapshot, path: &[usize]) -> Result<Dispatch> {
+        self.activate_inner(snapshot, path, None)
+    }
+    pub fn activate_guarded(
+        &self,
+        snapshot: &Snapshot,
+        path: &[usize],
+        guard: &Lease,
+    ) -> Result<Dispatch> {
+        self.activate_inner(snapshot, path, Some(guard))
+    }
+    fn activate_inner(
+        &self,
+        snapshot: &Snapshot,
+        path: &[usize],
+        guard: Option<&Lease>,
+    ) -> Result<Dispatch> {
+        ensure!(guard.is_none_or(Lease::is_active), "retired presented menu");
         self.valid()?;
         ensure!(
             snapshot.binding == self.id,
@@ -446,6 +541,7 @@ impl Binding {
             .into_iter()
             .collect();
         self.valid()?;
+        ensure!(guard.is_none_or(Lease::is_active), "retired presented menu");
         // Once attempted, neither retirement nor a timeout proves cancellation.
         let result = self.connection.call_method(
             Some(self.export.owner.as_str()),

@@ -2,6 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
+pub mod app_menu;
 pub mod audio;
 pub mod deck;
 pub mod design;
@@ -133,7 +134,15 @@ pub enum Command {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Effect {
-    LoadIcon { id: String, icon: String },
+    NativeMenu {
+        owner: WindowId,
+        stamp: app_menu::Stamp,
+        id: u64,
+    },
+    LoadIcon {
+        id: String,
+        icon: String,
+    },
     IdleTimeouts(idle::Settings),
     RotationLock(bool),
     Lock,
@@ -141,7 +150,10 @@ pub enum Effect {
     RequestClose(WindowId),
     Launch(String),
     Favorites(quick_launch::Favorites),
-    OpenUri { generation: u64, uri: String },
+    OpenUri {
+        generation: u64,
+        uri: String,
+    },
     Launcher(launcher::Settings),
     ShellKey(KeyboardAction),
     ToggleKeyboard,
@@ -153,6 +165,7 @@ pub enum Effect {
 
 #[derive(Clone, Debug, Default)]
 pub struct ShellModel {
+    pub app_menu: app_menu::State,
     pub clock_label: String,
     pub date_label: String,
     pub calendar_day: Option<u8>,

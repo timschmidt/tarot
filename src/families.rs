@@ -328,6 +328,7 @@ impl crate::Compositor {
         };
         self.apply_effects(vec![Effect::Focus(focus)]);
         self.configure_windows();
+        self.sync_app_menu();
         self.ui_dirty = true;
         self.redraw = true;
     }

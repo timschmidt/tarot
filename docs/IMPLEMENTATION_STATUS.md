@@ -1,12 +1,18 @@
 # Tarot implementation status
 
-Updated October 29, 2026 in Detroit. The active objective is the complete development plan. No full milestone is claimed complete yet.
+Updated October 30, 2026 in Detroit. The active objective is the complete development plan. No full milestone is claimed complete yet.
+
+## Mapped GTK menu development
+
+The development compositor now binds GTK surface claims to retained client/process authority and displays real app commands through the existing activity menu. The owned Rust worker retains subscriptions, orders signal processing against replies, invalidates held rows for every export revision and dispatches opaque choices after the matching menu-retirement frame. App state/check marks update, while separately labeled card controls remain available. GTK global-menu flags stay zero.
+
+Final-image host portrait/landscape checks pass real GTK callbacks, Card View/return, state changes, held-pointer flip-back rejection, fresh selection, disabled rows and owner death. The no-export menu replay and prior typed/adversarial transport matrix pass. Current/minimum Rust each pass 237 workspace checks; strict host/ARM lint passes. The installed phone remains revision 45. Cooperating egui, phone package/KMS/touch/PAM, broader claim/protection/modal/bus failure and resource acceptance remain open. [Executed scope, setup failures and next work](recordings/menu-ui/README.md).
 
 ## Native Rust menu transport development
 
 The development compositor now retains ordinary accepted-client process handles and retires client authority on actual Wayland disconnect. Trusted keyboard/locker socketpairs remain excluded. The shared direct Rust/zbus adapter reads bounded typed menus/actions, binds live process descriptors, rejects stale/disabled/retired choices and reports uncertain post-dispatch outcomes without retry. No Cargo dependency changes. All 234 workspace tests pass on current/minimum Rust, with strict host/ARM lint and both ARM builds. Exact-image portrait/landscape host menu regressions verify mapped client ownership.
 
-Both compiler variants pass the complete real-GIO adapter matrix on host and the phone's actual normal revision-45 bus, including valid empty roots/submenus, pending-load retirement, typed arguments/state, replacement/exit and fifteen malformed/resource cases. The original empty-menu decoder failure and corrected full matrices remain separately recorded. Collected callbacks, source/binary hashes, unchanged installed processes/settings/platform, cleanup and independent normal/Panfrost audit verify locally. The installed compositor remains revision 45. Actual surface claims, signal-driven worker/presentation and visible exported menus are still required; no global-menu capability is advertised. [Adapter contract](NATIVE_MENU_ADAPTER.md) · [Evidence and explicit limits](recordings/menu-adapter/README.md).
+Both compiler variants pass the complete real-GIO adapter matrix on host and the phone's actual normal revision-45 bus, including valid empty roots/submenus, pending-load retirement, typed arguments/state, replacement/exit and fifteen malformed/resource cases. The original empty-menu decoder failure and corrected full matrices remain separately recorded. Collected callbacks, source/binary hashes, unchanged installed processes/settings/platform, cleanup and independent normal/Panfrost audit verify locally. The installed compositor remains revision 45. The later mapped GTK checkpoint above adds surface claims, the worker and visible commands; installed UI acceptance remains open and no global-menu capability is advertised. [Adapter contract](NATIVE_MENU_ADAPTER.md) · [Evidence and explicit limits](recordings/menu-adapter/README.md).
 
 ## Revision 45 session-bus prerequisite
 

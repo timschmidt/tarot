@@ -346,6 +346,10 @@ pub(crate) fn roots(
     // supplied page or window title cannot grow this header out of the viewport.
     if model.system_page == SystemPage::Activity && model.menus.panel != Panel::Root {
         let title = match model.menus.panel {
+            Panel::Native(id) => model
+                .app_menu
+                .node(id)
+                .map_or("Application", |n| n.label.as_str()),
             Panel::Pages => "Launcher pages",
             Panel::Page(id) => model
                 .launcher
@@ -389,12 +393,51 @@ pub(crate) fn roots(
                 && matches!(model.view, tarot_core::View::App(_))
             {
                 ui.label(
-                    egui::RichText::new("Card controls")
-                        .size(14.0)
-                        .color(SECONDARY),
+                    egui::RichText::new(
+                        if model.app_menu_current() && !model.app_menu.nodes.is_empty() {
+                            "Application commands"
+                        } else {
+                            "Card controls"
+                        },
+                    )
+                    .size(14.0)
+                    .color(SECONDARY),
                 );
             }
+            if model.system_page == SystemPage::Activity
+                && model.menus.panel == Panel::Root
+                && matches!(model.view, tarot_core::View::App(_))
+            {
+                let message = match model.app_menu.status {
+                    tarot_core::app_menu::Status::Loading => Some("Loading app commands…"),
+                    tarot_core::app_menu::Status::Unavailable => Some("App commands unavailable"),
+                    tarot_core::app_menu::Status::Uncertain => Some("Check the app for the result"),
+                    _ => None,
+                };
+                if let Some(message) = message {
+                    ui.label(egui::RichText::new(message).size(14.0).color(SECONDARY));
+                }
+            }
+            let mut card_controls = false;
             for item in tarot_core::menu::items(model) {
+                if model.system_page == SystemPage::Activity
+                    && model.menus.panel == Panel::Root
+                    && model.app_menu_current()
+                    && !model.app_menu.nodes.is_empty()
+                    && !matches!(
+                        item.target,
+                        Target::NativePage { .. } | Target::NativeAction { .. }
+                    )
+                    && !card_controls
+                {
+                    ui.separator();
+                    ui.label(
+                        egui::RichText::new("Card controls")
+                            .size(14.0)
+                            .color(SECONDARY),
+                    );
+                    card_controls = true;
+                }
                 row(ui, model, item, commands);
             }
             if model.system_page == SystemPage::Device {

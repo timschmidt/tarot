@@ -22,6 +22,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--xvfb', default='Xvfb')
+    parser.add_argument('--compositor', type=Path)
     parser.add_argument('--scale', type=int, choices=[1, 2], default=1)
     parser.add_argument('--landscape', action='store_true')
     parser.add_argument('--require-export-peer', action='store_true',
@@ -29,9 +30,10 @@ def main():
     args = parser.parse_args()
     out = args.output.resolve(); out.mkdir(mode=0o700, parents=True, exist_ok=False)
     root = Path.cwd(); width, height = (720, 360) if args.landscape else (360, 720)
+    compositor_binary = (args.compositor or root/'target/debug/tarot').resolve()
     records = {'passed': False, 'phone_kms_tested': False, 'scale': args.scale,
                'landscape': args.landscape, 'actions': [],
-               'compositor_sha256': hashlib.sha256((root/'target/debug/tarot').read_bytes()).hexdigest()}
+               'compositor_sha256': hashlib.sha256(compositor_binary.read_bytes()).hexdigest()}
     sources = {}; pending = [Path(__file__).resolve()]; snapshot = out/'qa-sources'; snapshot.mkdir()
     while pending:
         source = pending.pop()
@@ -99,7 +101,7 @@ def main():
                 if write is not None: os.close(write)
             env = dict(os.environ, DISPLAY=':'+number, WINIT_UNIX_BACKEND='x11', XDG_SESSION_TYPE='x11', LIBGL_ALWAYS_SOFTWARE='1', __EGL_VENDOR_LIBRARY_FILENAMES='/usr/share/glvnd/egl_vendor.d/50_mesa.json', XDG_RUNTIME_DIR=str(work/'runtime'), XDG_DATA_HOME=str(work/'data'), XDG_DATA_DIRS=str(work/'empty'), XDG_CONFIG_HOME=str(work/'config'), XDG_CONFIG_DIRS=str(work/'empty'))
             env.pop('WAYLAND_DISPLAY', None); env.pop('WAYLAND_SOCKET', None)
-            session = subprocess.Popen([str(root/'target/debug/tarot'), '--width', str(width*args.scale), '--height', str(height*args.scale), '--scale', str(args.scale), '--config-file', str(config), '--control-socket', str(control), '--exit-after-ms', '180000'], env=env, stdout=log('session.log'), stderr=subprocess.STDOUT)
+            session = subprocess.Popen([str(compositor_binary), '--width', str(width*args.scale), '--height', str(height*args.scale), '--scale', str(args.scale), '--config-file', str(config), '--control-socket', str(control), '--exit-after-ms', '180000'], env=env, stdout=log('session.log'), stderr=subprocess.STDOUT)
             children.append(session)
             await_value(lambda: control.exists() or session.poll() is not None, bool); assert session.poll() is None
             ready = state('ready')

@@ -8,3 +8,5 @@ packaging/nura/tarot-session-bus/*.patch whitespace=-blank-at-eol
 
 # Preserve the upstream license text byte for byte.
 experiments/menu-export/protocols/GTK-COPYING -whitespace
+
+third-party/gtk/COPYING -whitespace

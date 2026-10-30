@@ -47,13 +47,16 @@ impl XdgShellHandler for Compositor {
         window.user_data().insert_if_missing(|| {
             std::cell::RefCell::new(crate::window_state::WindowState::default())
         });
+        let gtk_surface = window.toplevel().unwrap().wl_surface().clone();
         self.space.map_element(window, (0, 28), false);
+        self.gtk_modal_changed(&gtk_surface, None);
         self.configure_windows();
         self.ui_dirty = true;
         self.redraw = true;
     }
 
     fn toplevel_destroyed(&mut self, surface: ToplevelSurface) {
+        self.gtk_modal_changed(surface.wl_surface(), Some(false));
         let window = self
             .space
             .elements()
@@ -248,11 +251,7 @@ delegate_xdg_shell!(Compositor);
 
 impl smithay::wayland::shell::xdg::dialog::XdgDialogHandler for Compositor {
     fn modal_changed(&mut self, surface: ToplevelSurface, modal: bool) {
-        if let Some(id) = self.native_id(surface.wl_surface()) {
-            let previous = self.families.clone();
-            self.families.set_modal(id, modal);
-            self.reconcile_families(previous, None);
-        }
+        self.gtk_modal_changed(surface.wl_surface(), Some(modal));
     }
 }
 smithay::delegate_xdg_dialog!(Compositor);

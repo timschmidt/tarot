@@ -41,6 +41,7 @@ package() {
 	install -Dm644 packaging/pam/tarot-lock "$pkgdir/etc/pam.d/tarot-lock"
 	install -Dm644 LICENSE-MIT "$pkgdir/usr/share/licenses/tarot/LICENSE-MIT"
 	install -Dm644 LICENSE-APACHE "$pkgdir/usr/share/licenses/tarot/LICENSE-APACHE"
+	install -Dm644 third-party/gtk/COPYING "$pkgdir/usr/share/licenses/tarot/GTK-COPYING"
 	install -Dm644 third-party/Smithay-MIT.txt "$pkgdir/usr/share/licenses/tarot/Smithay-MIT.txt"
 	install -Dm644 third-party/native-icons-NOTICES.txt "$pkgdir/usr/share/licenses/tarot/native-icons-NOTICES.txt"
 	install -Dm644 crates/tarot-ui/assets/fonts/Lato-OFL.txt "$pkgdir/usr/share/licenses/tarot/Lato-OFL.txt"
