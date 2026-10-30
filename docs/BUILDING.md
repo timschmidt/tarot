@@ -572,7 +572,7 @@ GSettings values/user overrides and the original Tarot preferences, then audit
 a fresh normal login. The replay alone cannot establish felt vibration.
 
 
-`--system-services` also enables playback controls through the current user's PulseAudio-compatible server. Open the top-right status menu, then Audio. Each observed output has volume and mute controls; another output can become the default for new playback. Existing applications can retain their own routes. Volume writes preserve channel balance and accept 0–100%; muting is independent. Device profiles, microphone controls, per-app routing and call-audio policy remain separate work.
+`--system-services` also enables playback controls through the current user's PulseAudio-compatible server. Open the top-right status menu, then Audio. Each observed output has volume and mute controls; another output can become the default for new playback. Existing applications can retain their own routes. Volume writes preserve channel balance and accept 0–100%; muting is independent. Recording-input level/mute/default and observed input/output routes now have a separate [implementation and native record](AUDIO_INPUTS.md). Card profiles, per-app routing and call-audio policy remain separate work.
 
 The Rust adapter uses `libpulse-sys` 1.23.0 and the platform's libpulse, without spawning `pactl` or an audio daemon. Its worker owns a threaded mainloop, bounded requests, subscriptions, coalesced snapshots and reconnect backoff. No healthy periodic polling is required. Completion needs observed server state after acknowledgement; stale output IDs and values above 100% are rejected. Native hardware volume is reported through the sound server, rather than claimed as acoustic or mixer-driver verification. The session package must arrange the distribution's normal audio service startup.
 
@@ -586,6 +586,15 @@ python3 tests/audio_replay.py --output artifacts/m4/audio/nested
 ```
 
 If the daemon was extracted without installation, pass `--pulse-daemon`, `--pulse-modules` and `--pulse-libraries` with its binary, module and common-library directories. `--audio-server` can target an isolated server explicitly. When `--platform-bus` is set without an audio override, audio targets an unavailable diagnostic endpoint rather than the host server. Diagnostics omit output names/descriptions; captures can contain them and remain private ignored evidence.
+
+The canonical installed-session replay's `--audio-input` component exercises
+input level/mute, selected-route reselection, a synthetic-input default round
+trip, stale IDs, protection and actual PAM. It opens no recording stream. Its
+controller must preserve all source channel values/mute/ports/default, output
+controls, preferences and policies, remove only its verified synthetic module,
+and independently audit a fresh normal login. The phone's `pactl` JSON module
+listing omits numeric IDs; QA validates ownership with `list short modules`.
+[Accepted native evidence and retained failures](recordings/audio-input/README.md).
 
 The native replay requires a running bounded phone harness with the keyboard and a GTK startup client, plus a running user audio service with exactly one playback output. A normal user `pactl subscribe` client can keep an autospawned development service alive for the experiment; stop that recorded client afterward. Run through the existing authenticated administrative terminal:
 

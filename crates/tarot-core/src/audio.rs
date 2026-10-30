@@ -1,14 +1,31 @@
-//! Observed playback outputs and explicit controls; the platform owns routing.
+//! Observed audio devices and routes; the platform owns recording and playback.
 use serde::{Deserialize, Serialize};
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+pub enum Availability {
+    Unknown,
+    No,
+    Yes,
+}
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub struct Port {
+    pub id: u64,
+    pub label: String,
+    pub available: Availability,
+    pub active: bool,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize)]
 pub struct Output {
     pub id: u64,
     pub label: String,
     pub percent: u32,
     pub muted: bool,
     pub default: bool,
+    pub ports: Vec<Port>,
 }
+/// An input has the same observed controls; monitor sources are excluded.
+pub type Input = Output;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize)]
 pub struct Snapshot {
@@ -17,6 +34,7 @@ pub struct Snapshot {
     pub generation: u64,
     pub epoch: u64,
     pub outputs: Vec<Output>,
+    pub inputs: Vec<Input>,
     pub pending: Option<UiAction>,
     pub error: Option<String>,
     pub action_error: Option<String>,
@@ -28,34 +46,86 @@ pub enum UiAction {
     Volume { output: u64, percent: u8 },
     Mute { output: u64, muted: bool },
     Default { output: u64 },
+    OutputPort { output: u64, port: u64 },
+    InputVolume { input: u64, percent: u8 },
+    InputMute { input: u64, muted: bool },
+    DefaultInput { input: u64 },
+    InputPort { input: u64, port: u64 },
 }
 
 impl UiAction {
-    pub fn output(&self) -> u64 {
+    pub fn device(&self) -> u64 {
         match *self {
-            Self::Volume { output, .. } | Self::Mute { output, .. } | Self::Default { output } => {
-                output
-            }
+            Self::Volume { output, .. }
+            | Self::Mute { output, .. }
+            | Self::Default { output }
+            | Self::OutputPort { output, .. } => output,
+            Self::InputVolume { input, .. }
+            | Self::InputMute { input, .. }
+            | Self::DefaultInput { input }
+            | Self::InputPort { input, .. } => input,
+        }
+    }
+    pub fn is_input(&self) -> bool {
+        matches!(
+            self,
+            Self::InputVolume { .. }
+                | Self::InputMute { .. }
+                | Self::DefaultInput { .. }
+                | Self::InputPort { .. }
+        )
+    }
+    pub fn port(&self) -> Option<u64> {
+        match *self {
+            Self::InputPort { port, .. } | Self::OutputPort { port, .. } => Some(port),
+            _ => None,
         }
     }
     pub fn valid(&self) -> bool {
-        self.output() != 0 && !matches!(self, Self::Volume { percent: 101.., .. })
+        self.device() != 0
+            && self.port() != Some(0)
+            && !matches!(
+                self,
+                Self::Volume { percent: 101.., .. } | Self::InputVolume { percent: 101.., .. }
+            )
+    }
+    pub fn observed<'a>(&self, snapshot: &'a Snapshot) -> Option<&'a Output> {
+        if !snapshot.available {
+            return None;
+        }
+        let devices = if self.is_input() {
+            &snapshot.inputs
+        } else {
+            &snapshot.outputs
+        };
+        devices.iter().find(|device| device.id == self.device())
+    }
+    pub fn selectable(&self, snapshot: &Snapshot) -> bool {
+        self.valid()
+            && self.observed(snapshot).is_some_and(|device| {
+                self.port().is_none_or(|id| {
+                    device
+                        .ports
+                        .iter()
+                        .any(|port| port.id == id && port.available != Availability::No)
+                })
+            })
     }
     pub fn confirmed(&self, snapshot: &Snapshot) -> bool {
-        snapshot.available
-            && snapshot.outputs.iter().any(|o| {
-                o.id == self.output()
-                    && match *self {
-                        Self::Volume { percent, .. } => {
-                            if percent == 0 {
-                                o.percent == 0
-                            } else {
-                                o.percent.abs_diff(u32::from(percent)) <= 1
-                            }
-                        }
-                        Self::Mute { muted, .. } => o.muted == muted,
-                        Self::Default { .. } => o.default,
+        self.selectable(snapshot)
+            && self.observed(snapshot).is_some_and(|device| match *self {
+                Self::Volume { percent, .. } | Self::InputVolume { percent, .. } => {
+                    if percent == 0 {
+                        device.percent == 0
+                    } else {
+                        device.percent.abs_diff(u32::from(percent)) <= 1
                     }
+                }
+                Self::Mute { muted, .. } | Self::InputMute { muted, .. } => device.muted == muted,
+                Self::Default { .. } | Self::DefaultInput { .. } => device.default,
+                Self::OutputPort { port, .. } | Self::InputPort { port, .. } => {
+                    device.ports.iter().any(|p| p.id == port && p.active)
+                }
             })
     }
 }
@@ -196,6 +266,7 @@ mod tests {
                 percent: 40,
                 muted: false,
                 default: true,
+                ports: Vec::new(),
             }],
             ..Default::default()
         };
@@ -232,6 +303,59 @@ mod tests {
         );
         assert!(!UiAction::Default { output: 0 }.valid());
     }
+    #[test]
+    fn input_and_output_routes_require_live_direction_and_available_port() {
+        let mut state = snapshot();
+        let mut input = state.outputs[0].clone();
+        input.id = 8;
+        input.ports = vec![Port {
+            id: 12,
+            label: "Microphone".into(),
+            available: Availability::Unknown,
+            active: true,
+        }];
+        state.inputs.push(input);
+        let route = UiAction::InputPort { input: 8, port: 12 };
+        assert!(route.confirmed(&state));
+        assert!(
+            !UiAction::OutputPort {
+                output: 8,
+                port: 12
+            }
+            .selectable(&state)
+        );
+        assert!(!UiAction::InputPort { input: 7, port: 12 }.selectable(&state));
+        assert!(
+            !UiAction::InputVolume {
+                input: 8,
+                percent: 101
+            }
+            .valid()
+        );
+        assert!(!UiAction::InputPort { input: 8, port: 0 }.valid());
+        assert!(
+            UiAction::InputMute {
+                input: 8,
+                muted: true
+            }
+            .confirmed(&state)
+        );
+        assert!(UiAction::DefaultInput { input: 8 }.confirmed(&state));
+        state.inputs[0].ports[0].active = false;
+        assert!(route.selectable(&state) && !route.confirmed(&state));
+        state.inputs[0].ports[0].available = Availability::No;
+        assert!(!route.selectable(&state));
+        state.inputs[0].ports.clear();
+        assert!(!route.selectable(&state));
+        state.inputs.clear();
+        assert!(
+            !UiAction::InputMute {
+                input: 8,
+                muted: true
+            }
+            .confirmed(&state)
+        );
+    }
     fn snapshot() -> Snapshot {
         Snapshot {
             available: true,
@@ -242,6 +366,7 @@ mod tests {
                 percent: 40,
                 muted: true,
                 default: true,
+                ports: Vec::new(),
             }],
             ..Default::default()
         }

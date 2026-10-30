@@ -239,6 +239,19 @@ acoustic quality, notification-specific native output, broader theme/per-app
 policy, power/performance and release reliability remain open. This is scoped
 M4 progress and closes no complete milestone.
 
+Audio-input checkpoint, October 30: [revision 55](recordings/audio-input/README.md)
+adds input level/mute/default and observed input/output routes, with playback
+monitors excluded. A reproduced Sound-page scroll reset is fixed while retaining
+stale held-control rejection. Both compilers pass 267 workspace tests, strict
+host/ARM lint and private audio/feedback integration. Native controls, route
+reselection, default-input round trip, protected rejection and actual PAM pass;
+exact original input/output controls/preferences/policies and normal default
+Tarot55/Panfrost are independently verified. The withheld candidate and two
+native QA failures/restoration audits remain recorded. Acoustic/capture quality,
+multiple physical routes/jack hotplug, card profiles, per-app/PipeWire/call policy,
+touch text-selection refinement and power/performance/reliability remain open.
+This closes no whole milestone; physical Bluetooth tests stay deferred.
+
 Bluetooth implementation checkpoint, October 30: the initial Rust BlueZ adapter and KeyboardDisplay agent now provide discovery, PIN/passkey/confirmation and authorization prompts, explicit trust, connection controls and confirmed Forget. Private rendered/protocol checks cover lock cancellation, stale identities and daemon/broker recovery. Signed revision 51 passes native radio/discovery/visibility controls, independent ordinary-user BlueZ readback, actual PAM and normal-session restoration. A separate revision-52 JLab Studio check observes actual pairing and Trust changes, but stable connection fails; an independent ordinary-user client reports br-connection-page-timeout. Audio/acoustic acceptance was not reached. Further physical Bluetooth tests are deferred at the owner's request; other development continues. Physical peripheral acceptance remains open; generic Connect does not establish Bluetooth audio or call support. [Contract and remaining work](BLUETOOTH.md).
 
 ### M4 addition: double-chop flashlight from suspend

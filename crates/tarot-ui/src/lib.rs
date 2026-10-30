@@ -1522,6 +1522,7 @@ mod tests {
         model.audio.enabled = true;
         model.audio.available = true;
         model.audio.outputs.push(Output {
+            ports: Vec::new(),
             id: 9,
             label: "Speaker".into(),
             percent: 40,
@@ -1557,6 +1558,69 @@ mod tests {
         model.audio.pending = None;
         model.audio.available = false;
         assert!(click_text(&ctx, &model, "+").is_empty());
+    }
+
+    #[test]
+    fn recording_controls_keep_input_and_route_identity_and_disable_missing_routes() {
+        use tarot_core::audio::{Availability, Input, Port, UiAction};
+        let ctx = egui::Context::default();
+        let mut model = ShellModel::default();
+        model.apply(Command::SystemMenuOpen(true));
+        model.apply(Command::SystemPage(tarot_core::SystemPage::Audio));
+        model.audio.enabled = true;
+        model.audio.available = true;
+        model.audio.inputs.push(Input {
+            id: 31,
+            label: "Built-in microphone".into(),
+            percent: 40,
+            muted: false,
+            default: false,
+            ports: vec![
+                Port {
+                    id: 41,
+                    label: "Built-in route".into(),
+                    active: false,
+                    available: Availability::Unknown,
+                },
+                Port {
+                    id: 42,
+                    label: "Missing route".into(),
+                    active: false,
+                    available: Availability::No,
+                },
+            ],
+        });
+        assert_eq!(
+            click_text(&ctx, &model, "+"),
+            vec![Command::Audio(UiAction::InputVolume {
+                input: 31,
+                percent: 50
+            })]
+        );
+        assert_eq!(
+            click_text(&ctx, &model, "Mute"),
+            vec![Command::Audio(UiAction::InputMute {
+                input: 31,
+                muted: true
+            })]
+        );
+        assert_eq!(
+            click_text(&ctx, &model, "Use for new recordings"),
+            vec![Command::Audio(UiAction::DefaultInput { input: 31 })]
+        );
+        assert_eq!(
+            click_text(&ctx, &model, "Built-in route"),
+            vec![Command::Audio(UiAction::InputPort {
+                input: 31,
+                port: 41
+            })]
+        );
+        assert!(click_text(&ctx, &model, "Missing route · Unavailable").is_empty());
+        model.audio.pending = Some(UiAction::InputMute {
+            input: 31,
+            muted: true,
+        });
+        assert!(click_text(&ctx, &model, "Built-in route").is_empty());
     }
 
     #[test]

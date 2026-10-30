@@ -91,68 +91,161 @@ pub fn show(ui: &mut egui::Ui, model: &ShellModel, _layout: Layout, commands: &m
         .max_height(ui.available_height().max(1.0))
         .show(ui, |ui| {
             for output in &audio.outputs {
-                ui.push_id(output.id, |ui| {
-                    ui.group(|ui| {
-                        ui.set_width(ui.available_width().max(1.0));
-                        ui.label(egui::RichText::new(&output.label).strong());
-                        ui.label(format!(
-                            "Volume: {}%{}",
-                            output.percent,
-                            if output.muted { " · Muted" } else { "" }
-                        ));
-                        let enabled = audio.available && audio.pending.is_none();
-                        ui.horizontal(|ui| {
-                            for (label, percent) in [
-                                ("−", output.percent.saturating_sub(10).min(100) as u8),
-                                ("+", output.percent.saturating_add(10).min(100) as u8),
-                            ] {
-                                if ui
-                                    .add_enabled(
-                                        enabled,
-                                        egui::Button::new(label).min_size(Vec2::new(64.0, 48.0)),
-                                    )
-                                    .clicked()
-                                {
-                                    commands.push(Command::Audio(UiAction::Volume {
-                                        output: output.id,
-                                        percent,
-                                    }));
-                                }
-                            }
-                            if ui
-                                .add_enabled(
-                                    enabled,
-                                    egui::Button::new(if output.muted { "Unmute" } else { "Mute" })
-                                        .min_size(Vec2::new(100.0, 48.0)),
-                                )
-                                .clicked()
-                            {
-                                commands.push(Command::Audio(UiAction::Mute {
-                                    output: output.id,
-                                    muted: !output.muted,
-                                }));
-                            }
-                        });
-                        if output.default {
-                            ui.label("Default output");
-                        } else if ui
-                            .add_enabled(
-                                enabled,
-                                egui::Button::new("Use for new playback")
-                                    .min_size(Vec2::new(ui.available_width(), 48.0)),
-                            )
-                            .clicked()
-                        {
-                            commands.push(Command::Audio(UiAction::Default { output: output.id }));
-                        }
-                    });
-                });
-                ui.add_space(4.0);
+                device_controls(
+                    ui,
+                    audio,
+                    output,
+                    false,
+                    model.feedback.generation,
+                    commands,
+                );
             }
+            ui.separator();
+            ui.label(egui::RichText::new("Recording inputs").strong());
+            ui.label("Default input applies to new recordings. Apps may keep their current input.");
+            if audio.available && audio.inputs.is_empty() {
+                ui.label("No recording inputs available");
+            }
+            for input in &audio.inputs {
+                device_controls(ui, audio, input, true, model.feedback.generation, commands);
+            }
+            ui.label(
+                "Input mute controls the sound server. It does not disable microphone hardware.",
+            );
             if model.feedback.enabled {
-                feedback(ui, model, commands);
+                ui.push_id(
+                    (
+                        "feedback_controls",
+                        audio.generation,
+                        model.feedback.generation,
+                    ),
+                    |ui| {
+                        feedback(ui, model, commands);
+                    },
+                );
             }
         });
+}
+
+fn device_controls(
+    ui: &mut egui::Ui,
+    audio: &tarot_core::audio::Snapshot,
+    device: &tarot_core::audio::Output,
+    input: bool,
+    feedback_generation: u64,
+    commands: &mut Vec<Command>,
+) {
+    ui.push_id((device.id, audio.generation, feedback_generation), |ui| {
+        ui.group(|ui| {
+            ui.set_width(ui.available_width().max(1.0));
+            ui.label(egui::RichText::new(&device.label).strong());
+            ui.label(format!(
+                "{}: {}%{}",
+                if input { "Input level" } else { "Volume" },
+                device.percent,
+                if device.muted { " · Muted" } else { "" }
+            ));
+            let enabled = audio.available && audio.pending.is_none();
+            ui.horizontal(|ui| {
+                for (label, percent) in [
+                    ("−", device.percent.saturating_sub(10).min(100) as u8),
+                    ("+", device.percent.saturating_add(10).min(100) as u8),
+                ] {
+                    if ui
+                        .add_enabled(
+                            enabled,
+                            egui::Button::new(label).min_size(Vec2::new(64.0, 48.0)),
+                        )
+                        .clicked()
+                    {
+                        commands.push(Command::Audio(if input {
+                            UiAction::InputVolume {
+                                input: device.id,
+                                percent,
+                            }
+                        } else {
+                            UiAction::Volume {
+                                output: device.id,
+                                percent,
+                            }
+                        }));
+                    }
+                }
+                if ui
+                    .add_enabled(
+                        enabled,
+                        egui::Button::new(if device.muted { "Unmute" } else { "Mute" })
+                            .min_size(Vec2::new(100.0, 48.0)),
+                    )
+                    .clicked()
+                {
+                    commands.push(Command::Audio(if input {
+                        UiAction::InputMute {
+                            input: device.id,
+                            muted: !device.muted,
+                        }
+                    } else {
+                        UiAction::Mute {
+                            output: device.id,
+                            muted: !device.muted,
+                        }
+                    }));
+                }
+            });
+            if device.default {
+                ui.label(if input {
+                    "Default input"
+                } else {
+                    "Default output"
+                });
+            } else if ui
+                .add_enabled(
+                    enabled,
+                    egui::Button::new(if input {
+                        "Use for new recordings"
+                    } else {
+                        "Use for new playback"
+                    })
+                    .min_size(Vec2::new(ui.available_width(), 48.0)),
+                )
+                .clicked()
+            {
+                commands.push(Command::Audio(if input {
+                    UiAction::DefaultInput { input: device.id }
+                } else {
+                    UiAction::Default { output: device.id }
+                }));
+            }
+            for port in &device.ports {
+                let label = match port.available {
+                    tarot_core::audio::Availability::No => format!("{} · Unavailable", port.label),
+                    _ => port.label.clone(),
+                };
+                if ui
+                    .add_enabled(
+                        enabled && port.available != tarot_core::audio::Availability::No,
+                        egui::Button::new(label)
+                            .selected(port.active)
+                            .min_size(Vec2::new(ui.available_width(), 48.0)),
+                    )
+                    .clicked()
+                {
+                    commands.push(Command::Audio(if input {
+                        UiAction::InputPort {
+                            input: device.id,
+                            port: port.id,
+                        }
+                    } else {
+                        UiAction::OutputPort {
+                            output: device.id,
+                            port: port.id,
+                        }
+                    }));
+                }
+            }
+        });
+    });
+    ui.add_space(4.0);
 }
 
 fn feedback(ui: &mut egui::Ui, model: &ShellModel, commands: &mut Vec<Command>) {

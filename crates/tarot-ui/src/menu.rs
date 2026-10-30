@@ -151,7 +151,9 @@ pub(crate) fn panel(
                 ui.spacing_mut().interact_size.y = 48.0;
                 let service_revision = match model.system_page {
                     SystemPage::Power => (model.power.generation, 0),
-                    SystemPage::Audio => (model.audio.generation, model.feedback.generation),
+                    // Sound keeps its scroll area stable and retires the controls
+                    // inside each group with both service generations instead.
+                    SystemPage::Audio => (0, 0),
                     SystemPage::Wifi => (model.network.generation, 0),
                     _ => (0, 0),
                 };
@@ -787,6 +789,93 @@ mod tests {
                 "the UI cannot invent confirmation"
             );
             assert!(render(&ctx, &model, size, vec![]).0.is_empty());
+        }
+    }
+
+    #[test]
+    fn sound_scroll_survives_service_updates_while_held_route_choices_retire() {
+        use tarot_core::audio::{Availability, Output, Port, UiAction};
+        for feedback_update in [false, true] {
+            let ctx = egui::Context::default();
+            let mut model = ShellModel::default();
+            let size = Vec2::new(360.0, 720.0);
+            model.audio.available = true;
+            model.audio.enabled = true;
+            model.audio.outputs = (0..10)
+                .map(|i| Output {
+                    id: i + 1,
+                    label: format!("Output{i}"),
+                    percent: 50,
+                    muted: false,
+                    default: true,
+                    ports: if i == 9 {
+                        vec![Port {
+                            id: 900,
+                            label: "Tail route".into(),
+                            active: false,
+                            available: Availability::Unknown,
+                        }]
+                    } else {
+                        vec![]
+                    },
+                })
+                .collect();
+            model.apply(Command::Menu(Action::ToggleDevice));
+            model.apply(Command::SystemPage(SystemPage::Audio));
+            settle(&ctx, &model, size);
+            render(
+                &ctx,
+                &model,
+                size,
+                vec![
+                    Event::PointerMoved(Pos2::new(180.0, 500.0)),
+                    Event::MouseWheel {
+                        unit: egui::MouseWheelUnit::Point,
+                        delta: Vec2::new(0.0, -6000.0),
+                        modifiers: egui::Modifiers::NONE,
+                    },
+                ],
+            );
+            let mut output = settle(&ctx, &model, size);
+            for _ in 0..30 {
+                output = render(&ctx, &model, size, vec![]).1;
+            }
+            let target = position(&output, "Tail route");
+            assert!(
+                render(
+                    &ctx,
+                    &model,
+                    size,
+                    vec![Event::PointerMoved(target), button(target, true)]
+                )
+                .0
+                .is_empty()
+            );
+            if feedback_update {
+                model.feedback.generation += 1;
+            } else {
+                model.audio.generation += 1;
+            }
+            let output = render(&ctx, &model, size, vec![]).1;
+            assert_eq!(
+                position(&output, "Tail route"),
+                target,
+                "service updates must preserve scroll position"
+            );
+            assert!(
+                render(&ctx, &model, size, vec![button(target, false)])
+                    .0
+                    .is_empty(),
+                "old held choice must retire"
+            );
+            render(&ctx, &model, size, vec![button(target, true)]);
+            assert_eq!(
+                render(&ctx, &model, size, vec![button(target, false)]).0,
+                vec![Command::Audio(UiAction::OutputPort {
+                    output: 10,
+                    port: 900
+                })]
+            );
         }
     }
 

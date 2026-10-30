@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Exercise real libpulse control against a private PulseAudio daemon, never host audio."""
-import argparse,json,os,signal,subprocess,tempfile,time
+import argparse,hashlib,json,os,signal,subprocess,tempfile,time
 from pathlib import Path
 from notification_replay import await_value
 from phone_gesture_replay import request
@@ -9,6 +9,7 @@ from phone_gesture_replay import request
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output',type=Path,required=True)
+    parser.add_argument('--binary',type=Path,default=Path('target/debug/tarot'))
     parser.add_argument('--pulse-daemon',default='pulseaudio')
     parser.add_argument('--pulse-modules',type=Path)
     parser.add_argument('--pulse-libraries',type=Path)
@@ -21,11 +22,11 @@ def main():
     if args.pulse_modules:pulse_env['LD_LIBRARY_PATH']=str(args.pulse_modules.resolve())+':'+pulse_env.get('LD_LIBRARY_PATH','')
     for name in ['runtime','state']:(root/name).mkdir(mode=0o700)
     config=root/'default.pa';config.write_text('load-module module-native-protocol-unix socket='+str(root/'pulse.sock')+' auth-anonymous=yes\n')
-    logs=[];client=daemon=None;records={};validation={}
+    logs=[];client=daemon=broker=None;records={'binary_sha256':hashlib.sha256(args.binary.read_bytes()).hexdigest()};validation={}
     def log(name):
         file=(args.output/name).open('w');logs.append(file);return file
     def pactl(*command):
-        return subprocess.check_output(['pactl','--server',server,*map(str,command)],env=env,text=True,stderr=subprocess.STDOUT)
+        return subprocess.check_output(['pactl','--server',server,*map(str,command)],env=env,text=True,stderr=subprocess.STDOUT,timeout=8)
     def launch(label):
         nonlocal daemon
         command=[str(args.pulse_daemon),'-n','--daemonize=no','--use-pid-file=no','--exit-idle-time=-1','--disable-shm=yes','--log-target=stderr','--file='+str(config)]
@@ -40,12 +41,20 @@ def main():
     def complete(label,value,condition):
         action(value);return audio(label,lambda a:a['pending'] is None and not a['action_error'] and condition(a))
     def sink(name):return next(s for s in json.loads(pactl('-f','json','list','sinks')) if s['name']==name)
+    def source(name):return next(s for s in json.loads(pactl('-f','json','list','sources')) if s['name']==name)
+    def input_row(a,identifier):return next(i for i in a['inputs'] if i['id']==identifier)
     def percent(s):return round(max(v['value'] for v in s['volume'].values())*100/65536)
     def capture(name):
         request(control,'capture',path=str(args.output/(name+'.png')))
         await_value(lambda:request(control,'status'),lambda s:not s['capture_pending'] and not s['capture_error'])
     try:
-        client=subprocess.Popen([str(Path('target/debug/tarot').resolve()),'--system-services','--platform-bus','unix:path='+str(root/'absent-bus'),'--audio-server',server,'--control-socket',str(control),'--exit-after-ms','180000'],env=env,stdout=log('compositor.log'),stderr=subprocess.STDOUT)
+        address='unix:path='+str(root/'bus')
+        env['DBUS_SESSION_BUS_ADDRESS']=address;pulse_env['DBUS_SESSION_BUS_ADDRESS']=address
+        broker=subprocess.Popen(['dbus-daemon','--session','--nofork','--nopidfile','--address='+address],
+                                stdout=log('bus.log'),stderr=subprocess.STDOUT)
+        await_value(lambda:(root/'bus').exists() or broker.poll() is not None,bool)
+        assert broker.poll() is None
+        client=subprocess.Popen([str(args.binary.resolve()),'--system-services','--platform-bus','unix:path='+str(root/'absent-bus'),'--audio-server',server,'--control-socket',str(control),'--exit-after-ms','180000'],env=env,stdout=log('compositor.log'),stderr=subprocess.STDOUT)
         await_value(lambda:control.exists() or client.poll() is not None,bool);assert client.poll() is None
         audio('initial-offline',lambda a:not a['available'] and bool(a['error']))
         launch('first-daemon');audio('empty-server',lambda a:a['available'] and not a['outputs'])
@@ -53,6 +62,7 @@ def main():
         first=audio('first-output',lambda a:len(a['outputs'])==1);first_id=first['outputs'][0]['id'];epoch=first['epoch']
         second_module=int(pactl('load-module','module-null-sink','sink_name=tarot_second','sink_properties=device.description=Second_output').strip())
         outputs=audio('second-output',lambda a:len(a['outputs'])==2);second_id=next(o['id'] for o in outputs['outputs'] if o['id']!=first_id)
+        assert not outputs['inputs'], 'Playback monitors must not be offered as microphones'
         pactl('set-sink-volume','tarot_first','50%','25%')
         audio('external-volume',lambda a:next(o for o in a['outputs'] if o['id']==first_id)['percent']==50)
         complete('balanced-volume',{'Volume':{'output':first_id,'percent':40}},lambda a:next(o for o in a['outputs'] if o['id']==first_id)['percent']==40)
@@ -73,6 +83,62 @@ def main():
         third=audio('replacement-output',lambda a:len(a['outputs'])==2);third_id=next(o['id'] for o in third['outputs'] if o['id']!=second_id);assert third_id!=first_id
         complete('zero-volume',{'Volume':{'output':third_id,'percent':0}},lambda a:next(o for o in a['outputs'] if o['id']==third_id)['percent']==0)
         assert percent(sink('tarot_first'))==0
+        # Independent synthetic sources exercise capture controls without opening
+        # a recording stream, reading samples, or touching a host device.
+        source_module=int(pactl('load-module','module-null-source','source_name=tarot_mic',
+                              'channels=2','description=Test_microphone').strip())
+        inputs=audio('first-input',lambda a:len(a['inputs'])==1)
+        input_id=inputs['inputs'][0]['id']
+        source_second=int(pactl('load-module','module-null-source','source_name=tarot_other_mic',
+                              'channels=2','description=Other_microphone').strip())
+        inputs=audio('second-input',lambda a:len(a['inputs'])==2)
+        other_input=next(i['id'] for i in inputs['inputs'] if i['id']!=input_id)
+        assert len({first_id,second_id,third_id,input_id,other_input})==5
+        pactl('set-source-volume','tarot_mic','60%','20%')
+        audio('external-input-level',lambda a:input_row(a,input_id)['percent']==60)
+        complete('balanced-input-level',{'InputVolume':{'input':input_id,'percent':45}},
+                 lambda a:input_row(a,input_id)['percent']==45)
+        channels=list(source('tarot_mic')['volume'].values())
+        assert abs(channels[0]['value']-29491)<=1 and abs(channels[1]['value']-9830)<=1,channels
+        complete('input-level-already-current',{'InputVolume':{'input':input_id,'percent':45}},
+                 lambda a:input_row(a,input_id)['percent']==45)
+        complete('input-muted',{'InputMute':{'input':input_id,'muted':True}},lambda a:input_row(a,input_id)['muted'])
+        assert source('tarot_mic')['mute'] and percent(source('tarot_mic'))==45
+        complete('input-zero',{'InputVolume':{'input':input_id,'percent':0}},lambda a:input_row(a,input_id)['percent']==0)
+        assert source('tarot_mic')['mute'] and percent(source('tarot_mic'))==0
+        pactl('set-source-mute','tarot_mic','0')
+        audio('external-input-unmuted',lambda a:not input_row(a,input_id)['muted'])
+        complete('input-default',{'DefaultInput':{'input':other_input}},lambda a:input_row(a,other_input)['default'])
+        assert pactl('get-default-source').strip()=='tarot_other_mic'
+        saved=source('tarot_mic')['volume'];output_saved=sink('tarot_first')['volume']
+        for label,value in [
+            ('invalid-input-level',{'InputVolume':{'input':input_id,'percent':101}}),
+            ('output-id-as-input',{'InputMute':{'input':third_id,'muted':True}}),
+            ('input-id-as-output',{'Mute':{'output':input_id,'muted':True}}),
+            ('unknown-input-route',{'InputPort':{'input':input_id,'port':9999999}}),
+            ('unknown-output-route',{'OutputPort':{'output':third_id,'port':9999999}}),
+        ]:
+            action(value);audio(label,lambda a:a['pending'] is None and bool(a['action_error']))
+        assert source('tarot_mic')['volume']==saved and sink('tarot_first')['volume']==output_saved
+        pactl('unload-module',source_module)
+        audio('input-removed',lambda a:len(a['inputs'])==1)
+        action({'InputMute':{'input':input_id,'muted':True}})
+        audio('removed-input-rejected',lambda a:a['pending'] is None and 'no longer' in (a['action_error'] or ''))
+        pactl('load-module','module-null-source','source_name=tarot_mic','channels=2',
+              'description=Replacement_microphone')
+        inputs=audio('input-replaced',lambda a:len(a['inputs'])==2)
+        replacement_input=next(i['id'] for i in inputs['inputs'] if i['id']!=other_input)
+        assert replacement_input not in [first_id,second_id,third_id,input_id,other_input]
+        complete('replacement-input-zero',{'InputVolume':{'input':replacement_input,'percent':0}},
+                 lambda a:input_row(a,replacement_input)['percent']==0)
+        os.kill(daemon.pid,signal.SIGSTOP)
+        action({'InputVolume':{'input':replacement_input,'percent':77}})
+        audio('input-delayed',lambda a:a['pending'] is not None and input_row(a,replacement_input)['percent']==0)
+        request(control,'home');assert request(control,'status')['view']=='Home'
+        os.kill(daemon.pid,signal.SIGCONT)
+        audio('input-delayed-confirmed',lambda a:a['pending'] is None and not a['action_error']
+              and input_row(a,replacement_input)['percent']==77)
+        assert percent(source('tarot_mic'))==77
         # Suspend only our private daemon to force delayed replies; compositor stays responsive.
         os.kill(daemon.pid,signal.SIGSTOP);action({'Volume':{'output':third_id,'percent':37}})
         pending=audio('delayed-reply',lambda a:a['pending'] is not None);assert next(o for o in pending['outputs'] if o['id']==third_id)['percent']==0
@@ -92,12 +158,19 @@ def main():
         pactl('load-module','module-null-sink','sink_name=tarot_second','sink_properties=device.description=After_restart')
         final=audio('after-daemon-restart',lambda a:a['available'] and len(a['outputs'])==1);final_id=final['outputs'][0]['id'];assert final_id not in [first_id,second_id,third_id]
         action({'Volume':{'output':second_id,'percent':12}});audio('old-epoch-rejected',lambda a:a['pending'] is None and bool(a['action_error']))
+        assert not final['inputs']
+        pactl('load-module','module-null-source','source_name=tarot_mic','channels=2')
+        restarted=audio('input-after-daemon-restart',lambda a:len(a['inputs'])==1)
+        restarted_input=restarted['inputs'][0]['id']
+        assert restarted_input not in [input_id,other_input,replacement_input]
+        action({'InputMute':{'input':replacement_input,'muted':True}})
+        audio('old-input-epoch-rejected',lambda a:a['pending'] is None and bool(a['action_error']))
         # A paused server also cannot hold compositor shutdown hostage.
-        os.kill(daemon.pid,signal.SIGSTOP);action({'Mute':{'output':final_id,'muted':True}});audio('pending-at-shutdown',lambda a:a['pending'] is not None)
+        os.kill(daemon.pid,signal.SIGSTOP);action({'InputMute':{'input':restarted_input,'muted':True}});audio('pending-at-shutdown',lambda a:a['pending'] is not None)
         start=time.monotonic();request(control,'exit');validation['compositor_exit']=client.wait(timeout=4);validation['shutdown_seconds']=time.monotonic()-start
         assert validation['compositor_exit']==0
-        validation['passed']=True
-        print('PASS: real private PulseAudio, empty/hotplug outputs, balance/zero/mute/default readback, stale IDs, delay/timeout, daemon restart and bounded pending shutdown')
+        validation['private_session_bus']=True;validation['recording_stream_opened']=False;validation['passed']=True
+        print('PASS: real private PulseAudio, outputs/inputs, monitor exclusion, balance/zero/mute/default readback, direction/route validation, stale IDs, delay/timeout, daemon restart and bounded pending shutdown')
     finally:
         if daemon is not None and daemon.poll() is None:
             os.kill(daemon.pid,signal.SIGCONT);daemon.terminate()
@@ -107,6 +180,10 @@ def main():
             client.terminate()
             try:client.wait(timeout=5)
             except subprocess.TimeoutExpired:client.kill();client.wait()
+        if broker is not None and broker.poll() is None:
+            broker.terminate()
+            try:broker.wait(timeout=5)
+            except subprocess.TimeoutExpired:broker.kill();broker.wait()
         for file in logs:file.close()
         (args.output/'status.json').write_text(json.dumps(records,indent=2)+'\n')
         (args.output/'validation.json').write_text(json.dumps(validation,indent=2)+'\n')

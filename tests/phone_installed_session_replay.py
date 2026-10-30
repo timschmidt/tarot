@@ -231,6 +231,9 @@ def run(args, password):
         if getattr(args, 'network_authorization', False):
             from phone_network_authorization_replay import replay as network_authorization_replay
             records['network_authorization'] = network_authorization_replay(socket,screen,tap,state,capture,before,args.output,cgroup,authenticate,password)
+        if getattr(args, 'audio_input', False):
+            from phone_audio_input_replay import replay as audio_input_replay
+            records['audio_input'] = audio_input_replay(socket,screen,tap,state,capture,before,args.output,cgroup,authenticate)
         if getattr(args, 'feedback', False):
             from phone_feedback_replay import replay as feedback_replay
             records['feedback'] = feedback_replay(socket,screen,tap,state,capture,before,args.output,cgroup,authenticate)
@@ -533,6 +536,7 @@ def main():
     parser.add_argument('--bluetooth', action='store_true')
     parser.add_argument('--authorization', action='store_true')
     parser.add_argument('--network-authorization', action='store_true', help='Real Wi-Fi scan authorization with a temporary restrictive process-scoped policy; no radio/profile changes')
+    parser.add_argument('--audio-input', action='store_true', help='Input level/mute/default/routes with independent readback, no recording, exact restoration and PAM')
     parser.add_argument('--feedback', action='store_true', help='Feedback profile controls, silent no-output and qualified quiet single-play events, daemon recovery and PAM')
     parser.add_argument('--headphones', action='store_true', help='Owner-assisted JLab Studio test; requires live readiness handoff and independent normal-session audit')
     parser.add_argument('--text-enable-reset', action='store_true')

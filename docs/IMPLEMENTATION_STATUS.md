@@ -12,6 +12,29 @@ The newly supplied [Pre3 packet](PRE3_REFERENCE.md) is queued as
 original files remain reference material; the owner selected MIT OR Apache-2.0
 for their graphics and authoring source. No Pre3 runtime work has started.
 
+## Recording inputs, routes and Sound-page stability
+
+[Revision 55](AUDIO_INPUTS.md) adds recording-input level/mute/default controls and
+observed input/output routes. Playback monitors stay out of the input chooser.
+Device/route identities retire on removal or service replacement; unavailable
+routes reject selection. Sound-page scroll state survives service updates while
+held controls still retire with audio/feedback generations. Input mute controls
+the sound server and does not disable microphone hardware.
+
+Both compilers pass 267 workspace tests, strict host/ARM lint and the final
+private audio and feedback matrices. A first signed candidate is withheld after
+a reproduced scroll reset; the corrected package passes native level/mute,
+selected-input-route reselection, output-route adapter, default-input round trip,
+stale rejection, lock and actual PAM. The two native QA failures and independent
+restoration audits remain retained; the final run uses the unchanged installed
+package. Exact original input/output controls, preferences, feedback settings
+and policies are restored. Independent normal/default Tarot55, loaded hashes,
+Panfrost, services and cleanup pass; all 653 archive members and 623 frozen inputs
+verify. No recording/playback stream was opened. Acoustic/capture quality,
+multiple physical routes, card profiles, per-app/call policy, touch label-selection
+refinement and all unfinished milestones remain open. Bluetooth stays deferred.
+[Exact scope and artifacts](recordings/audio-input/README.md).
+
 ## Feedback profiles and notification lifecycle
 
 The [Rust feedbackd adapter](FEEDBACK.md) adds observed Full/Quiet/Silent profiles,

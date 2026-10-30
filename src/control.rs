@@ -259,7 +259,9 @@ pub fn start(path: &Path, handle: &LoopHandle<'_, CalloopData>) -> Result<Contro
                 "authorization": {"can_prompt":state.shell.authorization.snapshot.can_prompt,"enabled":state.shell.authorization.snapshot.enabled,"available":state.shell.authorization.snapshot.available,"epoch":state.shell.authorization.snapshot.epoch,"generation":state.shell.authorization.snapshot.generation,"error":state.shell.authorization.snapshot.error,
                     "request":state.shell.authorization.snapshot.request.as_ref().map(|r|json!({"id":r.id,"phase":match &r.phase {tarot_core::authorization::Phase::Choose=>"Choose",tarot_core::authorization::Phase::Starting=>"Starting",tarot_core::authorization::Phase::Checking=>"Checking",tarot_core::authorization::Phase::Question(_)=>"Question"},"turn":match &r.phase {tarot_core::authorization::Phase::Question(q)=>Some(q.id),_=>None},"echo":match &r.phase {tarot_core::authorization::Phase::Question(q)=>Some(q.echo),_=>None}}))},
                 "power": state.shell.power,
-                "audio": {"enabled":state.shell.audio.enabled,"available":state.shell.audio.available,"generation":state.shell.audio.generation,"epoch":state.shell.audio.epoch,"pending":state.shell.audio.pending,"error":state.shell.audio.error,"action_error":state.shell.audio.action_error,"outputs":state.shell.audio.outputs.iter().map(|o|json!({"id":o.id,"percent":o.percent,"muted":o.muted,"default":o.default})).collect::<Vec<_>>()},
+                "audio": {"enabled":state.shell.audio.enabled,"available":state.shell.audio.available,"generation":state.shell.audio.generation,"epoch":state.shell.audio.epoch,"pending":state.shell.audio.pending,"error":state.shell.audio.error,"action_error":state.shell.audio.action_error,
+                    "outputs":state.shell.audio.outputs.iter().map(audio_device_metadata).collect::<Vec<_>>(),
+                    "inputs":state.shell.audio.inputs.iter().map(audio_device_metadata).collect::<Vec<_>>()},
                 "feedback": {"enabled":state.shell.feedback.enabled,"available":state.shell.feedback.available,"generation":state.shell.feedback.generation,"epoch":state.shell.feedback.epoch,"profile":state.shell.feedback.profile,"pending":state.shell.feedback.pending,"test_active":state.shell.feedback.test_active,"test_result":state.shell.feedback.test_result,"active_notifications":state.shell.feedback.active_notifications,"notifications_enabled":state.shell.feedback.notifications_enabled,"settings_saved":state.shell.feedback.settings_saved,"settings_error":state.shell.feedback.settings_error,"error":state.shell.feedback.error,"action_error":state.shell.feedback.action_error},
                 "notifications": notifications,
                 "launcher_query": state.shell.launcher_query,
@@ -374,4 +376,9 @@ impl Drop for ControlServer {
             let _ = fs::remove_file(&self.path);
         }
     }
+}
+
+fn audio_device_metadata(device: &tarot_core::audio::Output) -> serde_json::Value {
+    json!({"id":device.id,"percent":device.percent,"muted":device.muted,"default":device.default,
+        "ports":device.ports.iter().map(|port| json!({"id":port.id,"available":port.available,"active":port.active})).collect::<Vec<_>>()})
 }

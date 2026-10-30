@@ -1,0 +1,144 @@
+{
+  "revision": 55,
+  "date": "2026-10-30",
+  "scope": "Recording input and route controls, scroll persistence and scoped native acceptance; full goal active",
+  "source_sha256": "0efc29db47f1307e28da2df2756998234ee9d70770a29384b2f471f2ce221de4",
+  "package_sha256": "ac60a3d2c42368fd76f116f1b9fa70a1a4240652121be9911931620b6fdc5d7e",
+  "binaries_sha256": {
+    "tarot": "4ac22763fe3a896006e1d40c105a35cef4ecadce6d26d31e7b07d7b1ea124a46",
+    "tarot-session": "b4e7336520903656d30766585e998b7527726c84384b13f7743d2aa3421092fa",
+    "tarot-lock": "64f8ffa338d4a88ad57f220efb96fb92999d7479883442c53c19d3d8e6881aef",
+    "tarot-keyboard": "68a9cf167e37fcd2af864908f90d8902865f2ccc5713166f602f6d3f474116eb"
+  },
+  "host": {
+    "workspace_tests": {
+      "workspace-delivery-current.log": {
+        "passed": 267,
+        "failed": 0,
+        "ignored": 9
+      },
+      "workspace-delivery-minimum.log": {
+        "passed": 267,
+        "failed": 0,
+        "ignored": 9
+      }
+    },
+    "private_audio": {
+      "current": {
+        "compositor_exit": 0,
+        "shutdown_seconds": 0.1824042479856871,
+        "private_session_bus": true,
+        "recording_stream_opened": false,
+        "passed": true,
+        "binary_sha256": "d123d25a897c64b3ad46eea04b23f487e5827bb7b7293c53ea56062766105200",
+        "status_sha256": "75daaf337bc6864901e7bebb785c3e28f53a9c07b4c771abd8df6853220c746a"
+      },
+      "minimum": {
+        "compositor_exit": 0,
+        "shutdown_seconds": 0.1892107609892264,
+        "private_session_bus": true,
+        "recording_stream_opened": false,
+        "passed": true,
+        "binary_sha256": "1a8ce1761d4769af6394412fc4b93c6b5aa5a6de8e6d72623f56e5fb35131aa5",
+        "status_sha256": "b1ae4bee344bf80beae298c9d898fd115cc47b0970b0873bce4e26cfecb77f13"
+      }
+    },
+    "private_feedback": {
+      "current": {
+        "passed": true,
+        "binary_sha256": "d123d25a897c64b3ad46eea04b23f487e5827bb7b7293c53ea56062766105200",
+        "result_sha256": "cce81c598b2d768347cf48a8c0b3068dcdf1d7c238935c843a1d54b556cf6d2c"
+      },
+      "minimum": {
+        "passed": true,
+        "binary_sha256": "1a8ce1761d4769af6394412fc4b93c6b5aa5a6de8e6d72623f56e5fb35131aa5",
+        "result_sha256": "bce093d8949abed78c00d10f04dbb656d3e276ab2b98caa5288555175c13f2cf"
+      }
+    },
+    "strict_host_lint": true,
+    "strict_arm_drm_lint": true,
+    "compiler_inputs_match_fixed_archive": true
+  },
+  "native": {
+    "passed": true,
+    "sha256": "a63bbcab3c042565b6e55f04947de040cb07ae67a5dd1a1793d9460841495150",
+    "members": 653,
+    "frozen_inputs": 623,
+    "actual_pam": true,
+    "monitor_sources_excluded": true,
+    "native_input_level_mute": true,
+    "native_input_route_reselection": true,
+    "native_output_route_reselection": true,
+    "native_default_input_roundtrip": true,
+    "stale_input_rejected": true,
+    "recording_stream_opened": false,
+    "audio_playback_requested": false,
+    "exact_input_output_controls_restored": true,
+    "normal_default_tarot_and_panfrost": true,
+    "feedback_settings_and_overrides_restored": true,
+    "suspend_cycles": 0,
+    "roles": {
+      "tarot-session": {
+        "pid": 25821,
+        "start": "22363364",
+        "sha256": "b4e7336520903656d30766585e998b7527726c84384b13f7743d2aa3421092fa"
+      },
+      "tarot": {
+        "pid": 25825,
+        "start": "22363366",
+        "sha256": "4ac22763fe3a896006e1d40c105a35cef4ecadce6d26d31e7b07d7b1ea124a46"
+      },
+      "tarot-lock": {
+        "pid": 25836,
+        "start": "22363412",
+        "sha256": "64f8ffa338d4a88ad57f220efb96fb92999d7479883442c53c19d3d8e6881aef"
+      },
+      "tarot-keyboard": {
+        "pid": 25849,
+        "start": "22363413",
+        "sha256": "68a9cf167e37fcd2af864908f90d8902865f2ccc5713166f602f6d3f474116eb"
+      }
+    }
+  },
+  "withheld_candidate": {
+    "package_sha256": "a0cbab67f2fbe79eb23c0498aefeda279499ae0330a81c388e1831f43b0606bf",
+    "source_sha256": "b7f3ac2e53a6ffcc64fe3649e7e0792b6bde7b8005e9aec7ea2b5f6022891a83",
+    "build_exit": 0,
+    "installed": false,
+    "withheld": true,
+    "reason": "Sound scroll state reset on service generation changes, reproduced by the expanded feedback replay"
+  },
+  "retained_native_failures": [
+    {
+      "passed": true,
+      "failed_native_qa": true,
+      "restoration_verified": true,
+      "members": 652,
+      "frozen_inputs": 623,
+      "sha256": "805dd9e55e1df0ee82f519a7f317dd1db7ad3cf7a8f65ba163bd066f72b05a9e",
+      "stage": "Selected-route label not recognized by original OCR",
+      "unchanged_package_retry": true
+    },
+    {
+      "passed": true,
+      "failed_native_qa": true,
+      "restoration_verified": true,
+      "members": 653,
+      "frozen_inputs": 623,
+      "sha256": "528a0f8b50246feca753fbf084fc2cdbfb74c49bc6f25e57be703c677abfe309",
+      "stage": "QA module JSON omits numeric index",
+      "unchanged_package_retry": true
+    }
+  ],
+  "capture_sha256": "e85de6ccc4eb2d5ac9ec6ae02235aecb717e7d699bc01699e897fc76b7e14011",
+  "full_plan_complete": false,
+  "physical_bluetooth_deferred": true,
+  "remaining": [
+    "Acoustic and microphone capture quality",
+    "Multiple physical routes and jack hotplug",
+    "Card profiles and per-application routing",
+    "PipeWire runtime and call policy",
+    "Touch text-selection refinement, accessibility and power/performance/endurance",
+    "All unfinished full-plan milestones"
+  ]
+}

@@ -1,4 +1,4 @@
-//! Event-driven output controls. Only the worker calls libpulse; UI gets snapshots.
+//! Event-driven audio controls. Only the worker calls libpulse; UI gets snapshots.
 mod pulse;
 use crate::{CalloopData, Compositor};
 use anyhow::{Result, bail, ensure};
@@ -16,7 +16,7 @@ use std::{
     thread::JoinHandle,
     time::{Duration, Instant},
 };
-use tarot_core::audio::{Output, Snapshot, UiAction};
+use tarot_core::audio::{Output, Port, Snapshot, UiAction};
 
 enum Event {
     Wake,
@@ -82,13 +82,14 @@ impl Server {
         let latest = self.shared.latest.lock().unwrap();
         ensure!(latest.available, "Audio service unavailable");
         ensure!(
-            default_epoch
-                .is_none_or(|epoch| latest.default_identity() == Some((epoch, action.output()))),
+            default_epoch.is_none_or(|epoch| !action.is_input()
+                && action.port().is_none()
+                && latest.default_identity() == Some((epoch, action.device()))),
             "Default audio output changed"
         );
         ensure!(
-            latest.outputs.iter().any(|o| o.id == action.output()),
-            "Audio output is no longer available"
+            action.selectable(&latest),
+            "Audio device or route is no longer available"
         );
         ensure!(
             !self.shared.busy.swap(true, Ordering::AcqRel),
@@ -159,49 +160,88 @@ pub fn start(
     })
 }
 struct Session {
-    ids: HashMap<u32, (std::ffi::CString, u64)>,
-    sinks: HashMap<u64, pulse::Sink>,
+    ids: HashMap<(bool, u32), (std::ffi::CString, u64)>,
+    ports: HashMap<(u64, std::ffi::CString), u64>,
+    devices: HashMap<u64, pulse::Device>,
     snapshot: Snapshot,
     pending: Option<(UiAction, Instant)>,
 }
+fn allocate(next: &mut u64) -> Result<u64> {
+    *next = next
+        .checked_add(1)
+        .ok_or_else(|| anyhow::anyhow!("Audio identity exhausted"))?;
+    Ok(*next)
+}
 impl Session {
     fn refresh(&mut self, connection: &pulse::Connection, next_id: &mut u64) -> Result<()> {
-        let (sinks, default) = connection.snapshot()?;
+        self.update_inventory(connection.snapshot()?, next_id)
+    }
+    fn update_inventory(&mut self, inventory: pulse::Inventory, next_id: &mut u64) -> Result<()> {
+        for key in inventory.removed {
+            self.ids.remove(&key);
+        }
         let mut ids = HashMap::new();
+        let mut port_ids = HashMap::new();
         let mut actual = HashMap::new();
         let mut outputs = Vec::new();
-        for sink in sinks {
-            let id = match self.ids.get(&sink.index) {
-                Some((name, id)) if *name == sink.name => *id,
-                _ => {
-                    *next_id = next_id
-                        .checked_add(1)
-                        .ok_or_else(|| anyhow::anyhow!("Audio identity exhausted"))?;
-                    *next_id
-                }
+        let mut inputs = Vec::new();
+        for device in inventory.outputs.into_iter().chain(inventory.inputs) {
+            let key = (device.input, device.index);
+            let id = match self.ids.get(&key) {
+                Some((name, id)) if *name == device.name => *id,
+                _ => allocate(next_id)?,
             };
-            outputs.push(Output {
+            let mut ports = Vec::new();
+            for port in &device.ports {
+                let key = (id, port.name.clone());
+                let port_id = match self.ports.get(&key) {
+                    Some(id) => *id,
+                    None => allocate(next_id)?,
+                };
+                ports.push(Port {
+                    id: port_id,
+                    label: port.label.clone(),
+                    available: port.available,
+                    active: port.active,
+                });
+                port_ids.insert(key, port_id);
+            }
+            let default = if device.input {
+                &inventory.defaults.input
+            } else {
+                &inventory.defaults.output
+            };
+            let row = Output {
                 id,
-                label: sink.label.clone(),
-                percent: sink.percent(),
-                muted: sink.muted,
-                default: default.as_ref() == Some(&sink.name),
-            });
-            ids.insert(sink.index, (sink.name.clone(), id));
-            actual.insert(id, sink);
+                label: device.label.clone(),
+                percent: device.percent(),
+                muted: device.muted,
+                default: default.as_ref() == Some(&device.name),
+                ports,
+            };
+            if device.input {
+                inputs.push(row);
+            } else {
+                outputs.push(row);
+            }
+            ids.insert(key, (device.name.clone(), id));
+            actual.insert(id, device);
         }
         outputs.sort_by_key(|o| (!o.default, o.id));
+        inputs.sort_by_key(|o| (!o.default, o.id));
         self.ids = ids;
-        self.sinks = actual;
+        self.ports = port_ids;
+        self.devices = actual;
         self.snapshot.outputs = outputs;
+        self.snapshot.inputs = inputs;
         self.snapshot.available = true;
         if let Some((action, deadline)) = &self.pending {
             if action.confirmed(&self.snapshot) {
                 self.pending = None;
                 self.snapshot.action_error = None;
-            } else if !self.sinks.contains_key(&action.output()) {
+            } else if !action.selectable(&self.snapshot) {
                 self.pending = None;
-                self.snapshot.action_error = Some("Audio output disappeared".into());
+                self.snapshot.action_error = Some("Audio device or route disappeared".into());
             } else if Instant::now() >= *deadline {
                 self.pending = None;
                 self.snapshot.action_error = Some("Audio change was not confirmed".into());
@@ -210,7 +250,37 @@ impl Session {
         self.snapshot.pending = self.pending.as_ref().map(|(a, _)| a.clone());
         Ok(())
     }
+    fn apply(&self, connection: &pulse::Connection, action: &UiAction) -> Result<()> {
+        ensure!(
+            action.selectable(&self.snapshot),
+            "Audio device or route is no longer available"
+        );
+        let device = self
+            .devices
+            .get(&action.device())
+            .ok_or_else(|| anyhow::anyhow!("Audio device disappeared"))?;
+        match *action {
+            UiAction::Volume { percent, .. } | UiAction::InputVolume { percent, .. } => {
+                connection.volume(device, percent)
+            }
+            UiAction::Mute { muted, .. } | UiAction::InputMute { muted, .. } => {
+                connection.mute(device, muted)
+            }
+            UiAction::Default { .. } | UiAction::DefaultInput { .. } => connection.default(device),
+            UiAction::OutputPort { port, .. } | UiAction::InputPort { port, .. } => {
+                let name = self
+                    .ports
+                    .iter()
+                    .find_map(|((id, name), port_id)| {
+                        (*id == action.device() && *port_id == port).then_some(name)
+                    })
+                    .ok_or_else(|| anyhow::anyhow!("Audio route disappeared"))?;
+                connection.port(device, name)
+            }
+        }
+    }
 }
+
 fn supervise(shared: Arc<Shared>, receiver: mpsc::Receiver<Event>, address: Option<String>) {
     let mut epoch = 0;
     let mut next_id = 0;
@@ -256,7 +326,8 @@ fn run(
     let connection = pulse::Connection::connect(shared.clone(), address)?;
     let mut session = Session {
         ids: HashMap::new(),
-        sinks: HashMap::new(),
+        devices: HashMap::new(),
+        ports: HashMap::new(),
         snapshot: Snapshot {
             epoch,
             ..Default::default()
@@ -304,17 +375,11 @@ fn run(
                 // must never inherit an action for an earlier snapshot identity.
                 session.refresh(&connection, next_id)?;
                 let result = if default_epoch.is_some_and(|e| {
-                    session.snapshot.default_identity() != Some((e, action.output()))
+                    session.snapshot.default_identity() != Some((e, action.device()))
                 }) {
                     Err(anyhow::anyhow!("Default audio output changed"))
-                } else if let Some(sink) = session.sinks.get(&action.output()) {
-                    match action {
-                        UiAction::Volume { percent, .. } => connection.volume(sink, percent),
-                        UiAction::Mute { muted, .. } => connection.mute(sink, muted),
-                        UiAction::Default { .. } => connection.default(sink),
-                    }
                 } else {
-                    Err(anyhow::anyhow!("Audio output is no longer available"))
+                    session.apply(&connection, &action)
                 };
                 match result {
                     Ok(()) => {
@@ -335,5 +400,89 @@ fn run(
                 shared.publish_result(session.snapshot.clone(), true);
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::{collections::HashSet, ffi::CString};
+    use tarot_core::audio::Availability;
+    fn device(input: bool) -> pulse::Device {
+        let mut volume = libpulse_sys::pa_cvolume {
+            channels: 1,
+            values: [0; 32],
+        };
+        volume.values[0] = libpulse_sys::PA_VOLUME_NORM;
+        pulse::Device {
+            index: 7,
+            name: CString::new("same.backend.name").unwrap(),
+            label: "Device".into(),
+            volume,
+            muted: false,
+            input,
+            ports: vec![pulse::Port {
+                name: CString::new("route").unwrap(),
+                label: "Route".into(),
+                available: Availability::Unknown,
+                active: true,
+            }],
+        }
+    }
+    fn inventory(removed: HashSet<(bool, u32)>) -> pulse::Inventory {
+        pulse::Inventory {
+            outputs: vec![device(false)],
+            inputs: vec![device(true)],
+            defaults: pulse::Defaults {
+                input: Some(CString::new("same.backend.name").unwrap()),
+                output: None,
+            },
+            removed,
+        }
+    }
+    #[test]
+    fn coalesced_remove_readd_retires_device_and_port_without_changing_other_direction() {
+        let mut session = Session {
+            ids: HashMap::new(),
+            ports: HashMap::new(),
+            devices: HashMap::new(),
+            snapshot: Snapshot::default(),
+            pending: None,
+        };
+        let mut next = 0;
+        session
+            .update_inventory(inventory(HashSet::new()), &mut next)
+            .unwrap();
+        let input = session.snapshot.inputs[0].clone();
+        let output = session.snapshot.outputs[0].clone();
+        assert_ne!(input.id, output.id);
+        assert_ne!(input.ports[0].id, output.ports[0].id);
+        assert!(input.default && !output.default);
+        let old = UiAction::InputPort {
+            input: input.id,
+            port: input.ports[0].id,
+        };
+        session.pending = Some((old.clone(), Instant::now() + Duration::from_secs(3)));
+        session
+            .update_inventory(inventory(HashSet::from([(true, 7)])), &mut next)
+            .unwrap();
+        assert!(!old.selectable(&session.snapshot));
+        assert!(session.pending.is_none() && session.snapshot.action_error.is_some());
+        assert_ne!(session.snapshot.inputs[0].id, input.id);
+        assert_ne!(session.snapshot.inputs[0].ports[0].id, input.ports[0].id);
+        assert_eq!(session.snapshot.outputs[0], output);
+        let current = session.snapshot.inputs[0].clone();
+        let mut next_inventory = inventory(HashSet::new());
+        next_inventory.inputs[0].ports[0].available = Availability::No;
+        session.update_inventory(next_inventory, &mut next).unwrap();
+        assert_eq!(session.snapshot.inputs[0].id, current.id);
+        assert_eq!(session.snapshot.inputs[0].ports[0].id, current.ports[0].id);
+        assert!(
+            !UiAction::InputPort {
+                input: current.id,
+                port: current.ports[0].id
+            }
+            .selectable(&session.snapshot)
+        );
     }
 }

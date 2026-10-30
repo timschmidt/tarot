@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Feedbackd integration on an owned display/private bus; no sound or motor I/O."""
 import argparse
+import csv
+import io
 import hashlib
 import json
 import os
@@ -9,7 +11,6 @@ import subprocess
 import tempfile
 import time
 
-from dialog_button import locate
 from hardware_replay import PrivateInput
 from lock_replay import append, any_request
 from notification_replay import Fixture, await_value
@@ -147,7 +148,37 @@ def main():
             request(control, 'system_menu', open=True)
             request(control, 'system_page', page='Audio')
             time.sleep(.3)
-            target = locate(capture('sound-controls'), 'Silent', vertical=(.08, .87), scale=2)
+            # Only the complete profile-button line may satisfy this target.
+            # The explanatory sentence also contains Silent, and the expanded
+            # Sound page may put the actual control below the viewport.
+            target = None
+            for attempt in range(5):
+                image_path = capture('sound-controls-' + str(attempt))
+                output = subprocess.run(['tesseract', str(image_path), 'stdout', '--psm', '11', 'tsv'],
+                                        capture_output=True, text=True, check=True, timeout=20)
+                lines = {}
+                for row in csv.DictReader(io.StringIO(output.stdout), delimiter='\t'):
+                    if row['text'].strip() and float(row['conf']) >= 70:
+                        key = tuple(row[k] for k in ['page_num','block_num','par_num','line_num'])
+                        lines.setdefault(key, []).append(row)
+                for rows in lines.values():
+                    if ' '.join(r['text'] for r in rows).casefold() != 'silent': continue
+                    top = min(int(r['top']) for r in rows)
+                    bottom = max(int(r['top']) + int(r['height']) for r in rows)
+                    if not 100 < top < bottom < 630: continue
+                    left = min(int(r['left']) for r in rows)
+                    right = max(int(r['left']) + int(r['width']) for r in rows)
+                    target = dict(word='Silent', point=[(left + right) / 2, (top + bottom) / 2])
+                if target is not None: break
+                mouse.move(180,520)
+                assert display.poll() is None and mouse.property(mouse.window, '_NET_WM_PID') == [client.pid]
+                assert mouse.focus()[0] == mouse.window and mouse.pointer()['root_child'] == mouse.frame_window
+                for _ in range(3):
+                    assert mouse.xtest.XTestFakeButtonEvent(mouse.display,5,1,0)
+                    assert mouse.xtest.XTestFakeButtonEvent(mouse.display,5,0,0)
+                mouse.x.XSync(mouse.display,0)
+                time.sleep(.25)
+            assert target is not None, 'Rendered Silent profile button must be visible'
             record['rendered_target'] = target
             click(*target['point'])
             feedback('rendered-silent', lambda f: f['profile'] == 'Silent' and f['pending'] is None)
