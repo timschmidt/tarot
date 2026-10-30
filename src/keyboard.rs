@@ -35,16 +35,14 @@ impl Compositor {
         self.shell.credential_keyboard_visible()
             || (self.shell.view == View::Launcher
                 && self.shell.shell_text_focus
-                && !self.shell.system_menu_open
-                && !self.shell.notifications_open)
+                && !self.shell.system_menu_open)
     }
 
     pub fn native_keyboard_visible(&self) -> bool {
         if self.protected() {
             return false;
         }
-        !self.shell.notifications_open
-            && !self.shell.system_menu_open
+        !self.shell.system_menu_open
             && self.keyboard.as_ref().is_some_and(|keyboard| {
                 keyboard.mapped
                     && keyboard
@@ -124,11 +122,47 @@ impl Compositor {
         } else {
             0.0
         };
-        if self.layout.keyboard_height != height {
+        let next = tarot_core::Layout {
+            keyboard_height: height,
+            ..self.layout
+        };
+        let notification_height = if self.protected() {
+            0.0
+        } else {
+            tarot_core::notifications::reserved_height(&self.shell, next)
+        };
+        let changed = self.notification_motion.target() != notification_height;
+        let keyboard_changed = self.layout.keyboard_height != height;
+        if keyboard_changed || changed {
+            if changed {
+                // A reserved boundary moved. A held contact must not complete
+                // against a resized app or a replacement notification control.
+                self.cancel_input_sequences();
+            }
+            let now = self.start_time.elapsed();
+            let rebase = keyboard_changed
+                && (self.notification_motion.target() > 0.0 || notification_height > 0.0);
             self.layout.keyboard_height = height;
+            self.notification_motion.retarget(
+                notification_height,
+                now,
+                self.shell.reduced_motion || rebase,
+            );
+            if rebase {
+                self.layout.notification_height = notification_height;
+                self.animation.reconfigure(&self.shell, self.layout, now);
+            }
+            // Start both transitions at this exact instant, including hidden
+            // protected transitions. The next rendered frame samples one clock.
+            self.advance_presentation_at(now);
             self.configure_windows();
             self.ui_dirty = true;
             self.redraw = true;
+        }
+        let now = self.start_time.elapsed();
+        if self.notification_motion.moving(now) {
+            let deadline = std::time::Instant::now() + std::time::Duration::from_millis(16);
+            self.repaint_at = Some(self.repaint_at.map_or(deadline, |old| old.min(deadline)));
         }
     }
 }

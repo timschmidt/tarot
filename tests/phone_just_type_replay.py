@@ -150,26 +150,31 @@ def replay(control,screen,state,tap,capture,before,out,cgroup,authenticate):
         for n in range(15):sender.notify(summary=f'Newer fixture {n}',body='Fictional retained record',resident=True,timeout=0)
         query('needle','fallback-query');touch(*result_point('Archive','fallback'))
         observe('dashboard-target',lambda s:s['notifications']['dashboard_open'] and (s['just_type']['selected'] or {}).get('Notification',{}).get('id')==archived)
+        well=observe('dashboard-rows-ready',lambda s:s['notifications']['well']['height']==224)['notifications']['well']
+        dashboard_vertical=((well['y']+48)/720,(well['y']+well['height'])/720)
+        result['dashboard_well']=well
         for attempt in range(4):
             label='targeted-dashboard-'+str(attempt);picture(label)
             try:
-                # Exclude the dimmed matching search row behind the panel.
-                visible=locate(out/('search-'+label+'.png'),'Archive',vertical=(.59,(720-44)/720));visible['capture']='search-'+label+'.png';result['target_visibility'].append(visible);break
+                # Exclude the still-usable matching search row above the well.
+                visible=locate(out/('search-'+label+'.png'),'Archive',vertical=dashboard_vertical);visible['capture']='search-'+label+'.png';result['target_visibility'].append(visible);break
             except AssertionError:
                 if attempt==3:raise
                 time.sleep(.15)
+        start=well['y']+48+12;end=well['y']+well['height']-16
+        assert end-start>=24
         for _ in range(14):
-            s=status();px,py=physical(s,180,450);screen.down(px/2,py/2)
+            s=status();px,py=physical(s,180,start);screen.down(px/2,py/2)
             for step in range(1,7):
-                px,py=physical(s,180,450+30*step);screen.move(px/2,py/2,delay=.025)
+                px,py=physical(s,180,start+(end-start)*step/6);screen.move(px/2,py/2,delay=.025)
             screen.up();time.sleep(.1)
         picture('dashboard-scrolled-away')
-        result['scrolled_newer_visible']=locate(out/'search-dashboard-scrolled-away.png','Newer',vertical=(.59,(720-44)/720))
-        try:locate(out/'search-dashboard-scrolled-away.png','Archive',vertical=(.59,(720-44)/720))
+        result['scrolled_newer_visible']=locate(out/'search-dashboard-scrolled-away.png','Newer',vertical=dashboard_vertical)
+        try:locate(out/'search-dashboard-scrolled-away.png','Archive',vertical=dashboard_vertical)
         except AssertionError:pass
         else:raise AssertionError('Target must be outside the dashboard viewport before reselection')
         selected=status()['just_type']
-        touch(4,60);observe('repeat-query-preserved',lambda s:not s['notifications']['dashboard_open'] and s['launcher_query']=='needle')
+        touch(40,706);observe('repeat-query-preserved',lambda s:not s['notifications']['dashboard_open'] and s['launcher_query']=='needle')
         touch(*result_point('Archive','repeat-fallback'))
         observe('dashboard-reselected',lambda s:s['notifications']['dashboard_open']
                 and s['just_type']['revision']==selected['revision'] and s['just_type']['selected']==selected['selected']
@@ -177,12 +182,12 @@ def replay(control,screen,state,tap,capture,before,out,cgroup,authenticate):
         for attempt in range(4):
             label='reselected-dashboard-'+str(attempt);picture(label)
             try:
-                visible=locate(out/('search-'+label+'.png'),'Archive',vertical=(.59,(720-44)/720));visible['capture']='search-'+label+'.png';result['reselected_target_visibility'].append(visible);break
+                visible=locate(out/('search-'+label+'.png'),'Archive',vertical=dashboard_vertical);visible['capture']='search-'+label+'.png';result['reselected_target_visibility'].append(visible);break
             except AssertionError:
                 if attempt==3:raise
                 time.sleep(.15)
         result['repeated_dashboard_selection']=True
-        touch(4,60);observe('query-after-dashboard',lambda s:not s['notifications']['dashboard_open'] and s['launcher_query']=='needle')
+        touch(40,706);observe('query-after-dashboard',lambda s:not s['notifications']['dashboard_open'] and s['launcher_query']=='needle')
         query('caf','web-prefix');keys=keyboard();touch(30,663);keys.page=1;touch(69.21429,609)
         observe('unicode-query',lambda s:s['launcher_query']=='café');keys.type_ascii(' & one=two')
         observe('web-query',lambda s:s['launcher_query']=='café & one=two');picture('provider')

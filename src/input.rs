@@ -164,14 +164,12 @@ impl Compositor {
                             keysyms::KEY_F2 => Some(Command::Launcher),
                             keysyms::KEY_Left
                                 if state.shell.view == View::Overview
-                                    && !state.shell.notifications_open
                                     && !state.shell.system_menu_open =>
                             {
                                 Some(Command::BrowseCards(-1))
                             }
                             keysyms::KEY_Right
                                 if state.shell.view == View::Overview
-                                    && !state.shell.notifications_open
                                     && !state.shell.system_menu_open =>
                             {
                                 Some(Command::BrowseCards(1))
@@ -179,7 +177,6 @@ impl Compositor {
                             keysyms::KEY_Up | keysyms::KEY_Down
                                 if state.shell.just_type_active()
                                     && !state.shell.system_menu_open
-                                    && !state.shell.notifications_open
                                     && !state.shell.launcher.menu_open =>
                             {
                                 Some(Command::JustType(tarot_core::search::Action::Move(
@@ -189,7 +186,6 @@ impl Compositor {
                             keysyms::KEY_Return | keysyms::KEY_KP_Enter
                                 if state.shell.just_type_active()
                                     && !state.shell.system_menu_open
-                                    && !state.shell.notifications_open
                                     && !state.shell.launcher.menu_open =>
                             {
                                 Some(Command::JustType(tarot_core::search::Action::Submit))
@@ -233,9 +229,7 @@ impl Compositor {
                             }
                             return FilterResult::Intercept(None);
                         }
-                        if !matches!(state.shell.view, View::App(_))
-                            || state.shell.notifications_open
-                            || state.shell.system_menu_open
+                        if !matches!(state.shell.view, View::App(_)) || state.shell.system_menu_open
                         {
                             state.shell_keys.record(raw_code, egui_key(symbol), pressed);
                             let modifiers = egui::Modifiers {

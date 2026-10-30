@@ -74,12 +74,17 @@ impl Compositor {
         self.layout = Layout {
             width: width as f32,
             height: height as f32,
+            notification_height: 0.0,
             keyboard_height: 0.0,
         };
         if let Some(keyboard) = &mut self.keyboard {
             keyboard.height = keyboard.height.clamp(1, (height * 0.5).max(1.0) as i32);
         }
         self.refresh_keyboard();
+        let now = self.start_time.elapsed();
+        self.notification_motion
+            .retarget(self.notification_motion.target(), now, true);
+        self.layout.notification_height = self.notification_motion.target();
         self.reconfigure_menu_motion();
         self.configure_windows();
         self.configure_lock_surface();

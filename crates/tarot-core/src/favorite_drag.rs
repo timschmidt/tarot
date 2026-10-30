@@ -41,6 +41,8 @@ pub struct Scene {
     catalog: Vec<(String, bool)>,
     pages: crate::launcher::Settings,
     banner: Option<(u32, u64)>,
+    dashboard: bool,
+    well_height: f32,
     size: (f32, f32),
 }
 
@@ -54,6 +56,8 @@ impl Scene {
             pages: model.launcher.settings.clone(),
             size: (layout.width, layout.height),
             banner: model.notifications.banner,
+            dashboard: model.notifications_open,
+            well_height: layout.notification_well().height,
             catalog: model
                 .applications
                 .iter()
@@ -64,7 +68,6 @@ impl Scene {
     pub fn allowed(model: &ShellModel) -> bool {
         !matches!(model.view, View::App(_))
             && !model.system_menu_open
-            && !model.notifications_open
             && !model.card_menu_open
             && model.network_input.is_none()
             && !model.launcher.menu_open
@@ -358,6 +361,7 @@ mod tests {
             Layout {
                 width: 360.0,
                 height: 720.0,
+                notification_height: 0.0,
                 keyboard_height: 0.0,
             },
         )
@@ -543,6 +547,7 @@ mod tests {
                 800,
                 &model,
                 Layout {
+                    notification_height: 0.0,
                     keyboard_height: 240.0,
                     ..layout
                 }
@@ -551,6 +556,82 @@ mod tests {
             .is_some()
         );
     }
+    #[test]
+    fn retained_notification_cannot_cancel_a_compact_search_hold_hiding_its_keyboard() {
+        for banner in [false, true] {
+            let (mut model, layout) = fixture();
+            model.launcher.search_open = true;
+            model.shell_text_focus = true;
+            model
+                .notifications
+                .items
+                .push(crate::notifications::Notification {
+                    id: 1,
+                    source: 1,
+                    revision: 1,
+                    app_name: "Fixture".into(),
+                    summary: "Retained".into(),
+                    body: String::new(),
+                    actions: vec![],
+                    urgent: false,
+                    live: true,
+                    orphaned: false,
+                });
+            model.notifications.banner = banner.then_some((1, 1));
+            let typing = Layout {
+                width: 720.0,
+                height: 360.0,
+                keyboard_height: 180.0,
+                ..layout
+            }
+            .with_notifications(&model);
+            let source = Source::Launcher("app2.desktop".into());
+            let mut gesture = armed(&model, typing, source.clone());
+            model.apply(crate::Command::ShellTextFocus(false));
+            let dragging = Layout {
+                keyboard_height: 0.0,
+                ..typing
+            }
+            .with_notifications(&model);
+            assert_eq!(typing.notification_height, dragging.notification_height);
+            gesture.reconcile(&model, dragging);
+            gesture.motion(center(dragging, 0));
+            assert!(gesture.release(800, &model, dragging).edit.is_some());
+            let mut interrupted = armed(&model, dragging, source);
+            interrupted.motion(center(dragging, 0));
+            model.apply(crate::Command::NotificationsOpen(true));
+            let dashboard = dragging.with_notifications(&model);
+            assert!(dashboard.notification_height > 0.0);
+            assert_eq!(
+                interrupted.release(800, &model, dashboard),
+                Release::default()
+            );
+        }
+    }
+
+    #[test]
+    fn dashboard_allows_new_favorite_contacts_and_geometry_changes_cancel_them() {
+        let (mut model, layout) = fixture();
+        model.notifications_open = true;
+        let layout = layout.with_notifications(&model);
+        let source = Source::Launcher("app2.desktop".into());
+        let mut gesture = armed(&model, layout, source.clone());
+        gesture.motion(center(layout, 0));
+        assert!(gesture.release(800, &model, layout).edit.is_some());
+        for change in [false, true] {
+            let mut gesture = armed(&model, layout, source.clone());
+            gesture.motion(center(layout, 0));
+            let mut next = model.clone();
+            let mut next_layout = layout;
+            if change {
+                next.notifications_open = false;
+            } else {
+                next_layout.notification_height -= 1.0;
+            }
+            assert_eq!(gesture.release(800, &next, next_layout), Release::default());
+        }
+    }
+
     #[test]
     fn edge_dwell_previews_pages_and_only_a_valid_release_places_the_identity() {
         use crate::launcher::{Edit as PageEdit, PageId};

@@ -189,9 +189,7 @@ impl Compositor {
             return;
         }
         let target = match self.shell.view {
-            View::App(id) if !self.shell.system_menu_open && !self.shell.notifications_open => {
-                self.root_for_window(id)
-            }
+            View::App(id) if !self.shell.system_menu_open => self.root_for_window(id),
             _ => None,
         };
         if let Some(keyboard) = self.seat.get_keyboard() {

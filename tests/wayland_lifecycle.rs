@@ -17,6 +17,9 @@ use wayland_client::{
         wl_shm, wl_shm_pool, wl_subcompositor, wl_subsurface, wl_surface, wl_touch,
     },
 };
+use wayland_protocols::wp::text_input::zv3::client::{
+    zwp_text_input_manager_v3, zwp_text_input_v3,
+};
 use wayland_protocols::wp::viewporter::client::{wp_viewport, wp_viewporter};
 use wayland_protocols::xdg::dialog::v1::client::{xdg_dialog_v1, xdg_wm_dialog_v1};
 use wayland_protocols::xdg::shell::client::{
@@ -30,6 +33,10 @@ struct Client {
     shell: Option<xdg_wm_base::XdgWmBase>,
     dialogs: Option<xdg_wm_dialog_v1::XdgWmDialogV1>,
     viewporter: Option<wp_viewporter::WpViewporter>,
+    text_manager: Option<zwp_text_input_manager_v3::ZwpTextInputManagerV3>,
+    text_enabled: bool,
+    pending_commit: Option<String>,
+    ime_commits: Vec<String>,
     subcompositor: Option<wl_subcompositor::WlSubcompositor>,
     configures: usize,
     sizes: Vec<(xdg_toplevel::XdgToplevel, i32, i32)>,
@@ -1646,6 +1653,9 @@ impl Dispatch<wl_registry::WlRegistry, ()> for Client {
                 "xdg_wm_base" => state.shell = Some(registry.bind(name, 6, qh, ())),
                 "xdg_wm_dialog_v1" => state.dialogs = Some(registry.bind(name, 1, qh, ())),
                 "wp_viewporter" => state.viewporter = Some(registry.bind(name, 1, qh, ())),
+                "zwp_text_input_manager_v3" => {
+                    state.text_manager = Some(registry.bind(name, 1, qh, ()))
+                }
                 "wl_subcompositor" => state.subcompositor = Some(registry.bind(name, 1, qh, ())),
                 "wl_seat" => state.seat = Some(registry.bind(name, 1, qh, ())),
                 _ => {}
@@ -1897,3 +1907,466 @@ impl Dispatch<wl_touch::WlTouch, ()> for Client {
         }
     }
 }
+
+#[test]
+#[ignore = "requires owned bus/display/input; run tests/transient_session_replay.py --case notifications"]
+fn notification_well_keeps_oversized_client_input_and_popup_alignment() {
+    fn wait(
+        queue: &mut EventQueue<Client>,
+        client: &mut Client,
+        label: &str,
+        condition: impl Fn(&Client, &Value) -> bool,
+    ) -> Value {
+        let deadline = Instant::now() + Duration::from_secs(5);
+        loop {
+            sync(queue, client);
+            let s = status();
+            if condition(client, &s) {
+                return s;
+            }
+            assert!(
+                Instant::now() < deadline,
+                "notification fixture {label}: {s}"
+            );
+            std::thread::sleep(Duration::from_millis(10));
+        }
+    }
+    fn notify(bus: &zbus::blocking::Connection, replaces: u32) -> u32 {
+        let proxy = zbus::blocking::Proxy::new(
+            bus,
+            "org.freedesktop.Notifications",
+            "/org/freedesktop/Notifications",
+            "org.freedesktop.Notifications",
+        )
+        .unwrap();
+        let hints: HashMap<&str, zbus::zvariant::Value<'_>> = HashMap::new();
+        proxy
+            .call(
+                "Notify",
+                &(
+                    "Tarot Fixture",
+                    replaces,
+                    "",
+                    "Synthetic notification",
+                    "Known fixture body",
+                    vec!["default", "Open"],
+                    hints,
+                    0i32,
+                ),
+            )
+            .unwrap()
+    }
+    fn visual(s: &Value) -> &Value {
+        &s["presentation"]["windows"][0]["rect"]
+    }
+    fn number(v: &Value, key: &str) -> f64 {
+        v[key].as_f64().unwrap()
+    }
+    fn center(s: &Value) -> (f64, f64) {
+        let v = visual(s);
+        (
+            number(v, "x") + number(v, "width") * 0.5,
+            number(v, "y") + number(v, "height") * 0.5,
+        )
+    }
+    fn click_root(
+        queue: &mut EventQueue<Client>,
+        client: &mut Client,
+        root: &Window,
+        s: &Value,
+        label: &str,
+    ) {
+        let point = center(s);
+        assert_eq!(captured_pixel(label, s, point), [32, 128, 72, 255]);
+        let before = client.presses.len();
+        let keys = client.keys.len();
+        drive(json!({"command":"click","output":s["output"],"x":point.0,"y":point.1,"key":true}));
+        sync(queue, client);
+        assert_eq!(
+            client.presses.len(),
+            before + 1,
+            "{label}: exactly one native press"
+        );
+        assert_eq!(client.presses.last().unwrap().0, root.surface);
+        assert_eq!(
+            client.keys.len(),
+            keys + 1,
+            "{label}: physical typing retained"
+        );
+        assert_eq!(client.keys.last(), Some(&root.surface));
+        let factor = (number(visual(s), "width") / 160.0).min(number(visual(s), "height") / 1000.0);
+        let tolerance = 2.0 / (factor * s["output"]["scale"].as_f64().unwrap());
+        let (_, x, y) = client.presses.last().unwrap();
+        assert!(
+            (*x - 80.0).abs() <= tolerance && (*y - 500.0).abs() <= tolerance,
+            "{label}: inverse fit {x},{y}"
+        );
+    }
+    assert_eq!(status()["cards"], json!([]));
+    let initial = status();
+    let socket = PathBuf::from(std::env::var_os("XDG_RUNTIME_DIR").unwrap())
+        .join(initial["wayland_display"].as_str().unwrap());
+    let connection = Connection::from_socket(UnixStream::connect(socket).unwrap()).unwrap();
+    let mut queue = connection.new_event_queue();
+    let qh = queue.handle();
+    let mut client = Client::default();
+    connection.display().get_registry(&qh, ());
+    sync(&mut queue, &mut client);
+    let mut root = client.uncommitted_window(&qh, "Notification minimum-size fixture", None);
+    root.buffer.destroy();
+    root.buffer = client.buffer(&qh, 160, 1000, [0x48, 0x80, 0x20, 255]);
+    root.xdg.set_window_geometry(0, 0, 160, 1000);
+    root.toplevel.set_min_size(160, 1000);
+    root.surface.commit();
+    sync(&mut queue, &mut client);
+    root.surface.attach(Some(&root.buffer), 0, 0);
+    root.surface.damage(0, 0, 160, 1000);
+    root.surface.commit();
+    wait(&mut queue, &mut client, "initial map", |c, s| {
+        c.focus == Some(root.surface.clone())
+            && s["cards"].as_array().is_some_and(|a| a.len() == 1)
+            && s["notifications"]["available"] == true
+    });
+    let bus = zbus::blocking::Connection::session().unwrap();
+    let mut identifier = 0;
+    for (index, orientation) in ["normal", "left-up", "bottom-up", "right-up", "normal"]
+        .into_iter()
+        .enumerate()
+    {
+        control(json!({"command":"rotate","orientation":orientation}));
+        let before = wait(&mut queue, &mut client, "rotation", |_, s| {
+            s["output"]["orientation"] == orientation
+        });
+        let full_height = before["output"]["logical_height"]
+            .as_f64()
+            .unwrap_or_else(|| {
+                number(&before["output"], "physical_height") / number(&before["output"], "scale")
+            });
+        let baseline = if orientation == "left-up" || orientation == "right-up" {
+            number(&before["output"], "physical_width") / number(&before["output"], "scale") - 68.0
+        } else {
+            full_height - 68.0
+        };
+        identifier = notify(&bus, identifier);
+        // This first gate uses existing geometry, not newly added metadata. The
+        // retained old binary must fail because its real client never shrinks.
+        let banner = wait(
+            &mut queue,
+            &mut client,
+            "banner reserves foreground",
+            |_, s| {
+                (number(&s["app_area"], "height") - (baseline - 48.0)).abs() < 0.01
+                    && (number(visual(s), "height") - number(&s["app_area"], "height")).abs() < 0.01
+            },
+        );
+        click_root(
+            &mut queue,
+            &mut client,
+            &root,
+            &banner,
+            &format!("well-banner-{index}"),
+        );
+        control(json!({"command":"notifications","open":true}));
+        let dashboard = wait(
+            &mut queue,
+            &mut client,
+            "dashboard keeps app focus",
+            |c, s| {
+                c.focus == Some(root.surface.clone())
+                    && s["notifications"]["dashboard_open"] == true
+                    && (number(&s["app_area"], "height") - (baseline - 112.0)).abs() < 0.01
+                    && ((number(visual(s), "height") - number(&s["app_area"], "height")).abs()
+                        < 0.01)
+            },
+        );
+        let presses = client.presses.len();
+        let keys = client.keys.len();
+        let well_y = number(&dashboard["app_area"], "y") + number(&dashboard["app_area"], "height");
+        drive(
+            json!({"command":"click","output":dashboard["output"],"x":10.0,"y":well_y+20.0,"key":true}),
+        );
+        sync(&mut queue, &mut client);
+        assert_eq!(
+            client.presses.len(),
+            presses,
+            "dashboard contact cannot reach the app"
+        );
+        assert_eq!(
+            client.keys.len(),
+            keys + 1,
+            "dashboard does not own physical typing"
+        );
+        assert_eq!(client.keys.last(), Some(&root.surface));
+        click_root(
+            &mut queue,
+            &mut client,
+            &root,
+            &dashboard,
+            &format!("well-dashboard-{index}"),
+        );
+        let popup = client.popup(&qh, &root, true);
+        sync(&mut queue, &mut client);
+        popup.map();
+        sync(&mut queue, &mut client);
+        let pose = status();
+        let r = visual(&pose);
+        let factor = (number(r, "width") / 160.0).min(number(r, "height") / 1000.0);
+        let origin = (
+            number(r, "x") + (number(r, "width") - 160.0 * factor) * 0.5,
+            number(r, "y") + (number(r, "height") - 1000.0 * factor) * 0.5,
+        );
+        let &(x, y, w, h) = client.popup_rects.get(&popup.popup).unwrap();
+        let point = (
+            origin.0 + (f64::from(x) + f64::from(w) * 0.5) * factor,
+            origin.1 + (f64::from(y) + f64::from(h) * 0.5) * factor,
+        );
+        assert_eq!(
+            captured_pixel(&format!("well-popup-{index}"), &pose, point),
+            [34, 85, 221, 255]
+        );
+        drive(
+            json!({"command":"click","output":pose["output"],"x":point.0,"y":point.1,"key":true}),
+        );
+        sync(&mut queue, &mut client);
+        assert_eq!(client.presses.last().unwrap().0, popup.surface);
+        assert_eq!(client.keys.last(), Some(&popup.surface));
+        popup.destroy();
+        sync(&mut queue, &mut client);
+        let s = status();
+        let revision = s["notifications"]["items"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|n| n["id"] == identifier)
+            .unwrap()["revision"]
+            .clone();
+        control(
+            json!({"command":"notification_action","action":{"HideBanner":{"id":identifier,"revision":revision}}}),
+        );
+        control(json!({"command":"notifications","open":false}));
+        let rail = wait(
+            &mut queue,
+            &mut client,
+            "rail restores focus and geometry",
+            |c, s| {
+                c.focus == Some(root.surface.clone())
+                    && (number(&s["app_area"], "height") - (baseline - 48.0)).abs() < 0.01
+            },
+        );
+        click_root(
+            &mut queue,
+            &mut client,
+            &root,
+            &rail,
+            &format!("well-rail-{index}"),
+        );
+    }
+    root.toplevel.set_fullscreen(None);
+    root.surface.commit();
+    sync(&mut queue, &mut client);
+    root.surface.commit();
+    let fullscreen = wait(&mut queue, &mut client, "fullscreen well", |c, s| {
+        latest_states(c, &root).contains(&2)
+            && number(visual(s), "y") == 0.0
+            && (number(visual(s), "height") - (number(&s["app_area"], "height") + 32.0)).abs()
+                < 0.01
+    });
+    click_root(
+        &mut queue,
+        &mut client,
+        &root,
+        &fullscreen,
+        "well-fullscreen",
+    );
+    root.toplevel.unset_fullscreen();
+    root.surface.commit();
+    sync(&mut queue, &mut client);
+    root.surface.commit();
+    wait(&mut queue, &mut client, "normal restore", |c, s| {
+        !latest_states(c, &root).contains(&2) && number(visual(s), "y") == 32.0
+    });
+    identifier = notify(&bus, identifier);
+    control(json!({"command":"notifications","open":true}));
+    wait(
+        &mut queue,
+        &mut client,
+        "dashboard moving before protection",
+        |_, s| {
+            number(&s["notifications"]["well"], "height") > 48.0
+                && number(&s["notifications"]["well"], "height") < 112.0
+        },
+    );
+    drive(json!({"command":"lock"}));
+    notify(&bus, identifier);
+    sync(&mut queue, &mut client);
+    assert_eq!(
+        status().as_object().unwrap().len(),
+        3,
+        "protected notification metadata must be redacted"
+    );
+    let protected_frames = status()["lock"]["unprotected_presentations"]
+        .as_u64()
+        .unwrap();
+    let checked_frames = std::cell::Cell::new(0usize);
+    drive(json!({"command":"unlock"}));
+    let restored = wait(
+        &mut queue,
+        &mut client,
+        "protected notification restore",
+        |c, s| {
+            if s["lock"]["unprotected_presentations"].as_u64().unwrap() > protected_frames {
+                checked_frames.set(checked_frames.get() + 1);
+                let boundary = number(visual(s), "y") + number(visual(s), "height");
+                let well = number(&s["notifications"]["well"], "y");
+                assert!(
+                    (boundary - well).abs() <= 1.0,
+                    "first visible resume must share the notification boundary: app={boundary}, well={well}"
+                );
+            }
+            c.focus == Some(root.surface.clone())
+                && (number(&s["app_area"], "height") - (652.0 - 48.0)).abs() < 0.01
+                && checked_frames.get() > 0
+        },
+    );
+    click_root(
+        &mut queue,
+        &mut client,
+        &root,
+        &restored,
+        "well-protected-return",
+    );
+    client.text_enabled = true;
+    let text = client.text_manager.as_ref().unwrap().get_text_input(
+        client.seat.as_ref().unwrap(),
+        &qh,
+        (),
+    );
+    sync(&mut queue, &mut client);
+    for (index, orientation) in ["normal", "left-up", "bottom-up", "right-up", "normal"]
+        .into_iter()
+        .enumerate()
+    {
+        control(json!({"command":"rotate","orientation":orientation}));
+        control(json!({"command":"notifications","open":true}));
+        let landscape = orientation == "left-up" || orientation == "right-up";
+        let expected = if landscape { 64.0 } else { 300.0 };
+        let shown = wait(
+            &mut queue,
+            &mut client,
+            "keyboard with dashboard",
+            |c, s| {
+                c.focus == Some(root.surface.clone())
+                    && s["output"]["orientation"] == orientation
+                    && s["keyboard_visible"] == true
+                    && (number(&s["app_area"], "height") - expected).abs() < 0.01
+                    && (number(visual(s), "height") - expected).abs() < 0.01
+            },
+        );
+        let keyboard = &shown["keyboard_rect"];
+        let commits = client.ime_commits.len();
+        let presses = client.presses.len();
+        drive(
+            json!({"command":"click","output":shown["output"],"x":number(keyboard,"width")/20.0,"y":number(keyboard,"y")+number(keyboard,"height")/4.0,"key":false}),
+        );
+        wait(
+            &mut queue,
+            &mut client,
+            "trusted keyboard commit",
+            |c, _| c.ime_commits.len() > commits,
+        );
+        assert_eq!(client.ime_commits.len(), commits + 1);
+        assert_eq!(client.ime_commits.last().map(String::as_str), Some("q"));
+        assert_eq!(
+            client.presses.len(),
+            presses,
+            "keyboard contact cannot reach the app"
+        );
+        click_root(
+            &mut queue,
+            &mut client,
+            &root,
+            &shown,
+            &format!("well-keyboard-{index}"),
+        );
+    }
+    client.text_enabled = false;
+    text.disable();
+    text.commit();
+    sync(&mut queue, &mut client);
+    control(json!({"command":"notifications","open":false}));
+    wait(&mut queue, &mut client, "keyboard retired", |_, s| {
+        s["keyboard_visible"] == false && (number(&s["app_area"], "height") - 604.0).abs() < 0.01
+    });
+    let other = zbus::blocking::Connection::session().unwrap();
+    assert_ne!(bus.unique_name(), other.unique_name());
+    let other_id = notify(&other, 0);
+    let sources = wait(&mut queue, &mut client, "distinct sources", |_, s| {
+        s["notifications"]["items"]
+            .as_array()
+            .is_some_and(|a| a.len() == 2)
+    });
+    let entries = sources["notifications"]["items"].as_array().unwrap();
+    assert_ne!(
+        entries.iter().find(|n| n["id"] == identifier).unwrap()["source"],
+        entries.iter().find(|n| n["id"] == other_id).unwrap()["source"]
+    );
+    control(json!({"command":"notification_action","action":"Clear"}));
+    let cleared = wait(
+        &mut queue,
+        &mut client,
+        "empty well restores original area",
+        |_, s| {
+            s["notifications"]["items"].as_array().unwrap().is_empty()
+                && (number(&s["app_area"], "height") - 652.0).abs() < 0.01
+        },
+    );
+    click_root(
+        &mut queue,
+        &mut client,
+        &root,
+        &cleared,
+        "well-cleared-return",
+    );
+    root.destroy();
+    sync(&mut queue, &mut client);
+    assert_eq!(status()["cards"], json!([]));
+    println!(
+        "Notification reservation, oversized-buffer fit/pixels/local input, non-modal typing, popups, four poses/return, fullscreen, source isolation, protected arrival and exact geometry restoration verified"
+    );
+}
+
+impl Dispatch<zwp_text_input_v3::ZwpTextInputV3, ()> for Client {
+    fn event(
+        state: &mut Self,
+        input: &zwp_text_input_v3::ZwpTextInputV3,
+        event: zwp_text_input_v3::Event,
+        _: &(),
+        _: &Connection,
+        _: &QueueHandle<Self>,
+    ) {
+        match event {
+            zwp_text_input_v3::Event::Enter { .. } if state.text_enabled => {
+                input.enable();
+                input.set_content_type(
+                    zwp_text_input_v3::ContentHint::empty(),
+                    zwp_text_input_v3::ContentPurpose::Normal,
+                );
+                input.set_surrounding_text(String::new(), 0, 0);
+                input.commit();
+            }
+            zwp_text_input_v3::Event::Leave { .. } => {
+                state.pending_commit = None;
+            }
+            zwp_text_input_v3::Event::CommitString { text } => {
+                state.pending_commit = text;
+            }
+            zwp_text_input_v3::Event::Done { .. } => {
+                if let Some(text) = state.pending_commit.take() {
+                    state.ime_commits.push(text);
+                }
+            }
+            _ => {}
+        }
+    }
+}
+delegate_noop!(Client: ignore zwp_text_input_manager_v3::ZwpTextInputManagerV3);

@@ -24,7 +24,7 @@ PUNCTUATION = {' ': (65, False), ':': (47, True), '/': (61, False), '.': (60, Fa
 
 
 def dashboard_band(path,scale):
-    """Find the opaque dashboard's painted rows, excluding dimmed results.
+    """Find the reserved dashboard's painted rows, excluding foreground results.
 
     Fixed height fractions can cut through both visible titles in landscape.
     The tested Nocturne panel/row colors establish the actual viewport instead.
@@ -33,7 +33,7 @@ def dashboard_band(path,scale):
         image=source.convert('RGB');width,height=image.size
     edges=[round(12*scale),round(width-12*scale)]
     panel=[y for y in range(round(32*scale),round(height-28*scale))
-           if all(image.getpixel((x,y))==(22,29,33) for x in edges)]
+           if all(image.getpixel((x,y))==(24,32,36) for x in edges)]
     assert panel,'The opaque dashboard panel must be visible'
     columns=[round(width*f) for f in (.45,.68,.9)]
     rows=[y for y in range(min(panel),max(panel)+1)

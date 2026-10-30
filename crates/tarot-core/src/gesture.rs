@@ -67,6 +67,7 @@ struct Contact {
     position: (f32, f32),
     origin: Origin,
     view: View,
+    dashboard: bool,
     selected: Option<WindowId>,
     selected_index: usize,
     card_count: usize,
@@ -153,7 +154,7 @@ impl Contact {
             .rev()
             .filter(|w| w.id != source && w.opacity > 0.01)
             .collect();
-        if y >= self.layout.height - Layout::GESTURE - Layout::DOCK - 48.0 {
+        if y >= self.layout.tray_bottom() - Layout::DOCK - 48.0 {
             let anchor = candidates.iter().min_by(|a, b| {
                 let center =
                     |rect: crate::Rect| (rect.x + rect.width / 2.0 + self.deck_offset - x).abs();
@@ -259,7 +260,7 @@ impl GestureRecognizer {
         } else if model.view == View::Overview
             && !model.cards.is_empty()
             && y >= Layout::STATUS
-            && y < layout.height - Layout::GESTURE - Layout::DOCK
+            && y < layout.tray_bottom() - Layout::DOCK
         {
             Origin::Cards(presentation.card_at(x, y, model.selected).filter(|id| {
                 model
@@ -282,6 +283,7 @@ impl GestureRecognizer {
             position: start.position,
             origin,
             view: model.view,
+            dashboard: model.notifications_open,
             selected: model.selected,
             selected_index,
             card_count: model.cards.len(),
@@ -436,7 +438,9 @@ impl GestureRecognizer {
         let consumed = contact.axis.is_some() || contact.arranging;
         if self.cancelled
             || (matches!(contact.origin, Origin::Strip | Origin::Cards(_))
-                && (model.system_menu_open || model.notifications_open || model.card_menu_open))
+                && (model.system_menu_open
+                    || contact.dashboard != model.notifications_open
+                    || model.card_menu_open))
             || contact.favorites != model.favorites
             || contact.view != model.view
             || contact.selected != model.selected
@@ -632,6 +636,7 @@ mod tests {
             Layout {
                 width: 360.0,
                 height: 720.0,
+                notification_height: 0.0,
                 keyboard_height: 0.0,
             },
             GestureRecognizer::default(),
@@ -671,10 +676,46 @@ mod tests {
     }
 
     #[test]
+    fn exposed_cards_accept_new_contacts_but_dashboard_changes_cancel_old_ones() {
+        for open in [false, true] {
+            let (mut model, layout, mut recognizer) = fixture(View::Overview);
+            model.notifications_open = open;
+            let layout = layout.with_notifications(&model);
+            begin(&mut recognizer, &model, layout, (300.0, 250.0));
+            recognizer.update(1, 20.0, 250.0, 200);
+            let mut interrupted = model.clone();
+            interrupted.notifications_open = !open;
+            assert_eq!(recognizer.finish(1, 250, &interrupted).command, None);
+            begin(&mut recognizer, &model, layout, (300.0, 250.0));
+            recognizer.update(1, 20.0, 250.0, 200);
+            assert!(matches!(
+                recognizer.finish(1, 250, &model).command,
+                Some(Command::BrowseCards(_))
+            ));
+        }
+    }
+
+    #[test]
     fn notification_banner_owns_a_hold_over_a_card() {
         let (mut model, layout, mut recognizer) = fixture(View::Overview);
         model.notifications.banner = Some((1, 1));
-        let banner = crate::notifications::banner_rect(layout);
+        model
+            .notifications
+            .items
+            .push(crate::notifications::Notification {
+                id: 1,
+                source: 1,
+                revision: 1,
+                app_name: "Fixture".into(),
+                summary: "Actual banner".into(),
+                body: String::new(),
+                actions: vec![],
+                urgent: false,
+                live: true,
+                orphaned: false,
+            });
+        let layout = layout.with_notifications(&model);
+        let banner = layout.notification_well();
         begin(&mut recognizer, &model, layout, (180.0, banner.y + 20.0));
         recognizer.tick_elapsed(Duration::from_secs(1));
         assert_eq!(recognizer.preview(), None);

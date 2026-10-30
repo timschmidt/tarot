@@ -24,7 +24,7 @@ PUNCTUATION = {' ': (65, False), ':': (47, True), '/': (61, False), '.': (60, Fa
 
 
 def dashboard_band(path,scale):
-    """Find the opaque dashboard's painted rows, excluding dimmed results.
+    """Find the reserved dashboard's painted rows, excluding foreground results.
 
     Fixed height fractions can cut through both visible titles in landscape.
     The tested Nocturne panel/row colors establish the actual viewport instead.
@@ -33,7 +33,7 @@ def dashboard_band(path,scale):
         image=source.convert('RGB');width,height=image.size
     edges=[round(12*scale),round(width-12*scale)]
     panel=[y for y in range(round(32*scale),round(height-28*scale))
-           if all(image.getpixel((x,y))==(22,29,33) for x in edges)]
+           if all(image.getpixel((x,y))==(24,32,36) for x in edges)]
     assert panel,'The opaque dashboard panel must be visible'
     columns=[round(width*f) for f in (.45,.68,.9)]
     rows=[y for y in range(min(panel),max(panel)+1)
@@ -50,11 +50,12 @@ def main():
     p.add_argument('--xvfb', default='Xvfb')
     p.add_argument('--scale', type=int, choices=[1,2], default=1)
     p.add_argument('--landscape', action='store_true')
+    p.add_argument('--binary', type=Path, default=Path('target/debug/tarot'))
     args = p.parse_args(); out = args.output.resolve(); out.mkdir(mode=0o700, parents=True, exist_ok=False)
     root = Path.cwd(); width,height = (720,360) if args.landscape else (360,720)
     records = {'passed': False, 'scale': args.scale, 'landscape': args.landscape,
                'phone_kms_tested': False, 'network_queries_sent': False, 'actions': [],
-               'compositor_sha256': hashlib.sha256((root/'target/debug/tarot').read_bytes()).hexdigest()}
+               'compositor_sha256': hashlib.sha256(args.binary.read_bytes()).hexdigest()}
     source_root=Path(__file__).resolve().parent; snapshots=out/'qa-sources';snapshots.mkdir()
     pending=[Path(__file__).resolve(),source_root/'just_type_uri_fixture.py'];sources={}
     while pending:
@@ -128,7 +129,7 @@ def main():
             await_value(lambda:(work/'bus').exists() or bus.poll() is not None,bool);assert bus.poll() is None
             env=dict(os.environ,DISPLAY=':'+number,WINIT_UNIX_BACKEND='x11',XDG_SESSION_TYPE='x11',LIBGL_ALWAYS_SOFTWARE='1',__EGL_VENDOR_LIBRARY_FILENAMES='/usr/share/glvnd/egl_vendor.d/50_mesa.json',XDG_DATA_HOME=str(work/'data'),XDG_DATA_DIRS=str(work/'empty'),XDG_CONFIG_HOME=str(work/'config'),XDG_CONFIG_DIRS=str(work/'empty'),DBUS_SESSION_BUS_ADDRESS=address)
             env.pop('WAYLAND_DISPLAY',None);env.pop('WAYLAND_SOCKET',None)
-            session=subprocess.Popen([str(root/'target/debug/tarot'),'--width',str(width*args.scale),'--height',str(height*args.scale),'--scale',str(args.scale),'--config-file',str(config),'--publish-session-environment','--notifications','--control-socket',str(control),'--exit-after-ms','240000'],env=env,stdout=log('session.log'),stderr=subprocess.STDOUT);children.append(session)
+            session=subprocess.Popen([str(args.binary.resolve()),'--width',str(width*args.scale),'--height',str(height*args.scale),'--scale',str(args.scale),'--config-file',str(config),'--publish-session-environment','--notifications','--control-socket',str(control),'--exit-after-ms','240000'],env=env,stdout=log('session.log'),stderr=subprocess.STDOUT);children.append(session)
             await_value(lambda:control.exists() or session.poll() is not None,bool);assert session.poll() is None
             mouse=PrivateInput(session.pid,xvfb,env['DISPLAY']);await_value(mouse.find,bool);mouse.move(180,300)
             state('ready',lambda s:s['application_count']==16 and s['notifications']['available'])
@@ -159,8 +160,8 @@ def main():
             for attempt in range(4):
                 label='targeted-dashboard-'+str(attempt);capture(label)
                 try:
-                    # Match the dashboard content, excluding the dimmed
-                    # search result with the same title behind that panel.
+                    # Match only dashboard content; the exposed search
+                    # foreground also contains the same title.
                     records['target_visibility']=dashboard_word(label,'Archive')
                     records['target_visibility'].update(capture=label+'.png',observation_attempt=attempt+1)
                     break
@@ -169,7 +170,12 @@ def main():
                     time.sleep(.15)
             # Move away using actual viewport drags, then choose the identical
             # retained target again without changing its query or identity.
-            start=height*.625;end=height-(60 if args.landscape else 90)
+            well=state('dashboard-scroll-geometry')['notifications']['well']
+            # Drag inside the reserved dashboard's row viewport. The old
+            # full-screen panel fractions now fall in the exposed foreground.
+            start=well['y']+48+12;end=well['y']+well['height']-16
+            assert end-start>=24, 'Dashboard needs an actual scrollable viewport'
+            records['dashboard_drag']={'start':start,'end':end,'well':well}
             for _ in range(32 if args.landscape else 14):
                 mouse.move(width/2*args.scale,start*args.scale);mouse.button(True)
                 for step in range(1,7):

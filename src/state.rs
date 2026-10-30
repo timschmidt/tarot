@@ -108,6 +108,7 @@ pub struct Compositor {
     pub hidden_frame_callback_at: Option<Instant>,
     pub hidden_frame_callback_timer_pending: bool,
     pub layout: Layout,
+    pub notification_motion: tarot_core::notifications::WellMotion,
     pub output_geometry: tarot_core::orientation::OutputGeometry,
     pub sensors: Option<crate::sensors::Server>,
     pub scale: i32,
@@ -259,9 +260,11 @@ impl Compositor {
             layout: Layout {
                 width: 360.0,
                 height: 720.0,
+                notification_height: 0.0,
                 keyboard_height: 0.0,
             },
             scale: 1,
+            notification_motion: Default::default(),
             output_geometry: Default::default(),
             sensors: None,
             next_window_id: 0,
@@ -529,6 +532,10 @@ impl Compositor {
     }
 
     pub fn advance_presentation(&mut self) {
+        self.advance_presentation_at(self.start_time.elapsed());
+    }
+
+    pub(crate) fn advance_presentation_at(&mut self, now: std::time::Duration) {
         self.advance_menu_clock();
         if let Some(started) = self.gesture_started {
             self.gestures.tick_elapsed(started.elapsed());
@@ -537,11 +544,23 @@ impl Compositor {
             let deadline = Instant::now() + delay;
             self.repaint_at = Some(self.repaint_at.map_or(deadline, |old| old.min(deadline)));
         }
-        let (mut frame, moving) = self.animation.advance(
+        let height = self.notification_motion.sample(now);
+        if self.layout.notification_height != height {
+            self.layout.notification_height = height;
+            self.ui_dirty = true;
+            self.redraw = true;
+        }
+        let configured_layout = self.configured_layout();
+        let duration = self
+            .notification_motion
+            .moving(now)
+            .then_some(tarot_core::notifications::WellMotion::DURATION);
+        let (mut frame, moving) = self.animation.advance_with_duration(
             &self.shell,
-            self.layout,
+            configured_layout,
             self.gestures.preview(),
-            self.start_time.elapsed(),
+            now,
+            duration,
         );
         self.expand_fullscreen_frame(&mut frame);
         if frame != self.presentation {
@@ -735,7 +754,7 @@ impl Compositor {
                     self.redraw = true;
                 }
                 Effect::Focus(id) => {
-                    let id = if self.shell.notifications_open || self.shell.system_menu_open {
+                    let id = if self.shell.system_menu_open {
                         None
                     } else {
                         id

@@ -28,11 +28,8 @@ pub(crate) fn grid_bounds(model: &ShellModel, layout: Layout, drag: bool) -> Rec
     } else {
         96.0
     };
-    let mut bottom = if model.shell_text_focus {
-        layout.keyboard().y - if compact { 4.0 } else { 12.0 }
-    } else {
-        layout.gesture().y - 12.0
-    };
+    let content = layout.content();
+    let mut bottom = content.y + content.height - if compact { 4.0 } else { 12.0 };
     if drag {
         bottom = bottom.min(tarot_core::quick_launch::slot(layout, 0, None).y - 8.0)
     }
@@ -588,6 +585,7 @@ mod tests {
         let layout = Layout {
             width: 720.0,
             height: 360.0,
+            notification_height: 0.0,
             keyboard_height: 180.0,
         };
         let render = |time, model: &ShellModel, events: Vec<egui::Event>| {

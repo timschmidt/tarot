@@ -336,6 +336,7 @@ mod tests {
     fn notification_privacy_and_replacement_identity_are_preserved() {
         let mut m = model();
         m.notifications.items.push(notifications::Notification {
+            source: 3,
             id: 3,
             revision: 8,
             app_name: "Mail".into(),

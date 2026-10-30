@@ -84,8 +84,12 @@ def replay(control,screen,state,tap,capture,before,out,authenticate):
         tile=(width-32-24)/3;point=(16+(index%3)*(tile+8)+tile/2,(100 if compact else 182)+(index//3)*(56 if compact else 112))
         assert point[1]<height-36 and index<6,(app_id,index,query)
         return point
+    def tray_top(s):
+        _,height=size(s)
+        return height-36-s['notifications']['well']['height']-69-4
     def slot(index):
-        width,height=size(status());return 3+(index+.5)*(width-6)/5,height-36-69-4+32
+        s=status();width,_=size(s)
+        return 3+(index+.5)*(width-6)/5,tray_top(s)+32
     def hold(point,label):
         down(point);time.sleep(.6);capture('favorite-'+label+'-held')
         s=status();entry={'label':label,'orientation':s['output']['orientation'],'point':point}
@@ -100,7 +104,7 @@ def replay(control,screen,state,tap,capture,before,out,authenticate):
         screen.up();return favorite(label+'-committed',expected)
     def remove(index,expected,label):
         overview(label+'-overview');hold(slot(index),label)
-        width,height=size(status());move((width/2,height-36-69-4-32));capture('favorite-'+label+'-target')
+        s=status();width,_=size(s);move((width/2,tray_top(s)-32));capture('favorite-'+label+'-target')
         screen.up();return favorite(label+'-removed',expected)
     try:
         state('favorite-ready',lambda s:s['favorites']['applications']==[CALCULATOR] and s['view']==before['view']

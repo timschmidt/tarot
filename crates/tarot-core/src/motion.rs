@@ -141,7 +141,7 @@ fn preview_pose(
         .map(|r| r.y + r.height)
         .fold(f32::NEG_INFINITY, f32::max);
     let minimum = Layout::STATUS + 52.0;
-    let maximum = (layout.gesture().y - Layout::DOCK - 36.0).max(minimum + 1.0);
+    let maximum = (layout.tray_bottom() - Layout::DOCK - 36.0).max(minimum + 1.0);
     let factor = ((maximum - minimum) / (bottom - top)).min(1.0);
     let placed_top = top.clamp(minimum, (maximum - (bottom - top) * factor).max(minimum));
     let mut visual = raw(pose);
@@ -348,6 +348,17 @@ impl Animator {
         preview: Option<Preview>,
         now: Duration,
     ) -> (Presentation, bool) {
+        self.advance_with_duration(model, layout, preview, now, None)
+    }
+
+    pub fn advance_with_duration(
+        &mut self,
+        model: &ShellModel,
+        layout: Layout,
+        preview: Option<Preview>,
+        now: Duration,
+        duration: Option<Duration>,
+    ) -> (Presentation, bool) {
         if let Some(preview) = preview {
             let origin = self.drag_origin.clone().unwrap_or_else(|| self.sample(now));
             let mut frame = origin.clone();
@@ -399,7 +410,7 @@ impl Animator {
         let target = Presentation::settled(model, layout);
         if self.to != target {
             self.from = self.sample(now);
-            self.duration =
+            self.duration = duration.unwrap_or_else(|| {
                 Duration::from_millis(if target.windows.len() > self.to.windows.len() {
                     crate::design::LAUNCH_MS
                 } else if target.windows.len() < self.to.windows.len() {
@@ -410,7 +421,8 @@ impl Animator {
                     crate::design::MINIMIZE_MS
                 } else {
                     crate::design::LAUNCHER_MS
-                });
+                })
+            });
             self.to = target;
             self.started = now;
         }
@@ -523,6 +535,7 @@ mod tests {
             let layout = Layout {
                 width,
                 height,
+                notification_height: 0.0,
                 keyboard_height: 0.0,
             };
             let ratios = crate::design::STACK_POSES.map(|pose| {
@@ -632,6 +645,7 @@ mod tests {
         let layout = Layout {
             width: 360.0,
             height: 720.0,
+            notification_height: 0.0,
             keyboard_height: 0.0,
         };
         let frame = Presentation::settled(&model, layout);

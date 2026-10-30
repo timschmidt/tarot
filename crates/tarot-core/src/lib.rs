@@ -208,17 +208,14 @@ impl ShellModel {
 
     fn just_type(&mut self, action: search::Action) -> Vec<Effect> {
         use search::{Action, Target};
-        if self.system_menu_open
-            || self.notifications_open
-            || self.editing_favorites
-            || self.launcher.rename.is_some()
-        {
+        if self.system_menu_open || self.editing_favorites || self.launcher.rename.is_some() {
             return Vec::new();
         }
         if action == Action::Open {
             if !matches!(self.view, View::Home | View::Overview | View::Launcher) {
                 return Vec::new();
             }
+            self.notifications_open = false;
             if !self.just_type_active() {
                 self.search.origin = Some(self.view);
                 self.search.invalidate();
@@ -249,6 +246,7 @@ impl ShellModel {
                 vec![Effect::Focus(None)]
             }
             Action::Clear => {
+                self.notifications_open = false;
                 self.launcher_query.clear();
                 self.search.invalidate();
                 self.launcher.menu_open = false;
@@ -353,6 +351,7 @@ impl ShellModel {
                         let Some(uri) = uri else {
                             return Vec::new();
                         };
+                        self.notifications_open = false;
                         self.launch_generation += 1;
                         self.launch_feedback = Some(LaunchFeedback {
                             generation: self.launch_generation,
@@ -591,11 +590,7 @@ impl ShellModel {
                 };
             }
             Command::QuickLaunch(index) => {
-                if index > quick_launch::CAPACITY
-                    || self.system_menu_open
-                    || self.notifications_open
-                    || self.card_menu_open
-                {
+                if index > quick_launch::CAPACITY || self.system_menu_open || self.card_menu_open {
                     return Vec::new();
                 }
                 if index == quick_launch::CAPACITY {
@@ -774,7 +769,7 @@ impl ShellModel {
                     self.launcher.menu_open = false;
                 }
                 let mut effects = canceled;
-                effects.push(Effect::Focus(if !open && let View::App(id) = self.view {
+                effects.push(Effect::Focus(if let View::App(id) = self.view {
                     Some(id)
                 } else {
                     None
@@ -784,20 +779,17 @@ impl ShellModel {
             Command::Notification(action) => return vec![Effect::Notification(action)],
             Command::CancelGesture => return Vec::new(),
             Command::CardMenuOpen(open) => {
-                self.card_menu_open = open
-                    && self.view == View::Overview
-                    && !self.system_menu_open
-                    && !self.notifications_open;
+                self.card_menu_open = open && self.view == View::Overview && !self.system_menu_open;
+                if self.card_menu_open {
+                    self.notifications_open = false;
+                }
                 return Vec::new();
             }
             Command::ToggleKeyboard => {
                 if matches!(self.view, View::Home | View::Overview) {
                     return self.just_type(search::Action::Open);
                 }
-                if self.view == View::Launcher
-                    && !self.system_menu_open
-                    && !self.notifications_open
-                    && !self.launcher.menu_open
+                if self.view == View::Launcher && !self.system_menu_open && !self.launcher.menu_open
                 {
                     if self.shell_text_focus {
                         self.shell_text_focus = false;
@@ -811,6 +803,9 @@ impl ShellModel {
                             &mut self.shell_text_focus,
                         );
                     }
+                    if self.shell_text_focus {
+                        self.notifications_open = false;
+                    }
                     return Vec::new();
                 }
                 return if matches!(self.view, View::App(_)) && self.keyboard_available {
@@ -823,10 +818,12 @@ impl ShellModel {
                 self.shell_text_focus = focused
                     && self.view == View::Launcher
                     && !self.system_menu_open
-                    && !self.notifications_open
                     && !self.launcher.menu_open;
-                if self.shell_text_focus && self.launcher.rename.is_none() {
-                    self.launcher.search_open = true;
+                if self.shell_text_focus {
+                    self.notifications_open = false;
+                    if self.launcher.rename.is_none() {
+                        self.launcher.search_open = true;
+                    }
                 }
                 return Vec::new();
             }
@@ -894,11 +891,7 @@ impl ShellModel {
                     effects.extend(self.apply(Command::LauncherAction(action)));
                     return effects;
                 }
-                if self.view != View::Launcher
-                    || self.system_menu_open
-                    || self.notifications_open
-                    || self.editing_favorites
-                {
+                if self.view != View::Launcher || self.system_menu_open || self.editing_favorites {
                     return Vec::new();
                 }
                 if action == launcher::Action::Search(true) {
@@ -915,12 +908,16 @@ impl ShellModel {
                         return Vec::new();
                     }
                 }
-                return if self.launcher.action(
+                let changed = self.launcher.action(
                     action,
                     &self.applications,
                     &mut self.launcher_query,
                     &mut self.shell_text_focus,
-                ) {
+                );
+                if self.shell_text_focus {
+                    self.notifications_open = false;
+                }
+                return if changed {
                     vec![Effect::Launcher(self.launcher.settings.clone())]
                 } else {
                     Vec::new()
@@ -954,6 +951,7 @@ impl ShellModel {
                 let Some(application) = self.applications.iter().find(|app| app.id == id) else {
                     return Vec::new();
                 };
+                self.notifications_open = false;
                 self.launch_generation += 1;
                 self.launch_feedback = Some(LaunchFeedback {
                     generation: self.launch_generation,
@@ -1097,6 +1095,8 @@ pub struct Layout {
     pub width: f32,
     pub height: f32,
     pub keyboard_height: f32,
+    /// Shell-owned notification space immediately above the keyboard or strip.
+    pub notification_height: f32,
 }
 
 impl Layout {
@@ -1109,8 +1109,37 @@ impl Layout {
             x: 0.0,
             y: Self::STATUS,
             width: self.width.max(1.0),
-            height: (self.height - Self::STATUS - Self::GESTURE - self.keyboard_height).max(1.0),
+            height: (self.notification_well().y - Self::STATUS).max(1.0),
         }
+    }
+
+    pub fn with_notifications(mut self, model: &ShellModel) -> Self {
+        self.notification_height = notifications::reserved_height(model, self);
+        self
+    }
+
+    pub fn notification_well(self) -> Rect {
+        let bottom = self.keyboard().y;
+        let height = self
+            .notification_height
+            .max(0.0)
+            .min((bottom - Self::STATUS - 1.0).max(0.0));
+        Rect {
+            x: 0.0,
+            y: bottom - height,
+            width: self.width.max(1.0),
+            height,
+        }
+    }
+
+    /// Bottom edge of app content, immediately above the notification well.
+    pub fn foreground_bottom(self) -> f32 {
+        self.notification_well().y
+    }
+
+    /// A favorite hold may hide the keyboard without moving its tray targets.
+    pub fn tray_bottom(self) -> f32 {
+        self.gesture().y - self.notification_well().height
     }
 
     pub fn gesture(self) -> Rect {
@@ -1159,7 +1188,7 @@ impl Layout {
         Rect {
             x: (self.width - width) / 2.0 + (index as f32 - selected_index as f32) * (width + 18.0),
             y: (self.height * design::CARD_Y / 720.0)
-                .min(self.gesture().y - Self::DOCK - 12.0 - height)
+                .min(self.tray_bottom() - Self::DOCK - 12.0 - height)
                 .max(Self::STATUS + 12.0),
             width,
             height,
@@ -1313,6 +1342,7 @@ mod tests {
         let layout = Layout {
             width: 360.0,
             height: 720.0,
+            notification_height: 0.0,
             keyboard_height: 0.0,
         };
         assert!(!layout.content().contains(180.0, 710.0));
@@ -1324,6 +1354,7 @@ mod tests {
         let mut layout = Layout {
             width: 360.0,
             height: 720.0,
+            notification_height: 0.0,
             keyboard_height: 240.0,
         };
         let app = layout.content();

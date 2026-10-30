@@ -4,7 +4,7 @@ use tarot_core::{
     Command, Layout, ShellModel, SystemPage,
     menu::{Action, Item, Panel, Target},
 };
-mod glyph;
+pub(crate) mod glyph;
 use glyph::Glyph;
 
 pub const TEXT: Color32 = Color32::from_rgb(231, 236, 225);
@@ -537,6 +537,7 @@ mod tests {
                     Layout {
                         width: size.x,
                         height: size.y,
+                        notification_height: 0.0,
                         keyboard_height: 0.0,
                     },
                 );
@@ -913,6 +914,7 @@ mod tests {
         let layout = Layout {
             width: 720.0,
             height: 360.0,
+            notification_height: 0.0,
             keyboard_height: 160.0,
         };
         let frame = |events: Vec<Event>| {

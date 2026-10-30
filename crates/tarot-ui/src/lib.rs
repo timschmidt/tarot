@@ -68,6 +68,7 @@ pub fn cancel_pointer_input(events: &mut Vec<egui::Event>) {
 }
 
 pub fn show(ctx: &egui::Context, model: &ShellModel, layout: Layout) -> Vec<Command> {
+    let layout = layout.with_notifications(model);
     theme::install(ctx);
     theme::prepare_art(ctx);
     ctx.layer_painter(egui::LayerId::background())
@@ -101,6 +102,12 @@ pub fn show_with_native_fullscreen(
     theme::install(ctx);
     theme::prepare_art(ctx);
     let mut commands = Vec::new();
+    let dashboard_epoch = egui::Id::new("notification_dashboard_popup_epoch");
+    let was_dashboard = ctx.data_mut(|d| d.get_temp::<bool>(dashboard_epoch).unwrap_or(false));
+    if model.notifications_open && !was_dashboard {
+        egui::Popup::close_all(ctx);
+    }
+    ctx.data_mut(|d| d.insert_temp(dashboard_epoch, model.notifications_open));
     let popup_epoch = egui::Id::new("top_menu_popup_epoch");
     if model.system_menu_open {
         if ctx.data_mut(|d| d.get_temp::<u64>(popup_epoch)) != Some(model.menus.revision) {
@@ -112,7 +119,6 @@ pub fn show_with_native_fullscreen(
     }
     if matches!(model.view, View::Home | View::Overview)
         && !model.system_menu_open
-        && !model.notifications_open
         && !model.card_menu_open
     {
         let typed = ctx.input(|i| {
@@ -143,7 +149,7 @@ pub fn show_with_native_fullscreen(
     );
     let mut search_focused = false;
     let search_id = launcher::text_id(model);
-    let modal = model.system_menu_open || model.notifications_open || model.launcher.menu_open;
+    let modal = model.system_menu_open || model.launcher.menu_open;
     if modal {
         ctx.memory_mut(|memory| memory.surrender_focus(search_id));
     }
@@ -365,17 +371,7 @@ pub fn show_with_native_fullscreen(
                 strip
             };
             let alerts = Rect::from_min_size(strip.min, Vec2::new(80.0, strip.height()));
-            if ui
-                .put(
-                    alerts,
-                    egui::Button::new(format!("Alerts {}", model.notifications.items.len()))
-                        .frame(false),
-                )
-                .on_hover_text("Open notification dashboard")
-                .clicked()
-            {
-                commands.push(Command::NotificationsOpen(!model.notifications_open));
-            }
+            notifications::entry(ui, model, alerts, &mut commands);
             let overview = Rect::from_min_max(
                 Pos2::new(overview.left() + 80.0, overview.top()),
                 overview.max,
@@ -454,10 +450,8 @@ pub fn show_with_native_fullscreen(
     if search_focused != model.shell_text_focus {
         commands.push(Command::ShellTextFocus(search_focused));
     }
-    let menu_open = model.view == View::Overview
-        && !model.system_menu_open
-        && !model.notifications_open
-        && egui::Popup::is_any_open(ctx);
+    let menu_open =
+        model.view == View::Overview && !model.system_menu_open && egui::Popup::is_any_open(ctx);
     if menu_open != model.card_menu_open {
         commands.push(Command::CardMenuOpen(menu_open));
     }
@@ -513,7 +507,6 @@ fn show_cards(
             ui.set_opacity(presentation.overview * visual.opacity);
             if model.view != View::Overview
                 || presentation.arrange.is_some()
-                || model.notifications_open
                 || model.system_menu_open
             {
                 ui.disable();
@@ -891,6 +884,7 @@ mod tests {
                 Layout {
                     width: 360.0,
                     height: 720.0,
+                    notification_height: 0.0,
                     keyboard_height: if model.credential_keyboard_visible()
                         || model.shell_text_focus && model.view == View::Launcher
                     {
@@ -931,6 +925,7 @@ mod tests {
                         Layout {
                             width: 360.0,
                             height: 720.0,
+                            notification_height: 0.0,
                             keyboard_height: 0.0,
                         },
                     );
@@ -1057,6 +1052,7 @@ mod tests {
                         Layout {
                             width: 360.0,
                             height: 720.0,
+                            notification_height: 0.0,
                             keyboard_height: 0.0,
                         },
                     );
@@ -1120,6 +1116,7 @@ mod tests {
                                 Layout {
                                     width: 360.0,
                                     height: 720.0,
+                                    notification_height: 0.0,
                                     keyboard_height: 0.0,
                                 },
                             );
@@ -1491,8 +1488,9 @@ mod tests {
         model.notifications.available = true;
         model.notifications.settings_available = true;
         model.apply(Command::NotificationsOpen(true));
+        assert!(click(&ctx, &model, Pos2::new(21.0, 100.0)).is_empty());
         assert_eq!(
-            click(&ctx, &model, Pos2::new(21.0, 100.0)),
+            click(&ctx, &model, Pos2::new(40.0, 706.0)),
             vec![Command::NotificationsOpen(false)]
         );
         model.apply(Command::NotificationsOpen(false));
@@ -1500,8 +1498,9 @@ mod tests {
             model.apply(command);
         }
         assert!(model.notifications_open);
+        assert!(click_text(&ctx, &model, "Settings").is_empty());
         assert_eq!(
-            click(&ctx, &model, Pos2::new(50.0, 300.0)),
+            click_text(&ctx, &model, "Do not disturb"),
             vec![Command::Notification(
                 tarot_core::notifications::UiAction::Settings {
                     dnd: true,
@@ -1599,6 +1598,7 @@ mod tests {
                     Layout {
                         width: 360.0,
                         height: 720.0,
+                        notification_height: 0.0,
                         keyboard_height: 0.0,
                     },
                 );
@@ -1652,7 +1652,54 @@ mod tests {
     }
 
     #[test]
-    fn notification_dashboard_captures_taps_and_has_touch_settings() {
+    fn dashboard_allows_search_navigation_keyboard_and_exposed_cards() {
+        let ctx = egui::Context::default();
+        let mut model = ShellModel::default();
+        model.apply(Command::NotificationsOpen(true));
+        let typed = frame(&ctx, &model, vec![egui::Event::Text("v".into())]);
+        assert!(typed.contains(&Command::JustType(tarot_core::search::Action::Open)));
+        for command in typed {
+            model.apply(command);
+        }
+        assert!(!model.notifications_open && model.just_type_active());
+        frame(&ctx, &model, vec![]);
+        assert!(
+            click(&ctx, &model, Pos2::new(21.0, 504.0)).contains(&Command::ShellKey(
+                tarot_core::KeyboardAction::Text("q".into())
+            ))
+        );
+        assert!(!model.notifications_open);
+        model.apply(Command::NotificationsOpen(true));
+        model.add_window_in_background(tarot_core::WindowId(7), "Example".into(), "test".into());
+        model.view = View::Overview;
+        model.selected = Some(tarot_core::WindowId(7));
+        let layout = tarot_core::Layout {
+            width: 360.0,
+            height: 720.0,
+            keyboard_height: 0.0,
+            notification_height: 0.0,
+        }
+        .with_notifications(&model);
+        let visual = tarot_core::motion::Presentation::settled(&model, layout);
+        let rect = visual
+            .windows
+            .iter()
+            .find(|w| w.id == tarot_core::WindowId(7))
+            .unwrap()
+            .rect;
+        let commands = click(
+            &ctx,
+            &model,
+            Pos2::new(rect.x + rect.width / 2.0, rect.y + rect.height / 2.0),
+        );
+        assert!(
+            commands.contains(&Command::Activate(tarot_core::WindowId(7))),
+            "{commands:?}"
+        );
+    }
+
+    #[test]
+    fn notification_dashboard_reserves_its_well_and_keeps_touch_settings() {
         let ctx = egui::Context::default();
         let mut model = ShellModel::default();
         assert_eq!(
@@ -1661,21 +1708,21 @@ mod tests {
         );
         model.apply(Command::NotificationsOpen(true));
         model.notifications.available = true;
-        assert!(click(&ctx, &model, Pos2::new(50.0, 300.0)).is_empty());
+        assert!(click_text(&ctx, &model, "Settings").is_empty());
+        assert!(click_text(&ctx, &model, "Do not disturb").is_empty());
         model.notifications.settings_available = true;
         assert_eq!(
-            click(&ctx, &model, Pos2::new(50.0, 300.0)),
+            click_text(&ctx, &model, "Do not disturb"),
             vec![Command::Notification(
                 tarot_core::notifications::UiAction::Settings {
                     dnd: true,
-                    hide_previews: false,
+                    hide_previews: false
                 }
             )]
         );
-        // This point belongs to the covered launcher button in the home view.
-        assert!(!click(&ctx, &model, Pos2::new(292.0, 648.0)).contains(&Command::Launcher));
+        assert!(click(&ctx, &model, Pos2::new(160.0, 100.0)).is_empty());
         assert_eq!(
-            click(&ctx, &model, Pos2::new(160.0, 100.0)),
+            click(&ctx, &model, Pos2::new(40.0, 706.0)),
             vec![Command::NotificationsOpen(false)]
         );
     }

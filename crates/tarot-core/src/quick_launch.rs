@@ -125,7 +125,7 @@ pub fn slot(layout: Layout, index: usize, wave: Option<Wave>) -> Rect {
             (layout.gesture().y - 64.0).max(Layout::STATUS + 28.0),
         )
     } else {
-        layout.gesture().y - crate::design::DOCK - 4.0
+        layout.tray_bottom() - crate::design::DOCK - 4.0
     };
     Rect {
         x,

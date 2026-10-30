@@ -178,6 +178,10 @@ def run(args, password):
             from phone_transient_replay import replay as transient_replay
             records['transients'] = transient_replay(socket, screen, guard, state,
                 authenticate, args.output, cgroup)
+        if getattr(args, 'notification_well', False):
+            from phone_transient_replay import replay as notification_well_replay
+            records['notification_well'] = notification_well_replay(socket, screen, guard, state,
+                authenticate, args.output, cgroup, notifications=True)
         if getattr(args, 'toolkit_dialogs', False):
             from phone_toolkit_dialog_replay import replay as toolkit_replay
             records['toolkit_dialogs'] = toolkit_replay(socket, tap, state, capture,
@@ -481,6 +485,7 @@ def main():
     parser.add_argument('--stack-matrix', action='store_true')
     parser.add_argument('--gtk-close', action='store_true')
     parser.add_argument('--transients', action='store_true')
+    parser.add_argument('--notification-well', action='store_true')
     parser.add_argument('--toolkit-dialogs', action='store_true')
     parser.add_argument('--terminal-clipboard', action='store_true')
     parser.add_argument('--browser', action='store_true')

@@ -41,6 +41,17 @@ impl Compositor {
     }
 
     pub fn fullscreen_viewport(&self, owner: WindowId) -> Rect {
+        self.fullscreen_viewport_in(owner, self.layout)
+    }
+
+    pub fn configured_layout(&self) -> Layout {
+        Layout {
+            notification_height: self.notification_motion.target(),
+            ..self.layout
+        }
+    }
+
+    fn fullscreen_viewport_in(&self, owner: WindowId, layout: Layout) -> Rect {
         // The input panel reserves space only for its owning card family.
         // Hidden fullscreen clients keep their full-output configuration.
         let reserved = self.native_keyboard_visible()
@@ -48,11 +59,16 @@ impl Compositor {
                 .keyboard
                 .as_ref()
                 .is_some_and(|keyboard| keyboard.owner == Some(owner));
+        let bottom = if reserved {
+            layout.keyboard().y
+        } else {
+            self.layout.height
+        };
         Rect {
-            height: if reserved {
-                self.layout.keyboard().y
+            height: if layout.notification_height > 0.0 && self.shell.view == View::App(owner) {
+                layout.notification_well().y.min(bottom)
             } else {
-                self.layout.height
+                bottom
             },
             ..self.fullscreen_area()
         }
@@ -89,7 +105,6 @@ impl Compositor {
     pub fn fullscreen_chrome(&self) -> bool {
         !self.protected()
             && !self.shell.system_menu_open
-            && !self.shell.notifications_open
             && self.presentation.overview == 0.0
             && matches!(self.shell.view, View::App(id) if self.fullscreen_window(id))
     }
@@ -117,12 +132,19 @@ impl Compositor {
             .unwrap()
             .borrow();
         let fullscreen = requested.fullscreen && !transient;
+        let layout = self.configured_layout();
         let area = if fullscreen {
-            self.fullscreen_viewport(id)
+            self.fullscreen_viewport_in(id, layout)
         } else if transient {
-            self.window_area(id)
+            if let Some(root) = self.families.owner(id)
+                && self.fullscreen_window(root)
+            {
+                self.fullscreen_viewport_in(root, layout)
+            } else {
+                layout.content()
+            }
         } else {
-            self.layout.content()
+            layout.content()
         };
         let size: Size<i32, Logical> = (area.width as i32, area.height as i32).into();
         top.with_pending_state(|state| {
@@ -215,7 +237,6 @@ impl Compositor {
         if self.families.owner(id) == Some(id)
             && self.shell.view == View::App(id)
             && !self.shell.system_menu_open
-            && !self.shell.notifications_open
         {
             self.apply_command(Command::Overview);
         }

@@ -343,6 +343,7 @@ mod tests {
         Layout {
             width: 360.0,
             height: 720.0,
+            notification_height: 0.0,
             keyboard_height: 0.0,
         }
     }
@@ -445,6 +446,7 @@ mod tests {
                             Layout {
                                 width: 720.0,
                                 height: 360.0,
+                                notification_height: 0.0,
                                 keyboard_height: 180.0,
                             },
                         );

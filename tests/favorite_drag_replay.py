@@ -13,7 +13,7 @@ import tomllib
 from PIL import Image, ImageChops
 from dialog_button import locate
 from hardware_replay import PrivateInput
-from notification_replay import await_value
+from notification_replay import Fixture, await_value
 from phone_gesture_replay import request
 from with_xvfb import read_display_number
 
@@ -24,6 +24,8 @@ def main():
     parser.add_argument('--xvfb',default='Xvfb')
     parser.add_argument('--scale',type=int,choices=[1,2],default=1)
     parser.add_argument('--landscape',action='store_true')
+    parser.add_argument('--retained-notification',action='store_true')
+    parser.add_argument('--binary',type=Path,default=Path('target/debug/tarot'))
     args=parser.parse_args();out=args.output.resolve();out.mkdir(mode=0o700,parents=True,exist_ok=False)
     root=Path.cwd();temporary=tempfile.TemporaryDirectory(prefix='tarot-favorite-drag-');work=Path(temporary.name)
     width,height=(720,360) if args.landscape else (360,720)
@@ -36,8 +38,8 @@ def main():
         executable=(str(root/'target/debug/examples/input-probe')+' --exit-after-seconds 180 --report "'+str(report)+'"') if identifier==original else '/bin/false'
         (catalog/identifier).write_text('[Desktop Entry]\nType=Application\nName='+name+'\nExec='+executable+'\n')
     records={'passed':False,'scale':args.scale,'landscape':args.landscape,
-        'compositor_sha256':hashlib.sha256((root/'target/debug/tarot').read_bytes()).hexdigest(),'actions':[]}
-    children=[];logs=[];mouse=session=None
+        'compositor_sha256':hashlib.sha256(args.binary.read_bytes()).hexdigest(),'actions':[],'retained_notification':args.retained_notification,'qa_source_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest()}
+    children=[];logs=[];mouse=session=fixture=None
     class ScaledInput(PrivateInput):
         def move(self,x,y):return super().move(x*args.scale,y*args.scale)
     def log(name):
@@ -63,7 +65,9 @@ def main():
             and all(w['opacity']==0 for w in s['presentation']['windows']))
     def overview(label):
         request(control,'overview');state(label,lambda s:s['view']=='Overview' and s['presentation']['overview']==1 and s['presentation']['dock']==1)
-    def slot(index):return 3+(index+.5)*(width-6)/5,height-36-69-4+32
+    def tray_top():
+        return height-36-request(control,'status')['notifications']['well']['height']-69-4
+    def slot(index):return 3+(index+.5)*(width-6)/5,tray_top()+32
     def hold(point,label):
         mouse.move(*point);time.sleep(.08);mouse.button(True);time.sleep(.55)
         capture(label+'-held')
@@ -90,19 +94,35 @@ def main():
             if write is not None:os.close(write)
         env=dict(os.environ,DISPLAY=':'+number,WINIT_UNIX_BACKEND='x11',XDG_SESSION_TYPE='x11',LIBGL_ALWAYS_SOFTWARE='1',__EGL_VENDOR_LIBRARY_FILENAMES='/usr/share/glvnd/egl_vendor.d/50_mesa.json',XDG_DATA_HOME=str(work/'data'),XDG_DATA_DIRS=str(work/'empty-data'))
         env.pop('WAYLAND_DISPLAY',None);env.pop('WAYLAND_SOCKET',None)
+        if args.retained_notification:
+            (work/'runtime').mkdir(mode=0o700)
+            env['XDG_RUNTIME_DIR']=str(work/'runtime')
+            address='unix:path='+str(work/'bus')
+            env['DBUS_SESSION_BUS_ADDRESS']=address
+            bus=subprocess.Popen(['dbus-daemon','--session','--nofork','--address',address],stdout=log('bus.log'),stderr=subprocess.STDOUT)
+            children.append(bus)
+            await_value(lambda:(work/'bus').exists() or bus.poll() is not None,bool)
+            assert bus.poll() is None
         def launch(label,expected):
             nonlocal session,mouse
-            session=subprocess.Popen([str(root/'target/debug/tarot'),'--width',str(width*args.scale),'--height',str(height*args.scale),'--scale',str(args.scale),'--config-file',str(config),'--control-socket',str(control),'--exit-after-ms','180000'],env=env,stdout=log(label+'.log'),stderr=subprocess.STDOUT)
+            session=subprocess.Popen([str(args.binary.resolve()),*(['--notifications','--publish-session-environment'] if args.retained_notification else []),'--width',str(width*args.scale),'--height',str(height*args.scale),'--scale',str(args.scale),'--config-file',str(config),'--control-socket',str(control),'--exit-after-ms','180000'],env=env,stdout=log(label+'.log'),stderr=subprocess.STDOUT)
             children.append(session)
             await_value(lambda:control.exists() or session.poll() is not None,bool);assert session.poll() is None
             state(label+'-ready',lambda s:s['favorites']['applications']==expected and s['application_count']==5)
             mouse=ScaledInput(session.pid,server,env['DISPLAY']);await_value(mouse.find,bool);mouse.move(width/2,height/2);time.sleep(.1)
         launch('first',[original]);request(control,'launch',id=original)
         s=state('native',lambda s:len(s['cards'])==1 and isinstance(s['view'],dict) and any(w['opacity']==1 for w in s['presentation']['windows']))
-        native=s['cards'][0]['id'];launcher('launcher-before-drag');capture('launcher-resting')
+        native=s['cards'][0]['id']
+        if args.retained_notification:
+            state('notification-ready',lambda s:s['notifications']['available'])
+            fixture=Fixture(root/'target/debug/examples/notification-probe',out/'notification',env)
+            identifier=fixture.notify(summary='Retained drag fixture',resident=True,timeout=0)
+            state('retained-before-drag',lambda s:any(n['id']==identifier for n in s['notifications']['items'])
+                and s['notifications']['well']['height']==48 and s['notifications']['banner'] is None)
+        launcher('launcher-before-drag');capture('launcher-resting')
         place(beta,3,[original,beta],'add-beta')
         with Image.open(out/'launcher-resting.png') as a,Image.open(out/'add-beta-held.png') as b:
-            bounds=tuple(round(v*args.scale) for v in (3,height-109,width-3,height-40))
+            bounds=tuple(round(v*args.scale) for v in (3,tray_top(),width-3,tray_top()+69))
             delta_image=ImageChops.difference(a.convert('RGB').crop(bounds),b.convert('RGB').crop(bounds))
             changed=sum(max(pixel)>15 for pixel in delta_image.getdata());assert changed>1000*args.scale*args.scale
             records['tray_reveal_changed_pixels']=changed
@@ -133,9 +153,9 @@ def main():
         hold(source(beta),'view-interruption');request(control,'overview');time.sleep(.2);mouse.button(False)
         favorite('interruption-unchanged',[beta,original,epsilon,delta]);capture('after-interruption')
         overview('dock-before-removal');hold(slot(0),'remove-beta')
-        mouse.move(width/2,height-36-69-4-32);time.sleep(.1);capture('remove-preview');mouse.button(False)
+        mouse.move(width/2,tray_top()-32);time.sleep(.1);capture('remove-preview');mouse.button(False)
         favorite('removed-beta',[original,epsilon,delta])
-        hold(slot(0),'remove-running-favorite');mouse.move(width/2,height-36-69-4-32);mouse.button(False)
+        hold(slot(0),'remove-running-favorite');mouse.move(width/2,tray_top()-32);mouse.button(False)
         favorite('running-card-retained',[epsilon,delta]);launcher('launcher-readd-original')
         place(original,0,[original,epsilon,delta],'readd-original')
         # A real launcher search opens the shared keyboard. Holding the filtered
@@ -157,6 +177,7 @@ def main():
             'cancel_scroll_and_view_change':True,'keyboard_visible_filtered_source':True,'saved_restart':True,'phone_kms_tested':False}
         print('PASS: real favorite hold/place/reorder/remove, cancel/full/fixed slot, keyboard and restart',out)
     finally:
+        if fixture is not None:fixture.close()
         if mouse is not None:mouse.close()
         for child in reversed(children):
             if child.poll() is None:

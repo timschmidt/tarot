@@ -228,6 +228,7 @@ mod tests {
                     Layout {
                         width: 360.0,
                         height: 720.0,
+                        notification_height: 0.0,
                         keyboard_height: 0.0,
                     },
                 );

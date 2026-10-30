@@ -14,6 +14,8 @@ fn main() {
         ("DOCK", &g["quick_launch_rect"][3]),
         ("ICON", &g["quick_launch_icon_size"]),
         ("LAUNCHER_ICON", &g["launcher_icon_size"]),
+        ("BANNER_ACCESSIBLE", &g["banner_accessible_h"]),
+        ("DASHBOARD_ROW", &g["dashboard_row_h"]),
         ("CARD_SCALE", &g["card_scale"]),
         ("INACTIVE_CARD_SCALE", &g["inactive_card_scale"]),
         ("CARD_RADIUS", &g["card_radius_before_scale"]),

@@ -2,24 +2,108 @@
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
-pub fn banner_rect(layout: crate::Layout) -> crate::Rect {
-    let bottom = if layout.keyboard_height > 0.0 {
-        layout.keyboard().y
-    } else {
-        layout.gesture().y
-    };
-    crate::Rect {
-        x: 8.0,
-        y: (bottom - 100.0).max(crate::Layout::STATUS),
-        width: layout.width - 16.0,
-        height: 92.0,
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum Surface {
+    #[default]
+    Hidden,
+    Rail,
+    Banner,
+    Dashboard,
+}
+
+pub const RAIL_HEIGHT: f32 = crate::design::BANNER_ACCESSIBLE;
+pub const ROW_HEIGHT: f32 = crate::design::DASHBOARD_ROW;
+pub const MIN_FOREGROUND: f32 = 64.0;
+
+/// Animate the shared boundary, rather than covering a still-full-size app.
+#[derive(Debug, Default)]
+pub struct WellMotion {
+    from: f32,
+    target: f32,
+    started: Duration,
+}
+
+impl WellMotion {
+    pub const DURATION: Duration = Duration::from_millis(crate::design::MAXIMIZE_MS);
+    pub fn target(&self) -> f32 {
+        self.target
+    }
+    pub fn sample(&self, now: Duration) -> f32 {
+        let t = (now.saturating_sub(self.started).as_secs_f32() / Self::DURATION.as_secs_f32())
+            .min(1.0);
+        self.from + (self.target - self.from) * (1.0 - (1.0 - t).powi(3))
+    }
+    pub fn retarget(&mut self, height: f32, now: Duration, reduced: bool) -> bool {
+        let changed = self.target != height;
+        if changed {
+            self.from = self.sample(now);
+            self.target = height;
+            self.started = now;
+        }
+        if reduced {
+            self.from = height;
+            self.target = height;
+        }
+        changed
+    }
+    pub fn moving(&self, now: Duration) -> bool {
+        self.from != self.target && now.saturating_sub(self.started) < Self::DURATION
     }
 }
 
+pub fn surface(model: &crate::ShellModel) -> Surface {
+    if model.system_menu_open {
+        Surface::Hidden
+    } else if model.notifications_open {
+        Surface::Dashboard
+    } else if model.notifications.banner.is_some_and(|(id, revision)| {
+        model
+            .notifications
+            .items
+            .iter()
+            .any(|n| n.id == id && n.revision == revision && n.live)
+    }) {
+        Surface::Banner
+    } else if !model.notifications.items.is_empty() {
+        Surface::Rail
+    } else {
+        Surface::Hidden
+    }
+}
+
+/// One reservation, recomputed from current state rather than accumulated.
+/// The well sits above an unchanged keyboard; scarce space uses a compact row.
+pub fn reserved_height(model: &crate::ShellModel, layout: crate::Layout) -> f32 {
+    // Keep compact search geometry stable when its own app hold hides the
+    // keyboard. The strip entry/count persists, and an explicit dashboard
+    // still opens. Leaving search restores the banner/rail normally.
+    if layout.height < 480.0 && model.just_type_active() && !model.notifications_open {
+        return 0.0;
+    }
+    let available = (layout.keyboard().y - crate::Layout::STATUS).max(0.0);
+    let desired = match surface(model) {
+        Surface::Hidden => 0.0,
+        Surface::Rail => RAIL_HEIGHT,
+        Surface::Banner => crate::design::BANNER_ACCESSIBLE,
+        Surface::Dashboard => {
+            let rows = model.notifications.items.len().clamp(1, 3) as f32;
+            (RAIL_HEIGHT + rows * ROW_HEIGHT + 8.0).min(available * 0.6)
+        }
+    };
+    // Shell text entry needs its field and at least one result/control row.
+    // In scarce landscape space, defer the well until the keyboard closes;
+    // the gesture-strip notification entry remains available throughout.
+    let minimum = if model.view == crate::View::Launcher && model.shell_text_focus {
+        112.0
+    } else {
+        MIN_FOREGROUND
+    };
+    desired.min((available - minimum).max(0.0)).floor()
+}
+
 pub fn overlay_contains(model: &crate::ShellModel, layout: crate::Layout, x: f32, y: f32) -> bool {
-    model.notifications_open
-        || model.system_menu_open
-        || (model.notifications.banner.is_some() && banner_rect(layout).contains(x, y))
+    model.system_menu_open || layout.notification_well().contains(x, y)
 }
 
 pub const MAX_ENTRIES: usize = 64;
@@ -34,6 +118,8 @@ pub struct Action {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct Notification {
     pub id: u32,
+    /// Opaque service-issued identity for display grouping, never authorization.
+    pub source: u32,
     pub revision: u64,
     pub app_name: String,
     pub summary: String,
@@ -169,6 +255,11 @@ impl Store {
                 .ok_or(Error::Full)?;
             self.next_id
         };
+        let source = self
+            .entries
+            .iter()
+            .find(|e| e.owner == owner && !e.notification.orphaned)
+            .map_or(id, |e| e.notification.source);
         self.revision += 1;
         let expires = if input.urgency == 2
             || input.expire_ms == 0
@@ -187,6 +278,7 @@ impl Store {
         let entry = Entry {
             notification: Notification {
                 id,
+                source,
                 revision: self.revision,
                 app_name: input.app_name,
                 summary: input.summary,
@@ -429,6 +521,243 @@ impl Store {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn well_and_foreground_move_together_and_interrupt_from_the_presented_height() {
+        use crate::{Layout, ShellModel, WindowId, motion::Animator};
+        let mut model = ShellModel::default();
+        model.add_window(WindowId(7), "Fixture".into(), "fixture".into());
+        let base = Layout {
+            width: 360.0,
+            height: 720.0,
+            keyboard_height: 0.0,
+            notification_height: 0.0,
+        };
+        let mut app = Animator::default();
+        app.reconfigure(&model, base, Duration::ZERO);
+        let mut well = WellMotion::default();
+        for (started, height) in [(0, 88.0), (120, 224.0), (240, 48.0)] {
+            let now = Duration::from_millis(started);
+            let before = well.sample(now);
+            assert!(well.retarget(height, now, false));
+            assert_eq!(well.sample(now), before);
+            let target = Layout {
+                notification_height: height,
+                ..base
+            };
+            for offset in [0, 30, 60, 90, 120] {
+                let now = now + Duration::from_millis(offset);
+                let shown = Layout {
+                    notification_height: well.sample(now),
+                    ..base
+                };
+                let (frame, _) = app.advance(&model, target, None, now);
+                let rect = frame.window(WindowId(7)).unwrap().rect;
+                assert!((rect.height - shown.content().height).abs() < 0.001);
+                assert!((rect.y + rect.height - shown.notification_well().y).abs() < 0.001);
+                assert!(!overlay_contains(
+                    &model,
+                    shown,
+                    180.0,
+                    rect.y + rect.height - 1.0
+                ));
+            }
+        }
+        let now = Duration::from_millis(700);
+        assert!(well.retarget(224.0, now, true));
+        assert_eq!(well.sample(now), 224.0);
+        assert!(!well.moving(now));
+    }
+
+    #[test]
+    fn display_sources_do_not_authorize_another_sender_with_the_same_name() {
+        let mut store = Store::default();
+        let first = store.notify(":1.1", 0, input(), Duration::ZERO).unwrap();
+        let second = store.notify(":1.1", 0, input(), Duration::ZERO).unwrap();
+        let other = store.notify(":1.2", 0, input(), Duration::ZERO).unwrap();
+        let snapshot = store.snapshot();
+        let source = |id| snapshot.items.iter().find(|n| n.id == id).unwrap().source;
+        assert_eq!(source(first), source(second));
+        assert_ne!(source(first), source(other));
+        assert_eq!(
+            store.notify(":1.2", first, input(), Duration::ZERO),
+            Err(Error::NotOwner)
+        );
+        store
+            .notify(":1.1", first, input(), Duration::from_secs(1))
+            .unwrap();
+        assert_eq!(
+            store
+                .snapshot()
+                .items
+                .iter()
+                .find(|n| n.id == first)
+                .unwrap()
+                .source,
+            source(first)
+        );
+        store.disconnected();
+        let replacement = store
+            .notify(":1.1", 0, input(), Duration::from_secs(2))
+            .unwrap();
+        let replacement_source = store
+            .snapshot()
+            .items
+            .iter()
+            .find(|n| n.id == replacement)
+            .unwrap()
+            .source;
+        assert_ne!(replacement_source, source(first));
+    }
+
+    #[test]
+    fn one_well_reservation_keeps_content_keyboard_and_strip_disjoint_in_both_poses() {
+        use crate::{Layout, ShellModel};
+        let mut store = Store::default();
+        store.notify(":1.1", 0, input(), Duration::ZERO).unwrap();
+        let mut model = ShellModel {
+            notifications: store.snapshot(),
+            ..Default::default()
+        };
+        for (width, height) in [(360.0, 720.0), (720.0, 360.0)] {
+            for keyboard_height in [0.0, 240.0_f32.min(height * 0.5)] {
+                let base = Layout {
+                    width,
+                    height,
+                    keyboard_height,
+                    notification_height: 0.0,
+                };
+                for expected in [
+                    Surface::Banner,
+                    Surface::Dashboard,
+                    Surface::Rail,
+                    Surface::Hidden,
+                ] {
+                    model.notifications_open = expected == Surface::Dashboard;
+                    if expected == Surface::Rail {
+                        model.notifications.banner = None;
+                    }
+                    if expected == Surface::Hidden {
+                        model.notifications.items.clear();
+                    }
+                    assert_eq!(surface(&model), expected);
+                    let layout = base.with_notifications(&model);
+                    assert_eq!(
+                        layout.with_notifications(&model).notification_height,
+                        layout.notification_height
+                    );
+                    let app = layout.content();
+                    let well = layout.notification_well();
+                    let keyboard = layout.keyboard();
+                    assert_eq!(app.y + app.height, well.y);
+                    assert_eq!(well.y + well.height, keyboard.y);
+                    assert_eq!(keyboard.y + keyboard.height, layout.gesture().y);
+                    assert_eq!(keyboard.y, base.keyboard().y);
+                    assert!(app.height >= MIN_FOREGROUND);
+                    assert!(!overlay_contains(
+                        &model,
+                        layout,
+                        1.0,
+                        app.y + app.height * 0.5
+                    ));
+                    if expected == Surface::Hidden {
+                        assert_eq!(well.height, 0.0);
+                    } else {
+                        assert!(well.height >= RAIL_HEIGHT);
+                        assert!(overlay_contains(
+                            &model,
+                            layout,
+                            1.0,
+                            well.y + well.height * 0.5
+                        ));
+                    }
+                }
+                model.notifications = store.snapshot();
+            }
+        }
+    }
+
+    #[test]
+    fn scarce_shell_text_space_defers_the_well_and_restores_it_after_typing() {
+        use crate::{Layout, ShellModel, View};
+        let mut model = ShellModel {
+            view: View::Launcher,
+            shell_text_focus: true,
+            notifications_open: true,
+            ..Default::default()
+        };
+        let landscape = Layout {
+            width: 720.0,
+            height: 360.0,
+            keyboard_height: 180.0,
+            notification_height: 0.0,
+        };
+        assert_eq!(reserved_height(&model, landscape), 0.0);
+        assert_eq!(landscape.with_notifications(&model).content().height, 112.0);
+        let portrait = Layout {
+            width: 360.0,
+            height: 720.0,
+            keyboard_height: 240.0,
+            ..landscape
+        };
+        assert_eq!(reserved_height(&model, portrait), 112.0);
+        model.shell_text_focus = false;
+        assert_eq!(
+            reserved_height(
+                &model,
+                Layout {
+                    keyboard_height: 0.0,
+                    ..landscape
+                }
+            ),
+            112.0
+        );
+        model.view = View::App(crate::WindowId(1));
+        assert_eq!(reserved_height(&model, landscape), 48.0);
+    }
+
+    #[test]
+    fn explicit_search_and_field_focus_retire_dashboard_before_new_contacts() {
+        use crate::{Command, ShellModel, search::Action};
+        let mut model = ShellModel::default();
+        model.apply(Command::NotificationsOpen(true));
+        model.apply(Command::JustType(Action::Open));
+        assert!(model.just_type_active() && model.shell_text_focus && !model.notifications_open);
+        for command in [
+            Command::ShellTextFocus(true),
+            Command::ToggleKeyboard,
+            Command::JustType(Action::Clear),
+        ] {
+            model.apply(Command::NotificationsOpen(true));
+            assert!(model.notifications_open && !model.shell_text_focus);
+            model.apply(command);
+            assert!(
+                model.just_type_active() && model.shell_text_focus && !model.notifications_open
+            );
+        }
+        model.apply(Command::NotificationsOpen(true));
+        assert!(model.notifications_open && !model.shell_text_focus);
+    }
+
+    #[test]
+    fn dashboard_keeps_the_native_app_focused_while_device_menu_retires_it() {
+        use crate::{Command, Effect, ShellModel, WindowId};
+        let mut model = ShellModel::default();
+        model.add_window(WindowId(7), "Fixture".into(), "fixture".into());
+        assert_eq!(
+            model.apply(Command::NotificationsOpen(true)),
+            vec![Effect::Focus(Some(WindowId(7)))]
+        );
+        assert_eq!(
+            model.apply(Command::NotificationsOpen(false)),
+            vec![Effect::Focus(Some(WindowId(7)))]
+        );
+        assert_eq!(
+            model.apply(Command::SystemMenuOpen(true)),
+            vec![Effect::Focus(None)]
+        );
+    }
+
     fn input() -> Incoming {
         Incoming {
             app_name: "Fixture".into(),

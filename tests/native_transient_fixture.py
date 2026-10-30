@@ -14,6 +14,7 @@ def main():
     p.add_argument('--output',type=Path,required=True)
     p.add_argument('--binary',type=Path,required=True)
     p.add_argument('--audit',type=Path,required=True)
+    p.add_argument('--case', choices=['lifecycle', 'notifications'], default='lifecycle')
     args=p.parse_args()
     assert os.geteuid()==10000 and args.output.is_dir()
     audit=json.loads(args.audit.read_text())
@@ -26,7 +27,9 @@ def main():
         target=args.output/name;temporary=target.with_suffix(target.suffix+'.tmp')
         temporary.write_text(json.dumps(result,indent=2)+'\n');os.replace(temporary,target)
     with (args.output/'protocol-test.log').open('x') as log:
-        child=subprocess.Popen([str(args.binary),'--ignored','--nocapture','--test-threads=1'],env=env,
+        selection=['notification_well_keeps_oversized_client_input_and_popup_alignment'] if args.case=='notifications' else ['--skip','notification_well_keeps_oversized_client_input_and_popup_alignment']
+        result['case']=args.case
+        child=subprocess.Popen([str(args.binary),'--ignored','--nocapture','--test-threads=1',*selection],env=env,
             stdin=subprocess.DEVNULL,stdout=log,stderr=subprocess.STDOUT)
         result['fixture_pid']=child.pid
         save('fixture-started.json')

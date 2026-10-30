@@ -9,6 +9,9 @@ import datetime
 import json
 from pathlib import Path
 import tomllib
+import time
+from PIL import Image
+from dialog_button import locate
 
 from phone_gesture_replay import request
 
@@ -40,11 +43,63 @@ def replay(socket, screen, state, tap, capture, before, out):
         return state(label,lambda s:s['favorites']['applications']==expected
                      and s['display_settings']['settings_saved'])
 
+    def add_visible_application(identifier, label):
+        catalog = request(socket, 'applications')['applications']
+        application = next(a for a in catalog if a['id'] == identifier)
+        favorites = request(socket, 'status')['favorites']['applications']
+        assert application['unavailable'] is None and identifier not in favorites
+        assert sum(a['name']==application['name'] and a['id'] not in favorites for a in catalog)==1, 'Rendered application name must identify one available choice'
+        legacy_y = 259+51*[a['id'] for a in catalog if a['id']!=CALCULATOR].index(identifier)
+        word = application['name'].split()[-1]
+        for attempt in range(32):
+            name = label+'-visible-'+str(attempt)
+            capture(name)
+            s = request(socket, 'status')
+            assert s['editing_favorites'] and s['output']['orientation'] == 'normal'
+            scale = s['output']['scale']
+            width = s['output']['physical_width']/scale
+            height = s['output']['physical_height']/scale
+            bottom = height-36-s['notifications']['well']['height']-69-8
+            assert bottom > 148
+            panel = out/(name+'-editor.png')
+            with Image.open(out/(name+'.png')) as image:
+                image.crop((round(16*scale),round(100*scale),round((width-16)*scale),round(bottom*scale))).save(panel)
+            try:
+                found = locate(panel, word, vertical=(0,1))
+            except AssertionError:
+                if attempt == 31:
+                    raise
+                # Keep successive scans overlapping and stop momentum before
+                # scanning. A full-height fling can skip the desired row.
+                start = bottom-24
+                end = start-min(120, (bottom-100)*.3)
+                screen.down(width/2,start)
+                for step in range(1,7):
+                    screen.move(width/2,start+(end-start)*step/6,delay=.05)
+                time.sleep(.2)
+                screen.move(width/2,end,delay=.05)
+                screen.up();time.sleep(.1)
+                continue
+            point = (16+found['point'][0]/scale,100+found['point'][1]/scale)
+            records.setdefault('visible_application_targets',[]).append({'id':identifier,'point':point,'viewport_bottom':bottom,'legacy_y':legacy_y,'recognition':found})
+            tap(*point)
+            return
+
     def editor(label):
         tap(40,16)
         state(label+'-menu',lambda s:s['launcher']['menu_open'])
         tap(160,160)
-        return state(label,lambda s:s['editing_favorites'])
+        shown = state(label,lambda s:s['editing_favorites'])
+        # Reopening retains egui's scroll offset. Return the favorite controls
+        # to the top after the bounded application scan before using them.
+        bottom = shown['output']['physical_height']/shown['output']['scale']-36-shown['notifications']['well']['height']-69-8
+        screen.down(180,124)
+        for step in range(1,7):
+            screen.move(180,124+(bottom-24-124)*step/6,delay=.05)
+        time.sleep(.2)
+        screen.move(180,bottom-24,delay=.05)
+        screen.up();time.sleep(.1)
+        return shown
 
     def done(label):
         tap(285,67)
@@ -80,12 +135,7 @@ def replay(socket, screen, state, tap, capture, before, out):
         capture('quick-launcher-without-tray')
         editor('quick-editor')
         capture('quick-editor-before')
-        apps=request(socket,'applications')['applications']
-        available=[a['id'] for a in apps if a['id']!=CALCULATOR]
-        index=available.index(FAILURE)
-        y=259+51*index
-        assert y<580,'Temporary test entry is outside the verified visible list'
-        tap(165,y)
+        add_visible_application(FAILURE,'quick-add-failure')
         favorite('quick-added-favorite',[CALCULATOR,FAILURE])
         tap(208,225)
         favorite('quick-reordered-favorite',[FAILURE,CALCULATOR])
@@ -108,10 +158,7 @@ def replay(socket, screen, state, tap, capture, before, out):
         favorite('quick-removed-favorite',[CALCULATOR])
         # The packet's sample date must be replaced by the real local day.
         calendar='org.gnome.Calendar.desktop'
-        index=available.index(calendar)
-        y=259+51*index
-        assert y<580,'Calendar is outside the verified visible editor list'
-        tap(165,y)
+        add_visible_application(calendar,'quick-add-calendar')
         dated=favorite('quick-calendar-added',[CALCULATOR,calendar])
         assert dated['calendar_day']==datetime.datetime.now().day
         done('quick-editor-done-calendar')

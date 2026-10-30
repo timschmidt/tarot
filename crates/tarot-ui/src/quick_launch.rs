@@ -354,7 +354,10 @@ pub fn launch_feedback(
 pub fn editor(ui: &mut egui::Ui, model: &ShellModel, layout: Layout, commands: &mut Vec<Command>) {
     let bounds = Rect::from_min_max(
         Pos2::new(16.0, 100.0),
-        Pos2::new(layout.width - 16.0, layout.gesture().y - Layout::DOCK - 8.0),
+        Pos2::new(
+            layout.width - 16.0,
+            layout.tray_bottom() - Layout::DOCK - 8.0,
+        ),
     );
     let mut child = ui.new_child(egui::UiBuilder::new().max_rect(bounds));
     child.visuals_mut().override_text_color = Some(Color32::from_gray(235));

@@ -2,7 +2,7 @@
 use egui::{Color32, Painter, Pos2, Stroke, Vec2};
 
 #[derive(Clone, Copy)]
-pub(super) enum Glyph {
+pub(crate) enum Glyph {
     Wifi,
     Sound,
     Power,
@@ -12,7 +12,7 @@ pub(super) enum Glyph {
     Check,
 }
 
-pub(super) fn paint(p: &Painter, center: Pos2, glyph: Glyph, color: Color32) {
+pub(crate) fn paint(p: &Painter, center: Pos2, glyph: Glyph, color: Color32) {
     let stroke = Stroke::new(1.8_f32, color);
     let at = |x, y| center + Vec2::new(x, y);
     let line = |points: &[(f32, f32)]| {

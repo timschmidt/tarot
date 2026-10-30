@@ -37,11 +37,8 @@ pub(crate) fn show(
     commands: &mut Vec<Command>,
 ) -> bool {
     let compact = layout.height < 480.0;
-    let bottom = if model.shell_text_focus {
-        layout.keyboard().y
-    } else {
-        layout.gesture().y
-    };
+    let content = layout.content();
+    let bottom = content.y + content.height;
     let body = Rect::from_min_max(
         Pos2::new(0.0, Layout::STATUS),
         Pos2::new(layout.width, bottom),
@@ -497,6 +494,7 @@ mod scroll_diagnostic_tests {
         let layout = Layout {
             width: 720.0,
             height: 360.0,
+            notification_height: 0.0,
             keyboard_height: if m.shell_text_focus { 180.0 } else { 0.0 },
         };
         let output = ctx.run(
@@ -570,6 +568,7 @@ mod scroll_diagnostic_tests {
         let layout = Layout {
             width: 720.0,
             height: 360.0,
+            notification_height: 0.0,
             keyboard_height: 0.0,
         };
         let slot = quick_launch::slot(layout, 0, None);

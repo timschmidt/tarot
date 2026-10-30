@@ -29,13 +29,17 @@ def main():
     p.add_argument('--output', type=Path, required=True)
     p.add_argument('--xvfb', default='Xvfb')
     p.add_argument('--scale', type=int, choices=[1, 2], default=2)
-    p.add_argument('--case', choices=['transient','viewport'],default='transient')
+    p.add_argument('--case', choices=['transient','viewport','notifications'],default='transient')
+    p.add_argument('--tarot', type=Path, default=Path('target/debug/tarot'))
+    p.add_argument('--fixture-bin', type=Path)
+    p.add_argument('--keyboard', type=Path, default=Path('target/debug/tarot-keyboard'))
     args = p.parse_args()
     out = args.output.resolve()
     out.mkdir(mode=0o700, parents=True, exist_ok=False)
     root = Path.cwd()
     record = {'passed': False, 'scale': args.scale, 'case':args.case,'input': []}
-    record['compositor_sha256'] = hashlib.sha256((root/'target/debug/tarot').read_bytes()).hexdigest()
+    tarot = args.tarot.resolve()
+    record['compositor_sha256'] = hashlib.sha256(tarot.read_bytes()).hexdigest()
     record['fixture_source_sha256'] = hashlib.sha256((root/'tests/wayland_lifecycle.rs').read_bytes()).hexdigest()
     temporary = tempfile.TemporaryDirectory(prefix='tarot-transient-')
     work = Path(temporary.name)
@@ -69,15 +73,28 @@ def main():
         env = dict(os.environ, DISPLAY=display, WINIT_UNIX_BACKEND='x11', XDG_SESSION_TYPE='x11', XDG_RUNTIME_DIR=str(runtime), LIBGL_ALWAYS_SOFTWARE='1', __EGL_VENDOR_LIBRARY_FILENAMES='/usr/share/glvnd/egl_vendor.d/50_mesa.json', TAROT_TEST_CONTROL_SOCKET=str(control), TAROT_TEST_INPUT_SOCKET=str(inputs), TAROT_TEST_CAPTURE_DIR=str(out))
         env.pop('WAYLAND_DISPLAY', None)
         env.pop('WAYLAND_SOCKET', None)
+        if args.case == 'notifications':
+            address = 'unix:path='+str(work/'bus')
+            env['DBUS_SESSION_BUS_ADDRESS'] = address
+            bus = subprocess.Popen(['dbus-daemon','--session','--nofork','--address',address],stdout=log('bus.log'),stderr=subprocess.STDOUT)
+            processes.append(bus)
+            await_value(lambda: (work/'bus').exists() or bus.poll() is not None, bool)
+            assert bus.poll() is None
         lock_report, lock_commands = out/'locker-events.jsonl', out/'locker-commands.jsonl'
         lock_commands.write_text('')
-        command = [str(root/'target/debug/tarot'), '--width', str(360*args.scale), '--height', str(720*args.scale), '--scale', str(args.scale), '--control-socket', str(control), '--lock-probe-unlocked-start', '--lock-client', str(root/'target/debug/examples/lock-probe'), '--verify-lock-blank', '--verify-lock-surface-rgba', '336699ff', '--exit-after-ms', '180000']
+        command = [str(tarot), '--width', str(360*args.scale), '--height', str(720*args.scale), '--scale', str(args.scale), '--control-socket', str(control), '--lock-probe-unlocked-start', '--lock-client', str(root/'target/debug/examples/lock-probe'), '--verify-lock-blank', '--verify-lock-surface-rgba', '336699ff', '--exit-after-ms', '180000']
+        if args.case == 'notifications':
+            keyboard = args.keyboard.resolve()
+            record['keyboard_sha256'] = hashlib.sha256(keyboard.read_bytes()).hexdigest()
+            command.extend(['--notifications','--publish-session-environment','--config-file',str(work/'settings.toml'),'--input-method',str(keyboard)])
         for arg in ['--role', 'locker', '--report', str(lock_report), '--commands', str(lock_commands)]:
             command.append('--lock-client-arg='+arg)
         session = subprocess.Popen(command, env=env, stdout=log('compositor.log'), stderr=subprocess.STDOUT)
         processes.append(session)
         await_value(lambda: control.exists() or session.poll() is not None, bool)
         assert session.poll() is None
+        record['loaded_compositor_sha256'] = hashlib.sha256(Path('/proc',str(session.pid),'exe').read_bytes()).hexdigest()
+        assert record['loaded_compositor_sha256'] == record['compositor_sha256']
         listener = socket.socket(socket.AF_UNIX)
         listener.bind(str(inputs))
         listener.listen(1)
@@ -145,13 +162,26 @@ def main():
         worker = threading.Thread(target=serve, name='transient-private-input')
         worker.start()
         with (out/'test.log').open('w') as test_log:
-            test = subprocess.run(['cargo', 'test', '--offline', '--locked', '--test', 'wayland_lifecycle', ('viewport_crop_scale_commit_and_subsurface_input' if args.case=='viewport' else 'transient_native_input_and_pixels'), '--', '--ignored', '--nocapture'], env=env, stdout=test_log, stderr=subprocess.STDOUT, timeout=120)
+            test_name = {'transient':'transient_native_input_and_pixels','viewport':'viewport_crop_scale_commit_and_subsurface_input','notifications':'notification_well_keeps_oversized_client_input_and_popup_alignment'}[args.case]
+            if args.fixture_bin:
+                fixture_bin = args.fixture_bin.resolve()
+                record['fixture_binary_sha256'] = hashlib.sha256(fixture_bin.read_bytes()).hexdigest()
+                test_command = [str(fixture_bin), test_name, '--ignored', '--nocapture']
+            else:
+                test_command = ['cargo', 'test', '--offline', '--locked', '--test', 'wayland_lifecycle', test_name, '--', '--ignored', '--nocapture']
+            test = subprocess.run(test_command, env=env, stdout=test_log, stderr=subprocess.STDOUT, timeout=120)
         record['test_exit'] = test.returncode
+        if args.case == 'notifications' and test.returncode == 0:
+            helper = request(control, 'status')['input_method']
+            assert helper['generation'] == 1 and not helper['error'] and not helper['restart_pending']
+            record['keyboard_status'] = helper
+            record['loaded_keyboard_sha256'] = hashlib.sha256(Path('/proc',str(helper['pid']),'exe').read_bytes()).hexdigest()
+            assert record['loaded_keyboard_sha256'] == record['keyboard_sha256']
         request(control, 'exit')
         record['compositor_exit'] = session.wait(timeout=6)
         record['graphics_errors'] = [line for line in (out/'compositor.log').read_text().splitlines() if any(e in line for e in ['GL_INVALID', 'GL_OUT_OF_MEMORY', 'GL error'])]
         assert record['test_exit'] == record['compositor_exit'] == 0 and 'input_error' not in record and not record['graphics_errors'], record
-        assert len(record['input']) == (7 if args.case=='viewport' else 40), record
+        assert len(record['input']) == {'transient':40,'viewport':7,'notifications':40}[args.case], record
         record['passed'] = True
         print('PASS:',args.case,'native pixels and actual input, scale', args.scale, out)
     finally:
