@@ -158,6 +158,37 @@ impl Probe {
                     self.text_input.as_ref().unwrap().enable();
                     self.context();
                 }
+                "enable-reset" => {
+                    // Synthetic earlier field state, superseded in the same
+                    // batch by another enable. Only requests after the last
+                    // enable may reach the input method at commit.
+                    self.enabled = true;
+                    let input = self.text_input.as_ref().unwrap();
+                    input.enable();
+                    input.set_surrounding_text("STALE".into(), 5, 5);
+                    input.set_content_type(
+                        if value["secure"].as_bool().unwrap_or(true) {
+                            zwp_text_input_v3::ContentHint::SensitiveData
+                        } else {
+                            zwp_text_input_v3::ContentHint::None
+                        },
+                        zwp_text_input_v3::ContentPurpose::Terminal,
+                    );
+                    input.set_text_change_cause(zwp_text_input_v3::ChangeCause::Other);
+                    input.set_cursor_rectangle(250, 300, 4, 30);
+                    input.enable();
+                    if value["replacement"].as_bool().unwrap_or(false) {
+                        input.set_surrounding_text("FRESH".into(), 2, 3);
+                        input.set_content_type(
+                            zwp_text_input_v3::ContentHint::None,
+                            zwp_text_input_v3::ContentPurpose::Normal,
+                        );
+                        input.set_text_change_cause(zwp_text_input_v3::ChangeCause::InputMethod);
+                        input.set_cursor_rectangle(30, 100, 2, 24);
+                    }
+                    self.purpose = zwp_text_input_v3::ContentPurpose::Normal;
+                    self.commit_context();
+                }
                 "context" => {
                     self.text = value["text"].as_str().unwrap().into();
                     self.cursor = value["cursor"].as_u64().unwrap() as usize;
@@ -350,10 +381,15 @@ fn main() -> Result<()> {
         while commands.read_line(&mut line)? > 0 {
             let value: Value = serde_json::from_str(&line)?;
             let virtual_key = value["command"] == "virtual-key";
+            let enable_reset = value["command"] == "enable-reset";
             state.command(value)?;
             if virtual_key {
                 queue.roundtrip(&mut state)?;
                 state.record(json!({"event":"virtual-synced"}));
+            }
+            if enable_reset {
+                queue.roundtrip(&mut state)?;
+                state.record(json!({"event":"enable-reset-synced","serial":state.serial}));
             }
             line.clear();
         }

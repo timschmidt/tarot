@@ -14,7 +14,9 @@ M0 remains in progress. The phone has been upgraded through supported releases t
 
 Tarot is now the default login session on the development phone, with the normal installed entry running and diagnostics disabled. The retained revision 8 → 5 → 8 package round trip passes real PAM, native app/audio and cleanup checks on both revisions.
 
-Revision 49 fixes unrelated large broadcasts retiring native app menus by narrowing subscriptions at the broker. Current/minimum Rust each pass 239 workspace tests; host and phone broadcast/claim/menu/PAM checks pass, followed by independently verified normal Tarot with diagnostics off. [Current scope and evidence](docs/recordings/menu-signals/README.md).
+Revision 50 clears stale pending text-input state across consecutive enables. Current/minimum protocol and workspace checks pass, followed by native keyboard layout/input/PAM acceptance and independently verified normal Tarot with diagnostics off. The retained Firefox activation race remains open. [Current scope and evidence](docs/recordings/text-enable-reset/README.md).
+
+Revision 49 fixes unrelated large broadcasts retiring native app menus by narrowing subscriptions at the broker. Host and phone broadcast/claim/menu/PAM checks pass. [Earlier scope and evidence](docs/recordings/menu-signals/README.md).
 
 Revision 48 bounds native-menu connection setup and cancellation, rejects oversized frames before allocation and marks received descriptors close-on-exec. Eleven host fault/recovery cases pass, followed by native kernel tests and a combined protocol/toolkit/menu/claim/PAM login. [Earlier scope and evidence](docs/recordings/menu-setup/README.md).
 

@@ -49,6 +49,14 @@ package and acceptance scope](recordings/menu-setup/README.md).
 
 ## Source package
 
+Revision 50 corrects consecutive-enable text-input pending-state reset. Its clean
+signed package changes all four executable hashes, README and THIRD-PARTY
+documentation. The new local Smithay patch retains its MIT license and applies
+independently of the metadata patch. Runtime dependencies, PAM, session entry
+and installed license files are unchanged. Scoped native layout/input/PAM and
+normal-session checks pass; browser activation and wider reliability stay open.
+[Package/source identities and acceptance](recordings/text-enable-reset/README.md).
+
 Revision 49 narrows native-menu broadcast subscriptions without changing runtime
 dependencies or platform policies. The clean signed package changes all four
 executable hashes and the installed README. Scoped native broadcast/claim,

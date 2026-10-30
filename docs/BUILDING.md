@@ -118,6 +118,30 @@ received-descriptor flags, the allowed descriptor budget and truncation. Run
 cross-built library test binary as the ordinary development account before
 installation; record that SSH-cgroup scope separately from real PAM/UI tests.
 
+## Consecutive text-input enables
+
+The synthetic text-input fixture also supports consecutive-enable reset checks.
+For an empty private development session with `text-probe --role method` as its
+trusted input method, add `--enable-reset` to `tests/text_input_replay.py`.
+This checks fields discarded before the last enable and fresh fields supplied
+after it, then runs the full composition/serial/focus/isolation matrix. The
+fixture's `enable-reset` command contains only fixed synthetic state. Run the
+separate `terminal_keyboard_replay.py --context-reset` with the real keyboard
+to retain held-input cancellation and terminal behavior.
+[Evidence and scope](recordings/text-enable-reset/README.md).
+
+The installed runner's `--text-enable-reset` component requires a private,
+UID-10000-owned `<output>/text-enable-reset` directory with an owned regular
+mode-0600 `commands.jsonl`, and `fixture-audit.json` containing the target
+`text-probe` executable's `binary_sha256`. Prepare a temporary
+`test.tarot.TextInputReset.desktop` catalog entry running that audited probe with
+`--role app --terminal --exit-after-seconds 180 --report <folder>/events.jsonl
+--commands <folder>/commands.jsonl`. The component verifies the real PAM cgroup,
+terminal-to-normal layouts, fresh touch typing, PAM and cooperative close.
+The controller must preserve owner preferences/controls, remove its entry and
+independently verify normal/default Tarot and Panfrost after the test login.
+It requests no suspend cycles and does not replace the browser acceptance gate.
+
 ## Shell hover handoff regression
 
 ```sh

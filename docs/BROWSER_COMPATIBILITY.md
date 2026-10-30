@@ -4,6 +4,15 @@ Revision 32 remains the last accepted complete scoped native checkpoint. Revisio
 
 ## Real Firefox baseline
 
+Revision 50 corrects a separate text-input-v3 pending-state leak found while
+reviewing the repeated-enable path. A synthetic real-protocol client proves
+that fields sent before the last enable survived into the input-method batch;
+the corrected dispatcher clears them. Native keyboard layout/input/PAM checks
+pass. The captured Firefox ordering metadata does not reveal the intervening
+field payloads, so it cannot establish that this bug caused Firefox's missing
+character. The held-key cancellation guard and original browser failure stay
+open. [Exact correction and acceptance scope](recordings/text-enable-reset/README.md).
+
 The phone already has Firefox ESR 140.12.0-r0 and mobile-config-firefox 5.4.1-r0. The fixture launches the actual installed executable as the ordinary login user, with a separate profile/HOME/XDG directories and a loopback HTTP site. `--profile` and `--no-remote` select that isolated instance. Startup preferences suppress first-run/default-browser pages; the browser sandbox is retained. [Mozilla command-line documentation](https://firefox-source-docs.mozilla.org/browser/CommandLineParameters.html).
 
 The revision-25 native inspection reproduces a rendering/input mismatch: tapping the rendered Text field focuses the Private field. Actual browser-side DOM events confirm the wrong target. The protocol trace shows a 720×1304 EGL/DMABUF buffer on a separate desynchronized surface, while Tarot does not advertise `wp_viewporter`. Mozilla's ESR-140 surface code creates a viewport through that global when available. Revision 26 advertises that standard capability and the native field receives the intended tap and text. [Inspected Mozilla source](https://github.com/mozilla-firefox/firefox/blob/esr140/widget/gtk/WaylandSurface.cpp).

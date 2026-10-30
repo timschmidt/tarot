@@ -46,6 +46,20 @@ The invalid-unlock regression was run with just the early return removed: a reje
 
 [smithay-text-input-metadata.patch](smithay-text-input-metadata.patch) adds opt-in DEBUG events for focused-client text-input enable/disable/commit requests and applied activation boundaries. Receipt and application are separate records: a request may still be rejected by the active-object policy. It records only static method names, numeric protocol/surface IDs and booleans. It does not format request payloads or change activation/reset behavior. The installed session enables this target, native touch ordering without coordinates, and numeric card-drop targets only in `--diagnostics` mode; normal sessions retain their previous INFO/WARN filters. The patch retains Smithay's MIT license and applies independently of the other three local patches.
 
+## Text-input enable state reset
+
+[smithay-text-input-enable-reset.patch](smithay-text-input-enable-reset.patch)
+is a local MIT-licensed correction to the pinned text-input-v3 dispatcher.
+Each `enable` replaces the complete pending state, including fields sent before
+that request in the same uncommitted batch. Previously consecutive enables
+could forward an earlier field's surrounding text, content hints/purpose and
+change cause. The real protocol fixture reproduces that stale delivery and
+checks both an empty final enable and fresh fields supplied after it.
+This follows the [protocol's enable/reset contract](https://raw.githubusercontent.com/wayland-mirror/wayland-protocols/main/unstable/text-input/text-input-unstable-v3.xml).
+The patch and the existing metadata patch apply in either order to the original
+0.7.0 file and reproduce the vendored result. It does not suppress activations,
+change key submission timing or resolve the separate Firefox held-key failure.
+
 ## Native icon renderer
 
 Native application icons use locked resvg/usvg 0.48.1 and tiny-skia 0.12.0 with Rust text shaping and the bundled Lato font. System font discovery, memory mapped fonts, SVGZ and resvg's optional raster-image decoders are disabled. Tarot explicitly rejects imported SVG images, including data URLs. PNG uses the existing bounded Rust decoder. [Native icon dependency notices](native-icons-NOTICES.txt) preserve the introduced packages' upstream license text and are installed in the APK; complete locked dependency sources and license options remain in the vendored source archive.

@@ -7,6 +7,25 @@ The newly supplied Fx0 Gold packet is retained as reference. The owner's deferre
 schedules an optional Gold theme and reusable device support/Fx0 port after all
 existing work. It changes no current runtime theme or hardware baseline.
 
+## Consecutive text-input enables in revision 50
+
+Pinned Smithay retained pending surrounding text, hints/purpose and change cause
+across two enables before one commit. A real protocol fixture reproduces that
+delivery on revision 49; replacing the complete pending state at each enable
+corrects it. Both empty replacement and fresh replacement cases pass with
+current/minimum compositors, followed by the full composition/serial/focus/
+isolation replay. Real rendered terminal controls and held-context cancellation
+remain accepted. Both compilers pass 239 workspace tests and strict host/ARM
+lint passes.
+
+Signed revision 50 passes native terminal-to-normal keyboard resets, fresh
+touch typing, actual PAM, protected orientations, app/audio and normal-session
+restoration. Independent loaded-program/default/Panfrost/restoration and
+source/archive audits pass. The Firefox held-activation failure remains open;
+its metadata cannot establish whether stale pending fields caused the captured
+missing character. No key-timing or canceled-contact policy changes are made.
+[Exact evidence and limitations](recordings/text-enable-reset/README.md).
+
 ## Menu broadcast subscriptions in revision 49
 
 An unrelated 96 KiB broadcast reproduces a real revision-48 regression: the

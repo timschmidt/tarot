@@ -21,6 +21,7 @@ def main():
     parser.add_argument("--method-report", type=Path, required=True)
     parser.add_argument("--method-commands", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--enable-reset", action="store_true")
     args = parser.parse_args()
     initial = request(args.socket, "status")
     owner = args.socket.stat()
@@ -98,6 +99,27 @@ def main():
         await_event(args.method_report, start_method, "activate")
         await_event(args.method_report, start_method, "surrounding", text="hello ")
         settle_method(start_method)
+
+        if args.enable_reset:
+            records["enable_reset"] = []
+            for replacement in [False, True]:
+                start_method = len(events(args.method_report))
+                send(first_commands, "enable-reset", replacement=replacement)
+                settle_method(start_method)
+                batch = events(args.method_report)[start_method:]
+                assert sum(e["event"] == "activate" for e in batch) == 1, batch
+                assert sum(e["event"] == "method_done" for e in batch) == 1, batch
+                fields = [e for e in batch if e["event"] in ["surrounding", "content_type", "cause"]]
+                expected = ([{"event":"surrounding", "text":"FRESH", "cursor":2, "anchor":3},
+                             {"event":"cause", "value":0},
+                             {"event":"content_type", "hint":0, "purpose":0}]
+                            if replacement else [])
+                assert fields == expected, ("State from before the last enable survived", replacement, batch)
+                records["enable_reset"].append({"replacement":replacement,"passed":True,"method_events":batch})
+            start_method = len(events(args.method_report))
+            send(first_commands, "enable")
+            await_event(args.method_report, start_method, "surrounding", text="hello ")
+            settle_method(start_method)
 
         start = len(events(first))
         method("preedit", text="にほん")

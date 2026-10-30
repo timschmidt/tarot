@@ -254,7 +254,12 @@ where
 
         match request {
             zwp_text_input_v3::Request::Enable => {
-                pending_state.enable = Some(true);
+                // A new enable resets state even before the batch is committed.
+                // Earlier fields must not leak through consecutive enables.
+                *pending_state = TextInputState {
+                    enable: Some(true),
+                    ..Default::default()
+                };
             }
             zwp_text_input_v3::Request::Disable => {
                 pending_state.enable = Some(false);

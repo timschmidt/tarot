@@ -6,6 +6,16 @@ October 29 follow-up: revision 36 reproduces cancellation of a held fullscreen b
 
 ## Failure and correction
 
+Revision-50 follow-up: consecutive enables before one commit exposed a separate
+pending-state bug in the compositor. Earlier surrounding text, sensitive hints
+and terminal purpose could survive the final enable. The dispatcher now clears
+the complete pending state at each enable; only later fields are forwarded.
+Current/minimum real-protocol replays and rendered terminal/held-reset checks
+pass. The installed phone passes terminal-to-normal layout resets, fresh touch
+typing, actual PAM and normal-session restoration. This does not change the
+keyboard's release-based submission or canceled-contact guard, and it does not
+resolve the Firefox overlap. [Failure, source and native scope](recordings/text-enable-reset/README.md).
+
 Revision 31 destroys and recreates the native keyboard on every input-method activation. Re-enabling an unchanged field therefore temporarily removes its input surface and sends the application through unnecessary resize/configure work. Retained native browser failures include a fresh, focused field with an unchanged value after a key press, and no keyboard down/up delivery to either adjacent generation. A separate deterministic synthetic fixture reproduces the needless replacement: re-enabling the same normal-purpose field changes surface generation 1 to 2.
 
 Revision 32 separates context reset from surface teardown. Repeated activation discards complete queued clicks, cancels egui's held pointer outside all keys, suppresses held touchscreen contacts until release, and resets shift/symbol/terminal selections and surrounding-text state. The new input-method batch supplies its content type and surrounding state. A fresh click can then commit with the new serial. The existing egui context, fonts, graphics and pending frame callback remain usable. [Implementation](../crates/tarot-keyboard/src/main.rs).
