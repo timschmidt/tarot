@@ -56,6 +56,9 @@ enum Request {
     AudioAction {
         action: tarot_core::audio::UiAction,
     },
+    FeedbackAction {
+        action: tarot_core::feedback::UiAction,
+    },
     NetworkAction {
         action: tarot_core::network::UiAction,
     },
@@ -167,6 +170,7 @@ pub fn start(path: &Path, handle: &LoopHandle<'_, CalloopData>) -> Result<Contro
                 Request::BluetoothAction {action} => state.apply_command(Command::Bluetooth(tarot_core::bluetooth::Action::Service(action))),
                 Request::BluetoothSelect {device} => state.apply_command(Command::Bluetooth(tarot_core::bluetooth::Action::Select(device))),
                 Request::AudioAction {action} =>state.apply_command(Command::Audio(action)),
+                Request::FeedbackAction {action} =>state.apply_command(Command::Feedback(action)),
                 Request::NetworkSetup {network} =>state.apply_command(Command::NetworkSetup(network)),
                 Request::CredentialText {value}=>state.apply_command(Command::CredentialText(value)),
                 Request::CredentialBackspace=>state.apply_command(Command::CredentialBackspace),
@@ -256,6 +260,7 @@ pub fn start(path: &Path, handle: &LoopHandle<'_, CalloopData>) -> Result<Contro
                     "request":state.shell.authorization.snapshot.request.as_ref().map(|r|json!({"id":r.id,"phase":match &r.phase {tarot_core::authorization::Phase::Choose=>"Choose",tarot_core::authorization::Phase::Starting=>"Starting",tarot_core::authorization::Phase::Checking=>"Checking",tarot_core::authorization::Phase::Question(_)=>"Question"},"turn":match &r.phase {tarot_core::authorization::Phase::Question(q)=>Some(q.id),_=>None},"echo":match &r.phase {tarot_core::authorization::Phase::Question(q)=>Some(q.echo),_=>None}}))},
                 "power": state.shell.power,
                 "audio": {"enabled":state.shell.audio.enabled,"available":state.shell.audio.available,"generation":state.shell.audio.generation,"epoch":state.shell.audio.epoch,"pending":state.shell.audio.pending,"error":state.shell.audio.error,"action_error":state.shell.audio.action_error,"outputs":state.shell.audio.outputs.iter().map(|o|json!({"id":o.id,"percent":o.percent,"muted":o.muted,"default":o.default})).collect::<Vec<_>>()},
+                "feedback": {"enabled":state.shell.feedback.enabled,"available":state.shell.feedback.available,"generation":state.shell.feedback.generation,"epoch":state.shell.feedback.epoch,"profile":state.shell.feedback.profile,"pending":state.shell.feedback.pending,"test_active":state.shell.feedback.test_active,"test_result":state.shell.feedback.test_result,"active_notifications":state.shell.feedback.active_notifications,"notifications_enabled":state.shell.feedback.notifications_enabled,"settings_saved":state.shell.feedback.settings_saved,"settings_error":state.shell.feedback.settings_error,"error":state.shell.feedback.error,"action_error":state.shell.feedback.action_error},
                 "notifications": notifications,
                 "launcher_query": state.shell.launcher_query,
                 "just_type": {"active":state.shell.just_type_active(), "origin":state.shell.search.origin, "revision":state.shell.search.revision, "selection_revision":state.shell.search.selection_revision, "selected":state.shell.search.selected, "query_chars":state.shell.launcher_query.chars().count()},

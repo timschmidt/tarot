@@ -52,6 +52,12 @@ impl Handle {
     pub fn initial_notifications(&self) -> Notifications {
         self.0.state.lock().unwrap().desired.notifications.clone()
     }
+    pub fn initial_feedback(&self) -> tarot_core::feedback::Settings {
+        self.0.state.lock().unwrap().desired.feedback.clone()
+    }
+    pub fn feedback(&self, settings: tarot_core::feedback::Settings) {
+        self.change(|p| p.feedback = settings);
+    }
     fn change(&self, update: impl FnOnce(&mut Preferences)) {
         let mut state = self.0.state.lock().unwrap();
         update(&mut state.desired);
@@ -110,6 +116,9 @@ impl Compositor {
         if let Some(server) = &self.preferences {
             let status = server.handle.status();
             self.shell.display.settings_available = true;
+            self.shell.feedback.settings_available = true;
+            self.shell.feedback.settings_saved = status.saved;
+            self.shell.feedback.settings_error = status.error.clone();
             self.shell.display.settings_saved = status.saved;
             self.shell.display.settings_error = status.error.clone();
             self.shell.notifications.settings_available = true;
@@ -212,6 +221,14 @@ mod tests {
         let display = server.handle.clone();
         let favorites = server.handle.clone();
         let launcher = server.handle.clone();
+        let feedback = server.handle.clone();
+        let feedback_thread = std::thread::spawn(move || {
+            for n in 0..100 {
+                feedback.feedback(tarot_core::feedback::Settings {
+                    notifications: n % 2 == 0,
+                });
+            }
+        });
         let notification_thread = std::thread::spawn(move || {
             for n in 0..100 {
                 notifications.notifications(Notifications {
@@ -253,9 +270,11 @@ mod tests {
         notification_thread.join().unwrap();
         display_thread.join().unwrap();
         favorites_thread.join().unwrap();
+        feedback_thread.join().unwrap();
         drop(server);
         let loaded = Store::load(path);
         assert!(loaded.saved && loaded.error.is_none());
+        assert!(!loaded.current.feedback.notifications);
         assert!(loaded.current.notifications.dnd && loaded.current.notifications.hide_previews);
         assert!(loaded.current.display.rotation_locked);
         assert_eq!(

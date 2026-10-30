@@ -38,7 +38,7 @@ impl Setting {
         match self {
             Self::Wifi => "Networks and saved connections",
             Self::Bluetooth => "Pair and connect Bluetooth devices",
-            Self::Audio => "Volume and audio outputs",
+            Self::Audio => "Volume, outputs and notification feedback",
             Self::Display => "Orientation, screen off and automatic locking",
             Self::Notifications => "Dashboard, Do Not Disturb and private previews",
             Self::Power => "Battery and session power controls",
@@ -56,7 +56,9 @@ impl Setting {
         let aliases = match self {
             Self::Wifi => "wifi wi fi wlan wireless internet",
             Self::Bluetooth => "bluetooth pairing paired headset headphones keyboard",
-            Self::Audio => "sound volume audio speaker speakers mute",
+            Self::Audio => {
+                "sound volume audio speaker speakers mute ringer vibrate vibration haptic feedback silent"
+            }
             Self::Display => {
                 "rotate rotation orientation display screen brightness idle lock automatic"
             }

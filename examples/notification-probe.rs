@@ -118,7 +118,7 @@ fn main() -> Result<()> {
                     |key: &str, default: &str| value[key].as_str().unwrap_or(default).to_string();
                 let actions: Vec<String> =
                     serde_json::from_value(value.get("actions").cloned().unwrap_or(json!([])))?;
-                let hints = HashMap::from([
+                let mut hints = HashMap::from([
                     (
                         "urgency",
                         OwnedValue::from(value["urgency"].as_u64().unwrap_or(1) as u8),
@@ -132,6 +132,25 @@ fn main() -> Result<()> {
                         OwnedValue::from(value["transient"].as_bool().unwrap_or(false)),
                     ),
                 ]);
+                for (field, hint) in [
+                    ("feedback_profile", "x-phosh-fb-profile"),
+                    ("sound_file", "sound-file"),
+                ] {
+                    if let Some(text) = value[field].as_str() {
+                        hints.insert(
+                            hint,
+                            OwnedValue::from(zbus::zvariant::Str::from(text.to_owned())),
+                        );
+                    }
+                }
+                for (field, hint) in [
+                    ("suppress_sound", "suppress-sound"),
+                    ("important", "important"),
+                ] {
+                    if let Some(flag) = value[field].as_bool() {
+                        hints.insert(hint, OwnedValue::from(flag));
+                    }
+                }
                 let result: zbus::Result<u32> = proxy.call(
                     "Notify",
                     &(

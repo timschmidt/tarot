@@ -9,6 +9,7 @@ mod control;
 #[cfg(feature = "drm")]
 mod drm;
 mod families;
+mod feedback;
 mod focus;
 mod grabs;
 mod gtk_protocol;
@@ -392,10 +393,19 @@ fn main() -> Result<()> {
     }
     if options.notifications {
         let preferences = data.state.preferences.as_ref().unwrap().handle.clone();
+        if options.system_services {
+            data.state.feedback = Some(feedback::start(
+                event_loop.handle(),
+                &mut data.state,
+                preferences.clone(),
+            )?);
+        }
+        let feedback = data.state.feedback.as_ref().map(|s| s.handle.clone());
         data.state.notifications = Some(notifications::start(
             event_loop.handle(),
             &mut data.state,
             preferences,
+            feedback,
         )?);
     }
     let _sleep = if options.sleep_coordination {

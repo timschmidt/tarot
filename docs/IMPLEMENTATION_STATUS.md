@@ -12,6 +12,29 @@ The newly supplied [Pre3 packet](PRE3_REFERENCE.md) is queued as
 original files remain reference material; the owner selected MIT OR Apache-2.0
 for their graphics and authoring source. No Pre3 runtime work has started.
 
+## Feedback profiles and notification lifecycle
+
+The [Rust feedbackd adapter](FEEDBACK.md) adds observed Full/Quiet/Silent profiles,
+a persistent notification-feedback switch and a Quiet-capped single-play test.
+Notification content and arbitrary sound files never enter feedback requests.
+DND, disabling, replacement, closing, expiry and sender/service loss cancel tracked
+work; recovery never replays old alerts. Profile ownership, epochs, bounded
+queues, ordered replies/signals and bounded cancellation remain explicit.
+Preference schema 5 migrates versions 1–4 without an eager write.
+
+Both compilers pass 261 workspace tests, the frozen-binary rendered matrix and
+strict host/ARM lint. Existing notification, launcher, display and Wi-Fi
+authorization regressions pass. Signed revision 54 passes native rendered profile
+selection, independent settings readback, Silent suppression, two Quiet-capped
+events with successful kernel device requests, owned-daemon recovery, stale-command
+rejection, checkbox persistence and actual PAM. Original preferences, logical
+feedback settings/user overrides, policies, audio and backlight are restored.
+An independent audit verifies normal default Tarot54, diagnostics off, exact
+loaded programs, Panfrost and cleanup. All 673 collected members and 621 frozen
+inputs verify. Felt vibration, acoustic quality, notification-specific native
+output, broader policy, power/performance and all unfinished milestones remain
+open. Physical Bluetooth testing remains deferred. [Exact evidence](recordings/feedback/README.md).
+
 ## Wi-Fi authentication integration
 
 The [NetworkManager authorization path](WIFI_AUTHORIZATION.md) now permits explicit auth-required actions only with an active, unprotected session agent. A bounded write worker and separate short-timeout read connection keep inventory and owner changes live during password entry. Settings-originated authentication returns to its page with fresh input/menu identity. NetworkManager still makes every permission decision; No remains denied and a method reply still waits for observed operation completion.

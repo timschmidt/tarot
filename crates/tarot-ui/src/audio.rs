@@ -149,5 +149,82 @@ pub fn show(ui: &mut egui::Ui, model: &ShellModel, _layout: Layout, commands: &m
                 });
                 ui.add_space(4.0);
             }
+            if model.feedback.enabled {
+                feedback(ui, model, commands);
+            }
         });
+}
+
+fn feedback(ui: &mut egui::Ui, model: &ShellModel, commands: &mut Vec<Command>) {
+    use tarot_core::feedback::{Profile, UiAction as Feedback};
+    let state = &model.feedback;
+    ui.separator();
+    ui.label(egui::RichText::new("Notification feedback").strong());
+    ui.label(format!(
+        "Profile: {}",
+        state.profile.map_or("Unknown", Profile::label)
+    ));
+    ui.label("The device theme controls sound, vibration and lights. Silent may still use lights.");
+    for profile in Profile::ALL {
+        if ui
+            .add_enabled(
+                state.available && state.pending.is_none(),
+                egui::Button::new(profile.label())
+                    .selected(state.profile == Some(profile))
+                    .min_size(Vec2::new(ui.available_width(), 48.0)),
+            )
+            .clicked()
+        {
+            commands.push(Command::Feedback(Feedback::Profile {
+                epoch: state.epoch,
+                profile,
+            }));
+        }
+    }
+    if state.pending.is_some() {
+        ui.label("Changing feedback profile…");
+    }
+    let mut notifications = state.notifications_enabled;
+    if ui
+        .add_enabled(
+            state.settings_available,
+            egui::Checkbox::new(&mut notifications, "Feedback for new notifications"),
+        )
+        .changed()
+    {
+        commands.push(Command::Feedback(Feedback::Notifications {
+            enabled: notifications,
+        }));
+    }
+    ui.label("Do Not Disturb suppresses new notification feedback.");
+    if ui
+        .add_enabled(
+            state.available && state.pending.is_none() && !state.test_active,
+            egui::Button::new("Test vibration").min_size(Vec2::new(ui.available_width(), 48.0)),
+        )
+        .clicked()
+    {
+        commands.push(Command::Feedback(Feedback::Test { epoch: state.epoch }));
+    }
+    ui.label("The current profile can suppress vibration.");
+    if let Some(result) = state.test_result {
+        ui.label(match result {
+            tarot_core::feedback::TestResult::Ended => "Test ended.",
+            tarot_core::feedback::TestResult::Unavailable => {
+                "Vibration is unavailable for this profile or device."
+            }
+        });
+    }
+    if state.test_active {
+        ui.label("Feedback test pending…");
+        if ui.button("Stop test").clicked() {
+            commands.push(Command::Feedback(Feedback::StopTest));
+        }
+    }
+    for error in [&state.error, &state.action_error, &state.settings_error]
+        .into_iter()
+        .flatten()
+    {
+        ui.colored_label(Color32::LIGHT_RED, error);
+    }
 }

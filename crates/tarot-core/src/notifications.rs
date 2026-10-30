@@ -516,6 +516,28 @@ impl Store {
             settings_available: false,
         }
     }
+
+    /// Feedback needs only lifecycle identity; do not clone private content for
+    /// the adapter or its policy checks.
+    pub fn feedback_state(&self) -> (bool, Vec<(u32, u64)>) {
+        (
+            self.dnd,
+            self.entries
+                .iter()
+                .filter_map(|entry| {
+                    let n = &entry.notification;
+                    (n.live && !n.orphaned).then_some((n.id, n.revision))
+                })
+                .collect(),
+        )
+    }
+
+    pub fn notification_revision(&self, id: u32) -> Option<u64> {
+        self.entries.iter().find_map(|entry| {
+            let n = &entry.notification;
+            (n.id == id && n.live && !n.orphaned).then_some(n.revision)
+        })
+    }
 }
 
 #[cfg(test)]

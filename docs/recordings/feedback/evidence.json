@@ -1,0 +1,192 @@
+{
+  "revision": 54,
+  "date": "2026-10-30",
+  "scope": "Feedback profiles, notification lifecycle and scoped native quiet-test/daemon/PAM acceptance; full goal active",
+  "source_sha256": "2ea366a986dfa1604b5917c4bc8b6943dc158eb6b3b2eed3b05eec204a2dd431",
+  "package_sha256": "b492a4480718dea7bd81be6ee474d2ad291fb9ce561dfcc6146d94d9da4622b7",
+  "binaries_sha256": {
+    "tarot": "c43fe4a5d5bbcc51ad204189f18aa5d4fdc2380f485d621daccc38a2ea3ca46e",
+    "tarot-session": "90190447f23a37c6d9cd5abb11719c7869cb302b60d29929fe62194c33d96383",
+    "tarot-lock": "60de2ea16cc79f1b3b2e66e7fde0ebd02eb20b842f0947601617c3cce9d4f597",
+    "tarot-keyboard": "9015e6cc20edfa4962fee07c088de728db4c0951f8554a22a64d63481e29ab01"
+  },
+  "host": {
+    "workspace_tests": {
+      "workspace-delivery-current.log": {
+        "passed": 261,
+        "failed": 0,
+        "ignored": 9
+      },
+      "workspace-delivery-minimum.log": {
+        "passed": 261,
+        "failed": 0,
+        "ignored": 9
+      }
+    },
+    "delivery_binaries": {
+      "current": {
+        "tarot": "881c439df5563dca680a089efc2034736688058f8b59330b7cd5862aff13232e",
+        "examples/notification-probe": "ca18066ed685694ca1fd368952d510c98f9a5b9c6f297b467ea1ccbda910c2e7",
+        "examples/lock-probe": "f4d53906c6c241bfe17b23843d662cced3ca8822735e323cfc617b421ec458c5"
+      },
+      "minimum": {
+        "tarot": "b9a0c6211c1b06b8362ef53ab9b9350b996a67f933b448776cd98ec9e11bed33",
+        "examples/notification-probe": "957c03dec1fb946603fb5bd65b17f54c896388095e404ab9512ee30f333ad633",
+        "examples/lock-probe": "6fdd7b108415cd39c19494ad55987192fe800f37ba2bea846b8f0f1a126a1214"
+      }
+    },
+    "private": {
+      "delivery-accepted-current": {
+        "passed": true,
+        "binary_sha256": "881c439df5563dca680a089efc2034736688058f8b59330b7cd5862aff13232e",
+        "batch_stop_64_seconds": 3.018911456980277,
+        "shutdown_seconds": 1.0716574139951263,
+        "result_sha256": "ee880cd5b84d7bf2850e7dcba7d588fe80b05c7a4bac865aa95c22914b249358"
+      },
+      "delivery-accepted-minimum": {
+        "passed": true,
+        "binary_sha256": "b9a0c6211c1b06b8362ef53ab9b9350b996a67f933b448776cd98ec9e11bed33",
+        "batch_stop_64_seconds": 3.0283433689910453,
+        "shutdown_seconds": 1.0721549000008963,
+        "result_sha256": "652522fd45891d29d5203488d1c80952e0cbd8303de02a65b80092a9dde060fb"
+      }
+    },
+    "strict_host_lint": true,
+    "strict_arm_drm_lint": true,
+    "regressions": {
+      "launcher-regression": true,
+      "display-regression": true,
+      "notification-regression": true,
+      "network-authorization-regression": true
+    }
+  },
+  "native": {
+    "passed": true,
+    "sha256": "b3bb9296328e8f8807bee65b08c1b3c1b58939e4859f3df89e3d84e5a32c510d",
+    "members": 673,
+    "frozen_inputs": 621,
+    "events": [
+      {
+        "label": "silent-reports-no-output",
+        "result": "Unavailable",
+        "gui_method_calls": 1,
+        "kernel_uploads": [],
+        "kernel_event_writes": []
+      },
+      {
+        "label": "quiet-single-play",
+        "result": "Ended",
+        "gui_method_calls": 1,
+        "kernel_uploads": [
+          {
+            "thread": 9480,
+            "kind": "ioctl",
+            "fd": 5,
+            "cmd": 1076905344,
+            "result": 0
+          }
+        ],
+        "kernel_event_writes": [
+          {
+            "thread": 9480,
+            "kind": "write",
+            "fd": 5,
+            "count": 24,
+            "result": 24
+          },
+          {
+            "thread": 9480,
+            "kind": "write",
+            "fd": 5,
+            "count": 24,
+            "result": 24
+          }
+        ]
+      },
+      {
+        "label": "full-profile-still-caps-test",
+        "result": "Ended",
+        "gui_method_calls": 1,
+        "kernel_uploads": [
+          {
+            "thread": 9480,
+            "kind": "ioctl",
+            "fd": 5,
+            "cmd": 1076905344,
+            "result": 0
+          }
+        ],
+        "kernel_event_writes": [
+          {
+            "thread": 9480,
+            "kind": "write",
+            "fd": 5,
+            "count": 24,
+            "result": 24
+          },
+          {
+            "thread": 9480,
+            "kind": "write",
+            "fd": 5,
+            "count": 24,
+            "result": 24
+          }
+        ]
+      }
+    ],
+    "actual_pam": true,
+    "feedback_daemon_recovery": true,
+    "private_trace_removed_and_global_unchanged": true,
+    "feedback_settings_and_overrides_restored": true,
+    "exact_preferences_policies_controls_restored": true,
+    "normal_default_tarot_and_panfrost": true,
+    "actual_haptic_sensation_tested": false,
+    "audio_playback_requested": false,
+    "notification_specific_physical_output_tested": false,
+    "suspend_cycles": 0,
+    "roles": {
+      "tarot-session": {
+        "pid": 11926,
+        "start": "22093631",
+        "sha256": "90190447f23a37c6d9cd5abb11719c7869cb302b60d29929fe62194c33d96383"
+      },
+      "tarot": {
+        "pid": 11930,
+        "start": "22093632",
+        "sha256": "c43fe4a5d5bbcc51ad204189f18aa5d4fdc2380f485d621daccc38a2ea3ca46e"
+      },
+      "tarot-lock": {
+        "pid": 11941,
+        "start": "22093677",
+        "sha256": "60de2ea16cc79f1b3b2e66e7fde0ebd02eb20b842f0947601617c3cce9d4f597"
+      },
+      "tarot-keyboard": {
+        "pid": 11958,
+        "start": "22093679",
+        "sha256": "9015e6cc20edfa4962fee07c088de728db4c0951f8554a22a64d63481e29ab01"
+      }
+    }
+  },
+  "feedbackd_version": "0.8.9-r2",
+  "feedbackd_source_sha256": "80b6bf6ef9f943c138a388efb655c0c37833ef6ec102765d963ea7c31c33ab58",
+  "theme_sha256": {
+    "default.json": "1debeb0c3076da04d7086bea36b57080d35555e32bce1ecaaaf334b8c49f8ede",
+    "pine64,pinephone-pro.json": "f1be00e014eb75fb0de92a9d432bdde11987b23fcbeea163eb8434e247bb6502"
+  },
+  "normal_feedback_provider": {
+    "pid": 11970,
+    "start": "22093680",
+    "sha256": "566c87654f220e8965ad7880cd30b645e8f694496fb9df3f89469e43bbc51071",
+    "cgroup": "0::/c553\n"
+  },
+  "capture_sha256": "faaee0a6a6cd74f9f060271ca61389fc2cd12e3323d44abb21ef1075b46df727",
+  "full_plan_complete": false,
+  "physical_bluetooth_deferred": true,
+  "remaining": [
+    "Felt vibration and acoustic quality",
+    "Notification-specific native physical output",
+    "Broader device-theme/per-app policy and accessibility",
+    "Power/performance/endurance and service reliability",
+    "All unfinished full-plan milestones"
+  ]
+}

@@ -110,7 +110,8 @@ def main():
         state('interleaved-final',lambda s:s['notifications']['dnd'] and not s['notifications']['hide_previews'] and s['display_settings']['idle']==idle)
         saved('both-sections-saved')
         data = tomllib.loads(config.read_text())
-        assert data['version']==2 and data['notifications']=={'dnd':True,'hide_previews':False}
+        assert data['version']==5 and data['notifications']=={'dnd':True,'hide_previews':False}
+        assert data['feedback']=={'notifications':True}
         assert data['display']=={'rotation_locked':True,'locked_orientation':'left-up','idle':idle}
         assert config.stat().st_mode&0o777==0o600
         # Both malformed values and output-off-before-lock are rejected without

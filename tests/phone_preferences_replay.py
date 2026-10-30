@@ -46,7 +46,9 @@ def main():
                        s['notifications']['hide_previews'] == expected and s['notifications']['settings_saved'])
         assert value['notifications']['settings_error'] is None
         preferences = tomllib.loads(args.config.read_text())
-        assert preferences == {'version': 1, 'notifications': {'dnd': expected, 'hide_previews': expected}}
+        assert preferences['version'] == 5
+        assert preferences['notifications'] == {'dnd': expected, 'hide_previews': expected}
+        assert preferences['feedback'] == {'notifications': True}
         assert args.config.stat().st_mode & 0o777 == 0o600
         assert args.config.parent.stat().st_mode & 0o777 == 0o700
         assert args.config.stat().st_uid == owner.st_uid

@@ -52,12 +52,21 @@ struct Shared {
     generation: AtomicU64,
     status: Mutex<Status>,
     wayland_display: OsString,
+    feedback: Option<crate::feedback::Handle>,
 }
 
 impl Shared {
     fn publish(&self) {
         let mut pending = self.pending.lock().unwrap();
-        let mut snapshot = self.store.lock().unwrap().snapshot();
+        let mut snapshot = {
+            let store = self.store.lock().unwrap();
+            let snapshot = store.snapshot();
+            if let Some(feedback) = &self.feedback {
+                let (dnd, live) = store.feedback_state();
+                feedback.retain(dnd, &live);
+            }
+            snapshot
+        };
         let status = self.status.lock().unwrap();
         snapshot.generation = self.generation.fetch_add(1, Ordering::Relaxed) + 1;
         snapshot.available = status.available;
@@ -95,7 +104,14 @@ impl Shared {
         } else {
             None
         };
-        self.store.lock().unwrap().ui(action);
+        {
+            let mut store = self.store.lock().unwrap();
+            store.ui(action);
+            if let Some(feedback) = &self.feedback {
+                let (dnd, live) = store.feedback_state();
+                feedback.retain(dnd, &live);
+            }
+        }
         if let Some(settings) = settings {
             self.preferences.notifications(settings);
         }
@@ -181,6 +197,25 @@ impl Api {
             .transpose()
             .map_err(|_| dbus_error(Error::Invalid))?
             .unwrap_or(1);
+        let feedback_profile = match hints
+            .get("x-phosh-fb-profile")
+            .and_then(|v| <&str>::try_from(v).ok())
+        {
+            Some("none") => None,
+            Some(value) => tarot_core::feedback::Profile::parse(value),
+            None => Some(tarot_core::feedback::Profile::Full),
+        };
+        let feedback_profile = if bool_hint("suppress-sound")? {
+            feedback_profile.map(|p| {
+                if p == tarot_core::feedback::Profile::Full {
+                    tarot_core::feedback::Profile::Quiet
+                } else {
+                    p
+                }
+            })
+        } else {
+            feedback_profile
+        };
         let input = Incoming {
             app_name,
             summary,
@@ -204,6 +239,11 @@ impl Api {
         let id = store
             .notify(owner, replaces_id, input, self.shared.start.elapsed())
             .map_err(dbus_error)?;
+        if let Some(feedback) = &self.shared.feedback
+            && let Some(revision) = store.notification_revision(id)
+        {
+            feedback.notify(id, revision, urgency, feedback_profile);
+        }
         drop(store);
         self.shared.changed();
         Ok(id)
@@ -269,6 +309,7 @@ pub fn start(
     handle: LoopHandle<'static, CalloopData>,
     state: &mut Compositor,
     preferences: preferences::Handle,
+    feedback: Option<crate::feedback::Handle>,
 ) -> Result<Server> {
     let (ping, source) = make_ping()?;
     let pending = Arc::new(Mutex::new(None::<Snapshot>));
@@ -299,6 +340,7 @@ pub fn start(
         generation: AtomicU64::new(0),
         status: Mutex::new(Status::default()),
         wayland_display: state.socket_name.clone(),
+        feedback,
     });
     let connection = Arc::new(Mutex::new(None));
     let saved = connection.clone();

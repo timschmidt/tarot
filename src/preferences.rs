@@ -32,16 +32,19 @@ pub struct Preferences {
     pub quick_launch: Option<tarot_core::quick_launch::Favorites>,
     #[serde(default)]
     pub launcher: Option<tarot_core::launcher::Settings>,
+    #[serde(default)]
+    pub feedback: tarot_core::feedback::Settings,
 }
 
 impl Default for Preferences {
     fn default() -> Self {
         Self {
-            version: 4,
+            version: 5,
             notifications: Notifications::default(),
             display: tarot_core::display::Preferences::default(),
             quick_launch: None,
             launcher: None,
+            feedback: tarot_core::feedback::Settings::default(),
         }
     }
 }
@@ -135,19 +138,20 @@ fn read(path: &Path) -> Result<Option<Preferences>> {
     let mut preferences: Preferences = toml::from_str(&text)
         .map_err(|_| anyhow::anyhow!("invalid or unsupported settings schema"))?;
     ensure!(
-        (1..=4).contains(&preferences.version),
+        (1..=5).contains(&preferences.version),
         "unsupported settings version"
     );
-    if preferences.version < 4 {
+    if preferences.version < 5 {
         // Old schemas must not smuggle a later section into a migration.
         let old: toml::Value = toml::from_str(&text)?;
         ensure!(
-            old.get("launcher").is_none()
+            old.get("feedback").is_none()
+                && (preferences.version >= 4 || old.get("launcher").is_none())
                 && (preferences.version >= 3 || old.get("quick_launch").is_none())
                 && (preferences.version != 1 || old.get("display").is_none()),
             "invalid mixed settings version"
         );
-        preferences.version = 4;
+        preferences.version = 5;
     }
     ensure!(preferences.display.idle.valid(), "invalid display timeouts");
     ensure!(
@@ -163,7 +167,7 @@ fn read(path: &Path) -> Result<Option<Preferences>> {
 
 fn write(path: &Path, preferences: &Preferences) -> Result<()> {
     ensure!(
-        preferences.version == 4
+        preferences.version == 5
             && preferences.display.idle.valid()
             && preferences.quick_launch.as_ref().is_none_or(|f| f.valid())
             && preferences.launcher.as_ref().is_none_or(|p| p.valid()),
@@ -271,7 +275,7 @@ mod tests {
         );
         let saved = fs::read_to_string(&path).unwrap();
         for invalid in [
-            saved.replacen("version = 4", "version = 3", 1),
+            saved.replacen("version = 5", "version = 3", 1),
             saved.replacen("inbox = 1", "inbox = 999", 1),
         ] {
             assert_ne!(invalid, saved);
@@ -347,7 +351,7 @@ mod tests {
         fs::write(&path, original).unwrap();
         let mut store = Store::load(path.clone());
         assert!(store.saved && store.current.notifications.dnd);
-        assert_eq!(store.current.version, 4);
+        assert_eq!(store.current.version, 5);
         assert_eq!(fs::read_to_string(&path).unwrap(), original);
         let mut next = store.current.clone();
         next.display.rotation_locked = true;
@@ -366,12 +370,40 @@ mod tests {
     }
 
     #[test]
+    fn version_four_feedback_migration_is_lazy_and_rejects_mixed_schema() {
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("settings.toml");
+        let original = "version = 4\n[notifications]\ndnd = true\n";
+        fs::write(&path, original).unwrap();
+        let mut store = Store::load(path.clone());
+        assert!(
+            store.saved && store.current.feedback.notifications && store.current.notifications.dnd
+        );
+        assert_eq!(fs::read_to_string(&path).unwrap(), original);
+        let mut next = store.current.clone();
+        next.feedback.notifications = false;
+        store.replace(next);
+        let loaded = Store::load(path.clone());
+        assert!(
+            loaded.saved
+                && !loaded.current.feedback.notifications
+                && loaded.current.notifications.dnd
+        );
+        let mixed = original.to_owned() + "[feedback]\nnotifications = false\n";
+        fs::write(&path, &mixed).unwrap();
+        let mut bad = Store::load(path.clone());
+        assert!(bad.error.is_some());
+        bad.update(Notifications::default());
+        assert_eq!(fs::read_to_string(&path).unwrap(), mixed);
+    }
+
+    #[test]
     fn invalid_newer_oversized_or_symlink_settings_are_preserved() {
         let directory = tempfile::tempdir().unwrap();
         let path = directory.path().join("settings.toml");
         for text in [
             "broken TOML".to_string(),
-            "version = 5\n".into(),
+            "version = 6\n".into(),
             "version = 1\nunknown = true\n".into(),
             "version = 1\n[display]\nrotation_locked = true\n".into(),
             "version = 2\n[display.idle]\nlock_after_seconds = 0\n".into(),

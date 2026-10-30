@@ -87,6 +87,7 @@ pub struct Compositor {
     pub bluetooth: Option<crate::bluetooth::Server>,
     pub authorization: Option<crate::authorization::Server>,
     pub audio: Option<crate::audio::Server>,
+    pub feedback: Option<crate::feedback::Server>,
     pub popups: PopupManager,
     pub popup_grab: Option<smithay::desktop::PopupGrab<Self>>,
     pub popup_owner: Option<WindowId>,
@@ -266,6 +267,7 @@ impl Compositor {
             bluetooth: None,
             authorization: None,
             audio: None,
+            feedback: None,
             popups,
             popup_grab: None,
             popup_owner: None,
@@ -679,6 +681,7 @@ impl Compositor {
                 && !matches!(
                     effect,
                     Effect::Network(tarot_core::network::UiAction::CancelSecrets { .. })
+                        | Effect::Feedback(tarot_core::feedback::UiAction::StopTest)
                         | Effect::Authorization(tarot_core::authorization::UiAction::Cancel { .. })
                         | Effect::Bluetooth(tarot_core::bluetooth::UiAction::Reply {
                             answer: tarot_core::bluetooth::Answer::Reject,
@@ -774,6 +777,25 @@ impl Compositor {
                         match server.action(action.clone()) {
                             Ok(()) => self.shell.audio.pending = Some(action),
                             Err(error) => self.shell.audio.action_error = Some(error.to_string()),
+                        }
+                    }
+                }
+                Effect::Feedback(action) => {
+                    if let Some(server) = &self.feedback {
+                        match server.action(action) {
+                            Ok(()) => match action {
+                                tarot_core::feedback::UiAction::Profile { profile, .. } => {
+                                    self.shell.feedback.pending = Some(profile)
+                                }
+                                tarot_core::feedback::UiAction::Test { .. } => {
+                                    self.shell.feedback.test_active = true;
+                                    self.shell.feedback.test_result = None;
+                                }
+                                _ => {}
+                            },
+                            Err(error) => {
+                                self.shell.feedback.action_error = Some(error.to_string())
+                            }
                         }
                     }
                 }

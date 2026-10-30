@@ -61,7 +61,7 @@ def main():
             mouse.move(*start);mouse.button(True);time.sleep(.06);mouse.move(*end);time.sleep(.1);mouse.button(False)
         def saved(label,condition):
             s=state(label,lambda s:s['launcher']['saved'] and condition(s['launcher']['settings']))
-            data=tomllib.loads(config.read_text());assert data['version']==4
+            data=tomllib.loads(config.read_text());assert data['version']==5
             assert data['notifications']['dnd'] and data['quick_launch']['applications']==['test.app00.desktop']
             assert data['launcher']==s['launcher']['settings']
             assert not s['cards'] and s['launch_feedback'] is None

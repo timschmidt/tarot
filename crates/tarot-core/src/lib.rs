@@ -10,6 +10,7 @@ pub mod deck;
 pub mod design;
 pub mod display;
 pub mod favorite_drag;
+pub mod feedback;
 pub mod frame;
 pub mod gesture;
 pub mod hardware;
@@ -125,6 +126,7 @@ pub enum Command {
     SystemMenuOpen(bool),
     Power(power::UiAction),
     Audio(audio::UiAction),
+    Feedback(feedback::UiAction),
     Network(network::UiAction),
     Bluetooth(bluetooth::Action),
     Authorization(authorization::Action),
@@ -166,6 +168,7 @@ pub enum Effect {
     Notification(notifications::UiAction),
     Power(power::UiAction),
     Audio(audio::UiAction),
+    Feedback(feedback::UiAction),
     Network(network::UiAction),
     Bluetooth(bluetooth::UiAction),
     Authorization(authorization::UiAction),
@@ -203,6 +206,7 @@ pub struct ShellModel {
     pub rotation_locked: bool,
     pub display: display::Snapshot,
     pub audio: audio::Snapshot,
+    pub feedback: feedback::Snapshot,
     pub volume_feedback: Option<audio::KeyFeedback>,
     pub network: network::Snapshot,
     pub authorization: authorization::State,
@@ -944,6 +948,7 @@ impl ShellModel {
                 return effects;
             }
             Command::Notification(action) => return vec![Effect::Notification(action)],
+            Command::Feedback(action) => return vec![Effect::Feedback(action)],
             Command::CancelGesture => return Vec::new(),
             Command::CardMenuOpen(open) => {
                 self.card_menu_open = open && self.view == View::Overview && !self.system_menu_open;

@@ -378,6 +378,9 @@ impl Compositor {
     }
     /// Stop ordinary scene/input before forking or waiting for the trusted client.
     pub fn enter_protection(&mut self) {
+        if let Some(feedback) = &self.feedback {
+            feedback.handle.stop_test();
+        }
         self.shell.authorization_return = None;
         if let Some(server) = &self.authorization {
             server.protection(true);

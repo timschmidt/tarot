@@ -549,6 +549,29 @@ Keep separate evidence directories and verify helper/compositor/harness exits, o
 
 ## Audio controls
 
+[Feedback profiles](FEEDBACK.md) extend Sound settings with Sound & vibration,
+Vibration and Silent selection, a persistent notification-feedback switch and
+a one-shot vibration test. The normal private session uses the standard
+feedbackd service and device themes. Bare system-service development sessions
+without the private notification environment do not activate this adapter.
+
+The isolated rendered feedback replay owns its X display, broker and synthetic
+feedback service; it never drives host hardware. Build the binary/examples
+first, then use a fresh evidence directory:
+
+```sh
+cargo build --locked --offline --bin tarot --example notification-probe --example lock-probe
+python3 tests/feedback_replay.py --output artifacts/feedback-private
+```
+
+Use `--xvfb /path/to/Xvfb` if needed. Native `--feedback` belongs to the guarded
+installed-session replay on the authorized spare phone. It requires actual PAM,
+qualified stock themes, a verified ordinary-user feedbackd and root-owned QA
+observation of kernel return codes. The controller must restore both logical
+GSettings values/user overrides and the original Tarot preferences, then audit
+a fresh normal login. The replay alone cannot establish felt vibration.
+
+
 `--system-services` also enables playback controls through the current user's PulseAudio-compatible server. Open the top-right status menu, then Audio. Each observed output has volume and mute controls; another output can become the default for new playback. Existing applications can retain their own routes. Volume writes preserve channel balance and accept 0–100%; muting is independent. Device profiles, microphone controls, per-app routing and call-audio policy remain separate work.
 
 The Rust adapter uses `libpulse-sys` 1.23.0 and the platform's libpulse, without spawning `pactl` or an audio daemon. Its worker owns a threaded mainloop, bounded requests, subscriptions, coalesced snapshots and reconnect backoff. No healthy periodic polling is required. Completion needs observed server state after acknowledgement; stale output IDs and values above 100% are rejected. Native hardware volume is reported through the sound server, rather than claimed as acoustic or mixer-driver verification. The session package must arrange the distribution's normal audio service startup.
@@ -1000,7 +1023,7 @@ For the native sensor/panel gate, `phone_installed_session_replay.py --cycles 0 
 
 ## Persistent rotation and idle preferences
 
-The current source uses version-2 `settings.toml` under `$XDG_CONFIG_HOME/tarot`, or `~/.config/tarot`. Notification-only version-1 files migrate without an eager write. Rotation lock preserves its current orientation across restart. Invalid/newer files remain untouched; changes then apply until logout and the UI reports that saving failed. Stop Tarot before repairing or moving aside such a file, then restart.
+The current source uses version-5 `settings.toml` under `$XDG_CONFIG_HOME/tarot`, or `~/.config/tarot`. Versions 1–4 migrate without an eager write; version 5 adds the notification-feedback switch. Rotation lock preserves its current orientation across restart. Invalid/newer files remain untouched; changes then apply until logout and the UI reports that saving failed. Stop Tarot before repairing or moving aside such a file, then restart.
 
 `--idle-preferences` requires a locker and enables saved timeouts with defaults of 120-second locking and 180-second panel off. The installed launcher supplies this option. `--idle-lock-ms`/`--idle-off-ms` override saved timeouts; `--orientation` overrides the saved initial locked orientation. Only direct DRM applies panel power-off. An explicit diagnostic `--platform-bus` uses temporary preferences unless `--config-file` is supplied, so isolated service tests cannot alter host settings.
 

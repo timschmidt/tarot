@@ -150,10 +150,10 @@ pub(crate) fn panel(
                 ui.spacing_mut().item_spacing.y = 0.0;
                 ui.spacing_mut().interact_size.y = 48.0;
                 let service_revision = match model.system_page {
-                    SystemPage::Power => model.power.generation,
-                    SystemPage::Audio => model.audio.generation,
-                    SystemPage::Wifi => model.network.generation,
-                    _ => 0,
+                    SystemPage::Power => (model.power.generation, 0),
+                    SystemPage::Audio => (model.audio.generation, model.feedback.generation),
+                    SystemPage::Wifi => (model.network.generation, 0),
+                    _ => (0, 0),
                 };
                 ui.push_id((model.menus.revision, service_revision), |ui| {
                     contents(ui, commands)
