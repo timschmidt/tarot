@@ -42,6 +42,8 @@ workspace rechecks pass, with no URI code or test changes. An initial host DRM
 lint invocation lacked libseat development metadata; the configured ARM sysroot
 lint passes. These failures do not become successful checks retroactively.
 
+Follow-up on the retained timeout: a frozen current compositor passes 100 consecutive private PIN → lock/unlock → display-passkey → capture cycles. That focused sequence does not reproduce the earlier response timeout or prove its cause. The original failure remains open; the new private report retains its exact producer and image identities. The phone was not involved.
+
 ## Signed native candidate
 
 The corrected source archive has SHA-256

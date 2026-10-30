@@ -221,6 +221,8 @@ The single-output compositor lock boundary now has nested and native presentatio
 
 Call this a **shell alpha**, with a documented list of unsupported apps/features and remaining platform faults. It is not yet a tested replacement for every phone function.
 
+Polkit foundation checkpoint, October 30: the Rust private-pipe helper conversation and pure request/turn presentation model are implemented and tested, without enrolling an agent or changing normal shell authorization. Session-bound registration, caller validation, trusted modal/keyboard integration and actual native authority-grant cases remain required. [Implementation boundary and next gates](POLKIT.md).
+
 Bluetooth implementation checkpoint, October 30: the initial Rust BlueZ adapter and KeyboardDisplay agent now provide discovery, PIN/passkey/confirmation and authorization prompts, explicit trust, connection controls and confirmed Forget. Private rendered/protocol checks cover lock cancellation, stale identities and daemon/broker recovery. Signed revision 51 passes native radio/discovery/visibility controls, independent ordinary-user BlueZ readback, actual PAM and normal-session restoration. Physical peripheral acceptance remains open; generic Connect does not establish Bluetooth audio or call support. [Contract and remaining work](BLUETOOTH.md).
 
 ### M4 addition: double-chop flashlight from suspend
@@ -238,6 +240,8 @@ display. Unsupported hardware must show an honest unavailable state.
 bounded flashlight/torch control adapter. Schedule this as PinePhone Pro work
 before the deferred M7 extension; retain shared capability interfaces for future
 devices.
+
+October 30 device audit: the installed MPU-6500 exposes WoM event controls with wake disabled, but no DMP loader attribute. The actual flash uses the SGM3140 driver with a one-step brightness range; a documented Pro-board overcurrent issue needs qualification before continuous torch use. No sensor/wake/LED configuration was changed. [Device evidence, source comparison and implementation gates](DOUBLE_CHOP.md).
 
 **Fx0 extension, also requested October 30:** include the LG Fx0's MPU-6515M
 as a second sensor target under [M7.3](#m73-audit-and-bring-up-the-actual-lg-fx0).

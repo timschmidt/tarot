@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 
 pub mod app_menu;
 pub mod audio;
+pub mod authorization;
 pub mod bluetooth;
 pub mod deck;
 pub mod design;

@@ -12,6 +12,12 @@ The newly supplied [Pre3 packet](PRE3_REFERENCE.md) is queued as
 original files remain reference material; the owner selected MIT OR Apache-2.0
 for their graphics and authoring source. No Pre3 runtime work has started.
 
+## Polkit foundation and motion investigation
+
+The initial [Polkit conversation/model foundation](POLKIT.md) implements private-pipe helper framing, bounded non-serializable responses, stale-turn rejection and cancellation/child cleanup. Its child-process and state tests use synthetic credentials; shell registration, trusted dialog integration and actual authority-grant acceptance remain unfinished. No agent is enabled on the phone by this change.
+
+A [read-only double-chop device audit](DOUBLE_CHOP.md) identifies the current MPU-6500 WoM controls and disabled wake configuration, with no exposed DMP loader. Flash current/driver qualification is also required before enabling a continuous torch. No motion, wake or flash configuration was changed. A separate focused host run passes 100 lock/pair/display/capture cycles without reproducing the retained response timeout; that failure remains unexplained.
+
 ## Bluetooth in revision 51
 
 The initial [BlueZ adapter and pairing agent](BLUETOOTH.md) implements radio/discovery, PIN/passkey/confirmation entry and display, service authorization, explicit trust, connect/disconnect and confirmed Forget. Both compilers pass all 241 workspace tests and the frozen-image private protocol/rendered matrix, including five lock cycles each, spoof rejection, stale identities and daemon/broker recovery. The shared Wi-Fi credential regression and strict host/ARM lint pass.
