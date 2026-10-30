@@ -1,6 +1,8 @@
 //! Root-only spare-phone QA observer. Keeps its own delay FD until the actual
 //! compositor has completed protection, then lets normal elogind suspend run.
 //! The parent test must already own a future RTC wake alarm.
+//! This privileged observer requests inhibitor checking explicitly. In elogind
+//! 255, the caller's own UID is still exempt (including root SSH inhibitors).
 use anyhow::{Context, Result, ensure};
 use clap::Parser;
 use serde_json::{Value, json};
@@ -15,6 +17,10 @@ use std::{
     time::{Duration, Instant},
 };
 use zbus::blocking::{Proxy, connection::Builder};
+
+// elogind v255.24 src/basic/login-util.h; use the installed-version semantics,
+// not systemd >=257's different block/block-weak rules.
+const ROOT_CHECK_INHIBITORS: u64 = 1;
 
 #[derive(Parser)]
 struct Options {
@@ -99,6 +105,14 @@ fn main() -> Result<()> {
         "/org/freedesktop/login1",
         "org.freedesktop.login1.Manager",
     )?;
+    let inhibitors: Vec<(String, String, String, String, u32, u32)> =
+        manager.call("ListInhibitors", &())?;
+    ensure!(
+        !inhibitors.iter().any(|(what, _, _, mode, uid, _)| {
+            what.split(':').any(|part| part == "sleep") && mode == "block" && *uid != 0
+        }),
+        "A non-root sleep block is active; this observer must not override it"
+    );
     let maximum: u64 = manager.get_property("InhibitDelayMaxUSec")?;
     ensure!(
         maximum >= 4_000_000,
@@ -127,7 +141,7 @@ fn main() -> Result<()> {
             "/org/freedesktop/login1",
             "org.freedesktop.login1.Manager",
         )?;
-        let _: () = manager.call("Suspend", &(false,))?;
+        let _: () = manager.call("SuspendWithFlags", &(ROOT_CHECK_INHIBITORS,))?;
         Ok(())
     });
     let started = Instant::now();
@@ -153,7 +167,7 @@ fn main() -> Result<()> {
             std::thread::sleep(Duration::from_millis(5));
         }
     })();
-    let proof = json!({"event":"protection-observed-before-observer-release","observed":observed.as_ref().ok(),"observation_error":observed.as_ref().err().map(ToString::to_string),"elapsed_us":started.elapsed().as_micros(),"elapsed_boottime_us":boottime()?.saturating_sub(started_boot).as_micros(),"delay_max_us":maximum,"rtc_deadline":alarm});
+    let proof = json!({"event":"protection-observed-before-observer-release","observed":observed.as_ref().ok(),"observation_error":observed.as_ref().err().map(ToString::to_string),"elapsed_us":started.elapsed().as_micros(),"elapsed_boottime_us":boottime()?.saturating_sub(started_boot).as_micros(),"delay_max_us":maximum,"rtc_deadline":alarm,"request_method":"SuspendWithFlags","request_flags":ROOT_CHECK_INHIBITORS,"caller_uid":0,"caller_uid_inhibitors_exempt_on_elogind255":true,"inhibitors_before":inhibitors});
     writeln!(report, "{proof}")?;
     report.flush()?;
     // No kernel suspend can start before our release within this sub-two-second

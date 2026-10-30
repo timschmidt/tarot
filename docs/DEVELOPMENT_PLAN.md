@@ -286,6 +286,47 @@ coordination, MPRIS controls and endurance remain required.
 
 Bluetooth implementation checkpoint, October 30: the initial Rust BlueZ adapter and KeyboardDisplay agent now provide discovery, PIN/passkey/confirmation and authorization prompts, explicit trust, connection controls and confirmed Forget. Private rendered/protocol checks cover lock cancellation, stale identities and daemon/broker recovery. Signed revision 51 passes native radio/discovery/visibility controls, independent ordinary-user BlueZ readback, actual PAM and normal-session restoration. A separate revision-52 JLab Studio check observes actual pairing and Trust changes, but stable connection fails; an independent ordinary-user client reports br-connection-page-timeout. Audio/acoustic acceptance was not reached. Further physical Bluetooth tests are deferred at the owner's request; other development continues. Physical peripheral acceptance remains open; generic Connect does not establish Bluetooth audio or call support. [Contract and remaining work](BLUETOOTH.md).
 
+### M4 addition: automatic suspend policy
+
+**T016 is required M4 work.** Display idle and sleep preparation do not implement
+automatic system suspend. Normal revision 57 has no automatic Suspend request or
+session idle-hint publisher, and the current elogind configuration leaves
+`IdleAction=ignore`. Keep this distinction visible in documentation and tests.
+
+Installed elogind255 ordinary requests exempt the caller's own inhibitors.
+A Tarot-UID `Suspend(false)` can therefore bypass Tarot's own audio block.
+A client-side `ListInhibitors` check has a race with new grants and is not an
+atomic solution. First qualify a daemon-owned idle action driven by the actual
+authenticated session's `SetIdleHint`: the inspected internal action path checks
+sleep blocks across all UIDs. This is a proposed integration, not delivered
+configuration. [Exact-version research and device results](recordings/audio-kernel/README.md).
+
+1. Define the Rust policy and persistent Power controls for automatic sleep,
+   inactivity and external power. Initially qualify battery-only behavior;
+   charging, active work/calls, unknown service state and pending authentication
+   need explicit policy. Locking and panel-off continue independently.
+2. Publish idle readiness only from the verified local GUI session after its
+   protected presentation and panel-off conditions. Input, unlock, seat changes,
+   visible app inhibition, service/owner loss and resume must retire readiness.
+   Verify startup, compositor/worker crash, stale hints and all other logged-in
+   sessions. Keep the existing protected sleep-delay barrier on every real sleep.
+3. Qualify global inhibitor handling inside the selected manager path, including
+   same-UID audio, other-user work/call blocks and root SSH/package-manager blocks.
+   Cover grants arriving at the sleep boundary, release, manager replacement,
+   policy denial and bounded retry without a repeated failed-sleep loop. Do not
+   weaken the distribution's inhibitors or use root's ordinary bypass as proof.
+4. Package the explicit OpenRC/elogind integration with ownership, recovery and
+   rollback checks; expose unavailable/error state if it cannot be established.
+   Private protocol/policy tests can proceed while native kernel work remains
+   open. Enable the default only after actual device acceptance.
+5. Resolve and retain the current USB-controller suspend failure, then repeat
+   real RTC-woken automatic sleep on the current binary with and without audio,
+   on external power and battery, with protected resume/actual PAM and service
+   recovery. The October 30 explicit-request test proves three manager refusals;
+   its deep/s2idle kernel control fails with `fe800000.usb` error `-11` and adds
+   no successful sleep cycle. Unplugged-device and sustained power/energy tests
+   remain separate from USB-connected results.
+
 ### M4 addition: double-chop flashlight from suspend
 
 **Requested October 30, 2026; planned, not implemented.** Recognize a
@@ -445,6 +486,7 @@ These are proposed work items, not completed tasks. Each should become a reviewa
 | T013 | Prove external keyboard/text-input interoperability | T011 | Composed text reaches GTK/Qt fields and shell search correctly |
 | T014 | Implement stacks and run the first app compatibility matrix | T011, T012, T013 | M2 behavior is recorded across toolkits |
 | T015 | Program MPU-6500 DMP double-chop recognition, suspend wake and flashlight toggle; add a persistent UI switch | M3 suspend/wake, M4 sensor and torch adapters | Physical awake/locked/deep-suspend on/off tests, disabled-state tests and measured false-activation/power results pass; see the [feature plan](#m4-addition-double-chop-flashlight-from-suspend) |
+| T016 | Implement automatic suspend with explicit session policy and all-UID inhibitor enforcement | M3 current-kernel sleep/recovery qualification, M4 idle/audio/services | Real automatic RTC-woken sleep, same-UID/other-user/root block cases, failure/recovery/PAM and power-policy tests pass; see the [integration plan](#m4-addition-automatic-suspend-policy) |
 
 The first concrete engineering deliverable is **T003 through T005: one real native app and egui shell content composited on the actual PinePhone Pro**, with T001/T002 preparing its platform.
 

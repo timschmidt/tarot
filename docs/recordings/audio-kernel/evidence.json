@@ -1,0 +1,77 @@
+{
+  "date": "2026-10-30",
+  "revision": 57,
+  "runtime_package_unchanged": true,
+  "full_plan_complete": false,
+  "scope": "Archive/source integrity, three explicit root/check audio refusals, preserved failed USB control and independent cleanup; no kernel-sleep acceptance",
+  "native_archive_sha256": "7bc9169be2d11a0f5c6109a581edd7afd33bb5c087cc7d493dd69f1c72f38928",
+  "archive_members": 52,
+  "file_digests_verified": 51,
+  "refusal_result_sha256": "fa7cea54c91c54b80952ed28945e58fa8654ec0ceb10dc6dd171272d3d08a36d",
+  "failed_control_result_sha256": "771e91f0c012ec079d7e19a2067d60e2db55a25abe022adf398b65a8309184e4",
+  "normal_audit_sha256": "42d1c22b9d4a5403eff14d0e509cee2e88b85355a9fbccbacd790b5fa8fcd2da",
+  "installed_binaries": {
+    "tarot": "06915806ba813c76bcf89684b033cc236d069505e6bd114e0321a8abc55c909e",
+    "tarot-session": "a40f8e0e711b8a32cd8de54e130fdf18ded1a072da628be29d19a1e470e64139",
+    "tarot-lock": "385d7e6637f646d5271f5fd877f5643056867b6ac5ed7f23ce6651d74a5dc9b5",
+    "tarot-keyboard": "5f84ef3d22ed09f2f67bb99e91a2469b3244031c091b5159ca585cceb31e0228"
+  },
+  "request": {
+    "method": "SuspendWithFlags",
+    "flags": 1,
+    "caller_uid": 0,
+    "elogind": "255.24-r0",
+    "caller_uid_blocks_exempt": true,
+    "sole_relevant_block": "Tarot UID10000 audio",
+    "root_ssh_inhibitor_changed": false
+  },
+  "refusal_only": {
+    "passed": true,
+    "cases": [
+      "playback",
+      "recording",
+      "combined"
+    ],
+    "prepare_signals": [],
+    "kernel_counter_changes": false,
+    "cleanup_passed": true
+  },
+  "kernel_control": {
+    "passed": false,
+    "requests": 1,
+    "kernel_mode_attempts": [
+      "deep",
+      "s2idle"
+    ],
+    "success_before": 0,
+    "success_after": 0,
+    "fail_before": 2,
+    "fail_final": 4,
+    "last_failed_device": "fe800000.usb",
+    "last_failed_errno": -11,
+    "cleanup_passed": true
+  },
+  "automatic_suspend_implemented": false,
+  "bluetooth_used": false,
+  "physical_audio_used": false,
+  "new_pam_acceptance": false,
+  "inputs": {
+    "package-r57-audit.json": "655b89dd0521aebcc5dfc4c824111de328eb8631193c5a600b8fc3d821a2ec2f",
+    "phone_audio_state.py": "b1086ac6b85efb70698af05e33b4e40d78acacfda40b0c30489a484226dc2309",
+    "phone_audio_suspend_replay.py": "2d39f0cdbbe0b650c94d5dbf6763b4b9e6df2afa848072be44ab9b31bb00eee4",
+    "pulse_stream_fixture.py": "e6758ca29a22374e550f7dce24232831f90e3da12a913d5aadb59ca1df58dc03"
+  },
+  "preflight_failures_retained": [
+    "APK description/version query",
+    "ordinary-user fixture directory access",
+    "RTC future-bound qualification"
+  ],
+  "host_checks": {
+    "current": "Targeted example Clippy",
+    "minimum": "Rust1.89 targeted example check",
+    "arm": "Targeted AArch64 musl DRM example Clippy",
+    "formatting": true,
+    "python_compile": true
+  },
+  "positive_control_after_final_qa_fix_requalified": false
+}

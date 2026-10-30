@@ -43,6 +43,12 @@ idle. It does not prove kernel suspend rejection attributable solely to Tarot:
 the test never calls Suspend, and the distribution also inhibits sleep during
 SSH. Actual kernel policy/reliability with other inhibitors absent remains open.
 
+A later [explicit-request follow-up](../audio-kernel/README.md) verifies three
+manager refusals attributable to Tarot's audio block. Its corked-stream kernel
+control fails in the USB driver during deep sleep and fallback s2idle. The
+passing refusal-only replay and independent cleanup retain that failure; they
+do not add successful kernel sleep or automatic-suspend acceptance.
+
 ## Host and package acceptance
 
 Rust 1.98.1 and minimum 1.89.0 each pass 275 workspace tests, with nine explicitly

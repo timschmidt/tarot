@@ -38,6 +38,23 @@ cycle is added. Kernel enforcement with other inhibitors absent, broader work/
 call policy, MPRIS controls and power/performance/endurance remain open.
 [Exact scope and artifacts](recordings/audio-inhibit/README.md).
 
+October 30 suspend-policy follow-up: three explicit root
+`SuspendWithFlags(1)` requests are denied solely by Tarot's non-root audio block
+for playback, capture and combined streams. The installed elogind255 exempts the
+requester's UID, so root SSH blocks remain present without explaining these
+denials. The corked-stream control reaches the kernel but fails in
+`dwc3 fe800000.usb`, errno `-11`, during deep sleep and s2idle fallback; success
+stays zero and final failures rise 2→4. The complete control run remains failed.
+A final refusal-only replay passes, with no new kernel attempt. Both cleanup
+audits preserve normal/default Tarot57, loaded hashes/Panfrost, services,
+preferences and original audio controls. All 52 archive members/51 file digests
+and frozen final QA sources verify. The Rust root observer now explicitly
+requests inhibitor checking; targeted current/minimum checks and strict
+host/ARM lint pass. Runtime/package bytes are unchanged. Automatic suspend is
+still absent and is now an explicit T016 task, with all-UID manager enforcement
+and kernel recovery qualification required before enabling it.
+[Results, exact API scope and retained failures](recordings/audio-kernel/README.md).
+
 ## Audio device modes and menu touch behavior
 
 [Revision 56](AUDIO_MODES.md) adds explicit card modes through the ordinary-user

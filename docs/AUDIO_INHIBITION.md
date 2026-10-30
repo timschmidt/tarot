@@ -73,5 +73,19 @@ Panfrost, services and cleanup pass. All 645 collected members and 630 frozen
 inputs verify. [Evidence and retained failures](recordings/audio-inhibit/README.md).
 
 No physical playback/capture, acoustic, Bluetooth or call acceptance is added.
-The test does not invoke Suspend: kernel enforcement/reliability with other
-inhibitors absent, broader work/call policy and endurance remain required.
+The original ownership/display test does not invoke Suspend. A subsequent
+[manager-refusal replay](recordings/audio-kernel/README.md) verifies three actual
+`SuspendWithFlags(1)` denials attributable to Tarot's audio block, using an
+explicit root requester whose own inhibitors are exempt on installed elogind255.
+Its corked-stream kernel control fails in the USB controller during deep sleep
+and fallback s2idle; that failure remains separate from the passing refusal-only
+replay and cleanup. No successful kernel cycle is added.
+
+Automatic suspend is not implemented: normal Tarot currently locks and powers
+off the display, and coordinates externally requested sleep. An ordinary
+`Suspend(false)` request on elogind255 ignores the requesting UID's own blocks;
+a same-user audio FD alone cannot make that future automatic request safe.
+The [T016 plan](DEVELOPMENT_PLAN.md#m4-addition-automatic-suspend-policy) first
+qualifies the manager's internal idle-action path, which checks all UIDs, rather
+than treating a client-side precheck as atomic. Broader work/call policy,
+uncontended kernel suspend, recovery and endurance remain required.
