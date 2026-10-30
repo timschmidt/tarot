@@ -7,7 +7,12 @@ mod gtk;
 use anyhow::{Context, Result, ensure};
 use clap::Parser;
 use std::{
-    collections::HashSet, io::BufRead, os::fd::AsRawFd, path::PathBuf, sync::Arc, time::Instant,
+    collections::HashSet,
+    io::BufRead,
+    os::fd::AsRawFd,
+    path::PathBuf,
+    sync::{Arc, mpsc},
+    time::Instant,
 };
 use tarot_wayland_egui::Graphics;
 use wayland_client::{
@@ -28,6 +33,9 @@ struct Options {
     /// Keep this app's controls available without claiming shell integration.
     #[arg(long)]
     no_claim: bool,
+    /// Fixture-only exporter in a separate process, without a Wayland surface.
+    #[arg(long, requires = "qa_stdin")]
+    export_only: bool,
 }
 struct App {
     graphics: Option<Graphics>,
@@ -361,21 +369,28 @@ delegate_noop!(App:ignore gtk::gtk_surface1::GtkSurface1);
 
 fn main() -> Result<()> {
     let options = Options::parse();
-    let export = Arc::new(export::Export::start(options.report.as_deref())?);
+    let mut export = Arc::new(export::Export::start(options.report.as_deref())?);
+    let (commands, pending) = mpsc::sync_channel(16);
     if options.qa_stdin {
-        let weak = Arc::downgrade(&export);
         std::thread::Builder::new()
             .name("menu-egui-qa".into())
             .spawn(move || {
                 for line in std::io::stdin().lock().lines() {
                     let Ok(line) = line else { break };
-                    let Some(export) = weak.upgrade() else { break };
-                    if let Err(error) = export.mutate(&line) {
-                        eprintln!("QA mutation failed: {error}");
+                    if line.len() > 1024 || commands.send(line).is_err() {
                         break;
                     }
                 }
             })?;
+    }
+    if options.export_only {
+        while let Ok(command) = pending.recv() {
+            if command == "exit" {
+                break;
+            }
+            export.mutate(&command)?;
+        }
+        return Ok(());
     }
     let connection = Connection::connect_to_env()?;
     let mut queue = connection.new_event_queue();
@@ -419,7 +434,7 @@ fn main() -> Result<()> {
     let toplevel = xdg.get_toplevel(&qh, ());
     toplevel.set_title("Rust egui menus".into());
     toplevel.set_app_id("org.tarot.MenuEgui".into());
-    let extension = if options.no_claim {
+    let mut extension = if options.no_claim {
         None
     } else if let Some(gtk) = &app.gtk {
         let extension = gtk.get_gtk_surface(&surface, &qh, ());
@@ -444,6 +459,44 @@ fn main() -> Result<()> {
     export.shared.mapped();
     while !app.closed {
         queue.dispatch_pending(&mut app)?;
+        for command in pending.try_iter().take(16) {
+            match command.as_str() {
+                "flip" | "disable" => export.mutate(&command)?,
+                "release-claim" => {
+                    if let Some(extension) = extension.take() {
+                        extension.release();
+                    }
+                }
+                "reconnect-export" => export = Arc::new(export.reconnect()?),
+                "close-export" => export.connection.clone().close()?,
+                "exit" => app.closed = true,
+                _ => {
+                    let owner = if command == "claim-self" {
+                        Some(export.owner().to_string())
+                    } else if command == "clear-claim" {
+                        None
+                    } else if let Some(owner) = command.strip_prefix("claim-other ") {
+                        Some(owner.to_string())
+                    } else {
+                        anyhow::bail!("unknown QA claim command")
+                    };
+                    let extension = extension.get_or_insert_with(|| {
+                        app.gtk.as_ref().unwrap().get_gtk_surface(&surface, &qh, ())
+                    });
+                    extension.set_dbus_properties(
+                        Some("org.tarot.MenuEgui".into()),
+                        Some(export::MENU.into()),
+                        None,
+                        Some(export::WINDOW.into()),
+                        Some(export::APP.into()),
+                        owner,
+                    );
+                }
+            }
+            // Acknowledgement observes server handling, not just queued bytes.
+            queue.roundtrip(&mut app)?;
+            export.shared.claim_mutation(&command);
+        }
         app.paint(&connection, &surface, &qh, &export)?;
         queue.flush()?;
         if let Some(guard) = queue.prepare_read() {

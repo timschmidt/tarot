@@ -2,6 +2,8 @@
 
 The compositor now displays validated GTK/GIO and cooperating Rust/egui app commands. Revision 46 is installed with scoped native touch/rotation/PAM, stale-choice and close acceptance; broader compatibility and physical review remain open. [Rust example and current evidence](recordings/menu-egui/README.md) · [Earlier mapped-app development scope](recordings/menu-ui/README.md).
 
+The [mapped claim follow-up](recordings/menu-claims/README.md) verifies foreign-process rejection, extension release/reclaim, held-key/touch retirement and exporter reconnect on the unchanged revision-47 phone. Host private-bus replacement additionally reuses the exact unique name with a different GUID and requires a fresh claim. Broader lifecycle/resource/recovery and physical gates remain open.
+
 Revision 47 adds explicit pointer departure when native routing takes over, clearing stale shell tooltips while preserving a held shell press/touch. The focused old-image failure, final host regressions, GTK/xdg modal/focus/protection coverage and combined native protocol/toolkit/menu/PAM acceptance are [recorded separately](recordings/menu-compat/README.md). Global-menu flags remain zero.
 
 Revision 42 supplies the earlier combined scoped checkpoint. All fourteen scoped native shell components, full Launcher pages and saved restart pass, with independent exact restoration/normal-session/Panfrost audits. Both held-key directions and completed-touch menu/page/favorite interactions pass. The original revision-41 search failure is corrected; browser/endurance and broader calibration remain open. [Current evidence and limits](recordings/r42/README.md).

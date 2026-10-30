@@ -81,6 +81,41 @@ repeats both native producers in the same login as the seven protocol cases and
 real GTK/Qt dialog/text/fullscreen checks. The exporter remains unchanged; a
 separate compositor input fix clears shell hover on native pointer handoff.
 
+## Claim and lifecycle QA
+
+```sh
+python3 tests/native_menu_claim_replay.py --xvfb /absolute/path/to/Xvfb \
+  --compositor /absolute/saved-tarot \
+  --producer /absolute/saved-native-menu-egui \
+  --output /absolute/fresh-claims
+```
+
+Add `--landscape` for the other layout. This replay owns its private bus; do not
+wrap it in a production-session bus replacement. It checks foreign process
+claims, clear/release/reclaim, held input, finite claim churn, same-bus exporter
+reconnect, exact-name reuse across private bus GUID replacement and the trusted
+input-method connection. [Executed host/native scope and limits](recordings/menu-claims/README.md).
+
+The sample's explicit `--qa-stdin` accepts `claim-self`, `clear-claim`,
+`release-claim`, `claim-other UNIQUE_NAME`, `close-export`, `reconnect-export`,
+`flip`, `disable` and `exit`. A claim mutation acknowledgement follows a
+Wayland round trip. These controls never invoke an action; only actual shell or
+app input does. `--export-only --qa-stdin` supplies the independent process's
+static exports without creating a Wayland window. This remains a synthetic QA
+interface, with no claim of production stdin resource isolation.
+
+For the installed runner's `--native-menu-claims` hook, prepare the user-owned
+`<output>/native-menu-claims` directory, its mode-0600 `commands.fifo` and
+`fixture-audit.json` containing `producer_sha256` and `python_sha256`. A temporary
+`test.tarot.NativeMenuClaims.desktop` entry runs `native_menu_stdin.py --fifo
+<folder>/commands.fifo -- /usr/bin/python3 <sources>/native_menu_claim_fixture.py
+--producer <saved-native-menu-egui> --output <folder>`. The catalog-owned wrapper
+starts both producers in the actual login cgroup. Root observations verify their
+hashes/start times/cgroup; actual touch/key input supplies every callback.
+Preserve exact owner preferences, remove only the temporary entry, end the test
+login and independently verify normal/default Tarot and Panfrost afterward.
+This device component does not replace its bus or request kernel sleep.
+
 Next develop a reusable application API when implementing actual Tarot apps,
 cover dynamic menu lifetimes and richer typed actions, and complete broader
 native compatibility and accessibility. KDE requires its distinct adapter; GMenu

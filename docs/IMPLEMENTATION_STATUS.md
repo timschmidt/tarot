@@ -7,6 +7,12 @@ The newly supplied Fx0 Gold packet is retained as reference. The owner's deferre
 schedules an optional Gold theme and reusable device support/Fx0 port after all
 existing work. It changes no current runtime theme or hardware baseline.
 
+## Mapped menu claim and lifecycle acceptance
+
+The expanded Rust fixture now tests actual mapped claims without synthetic action invocation. Host current/minimum runs pass foreign-process rejection, release/reclaim, held input, finite claim churn, same-bus exporter reconnect and exact-name reuse on a replacement private bus with a different GUID. The trusted input-method connection remains excluded. All 237 current/minimum workspace tests and the earlier typed/GIO/fallback regression pass.
+
+The unchanged installed revision 47 passes its native foreign-claim/release/reconnect/held-touch/key/protected-claim/actual-PAM component, protected startup, app/audio and clean normal restart. All collected source/archive hashes and independent normal/Panfrost/restoration audits verify. Production bus crash/recovery and general resource, malformed, activation, physical/accessibility and unfinished plan gates remain open. [Exact scope and preserved setup failures](recordings/menu-claims/README.md).
+
 ## GTK compatibility and revision 47
 
 Revision 47 corrects a reproduced shell tooltip left over native content after pointer handoff. Explicit egui departure clears hover once, while active shell press/touch ownership survives until completion. The focused old-image failure and final scale-1/2 passes remain retained, alongside both original viewport pixel failures. Seven protocol cases/50 requests pass at both host scales; the new GTK modal/focus/protection case also passes with the minimum-Rust client. Current/minimum workspace tests each pass 237, with strict host/ARM checks.

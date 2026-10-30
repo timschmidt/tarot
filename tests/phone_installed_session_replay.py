@@ -225,6 +225,9 @@ def run(args, password):
         if getattr(args, 'native_menus', False):
             from phone_native_menu_replay import replay as native_menu_replay
             records['native_menus'] = native_menu_replay(socket,screen,state,capture,before,args.output,cgroup,authenticate)
+        if getattr(args, 'native_menu_claims', False):
+            from phone_native_menu_claim_replay import replay as claim_replay
+            records['native_menu_claims'] = claim_replay(socket,screen,state,capture,before,args.output,cgroup,authenticate,guard)
         if getattr(args, 'menus', False):
             from phone_menus_replay import replay as menu_replay
             records['menus'] = menu_replay(socket,screen,state,tap,capture,before,args.output,cgroup,authenticate)
@@ -507,6 +510,7 @@ def main():
     parser.add_argument('--just-type', action='store_true')
     parser.add_argument('--menus', action='store_true')
     parser.add_argument('--native-menus', action='store_true')
+    parser.add_argument('--native-menu-claims', action='store_true')
     parser.add_argument('--detach', action='store_true')
     args = parser.parse_args()
     assert bool(args.transient_fixture_binary)==bool(args.transient_fixture_audit)

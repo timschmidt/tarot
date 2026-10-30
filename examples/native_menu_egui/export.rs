@@ -145,6 +145,12 @@ impl Shared {
     pub fn mapped(&self) {
         self.0.lock().unwrap().record(json!({"event":"mapped"}));
     }
+    pub fn claim_mutation(&self, command: &str) {
+        self.0
+            .lock()
+            .unwrap()
+            .record(json!({"event":"claim-mutation","command":command}));
+    }
 }
 
 struct Menus;
@@ -281,6 +287,13 @@ impl Export {
             revision: 0,
             report,
         })));
+        Self::connect(shared)
+    }
+    /// Fixture reconnection preserves callbacks/state, but obtains a new bus name.
+    pub fn reconnect(&self) -> Result<Self> {
+        Self::connect(self.shared.clone())
+    }
+    fn connect(shared: Arc<Shared>) -> Result<Self> {
         let address =
             std::env::var("DBUS_SESSION_BUS_ADDRESS").context("explicit session bus required")?;
         let connection = Builder::address(address.as_str())?

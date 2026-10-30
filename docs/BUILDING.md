@@ -80,6 +80,13 @@ The expanded case caches a small SHM texture, commits a larger buffer and then a
 
 Tarot carries Smithay 0.7.0 as a local Cargo patch with the upstream accumulated-SHM-damage bounds fix. Source, original MIT notice, exact upstream revision and the two-line diff are retained under [third-party attribution](../third-party/README.md#smithay-gles-damage-backport). Do not replace this with a moving upstream branch or ignore GL upload errors. The unpatched release produced an out-of-bounds upload in this regression and on the phone after keyboard/launcher transitions.
 
+The separate [native-menu claim replay](RUST_APP_MENUS.md#claim-and-lifecycle-qa)
+owns its private bus and X display. It covers actual mapped authority,
+release/reclaim, held input, finite churn, exact-name reuse on bus replacement
+and trusted keyboard exclusion. Its `--native-menu-claims` phone component uses
+an ordinary catalog-owned pair and actual PAM; phone bus replacement remains a
+separate gate. [Recorded scope](recordings/menu-claims/README.md).
+
 ## Shell hover handoff regression
 
 ```sh
