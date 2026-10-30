@@ -82,7 +82,7 @@ Working assumptions are one primary developer, a Linux desktop development host,
 | Phone alpha | Rust phone/messages/contacts apps plus validated modem and call-audio integration | Calls and SMS tested with a named carrier/modem configuration, including wake behavior |
 | Tested beta | Stable session, documented application compatibility, accessibility checks, controlled resource usage, and repeatable packaging/update/recovery | A published test matrix and measured performance/reliability results |
 
-The initial release does not include a kernel, modem firmware, graphics driver, browser engine, or replacement for every system daemon. Legacy Mojo/Enyo/WebOS application compatibility, Luna service-bus compatibility, Android apps, cloud account aggregation, MMS, a software store, broad device support, and desktop convergence are separate future projects. Existing Linux browser, terminal, media, and camera applications can run within Tarot as compatibility allows.
+The initial release does not include a kernel, modem firmware, graphics driver, browser engine, or replacement for every system daemon. Legacy Mojo/Enyo/WebOS application compatibility, Luna service-bus compatibility, a native Android runtime, cloud account aggregation, MMS, a software store, broad device support, and desktop convergence are separate future projects. Existing Linux browser, terminal, media, and camera applications can run within Tarot as compatibility allows. Android applications are planned through Waydroid in [M6A](#m6a-android-applications-as-cards-through-waydroid), after M6 and before the Fx0/Pre3 device extensions.
 
 Keep a WebOS feature recognizable even when its first implementation is small. For example, start universal search with apps and settings; start stacks after individual cards; start phone support with one active call and ordinary SMS. Do not replace essential interaction behavior with a permanently decorative mock.
 
@@ -109,8 +109,9 @@ The critical path is **M0 feasibility → M1 interaction model → M2 native app
 | M4 | Usable shell alpha with services, keyboard, and locking | 4–8 person-weeks |
 | M5 | Phone, messages, and contacts integration | 6–12 person-weeks |
 | M6 | Performance, accessibility, compatibility, and reliability | 4–8 person-weeks |
+| M6A | Android applications as Tarot cards through Waydroid | 4–8 person-weeks |
 
-The aggregate planning envelope is roughly **24–45 person-weeks**, with low confidence before M0. It excludes waiting for upstream driver/carrier fixes and the deferred projects above. Calendar time depends on actual availability and experience; re-estimate after M0 and M3 instead of treating these ranges as promises.
+M6A follows M6 and precedes the deferred M7/M8 device extensions; it is outside the original M0–M6 envelope. The aggregate M0–M6 planning envelope is roughly **24–45 person-weeks**, with low confidence before M0. It excludes waiting for upstream driver/carrier fixes and the deferred projects above. Calendar time depends on actual availability and experience; re-estimate after M0 and M3 instead of treating these ranges as promises.
 
 ## M0 Establish feasibility and the device baseline
 
@@ -547,10 +548,110 @@ The core product direction, project license, development-device authorization an
 
 Keep this plan in the repository. After each milestone, update the decision register, measured budgets, tested package/app versions, known failures, and next work items. A changed architecture should replace obsolete instructions rather than leave two competing recipes. Capture device reports and reviewed screenshots/recordings alongside their commit and environment, using a small artifact set rather than checking in large uncurated logs.
 
+## M6A Android applications as cards through Waydroid
+
+**Order and dependency:** requested October 30, 2026 by the owner. Scheduled
+after M6 and **before** the M7 Fx0 and M8 Pre3 extensions. It depends on:
+- M2 native window management
+- M3/M4 sleep, lock and service integration
+- M6 compatibility and resource measurement
+
+Investigation steps 1–2 may start earlier when they do not delay the current
+milestone.
+
+**Objective:** run Android applications through [Waydroid](https://docs.waydro.id/)
+so they behave like any other Tarot card, as seamlessly as the container allows.
+Each app appears in the Launcher and Just Type and opens as its own card. It
+switches, stacks and closes through ordinary card gestures, takes text from the
+Tarot keyboard where possible, rotates, plays audio and stays behind the
+compositor lock. Waydroid is an LXC container running an Android (LineageOS)
+system image, and it presents through Wayland. Tarot integrates with it as a
+client and does not ship or modify Android. The approach follows the
+plan's Rust boundary: integration code is Tarot-owned Rust, while the
+container, image and kernel features are standard platform components.
+
+1. **Platform audit on the PinePhone Pro.** Check the following on the
+   installed Nura kernel and image:
+   - Waydroid packaging and binder/binderfs kernel support
+   - the cgroup/LXC requirements and networking setup
+   - rendering on Panfrost: hardware GLES through Mesa/minigbm, or a
+     recorded software fallback, which is not an acceptable final result
+   - memory and storage footprint, and idle power with the container stopped,
+     idle and running
+
+   Record the image source, its license and update path, and how a
+   Google-free image is chosen. Proprietary Google applications are never
+   bundled. Missing kernel features become explicit platform dependencies,
+   not hidden workarounds.
+2. **Window model.** Qualify Waydroid's per-application multi-window mode against
+   Tarot's xdg-shell management:
+   - one card per Android task, with stable identity across focus changes
+   - correct app titles and icons, and popups/dialogs kept with their owner
+   - fullscreen, minimum sizes and configure/ack behavior
+   - card geometry and scale, including the keyboard's viewport reservation
+   - Android's own launcher or status UI never appears as an extra card
+
+   If a required behavior is missing upstream, prefer a small upstreamable fix
+   or a documented Waydroid property over a Tarot special case.
+3. **Launch and catalog.** Read Waydroid's exported desktop entries without
+   passing `Exec` through a shell. Show Android apps in the Launcher, Quick
+   Launch and Just Type, with resolved icons and an Android source label. Start
+   the container lazily on the first launch, with a visible loading card and
+   honest errors for a missing image, a failed container or a removed package.
+   Switching cards never relaunches an app. Closing a card ends its Android task
+   according to Android semantics; container stop policy is a separate decision.
+4. **Input and text.** Make touch, multi-touch, scrolling and the edge gestures
+   correct. Map Tarot's back gesture to Android Back without breaking card
+   gestures. Decide on measured behavior whether Android text fields use the
+   trusted Tarot keyboard, through a Wayland text-input bridge if Waydroid
+   supports one, or Android's own IME. Two keyboards must never compete, and
+   password-field privacy and lock isolation must hold either way.
+5. **System integration.** Integrate with Tarot's existing system services:
+   - Bridge clipboard and audio through the existing session services.
+   - Follow orientation and the rotation lock.
+   - Freeze or suspend the container when the session locks, sleeps or stays
+     idle, and wake it correctly. Its activity must not block automatic sleep
+     unless it holds an explicit, visible inhibitor.
+   - Choose network and VPN behavior.
+   - Bridge Android notifications to the standard notification server with
+     privacy redaction, if a bounded, supportable mechanism exists; otherwise
+     record the limitation.
+   - Keep Android permissions inside Android, and expose camera, location and
+     microphone only through explicit owner choices.
+6. **Settings and lifecycle.** Add an **Android apps** section in Settings,
+   off by default. It covers:
+   - installation and initialization of the image, with download size and
+     source shown
+   - start, stop and reset of the container
+   - storage use
+   - removal of the image and its data, with confirmation
+
+   Survive container crashes and Waydroid service restarts without
+   destabilizing the compositor or leaking cards. Keep compositor and lock
+   behavior identical when Android support is absent.
+
+**Acceptance:** run the following on the PinePhone Pro, from a fresh install
+with Android support enabled in Settings:
+- Install at least two free Android applications, for example from F-Droid.
+- Launch them from the Launcher and from Just Type as separate cards; switch,
+  stack and close them.
+- Enter text, including a password field; rotate; play audio; exchange
+  clipboard text with a native app.
+- Lock, suspend and resume with the container frozen and Android content never
+  shown before authentication.
+- Recover from a forced container crash.
+- Compare idle power, memory and launch latency with the container stopped and
+  running.
+
+Report every unsupported behavior with its upstream cause. The application
+matrix records tested Waydroid, image and app versions. Unaccelerated graphics,
+cards that cannot be managed individually, or a weakened lock boundary fail
+this milestone rather than becoming accepted limitations.
+
 ## M7 Deferred extension: Gold theme and additional devices
 
 **Order and dependency:** after all existing M0–M6 implementation, acceptance,
-release and backlog work above. Added October 30, 2026 at the owner's request.
+release and backlog work above, and after the M6A Waydroid integration. Added October 30, 2026 at the owner's request.
 The [Fx0 Gold packet](FX0_GOLD_REFERENCE.md) is reference material for this
 later extension. Nocturne and PinePhone Pro remain the current implementation
 and validation baseline.
@@ -681,7 +782,7 @@ Fx0 platform prerequisite or unavailable hardware keeps that support claim open.
 ## M8 Deferred extension: HP Pre3
 
 **Order and dependency:** after the complete M7 Fx0 extension and all preceding
-M0–M6/backlog work. Queued October 30, 2026 at the owner's request. The supplied
+M0–M6A/backlog work. Queued October 30, 2026 at the owner's request. The supplied
 [Pre3 packet](PRE3_REFERENCE.md) is reference material until this phase;
 PinePhone Pro/Nocturne remain the current baseline. Its original graphics and
 authoring source use the owner's selected MIT OR Apache-2.0 license.

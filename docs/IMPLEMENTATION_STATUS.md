@@ -7,6 +7,11 @@ The newly supplied Fx0 Gold packet is retained as reference. The owner's deferre
 schedules an optional Gold theme and reusable device support/Fx0 port after all
 existing work. It changes no current runtime theme or hardware baseline.
 
+Android applications through Waydroid are now planned as
+[M6A](DEVELOPMENT_PLAN.md#m6a-android-applications-as-cards-through-waydroid),
+after M6 and before the Fx0/Pre3 extensions, at the owner's request. Each app
+should behave as an ordinary Tarot card. No Waydroid work has started.
+
 The newly supplied [Pre3 packet](PRE3_REFERENCE.md) is queued as
 [M8](DEVELOPMENT_PLAN.md#m8-deferred-extension-hp-pre3), after Fx0/M7. Its
 original files remain reference material; the owner selected MIT OR Apache-2.0
