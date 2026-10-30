@@ -1,9 +1,13 @@
 # Recording inputs and routes on the PinePhone Pro
 
 October 30, 2026. Signed revision 55 adds recording-input controls and observed
-input/output routes. The phone defaults to normal Tarot55 with diagnostics off.
+input/output routes. That checkpoint verified normal Tarot55 with diagnostics off.
 This is scoped M4 progress; the full development plan remains active.
 [Implementation contract](../../AUDIO_INPUTS.md).
+
+The later [revision-56 checkpoint](../audio-modes/README.md) adds explicit card
+modes and resolves shell explanation-label selection during touch drags. Its
+acceptance and remaining gates are recorded separately.
 
 ![Native microphone controls and selected route](input-controls.png)
 
@@ -109,8 +113,8 @@ The third attempt passes the complete component on the same APK. Both failure
 archives and their 623-input manifests verify independently.
 
 Acoustic quality, real microphone capture, simultaneous app recordings, multiple
-physical routes/jack hotplug, card profiles, per-app routing, PipeWire runtime,
-call policy, accessibility and power/performance/endurance remain open. Touch
-drags can select explanatory label text; refine that with the broader phone
-interaction work. Bluetooth remains deferred at the owner's request. No whole
+physical routes/jack hotplug, per-app routing, PipeWire runtime, call policy,
+accessibility and power/performance/endurance remain open. Explicit card modes
+and menu label dragging now have separate revision-56 acceptance. Bluetooth
+remains deferred at the owner's request. No whole
 milestone, DMP gesture or release readiness is claimed.

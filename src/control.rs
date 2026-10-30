@@ -261,7 +261,8 @@ pub fn start(path: &Path, handle: &LoopHandle<'_, CalloopData>) -> Result<Contro
                 "power": state.shell.power,
                 "audio": {"enabled":state.shell.audio.enabled,"available":state.shell.audio.available,"generation":state.shell.audio.generation,"epoch":state.shell.audio.epoch,"pending":state.shell.audio.pending,"error":state.shell.audio.error,"action_error":state.shell.audio.action_error,
                     "outputs":state.shell.audio.outputs.iter().map(audio_device_metadata).collect::<Vec<_>>(),
-                    "inputs":state.shell.audio.inputs.iter().map(audio_device_metadata).collect::<Vec<_>>()},
+                    "inputs":state.shell.audio.inputs.iter().map(audio_device_metadata).collect::<Vec<_>>(),
+                    "cards":state.shell.audio.cards.iter().map(audio_card_metadata).collect::<Vec<_>>()},
                 "feedback": {"enabled":state.shell.feedback.enabled,"available":state.shell.feedback.available,"generation":state.shell.feedback.generation,"epoch":state.shell.feedback.epoch,"profile":state.shell.feedback.profile,"pending":state.shell.feedback.pending,"test_active":state.shell.feedback.test_active,"test_result":state.shell.feedback.test_result,"active_notifications":state.shell.feedback.active_notifications,"notifications_enabled":state.shell.feedback.notifications_enabled,"settings_saved":state.shell.feedback.settings_saved,"settings_error":state.shell.feedback.settings_error,"error":state.shell.feedback.error,"action_error":state.shell.feedback.action_error},
                 "notifications": notifications,
                 "launcher_query": state.shell.launcher_query,
@@ -381,4 +382,10 @@ impl Drop for ControlServer {
 fn audio_device_metadata(device: &tarot_core::audio::Output) -> serde_json::Value {
     json!({"id":device.id,"percent":device.percent,"muted":device.muted,"default":device.default,
         "ports":device.ports.iter().map(|port| json!({"id":port.id,"available":port.available,"active":port.active})).collect::<Vec<_>>()})
+}
+
+fn audio_card_metadata(card: &tarot_core::audio::Card) -> serde_json::Value {
+    json!({"id":card.id,"profiles":card.profiles.iter().map(|p|
+        json!({"id":p.id,"available":p.available,"active":p.active,"outputs":p.outputs,"inputs":p.inputs}))
+        .collect::<Vec<_>>()})
 }

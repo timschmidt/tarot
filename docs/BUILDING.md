@@ -572,7 +572,7 @@ GSettings values/user overrides and the original Tarot preferences, then audit
 a fresh normal login. The replay alone cannot establish felt vibration.
 
 
-`--system-services` also enables playback controls through the current user's PulseAudio-compatible server. Open the top-right status menu, then Audio. Each observed output has volume and mute controls; another output can become the default for new playback. Existing applications can retain their own routes. Volume writes preserve channel balance and accept 0–100%; muting is independent. Recording-input level/mute/default and observed input/output routes now have a separate [implementation and native record](AUDIO_INPUTS.md). Card profiles, per-app routing and call-audio policy remain separate work.
+`--system-services` also enables playback controls through the current user's PulseAudio-compatible server. Open the top-right status menu, then Audio. Each observed output has volume and mute controls; another output can become the default for new playback. Existing applications can retain their own routes. Volume writes preserve channel balance and accept 0–100%; muting is independent. Recording-input level/mute/default and observed input/output routes have a separate [implementation and native record](AUDIO_INPUTS.md). Expand “Audio device modes” for available card profiles and observed active mode; see the [mode contract](AUDIO_MODES.md). Per-app routing and automatic call-audio policy remain separate work.
 
 The Rust adapter uses `libpulse-sys` 1.23.0 and the platform's libpulse, without spawning `pactl` or an audio daemon. Its worker owns a threaded mainloop, bounded requests, subscriptions, coalesced snapshots and reconnect backoff. No healthy periodic polling is required. Completion needs observed server state after acknowledgement; stale output IDs and values above 100% are rejected. Native hardware volume is reported through the sound server, rather than claimed as acoustic or mixer-driver verification. The session package must arrange the distribution's normal audio service startup.
 
@@ -595,6 +595,17 @@ controls, preferences and policies, remove only its verified synthetic module,
 and independently audit a fresh normal login. The phone's `pactl` JSON module
 listing omits numeric IDs; QA validates ownership with `list short modules`.
 [Accepted native evidence and retained failures](recordings/audio-input/README.md).
+
+The installed replay's `--audio-profiles` component checks actual rendered card
+modes, Off recovery, a verified bounded server pause with a five-second resume
+watchdog, live graceful server replacement, stale IDs, label dragging and PAM.
+Off may leave the distro's dummy sink; check physical endpoint removal rather
+than forcing a globally empty server. `--audio-profiles-save` deliberately leaves
+a selected test mode for an owning controller, which must verify persistence
+across a fresh server/normal login before restoring every original card/device
+control. Never use that option without controller-owned restoration. No stream
+is opened. Process signals use verified identity and bound pidfds; the normal
+user owns all audio commands. [Accepted evidence and failure](recordings/audio-modes/README.md).
 
 The native replay requires a running bounded phone harness with the keyboard and a GTK startup client, plus a running user audio service with exactly one playback output. A normal user `pactl subscribe` client can keep an autospawned development service alive for the experiment; stop that recorded client afterward. Run through the existing authenticated administrative terminal:
 

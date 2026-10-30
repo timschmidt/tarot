@@ -1,0 +1,163 @@
+{
+  "revision": 56,
+  "date": "2026-10-30",
+  "scope": "Explicit card modes, Off/reconnect/restart/saved-login recovery and shell menu label touch behavior; full goal active",
+  "source_sha256": "5b9654e42be3d7ff5fcff5d8ebaf46b70ca1a8ea2de2be602576cb00ee5f925c",
+  "package_sha256": "cd5537739e047ab7f3d3cf1b4b404a611d53f55cb95ce22b7cc55e7143c2bad1",
+  "binaries_sha256": {
+    "tarot": "29d3bbc498df7448819a12412531723b040ded602381087bed52616c9cc8d7a9",
+    "tarot-session": "064498df7545fdbffb4e680ffbd832154f4c3eed9729cec0019239449f5d4e22",
+    "tarot-lock": "b457570a4d7a46609f61b2c7fdf8ffb416cdd7d2e269f3782571333e61e88aa8",
+    "tarot-keyboard": "1f91d49fe2ed60a9de9d8f196f35ce210a671b98ce5ca22e01ed55f57fe254af"
+  },
+  "host": {
+    "passed": true,
+    "native_acceptance": false,
+    "scope": "Host-only Rust model/callback/UI tests, strict owned-code host/ARM lint and real private audio/feedback regression matrices; native card setter acceptance separate",
+    "toolchains": {
+      "current": {
+        "passed": 273,
+        "failed": 0,
+        "ignored": 9
+      },
+      "minimum": {
+        "passed": 273,
+        "failed": 0,
+        "ignored": 9
+      }
+    },
+    "logs": {
+      "audio-current.log": "789096fb6f8d480c3c7d4990b83732abb2fd1d044599dc0f49dfc4a1ba4c8540",
+      "feedback-current.log": "b232d16ba481c8d39170fd98dced7fb67cfcf5a6b68e4af2df42571730a9140e",
+      "workspace-current-final.log": "cc80070e1b9f374ffa1527de76931ceaa270123a40cf95e27c18a02c313d75e2",
+      "audio-minimum.log": "789096fb6f8d480c3c7d4990b83732abb2fd1d044599dc0f49dfc4a1ba4c8540",
+      "feedback-minimum.log": "71835b63cae64b11c4f5a6ec4bb8bc180a0a4cd65143b08ec85d4b7da75b5253",
+      "workspace-minimum-final.log": "046732ffc2582f0cf12e8428bd4aab94d0f9311f4213e3e22c7e0c1c68ace793",
+      "clippy-host-final.log": "04db4ba16388347a25b32d7853505b065d141561712d4acce365434343e3ada2",
+      "clippy-arm-final.log": "34e184ba6621201c5ef752d227e2ef2a890574a22af22cf1fb637c6b037d590b"
+    },
+    "delivery_binaries": {
+      "current": {
+        "tarot": "f50f680aa331147f1ff19e080f6e405cce1f1ffca446b33047d39ed8004a60f3",
+        "examples/notification-probe": "ca18066ed685694ca1fd368952d510c98f9a5b9c6f297b467ea1ccbda910c2e7",
+        "examples/lock-probe": "f4d53906c6c241bfe17b23843d662cced3ca8822735e323cfc617b421ec458c5"
+      },
+      "minimum": {
+        "tarot": "3027c1b423ececbbe5282b87be1402a06c88913844149c9a07eb0420759c9c85",
+        "examples/notification-probe": "957c03dec1fb946603fb5bd65b17f54c896388095e404ab9512ee30f333ad633",
+        "examples/lock-probe": "6fdd7b108415cd39c19494ad55987192fe800f37ba2bea846b8f0f1a126a1214"
+      }
+    },
+    "private_audio": {
+      "current": {
+        "compositor_exit": 0,
+        "shutdown_seconds": 0.09481150601641275,
+        "private_session_bus": true,
+        "recording_stream_opened": false,
+        "passed": true,
+        "status_sha256": "c4f3ed804e3d41d85185761131adaa63e1335e97cc8c9b07657810c9ab2e47e8",
+        "binary_sha256": "f50f680aa331147f1ff19e080f6e405cce1f1ffca446b33047d39ed8004a60f3"
+      },
+      "minimum": {
+        "compositor_exit": 0,
+        "shutdown_seconds": 0.07489876198815182,
+        "private_session_bus": true,
+        "recording_stream_opened": false,
+        "passed": true,
+        "status_sha256": "d5011b78774b421d2772a8a2df1476c0139b434ccdf4daf49eb69371561db002",
+        "binary_sha256": "3027c1b423ececbbe5282b87be1402a06c88913844149c9a07eb0420759c9c85"
+      }
+    },
+    "private_feedback": {
+      "current": {
+        "passed": true,
+        "binary_sha256": "f50f680aa331147f1ff19e080f6e405cce1f1ffca446b33047d39ed8004a60f3",
+        "result_sha256": "ab015422c4ad3805bdb646bcf26b3f53e44bae87a670c182934267db170a564a",
+        "shutdown_seconds": 1.113016813993454
+      },
+      "minimum": {
+        "passed": true,
+        "binary_sha256": "3027c1b423ececbbe5282b87be1402a06c88913844149c9a07eb0420759c9c85",
+        "result_sha256": "7b8add7a774b67b4a48b85081ab452be5bcee27d56c6edad544700c3b3aacd79",
+        "shutdown_seconds": 1.0917166759900283
+      }
+    },
+    "compiler_inputs_match_archive": true,
+    "compiler_input_count": 468,
+    "native_only_qa_changes": "native-only-qa-changes.json"
+  },
+  "native": {
+    "passed": true,
+    "sha256": "9c15d1f23b580ae5e577b6384f4a0d3033c5c22c69065ceabcd30afd3a3acdb3",
+    "members": 671,
+    "frozen_inputs": 626,
+    "actual_pam": true,
+    "card_count": 1,
+    "profile_count": 13,
+    "native_ui_mode_switching": true,
+    "off_recovery": true,
+    "unavailable_and_stale_modes_rejected": true,
+    "menu_label_selection_pixels": 0,
+    "paused_server_timeout_and_reconnect": true,
+    "resume_watchdog": true,
+    "live_audio_server_replacement": true,
+    "selected_mode_survives_live_restart": true,
+    "saved_mode_survives_new_server_and_login": true,
+    "exact_audio_controls_restored": true,
+    "normal_default_tarot_and_panfrost": true,
+    "feedback_settings_and_overrides_restored": true,
+    "recording_stream_opened": false,
+    "audio_playback_requested": false,
+    "suspend_cycles": 0,
+    "roles": {
+      "tarot-session": {
+        "pid": 7321,
+        "start": "22765257",
+        "sha256": "064498df7545fdbffb4e680ffbd832154f4c3eed9729cec0019239449f5d4e22"
+      },
+      "tarot": {
+        "pid": 7325,
+        "start": "22765260",
+        "sha256": "29d3bbc498df7448819a12412531723b040ded602381087bed52616c9cc8d7a9"
+      },
+      "tarot-lock": {
+        "pid": 7352,
+        "start": "22765312",
+        "sha256": "b457570a4d7a46609f61b2c7fdf8ffb416cdd7d2e269f3782571333e61e88aa8"
+      },
+      "tarot-keyboard": {
+        "pid": 7366,
+        "start": "22765314",
+        "sha256": "1f91d49fe2ed60a9de9d8f196f35ce210a671b98ce5ca22e01ed55f57fe254af"
+      }
+    }
+  },
+  "retained_native_failures": [
+    {
+      "passed": true,
+      "failed_native_qa": true,
+      "restoration_verified": true,
+      "members": 667,
+      "frozen_inputs": 626,
+      "sha256": "61393e3d1ce3ef16f7f3ebad75400d17ce3907dfe764869d07121baa7ab85ad9",
+      "stage": "Off is active, physical input absent; distro always-sink dummy output violates original QA empty-list assumption",
+      "unchanged_package_retry": true
+    }
+  ],
+  "capture": {
+    "sha256": "277537304933f00b0fd28e5b58a0e74efe3b9a051961e97d56d7209bc14e0389",
+    "archive_member": "native-proof/first-replay/audio-profiles-choose-mode-HiFi (Mic, Speaker)-3.png",
+    "selected_mode": "Default (Earpiece, Mic)",
+    "edited": false
+  },
+  "full_plan_complete": false,
+  "physical_bluetooth_deferred": true,
+  "remaining": [
+    "Acoustic output and microphone capture quality",
+    "Multiple physical cards/routes and jack hotplug",
+    "Per-application routing and automatic call/media policy",
+    "PipeWire runtime",
+    "Accessibility, power/performance and endurance",
+    "All unfinished milestones"
+  ]
+}

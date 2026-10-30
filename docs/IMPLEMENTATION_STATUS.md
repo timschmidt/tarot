@@ -12,6 +12,28 @@ The newly supplied [Pre3 packet](PRE3_REFERENCE.md) is queued as
 original files remain reference material; the owner selected MIT OR Apache-2.0
 for their graphics and authoring source. No Pre3 runtime work has started.
 
+## Audio device modes and menu touch behavior
+
+[Revision 56](AUDIO_MODES.md) adds explicit card modes through the ordinary-user
+audio worker. Modern availability, observed completion, opaque parent-bound IDs
+and service-generation retirement also apply when Off removes physical endpoints.
+The distribution's dummy output remains visible. Shell menu labels no longer
+select explanatory text during a touch drag; editable fields retain selection.
+
+Both compilers pass 273 workspace tests, strict host/ARM lint and private audio/
+feedback matrices. Native rendered Speaker/Earpiece/Off recovery, unavailable
+and stale rejection, bounded audio-server pause/timeout/reconnect, live server
+replacement, saved mode across a fresh server/login, lock and actual PAM pass.
+The first test's empty-global-list assumption fails on the distro dummy output;
+its independent restoration audit is retained. The accepted retry uses the same
+installed signed package. Exact original audio controls, preferences, feedback
+settings and policies are restored. Independent normal/default Tarot56, loaded
+hashes, Panfrost, services and cleanup pass; all 671 archive members and 626 frozen
+inputs verify. Acoustic/capture quality, physical hotplug, per-app/PipeWire/call
+policy, accessibility, power/performance/endurance and unfinished milestones
+remain open. Bluetooth stays deferred.
+[Exact scope and artifacts](recordings/audio-modes/README.md).
+
 ## Recording inputs, routes and Sound-page stability
 
 [Revision 55](AUDIO_INPUTS.md) adds recording-input level/mute/default controls and
@@ -31,8 +53,9 @@ package. Exact original input/output controls, preferences, feedback settings
 and policies are restored. Independent normal/default Tarot55, loaded hashes,
 Panfrost, services and cleanup pass; all 653 archive members and 623 frozen inputs
 verify. No recording/playback stream was opened. Acoustic/capture quality,
-multiple physical routes, card profiles, per-app/call policy, touch label-selection
-refinement and all unfinished milestones remain open. Bluetooth stays deferred.
+multiple physical routes and per-app/call policy remain open. Card selection and
+touch label-selection refinement are addressed by the revision-56 checkpoint
+above; broader policy and all unfinished milestones remain open. Bluetooth stays deferred.
 [Exact scope and artifacts](recordings/audio-input/README.md).
 
 ## Feedback profiles and notification lifecycle

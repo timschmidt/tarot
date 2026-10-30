@@ -27,8 +27,9 @@ outcomes are surfaced and never automatically replayed after service recovery.
 Input volume writes preserve channel balance, accept 0–100%, and retain mute.
 Default changes affect new streams; applications can retain existing routes.
 Route/profile policy and actual acoustic behavior remain the platform's concern.
-The current extension does not select card profiles, move individual application
-streams, record samples, provide microphone meters, or implement call routing.
+This input/route layer does not move individual application streams, record
+samples, provide microphone meters, or implement call routing. Explicit card
+selection is now a separate [audio-mode extension](AUDIO_MODES.md).
 
 The adapter uses the pinned libpulse-sys 1.23.0 binding. It copies callback-owned
 strings and port arrays while they are valid, bounds device/port inventories,
@@ -54,8 +55,8 @@ members and 623 frozen inputs verify. No recording or playback stream was opened
 [Evidence and retained failures](recordings/audio-input/README.md).
 
 The phone currently exposes one physical input and one route per input/output.
-Acoustic quality, real capture, multiple physical routes/jack hotplug, profiles,
-per-app routing, PipeWire runtime and call policy remain open. Native touch drags
-can also select explanatory label text; refine that behavior with the broader
-phone touch/accessibility work. No full milestone or release-readiness claim is
+Acoustic quality, real capture, multiple physical routes/jack hotplug, per-app
+routing, PipeWire runtime and call policy remain open. Revision 56 adds card
+selection and prevents menu explanation-label selection during touch drags;
+broader phone touch/accessibility work remains. No full milestone or release-readiness claim is
 made. Physical Bluetooth testing remains deferred at the owner's request.

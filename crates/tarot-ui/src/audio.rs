@@ -112,6 +112,59 @@ pub fn show(ui: &mut egui::Ui, model: &ShellModel, _layout: Layout, commands: &m
             ui.label(
                 "Input mute controls the sound server. It does not disable microphone hardware.",
             );
+            if !audio.cards.is_empty() {
+                egui::CollapsingHeader::new("Audio device modes")
+                    .id_salt("audio_device_modes")
+                    .show(ui, |ui| {
+                        ui.label("Changing mode may replace playback and recording devices.");
+                        for card in &audio.cards {
+                            ui.push_id(
+                                (card.id, audio.generation, model.feedback.generation),
+                                |ui| {
+                                    ui.group(|ui| {
+                                        ui.set_width(ui.available_width().max(1.0));
+                                        ui.label(egui::RichText::new(&card.label).strong());
+                                        if card.profiles.is_empty() {
+                                            ui.label("Modes unavailable");
+                                        }
+                                        for profile in &card.profiles {
+                                            let label = if profile.available {
+                                                profile.label.clone()
+                                            } else {
+                                                format!("{} · Unavailable", profile.label)
+                                            };
+                                            if ui
+                                                .add_enabled(
+                                                    audio.available
+                                                        && audio.pending.is_none()
+                                                        && profile.available,
+                                                    egui::Button::new(label)
+                                                        .selected(profile.active)
+                                                        .min_size(Vec2::new(
+                                                            ui.available_width(),
+                                                            48.0,
+                                                        )),
+                                                )
+                                                .clicked()
+                                            {
+                                                commands.push(Command::Audio(
+                                                    UiAction::CardProfile {
+                                                        card: card.id,
+                                                        profile: profile.id,
+                                                    },
+                                                ));
+                                            }
+                                            ui.small(format!(
+                                                "{} outputs · {} inputs",
+                                                profile.outputs, profile.inputs
+                                            ));
+                                        }
+                                    });
+                                },
+                            );
+                        }
+                    });
+            }
             if model.feedback.enabled {
                 ui.push_id(
                     (

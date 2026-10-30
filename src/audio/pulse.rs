@@ -27,6 +27,7 @@ pub(super) struct Device {
     pub volume: pa::pa_cvolume,
     pub muted: bool,
     pub input: bool,
+    pub card: Option<u32>,
     pub ports: Vec<Port>,
 }
 impl Device {
@@ -47,6 +48,36 @@ pub(super) struct Port {
     pub available: tarot_core::audio::Availability,
     pub active: bool,
 }
+#[derive(Clone)]
+pub(super) struct CardProfile {
+    pub name: CString,
+    pub label: String,
+    pub available: bool,
+    pub active: bool,
+    pub outputs: u32,
+    pub inputs: u32,
+}
+#[derive(Clone)]
+pub(super) struct Card {
+    pub index: u32,
+    pub name: CString,
+    pub label: String,
+    pub profiles: Vec<CardProfile>,
+}
+#[derive(Default)]
+struct Removed {
+    devices: HashSet<(bool, u32)>,
+    cards: HashSet<u32>,
+}
+impl Removed {
+    fn is_empty(&self) -> bool {
+        self.devices.is_empty() && self.cards.is_empty()
+    }
+    fn extend(&mut self, other: Self) {
+        self.devices.extend(other.devices);
+        self.cards.extend(other.cards);
+    }
+}
 #[derive(Default)]
 pub(super) struct Defaults {
     pub output: Option<CString>,
@@ -55,13 +86,15 @@ pub(super) struct Defaults {
 pub(super) struct Inventory {
     pub outputs: Vec<Device>,
     pub inputs: Vec<Device>,
+    pub cards: Vec<Card>,
     pub defaults: Defaults,
     pub removed: HashSet<(bool, u32)>,
+    pub removed_cards: HashSet<u32>,
 }
 struct Signals {
     shared: Arc<Shared>,
     state: mpsc::SyncSender<()>,
-    removed: Mutex<HashSet<(bool, u32)>>,
+    removed: Mutex<Removed>,
     overflow: AtomicBool,
 }
 struct Reply<T> {
@@ -116,7 +149,7 @@ impl Connection {
                 signals: Box::new(Signals {
                     shared,
                     state: tx,
-                    removed: Mutex::new(HashSet::new()),
+                    removed: Mutex::new(Removed::default()),
                     overflow: AtomicBool::new(false),
                 }),
                 started: false,
@@ -235,7 +268,7 @@ impl Connection {
         drop(reply);
         result
     }
-    fn take_removed(&self) -> Result<HashSet<(bool, u32)>> {
+    fn take_removed(&self) -> Result<Removed> {
         let _lock = self.lock();
         ensure!(
             !self.signals.overflow.load(Ordering::Acquire),
@@ -258,17 +291,25 @@ impl Connection {
             let inputs = self.request(Vec::new(), |c, data| unsafe {
                 pa::pa_context_get_source_info_list(c, Some(source_info), data)
             })?;
+            let cards = self.request(Vec::new(), |c, data| unsafe {
+                pa::pa_context_get_card_info_list(c, Some(card_info), data)
+            })?;
             let changes = self.take_removed()?;
             if changes.is_empty() {
                 return Ok(Inventory {
                     outputs,
                     inputs,
+                    cards,
                     defaults,
-                    removed,
+                    removed: removed.devices,
+                    removed_cards: removed.cards,
                 });
             }
             removed.extend(changes);
-            ensure!(removed.len() <= 128, "Audio device changes exceed limits");
+            ensure!(
+                removed.devices.len() <= 128 && removed.cards.len() <= 64,
+                "Audio device changes exceed limits"
+            );
         }
         bail!("Audio devices kept changing during query")
     }
@@ -322,6 +363,17 @@ impl Connection {
             set(c, device.index, port.as_ptr(), Some(success), data)
         })
     }
+    pub fn profile(&self, card: &Card, profile: &CString) -> Result<()> {
+        self.request((), |c, data| unsafe {
+            pa::pa_context_set_card_profile_by_index(
+                c,
+                card.index,
+                profile.as_ptr(),
+                Some(success),
+                data,
+            )
+        })
+    }
 }
 impl Drop for Connection {
     fn drop(&mut self) {
@@ -361,8 +413,17 @@ extern "C" fn subscription(
         let kind = event & pa::PA_SUBSCRIPTION_EVENT_FACILITY_MASK;
         if kind == pa::PA_SUBSCRIPTION_EVENT_SINK || kind == pa::PA_SUBSCRIPTION_EVENT_SOURCE {
             let mut removed = signals.removed.lock().unwrap();
-            if removed.len() < 128 {
-                removed.insert((kind == pa::PA_SUBSCRIPTION_EVENT_SOURCE, index));
+            if removed.devices.len() < 128 {
+                removed
+                    .devices
+                    .insert((kind == pa::PA_SUBSCRIPTION_EVENT_SOURCE, index));
+            } else {
+                signals.overflow.store(true, Ordering::Release);
+            }
+        } else if kind == pa::PA_SUBSCRIPTION_EVENT_CARD {
+            let mut removed = signals.removed.lock().unwrap();
+            if removed.cards.len() < 64 {
+                removed.cards.insert(index);
             } else {
                 signals.overflow.store(true, Ordering::Release);
             }
@@ -490,6 +551,7 @@ macro_rules! device_callback {
                 volume: info.volume,
                 muted: info.mute != 0,
                 input: $input,
+                card: (info.card != pa::PA_INVALID_INDEX).then_some(info.card),
                 ports,
             });
         }
@@ -505,6 +567,88 @@ macro_rules! is_monitor {
 }
 device_callback!(sink_info, pa::pa_sink_info, false);
 device_callback!(source_info, pa::pa_source_info, true);
+extern "C" fn card_info(
+    _: *mut pa::pa_context,
+    info: *const pa::pa_card_info,
+    eol: i32,
+    data: *mut c_void,
+) {
+    // SAFETY: same locked request-owned Reply lifetime as the device callbacks.
+    let reply = unsafe { &mut *data.cast::<Reply<Vec<Card>>>() };
+    if eol != 0 {
+        let result = if eol > 0 {
+            Ok(std::mem::take(&mut reply.value))
+        } else {
+            Err(anyhow!("Audio card query failed"))
+        };
+        let _ = reply.sender.try_send(result);
+        return;
+    }
+    if info.is_null() {
+        return;
+    }
+    let info = unsafe { &*info };
+    if reply.value.len() >= 64 || info.n_profiles > 64 {
+        let _ = reply
+            .sender
+            .try_send(Err(anyhow!("Audio modes exceed limits")));
+        return;
+    }
+    let Some(name) = copy_optional_name(info.name) else {
+        let _ = reply
+            .sender
+            .try_send(Err(anyhow!("Invalid audio card name")));
+        return;
+    };
+    let mut profiles = Vec::new();
+    // profiles2 carries availability. A missing modern array is honestly empty;
+    // obsolete profiles without that policy are never guessed to be selectable.
+    if !info.profiles2.is_null() {
+        for index in 0..info.n_profiles as usize {
+            let ptr = unsafe { *info.profiles2.add(index) };
+            if ptr.is_null() {
+                break;
+            }
+            let profile = unsafe { &*ptr };
+            let Some(profile_name) = copy_optional_name(profile.name) else {
+                continue;
+            };
+            if profiles
+                .iter()
+                .any(|p: &CardProfile| p.name == profile_name)
+            {
+                continue;
+            }
+            profiles.push(CardProfile {
+                name: profile_name,
+                label: if profile.description.is_null() {
+                    "Audio mode".into()
+                } else {
+                    copy_label(profile.description)
+                },
+                available: profile.available != 0,
+                active: ptr == info.active_profile2,
+                outputs: profile.n_sinks,
+                inputs: profile.n_sources,
+            });
+        }
+    }
+    let description = if info.proplist.is_null() {
+        ptr::null()
+    } else {
+        unsafe { pa::pa_proplist_gets(info.proplist, c"device.description".as_ptr()) }
+    };
+    reply.value.push(Card {
+        index: info.index,
+        name,
+        label: if description.is_null() {
+            "Audio device".into()
+        } else {
+            copy_label(description)
+        },
+        profiles,
+    });
+}
 fn copy_optional_name(value: *const c_char) -> Option<CString> {
     if value.is_null() {
         return None;
@@ -597,5 +741,63 @@ mod tests {
             sink_info(ptr::null_mut(), &info, 0, data);
             assert!(receiver.recv().unwrap().is_err());
         }
+    }
+    #[test]
+    fn card_callback_copies_modern_availability_and_active_mode_without_legacy_guessing() {
+        let (sender, receiver) = mpsc::sync_channel(1);
+        let mut reply = Box::new(Reply {
+            sender,
+            value: Vec::<Card>::new(),
+        });
+        let data = ptr::from_mut(&mut *reply).cast();
+        let name = CString::new("card.fixture").unwrap();
+        let on = CString::new("hifi").unwrap();
+        let off = CString::new("off").unwrap();
+        let label = CString::new("Disabled\nroute").unwrap();
+        // SAFETY: primitive zero-valued C fields and null pointers are valid;
+        // pointers below refer to local objects retained for both callbacks.
+        let mut info: pa::pa_card_info = unsafe { std::mem::zeroed() };
+        let mut profile: pa::pa_card_profile_info2 = unsafe { std::mem::zeroed() };
+        let mut off_profile: pa::pa_card_profile_info2 = unsafe { std::mem::zeroed() };
+        profile.name = on.as_ptr();
+        profile.description = label.as_ptr();
+        profile.available = 0;
+        profile.n_sinks = 2;
+        profile.n_sources = 1;
+        off_profile.name = off.as_ptr();
+        off_profile.available = 1;
+        let mut profiles = [&mut profile as *mut _, &mut off_profile as *mut _];
+        info.name = name.as_ptr();
+        info.n_profiles = 2;
+        // Modern information absent: report no selectable guessed profiles.
+        card_info(ptr::null_mut(), &info, 0, data);
+        assert!(reply.value[0].profiles.is_empty());
+        info.profiles2 = profiles.as_mut_ptr();
+        info.active_profile2 = profiles[1];
+        card_info(ptr::null_mut(), &info, 0, data);
+        card_info(ptr::null_mut(), ptr::null(), 1, data);
+        drop((name, on, off, label));
+        let cards = receiver.recv().unwrap().unwrap();
+        assert_eq!(cards[1].name.to_bytes(), b"card.fixture");
+        assert_eq!(cards[1].profiles[0].label, "Disabledroute");
+        assert!(!cards[1].profiles[0].available);
+        assert_eq!(cards[1].profiles[0].outputs, 2);
+        assert_eq!(cards[1].profiles[0].inputs, 1);
+        assert!(cards[1].profiles[1].active && cards[1].profiles[1].available);
+        assert_eq!(cards[1].profiles[1].outputs, 0);
+    }
+    #[test]
+    fn card_callback_rejects_excessive_profile_counts_before_reading_array() {
+        let (sender, receiver) = mpsc::sync_channel(1);
+        let mut reply = Box::new(Reply {
+            sender,
+            value: Vec::<Card>::new(),
+        });
+        let data = ptr::from_mut(&mut *reply).cast();
+        // SAFETY: representable primitive fields, no pointer is dereferenced.
+        let mut info: pa::pa_card_info = unsafe { std::mem::zeroed() };
+        info.n_profiles = 65;
+        card_info(ptr::null_mut(), &info, 0, data);
+        assert!(receiver.recv().unwrap().is_err());
     }
 }

@@ -140,6 +140,7 @@ pub(crate) fn panel(
             }
             let shape = ui.painter().add(egui::Shape::Noop);
             let frame = egui::Frame::new().inner_margin(8.0).show(ui, |ui| {
+                ui.style_mut().interaction.selectable_labels = false;
                 ui.set_width((width - 16.0).max(1.0));
                 ui.set_max_height((height - 16.0).max(1.0));
                 ui.style_mut().visuals.override_text_color = Some(TEXT);
@@ -877,6 +878,212 @@ mod tests {
                 })]
             );
         }
+    }
+
+    #[test]
+    fn menu_label_drags_do_not_select_text_and_text_edits_keep_their_selection() {
+        for emulate_old_selectable_labels in [true, false] {
+            let ctx = egui::Context::default();
+            let mut model = ShellModel::default();
+            model.apply(Command::SystemMenuOpen(true));
+            let mut text = "editable entry".to_owned();
+            let mut draw = |events: Vec<Event>| {
+                crate::prepare_pointer_input(&ctx, &events);
+                let mut label = Rect::NOTHING;
+                let mut entry = Rect::NOTHING;
+                let output = ctx.run(
+                    egui::RawInput {
+                        screen_rect: Some(Rect::from_min_size(Pos2::ZERO, Vec2::new(360.0, 720.0))),
+                        focused: true,
+                        events,
+                        ..Default::default()
+                    },
+                    |ctx| {
+                        let mut commands = Vec::new();
+                        panel(
+                            ctx,
+                            &model,
+                            Layout {
+                                width: 360.0,
+                                height: 720.0,
+                                notification_height: 0.0,
+                                keyboard_height: 0.0,
+                            },
+                            &mut commands,
+                            |ui, _| {
+                                if emulate_old_selectable_labels {
+                                    ui.style_mut().interaction.selectable_labels = true;
+                                }
+                                label = ui.label("A plain explanation label for scrolling").rect;
+                                entry = ui.text_edit_singleline(&mut text).rect;
+                            },
+                        );
+                    },
+                );
+                (output, label, entry)
+            };
+            for _ in 0..4 {
+                draw(vec![]);
+            }
+            let (_, label, _) = draw(vec![]);
+            let start = label.left_top() + Vec2::new(3.0, 8.0);
+            draw(vec![Event::PointerMoved(start), button(start, true)]);
+            for step in 1..=10 {
+                draw(vec![Event::PointerMoved(
+                    start + Vec2::new(step as f32 * 10.0, 0.0),
+                )]);
+            }
+            draw(vec![button(start + Vec2::new(100.0, 0.0), false)]);
+            let selected = ctx
+                .plugin_or_default::<egui::text_selection::LabelSelectionState>()
+                .lock()
+                .has_selection();
+            assert_eq!(
+                selected, emulate_old_selectable_labels,
+                "fixture reproduces the original label selection"
+            );
+            assert!(
+                ctx.style().interaction.selectable_labels,
+                "menu scope cannot change app/context defaults"
+            );
+            if !emulate_old_selectable_labels {
+                let (_, _, entry) = draw(vec![]);
+                let point = entry.center();
+                draw(vec![Event::PointerMoved(point), button(point, true)]);
+                draw(vec![button(point, false)]);
+                draw(vec![Event::Key {
+                    key: egui::Key::A,
+                    physical_key: None,
+                    pressed: true,
+                    repeat: false,
+                    modifiers: egui::Modifiers {
+                        ctrl: true,
+                        command: true,
+                        ..Default::default()
+                    },
+                }]);
+                let copied = draw(vec![Event::Copy]).0;
+                assert!(
+                    copied.platform_output.commands.iter().any(
+                        |c| matches!(c,egui::OutputCommand::CopyText(t) if t=="editable entry")
+                    ),
+                    "TextEdit selection/copy must remain available"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn audio_modes_work_without_endpoints_and_reject_unavailable_or_pending_choices() {
+        use tarot_core::audio::{Card, CardProfile, UiAction};
+        let ctx = egui::Context::default();
+        let mut model = ShellModel::default();
+        let size = Vec2::new(360.0, 720.0);
+        model.audio.enabled = true;
+        model.audio.available = true;
+        model.audio.cards = vec![Card {
+            id: 30,
+            label: "Built-in audio".into(),
+            profiles: vec![
+                CardProfile {
+                    id: 31,
+                    label: "Missing mode".into(),
+                    available: false,
+                    active: false,
+                    outputs: 1,
+                    inputs: 1,
+                },
+                CardProfile {
+                    id: 32,
+                    label: "Off".into(),
+                    available: true,
+                    active: true,
+                    outputs: 0,
+                    inputs: 0,
+                },
+            ],
+        }];
+        model.apply(Command::SystemMenuOpen(true));
+        model.apply(Command::SystemPage(SystemPage::Audio));
+        let header = position(&settle(&ctx, &model, size), "Audio device modes");
+        render(
+            &ctx,
+            &model,
+            size,
+            vec![Event::PointerMoved(header), button(header, true)],
+        );
+        render(&ctx, &model, size, vec![button(header, false)]);
+        for _ in 0..30 {
+            render(&ctx, &model, size, vec![]);
+        }
+        render(
+            &ctx,
+            &model,
+            size,
+            vec![
+                Event::PointerMoved(Pos2::new(180.0, 550.0)),
+                Event::MouseWheel {
+                    unit: egui::MouseWheelUnit::Point,
+                    delta: Vec2::new(0.0, -6000.0),
+                    modifiers: egui::Modifiers::NONE,
+                },
+            ],
+        );
+        let mut output = settle(&ctx, &model, size);
+        for _ in 0..30 {
+            output = render(&ctx, &model, size, vec![]).1;
+        }
+        let unavailable = position(&output, "Missing mode · Unavailable");
+        render(
+            &ctx,
+            &model,
+            size,
+            vec![Event::PointerMoved(unavailable), button(unavailable, true)],
+        );
+        assert!(
+            render(&ctx, &model, size, vec![button(unavailable, false)])
+                .0
+                .is_empty()
+        );
+        let target = position(&settle(&ctx, &model, size), "Off");
+        render(
+            &ctx,
+            &model,
+            size,
+            vec![Event::PointerMoved(target), button(target, true)],
+        );
+        model.audio.generation += 1;
+        render(&ctx, &model, size, vec![]);
+        assert!(
+            render(&ctx, &model, size, vec![button(target, false)])
+                .0
+                .is_empty(),
+            "a held mode choice must retire when service state changes"
+        );
+        render(&ctx, &model, size, vec![button(target, true)]);
+        assert_eq!(
+            render(&ctx, &model, size, vec![button(target, false)]).0,
+            vec![Command::Audio(UiAction::CardProfile {
+                card: 30,
+                profile: 32
+            })]
+        );
+        model.audio.pending = Some(UiAction::CardProfile {
+            card: 30,
+            profile: 32,
+        });
+        let target = position(&settle(&ctx, &model, size), "Off");
+        render(
+            &ctx,
+            &model,
+            size,
+            vec![Event::PointerMoved(target), button(target, true)],
+        );
+        assert!(
+            render(&ctx, &model, size, vec![button(target, false)])
+                .0
+                .is_empty()
+        );
     }
 
     #[test]

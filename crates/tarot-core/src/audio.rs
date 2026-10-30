@@ -27,6 +27,22 @@ pub struct Output {
 /// An input has the same observed controls; monitor sources are excluded.
 pub type Input = Output;
 
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub struct CardProfile {
+    pub id: u64,
+    pub label: String,
+    pub available: bool,
+    pub active: bool,
+    pub outputs: u32,
+    pub inputs: u32,
+}
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub struct Card {
+    pub id: u64,
+    pub label: String,
+    pub profiles: Vec<CardProfile>,
+}
+
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize)]
 pub struct Snapshot {
     pub enabled: bool,
@@ -35,6 +51,7 @@ pub struct Snapshot {
     pub epoch: u64,
     pub outputs: Vec<Output>,
     pub inputs: Vec<Input>,
+    pub cards: Vec<Card>,
     pub pending: Option<UiAction>,
     pub error: Option<String>,
     pub action_error: Option<String>,
@@ -51,6 +68,7 @@ pub enum UiAction {
     InputMute { input: u64, muted: bool },
     DefaultInput { input: u64 },
     InputPort { input: u64, port: u64 },
+    CardProfile { card: u64, profile: u64 },
 }
 
 impl UiAction {
@@ -64,6 +82,7 @@ impl UiAction {
             | Self::InputMute { input, .. }
             | Self::DefaultInput { input }
             | Self::InputPort { input, .. } => input,
+            Self::CardProfile { card, .. } => card,
         }
     }
     pub fn is_input(&self) -> bool {
@@ -81,16 +100,23 @@ impl UiAction {
             _ => None,
         }
     }
+    pub fn card_profile(&self) -> Option<(u64, u64)> {
+        match *self {
+            Self::CardProfile { card, profile } => Some((card, profile)),
+            _ => None,
+        }
+    }
     pub fn valid(&self) -> bool {
         self.device() != 0
             && self.port() != Some(0)
+            && self.card_profile().is_none_or(|(_, profile)| profile != 0)
             && !matches!(
                 self,
                 Self::Volume { percent: 101.., .. } | Self::InputVolume { percent: 101.., .. }
             )
     }
     pub fn observed<'a>(&self, snapshot: &'a Snapshot) -> Option<&'a Output> {
-        if !snapshot.available {
+        if !snapshot.available || self.card_profile().is_some() {
             return None;
         }
         let devices = if self.is_input() {
@@ -101,6 +127,13 @@ impl UiAction {
         devices.iter().find(|device| device.id == self.device())
     }
     pub fn selectable(&self, snapshot: &Snapshot) -> bool {
+        if let Some((card, profile)) = self.card_profile() {
+            return snapshot.available
+                && self.valid()
+                && snapshot.cards.iter().any(|c| {
+                    c.id == card && c.profiles.iter().any(|p| p.id == profile && p.available)
+                });
+        }
         self.valid()
             && self.observed(snapshot).is_some_and(|device| {
                 self.port().is_none_or(|id| {
@@ -112,6 +145,12 @@ impl UiAction {
             })
     }
     pub fn confirmed(&self, snapshot: &Snapshot) -> bool {
+        if let Some((card, profile)) = self.card_profile() {
+            return self.selectable(snapshot)
+                && snapshot.cards.iter().any(|c| {
+                    c.id == card && c.profiles.iter().any(|p| p.id == profile && p.active)
+                });
+        }
         self.selectable(snapshot)
             && self.observed(snapshot).is_some_and(|device| match *self {
                 Self::Volume { percent, .. } | Self::InputVolume { percent, .. } => {
@@ -126,6 +165,7 @@ impl UiAction {
                 Self::OutputPort { port, .. } | Self::InputPort { port, .. } => {
                     device.ports.iter().any(|p| p.id == port && p.active)
                 }
+                Self::CardProfile { .. } => false,
             })
     }
 }
@@ -355,6 +395,52 @@ mod tests {
             }
             .confirmed(&state)
         );
+    }
+    #[test]
+    fn card_modes_require_a_current_available_profile_and_observed_activation() {
+        let mut state = snapshot();
+        state.cards.push(Card {
+            id: 30,
+            label: "Card".into(),
+            profiles: vec![CardProfile {
+                id: 31,
+                label: "Off".into(),
+                available: true,
+                active: false,
+                outputs: 0,
+                inputs: 0,
+            }],
+        });
+        let action = UiAction::CardProfile {
+            card: 30,
+            profile: 31,
+        };
+        assert!(action.selectable(&state) && !action.confirmed(&state));
+        state.outputs.clear();
+        state.inputs.clear();
+        state.cards[0].profiles[0].active = true;
+        assert!(
+            action.confirmed(&state),
+            "Off remains usable without endpoints"
+        );
+        assert!(
+            !UiAction::CardProfile {
+                card: 7,
+                profile: 31
+            }
+            .selectable(&state)
+        );
+        assert!(
+            !UiAction::CardProfile {
+                card: 30,
+                profile: 0
+            }
+            .valid()
+        );
+        state.cards[0].profiles[0].available = false;
+        assert!(!action.selectable(&state));
+        state.cards.clear();
+        assert!(!action.confirmed(&state));
     }
     fn snapshot() -> Snapshot {
         Snapshot {

@@ -140,5 +140,10 @@
     "PipeWire runtime and call policy",
     "Touch text-selection refinement, accessibility and power/performance/endurance",
     "All unfinished full-plan milestones"
-  ]
+  ],
+  "follow_up": {
+    "revision": 56,
+    "record": "../audio-modes/README.md",
+    "scope": "Explicit card modes and menu explanation-label dragging; prior acceptance remains historical"
+  }
 }

@@ -248,9 +248,25 @@ reselection, default-input round trip, protected rejection and actual PAM pass;
 exact original input/output controls/preferences/policies and normal default
 Tarot55/Panfrost are independently verified. The withheld candidate and two
 native QA failures/restoration audits remain recorded. Acoustic/capture quality,
-multiple physical routes/jack hotplug, card profiles, per-app/PipeWire/call policy,
-touch text-selection refinement and power/performance/reliability remain open.
+multiple physical routes/jack hotplug, per-app/PipeWire/call policy and
+power/performance/reliability remain open. Card selection and menu text-selection
+refinement are addressed by the checkpoint below.
 This closes no whole milestone; physical Bluetooth tests stay deferred.
+
+Audio-mode checkpoint, October 30: [revision 56](recordings/audio-modes/README.md)
+adds modern card profiles, availability, active readback and Off recovery without
+changing the distribution's dummy-output policy. Menu explanation labels no
+longer select during a finger drag, while editable-field selection remains.
+Both compilers pass 273 workspace tests, strict host/ARM lint and private audio/
+feedback integration. Native UI selection, stale/unavailable rejection, bounded
+server pause/timeout/reconnect, actual server replacement, saved mode across a
+fresh server/login and actual PAM pass. Exact original modes/controls/preferences/
+policies and normal default Tarot56/Panfrost are independently verified. The
+initial dummy-output QA assumption and restoration audit remain retained; the
+retry uses the same package. No streams, acoustic/call/Bluetooth acceptance,
+suspend cycles or whole milestone completion follow from this component.
+Per-app routing, automatic call/media policy, PipeWire runtime, physical hotplug,
+accessibility and power/performance/endurance remain required.
 
 Bluetooth implementation checkpoint, October 30: the initial Rust BlueZ adapter and KeyboardDisplay agent now provide discovery, PIN/passkey/confirmation and authorization prompts, explicit trust, connection controls and confirmed Forget. Private rendered/protocol checks cover lock cancellation, stale identities and daemon/broker recovery. Signed revision 51 passes native radio/discovery/visibility controls, independent ordinary-user BlueZ readback, actual PAM and normal-session restoration. A separate revision-52 JLab Studio check observes actual pairing and Trust changes, but stable connection fails; an independent ordinary-user client reports br-connection-page-timeout. Audio/acoustic acceptance was not reached. Further physical Bluetooth tests are deferred at the owner's request; other development continues. Physical peripheral acceptance remains open; generic Connect does not establish Bluetooth audio or call support. [Contract and remaining work](BLUETOOTH.md).
 

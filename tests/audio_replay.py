@@ -62,6 +62,7 @@ def main():
         first=audio('first-output',lambda a:len(a['outputs'])==1);first_id=first['outputs'][0]['id'];epoch=first['epoch']
         second_module=int(pactl('load-module','module-null-sink','sink_name=tarot_second','sink_properties=device.description=Second_output').strip())
         outputs=audio('second-output',lambda a:len(a['outputs'])==2);second_id=next(o['id'] for o in outputs['outputs'] if o['id']!=first_id)
+        assert not outputs['cards'], 'Synthetic endpoints must not invent audio cards'
         assert not outputs['inputs'], 'Playback monitors must not be offered as microphones'
         pactl('set-sink-volume','tarot_first','50%','25%')
         audio('external-volume',lambda a:next(o for o in a['outputs'] if o['id']==first_id)['percent']==50)
@@ -115,6 +116,8 @@ def main():
             ('invalid-input-level',{'InputVolume':{'input':input_id,'percent':101}}),
             ('output-id-as-input',{'InputMute':{'input':third_id,'muted':True}}),
             ('input-id-as-output',{'Mute':{'output':input_id,'muted':True}}),
+            ('wrong-card-identity',{'CardProfile':{'card':input_id,'profile':9999999}}),
+            ('invalid-profile-zero',{'CardProfile':{'card':input_id,'profile':0}}),
             ('unknown-input-route',{'InputPort':{'input':input_id,'port':9999999}}),
             ('unknown-output-route',{'OutputPort':{'output':third_id,'port':9999999}}),
         ]:
