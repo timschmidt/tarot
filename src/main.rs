@@ -32,6 +32,7 @@ mod preferences;
 mod recovery;
 mod renderer;
 mod sensors;
+mod session_idle_host;
 mod sleep;
 mod state;
 mod text;
@@ -130,6 +131,12 @@ pub struct Options {
     /// Hold a login1 sleep-delay inhibitor until a new protected frame completes.
     #[arg(long, requires_all = ["lock_client", "system_services"], conflicts_with = "lock_probe_unlocked_start")]
     sleep_coordination: bool,
+    /// Publish protected panel-off readiness to this GUI session's idle hint (opt-in).
+    #[arg(long, requires = "sleep_coordination")]
+    session_idle: bool,
+    /// Also permit session idle on observed external power (opt-in).
+    #[arg(long, requires = "session_idle")]
+    session_idle_on_external_power: bool,
     /// Lock after this many milliseconds without seat activity (opt-in).
     #[arg(long, requires="lock_client", conflicts_with="lock_probe_unlocked_start", value_parser=clap::value_parser!(u64).range(100..=86400000))]
     idle_lock_ms: Option<u64>,
@@ -427,6 +434,19 @@ fn main() -> Result<()> {
             physical,
         )?);
     }
+    if options.session_idle {
+        anyhow::ensure!(
+            data.state.idle.policy.is_some(),
+            "Session idle publishing requires an idle policy"
+        );
+        data.state.session_idle_worker = Some(session_idle_host::start(
+            event_loop.handle(),
+            &mut data.state,
+            options.platform_bus.clone(),
+            physical,
+            options.session_idle_on_external_power,
+        )?);
+    }
     let _control = options
         .control_socket
         .as_ref()
@@ -492,7 +512,7 @@ fn main() -> Result<()> {
     }
 
     let handle = event_loop.handle();
-    event_loop.run(None, &mut data, |data| {
+    let run_result = event_loop.run(None, &mut data, |data| {
         data.state.sync_app_menu();
         data.state.hardware_tick();
         data.state.idle_tick();
@@ -566,8 +586,13 @@ fn main() -> Result<()> {
             data.state.fatal_error = Some(error.to_string());
             data.state.loop_signal.stop();
         }
-    })?;
+        data.state.session_idle_tick();
+    });
+    // Clear the persistent idle hint before removing protected display/sleep
+    // coordination. The worker reports uncertainty if its bounded clear fails.
+    data.state.session_idle_worker.take();
     backend.shutdown();
+    run_result?;
     if let Some(error) = data.state.fatal_error {
         anyhow::bail!(error);
     }

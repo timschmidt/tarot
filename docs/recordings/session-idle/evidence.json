@@ -1,0 +1,120 @@
+{
+  "date": "2026-10-30",
+  "source_status": "Unreleased opt-in code; normal phone remains Tarot57",
+  "scope": "Opt-in session idle publisher and protected-off readiness; private traffic and nested negative wiring; no native/automatic sleep acceptance",
+  "native_acceptance": false,
+  "automatic_suspend_implemented": false,
+  "normal_launcher_enables_publisher": false,
+  "compiler_inputs": 473,
+  "qa_files": 155,
+  "source_manifest_sha256": "1a27a8107c5d1fac99ff91ce7a34fcf4653336f4b7b5aa60bd3d7d7dbbe0df01",
+  "binaries": {
+    "current": {
+      "compiler": "rustc 1.98.1 (48a229cea 2026-09-01)\nbinary: rustc\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\ncommit-date: 2026-09-01\nhost: x86_64-unknown-linux-gnu\nrelease: 1.98.1\nLLVM version: 22.1.8\n",
+      "binaries": {
+        "tarot": "de6bb79bcd9c7448114dc382754a954c36eea60c1353e51581f14527601a814b",
+        "examples/sleep-probe": "42758da4f6c06afd2eb868c0692a5ced58c8e214d8dab553c63a91a0124cbff2",
+        "examples/session-idle-probe": "5cacd4484f09ed9662b859cadbbeb77c8c46a46b471c1d1486e90c102186b328",
+        "examples/lock-probe": "f4d53906c6c241bfe17b23843d662cced3ca8822735e323cfc617b421ec458c5"
+      }
+    },
+    "minimum": {
+      "compiler": "rustc 1.89.0 (29483883e 2025-08-04)\nbinary: rustc\ncommit-hash: 29483883eed69d5fb4db01964cdf2af4d86e9cb2\ncommit-date: 2025-08-04\nhost: x86_64-unknown-linux-gnu\nrelease: 1.89.0\nLLVM version: 20.1.7\n",
+      "binaries": {
+        "tarot": "a1c997a95aa69bc1fa870c095d7a3c9054dc16789a708af5a0494ee4b87e536f",
+        "examples/sleep-probe": "6d4db36f864e08e1a419d7e1c23a946ad2522c6127a1355452dc19f554171c44",
+        "examples/session-idle-probe": "d5a1aab6d236556bf9a33ab4e4e4365f74a0462058a0c342457f0359750dacb7",
+        "examples/lock-probe": "6fdd7b108415cd39c19494ad55987192fe800f37ba2bea846b8f0f1a126a1214"
+      }
+    }
+  },
+  "workspace": {
+    "current": {
+      "passed": 278,
+      "failed": 0,
+      "ignored": 9
+    },
+    "minimum": {
+      "passed": 278,
+      "failed": 0,
+      "ignored": 9
+    }
+  },
+  "private": {
+    "current": {
+      "passed": true,
+      "cases": [
+        "actual-caller-pid-and-false-before-readiness",
+        "readiness-and-session-active-transitions",
+        "healthy-worker-does-not-poll",
+        "external-idle-property-corrected-from-fresh-readback",
+        "late-acknowledgement-retired-and-hint-cleared",
+        "denial-reports-unknown-and-reconnect-clears-first",
+        "timed-out-write-may-apply-late-and-is-cleared-on-reconnect",
+        "manager-action-and-minimum-delay-validation-without-sleep-calls",
+        "foreign-remote-nongraphical-greeter-seat-and-vt-rejected-before-write",
+        "same-unique-owner-release-reacquire-clears-persistent-hint",
+        "whole-broker-replacement-without-fixed-guid",
+        "healthy-shutdown-explicitly-clears-hint",
+        "uncertain-shutdown-reports-unknown-instead-of-promising-a-lease",
+        "nested-compositor-cannot-invent-physical-panel-off-readiness"
+      ],
+      "result_sha256": "f263ed735e61f8a6a31f8836cde07d7e36b93dd5df38e51dd80f44bab000f83a",
+      "healthy_shutdown_us": 8194,
+      "uncertain_shutdown": {
+        "available": false,
+        "error": "Session idle state unknown at shutdown",
+        "manager_action": null,
+        "observed_idle": null
+      },
+      "protected_delay_passed": true,
+      "protected_delay_result_sha256": "07e5d101627e8147af59e896e645da7323e1c56bf40cffff111e2b85ab42780c"
+    },
+    "minimum": {
+      "passed": true,
+      "cases": [
+        "actual-caller-pid-and-false-before-readiness",
+        "readiness-and-session-active-transitions",
+        "healthy-worker-does-not-poll",
+        "external-idle-property-corrected-from-fresh-readback",
+        "late-acknowledgement-retired-and-hint-cleared",
+        "denial-reports-unknown-and-reconnect-clears-first",
+        "timed-out-write-may-apply-late-and-is-cleared-on-reconnect",
+        "manager-action-and-minimum-delay-validation-without-sleep-calls",
+        "foreign-remote-nongraphical-greeter-seat-and-vt-rejected-before-write",
+        "same-unique-owner-release-reacquire-clears-persistent-hint",
+        "whole-broker-replacement-without-fixed-guid",
+        "healthy-shutdown-explicitly-clears-hint",
+        "uncertain-shutdown-reports-unknown-instead-of-promising-a-lease",
+        "nested-compositor-cannot-invent-physical-panel-off-readiness"
+      ],
+      "result_sha256": "657e7fe8b23ca3506068263d8ac5455b6f6de06242eec2205e2f9e82db5e1d53",
+      "healthy_shutdown_us": 7361,
+      "uncertain_shutdown": {
+        "available": false,
+        "error": "Session idle state unknown at shutdown",
+        "manager_action": null,
+        "observed_idle": null
+      },
+      "protected_delay_passed": true,
+      "protected_delay_result_sha256": "b855c16ab4774961e9a81d781e0acaad77fecf93c7d78238d79f8a03e6f117fc"
+    }
+  },
+  "checks": {
+    "clippy-current.log": {
+      "passed": true,
+      "sha256": "f2dc2c25f9850bd1546c956b4f86482a496d0bf1a489e253da31429f6b221279"
+    },
+    "clippy-arm.log": {
+      "passed": true,
+      "sha256": "c9177ec5f92c5fc2d2310b015bdb2e94d70b3b75d79deca124138decce631bcb"
+    },
+    "check-minimum-arm.log": {
+      "passed": true,
+      "sha256": "6c620553e1a744f7ed97f204d876eebebfd2cb70b64ff4f766de281955a4f5d3"
+    }
+  },
+  "physical_bluetooth_tested": false,
+  "kernel_suspend_requested": false,
+  "known_lifetime_limit": "Session idle hints persist beyond a connection; timed-out writes can apply after shutdown. Unknown is reported; native teardown/recovery remains unqualified."
+}

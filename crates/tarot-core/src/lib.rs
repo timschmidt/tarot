@@ -26,6 +26,7 @@ pub mod power;
 pub mod quick_launch;
 pub mod search;
 pub mod session;
+pub mod session_idle;
 pub mod sleep;
 pub mod touch;
 pub use deck::CardDrop;

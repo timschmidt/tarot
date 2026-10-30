@@ -44,6 +44,105 @@ struct Shared {
     block_delay_ms: AtomicU64,
     deny_block: AtomicBool,
     busy_until: Mutex<Option<Instant>>,
+    session: Mutex<SessionInfo>,
+    idle_action: Mutex<String>,
+    idle_delay_us: AtomicU64,
+    hint_delay_ms: AtomicU64,
+    deny_hint: AtomicBool,
+}
+
+struct SessionInfo {
+    uid: u32,
+    seat: String,
+    class: String,
+    kind: String,
+    remote: bool,
+    active: bool,
+    vt: u32,
+    idle: bool,
+}
+const SESSION_PATH: &str = "/org/freedesktop/login1/session/tarot_test";
+const SESSION_IFACE: &str = "org.freedesktop.login1.Session";
+
+struct Session(Arc<Shared>);
+#[zbus::interface(name = "org.freedesktop.login1.Session")]
+impl Session {
+    async fn set_idle_hint(
+        &self,
+        idle: bool,
+        #[zbus(connection)] connection: &zbus::Connection,
+    ) -> Result<(), InhibitError> {
+        self.0.record(json!({"event":"hint-request","idle":idle}));
+        if idle {
+            async_io::Timer::after(Duration::from_millis(
+                self.0.hint_delay_ms.load(Ordering::Acquire),
+            ))
+            .await;
+            if self.0.deny_hint.load(Ordering::Acquire) {
+                return Err(InhibitError::AccessDenied("Fixture idle rejection".into()));
+            }
+        }
+        let changed = {
+            let mut state = self.0.session.lock().unwrap();
+            let changed = state.idle != idle;
+            state.idle = idle;
+            changed
+        };
+        self.0.record(json!({"event":"hint-applied","idle":idle}));
+        if changed {
+            let values =
+                std::collections::HashMap::from([("IdleHint", zbus::zvariant::Value::from(idle))]);
+            connection
+                .emit_signal(
+                    None::<&str>,
+                    SESSION_PATH,
+                    "org.freedesktop.DBus.Properties",
+                    "PropertiesChanged",
+                    &(SESSION_IFACE, values, Vec::<&str>::new()),
+                )
+                .await
+                .map_err(|e| InhibitError::Failed(e.to_string()))?;
+        }
+        Ok(())
+    }
+    #[zbus(property)]
+    fn user(&self) -> (u32, zbus::zvariant::OwnedObjectPath) {
+        (
+            self.0.session.lock().unwrap().uid,
+            "/org/freedesktop/login1/user/test".try_into().unwrap(),
+        )
+    }
+    #[zbus(property)]
+    fn seat(&self) -> (String, zbus::zvariant::OwnedObjectPath) {
+        (
+            self.0.session.lock().unwrap().seat.clone(),
+            "/org/freedesktop/login1/seat/seat0".try_into().unwrap(),
+        )
+    }
+    #[zbus(property)]
+    fn class(&self) -> String {
+        self.0.session.lock().unwrap().class.clone()
+    }
+    #[zbus(property)]
+    fn r#type(&self) -> String {
+        self.0.session.lock().unwrap().kind.clone()
+    }
+    #[zbus(property)]
+    fn remote(&self) -> bool {
+        self.0.session.lock().unwrap().remote
+    }
+    #[zbus(property)]
+    fn active(&self) -> bool {
+        self.0.session.lock().unwrap().active
+    }
+    #[zbus(property, name = "VTNr")]
+    fn vt(&self) -> u32 {
+        self.0.session.lock().unwrap().vt
+    }
+    #[zbus(property)]
+    fn idle_hint(&self) -> bool {
+        self.0.session.lock().unwrap().idle
+    }
 }
 impl Shared {
     fn record(&self, value: Value) {
@@ -55,6 +154,19 @@ impl Shared {
 struct Manager(Arc<Shared>);
 #[zbus::interface(name = "org.freedesktop.login1.Manager")]
 impl Manager {
+    #[zbus(name = "GetSessionByPID")]
+    fn get_session_by_pid(&self, pid: u32) -> zbus::zvariant::OwnedObjectPath {
+        self.0.record(json!({"event":"session-request","pid":pid}));
+        SESSION_PATH.try_into().unwrap()
+    }
+    #[zbus(property)]
+    fn idle_action(&self) -> String {
+        self.0.idle_action.lock().unwrap().clone()
+    }
+    #[zbus(property, name = "IdleActionUSec")]
+    fn idle_action_usec(&self) -> u64 {
+        self.0.idle_delay_us.load(Ordering::Acquire)
+    }
     async fn inhibit(
         &self,
         what: &str,
@@ -136,9 +248,24 @@ fn main() -> Result<()> {
         block_delay_ms: AtomicU64::new(0),
         deny_block: AtomicBool::new(false),
         busy_until: Mutex::new(None),
+        session: Mutex::new(SessionInfo {
+            uid: rustix::process::getuid().as_raw(),
+            seat: "seat0".into(),
+            class: "user".into(),
+            kind: "wayland".into(),
+            remote: false,
+            active: true,
+            vt: 7,
+            idle: false,
+        }),
+        idle_action: Mutex::new("ignore".into()),
+        idle_delay_us: AtomicU64::new(30_000_000),
+        hint_delay_ms: AtomicU64::new(0),
+        deny_hint: AtomicBool::new(false),
     });
     let connection = Builder::address(address.as_str())?
         .serve_at("/org/freedesktop/login1", Manager(shared.clone()))?
+        .serve_at(SESSION_PATH, Session(shared.clone()))?
         .name("org.freedesktop.login1")?
         .build()?;
     shared.record(json!({"event":"ready"}));
@@ -200,6 +327,77 @@ fn main() -> Result<()> {
             "deny-block" => shared
                 .deny_block
                 .store(value["deny"].as_bool().unwrap(), Ordering::Release),
+            "hint-delay" => {
+                let millis = value["milliseconds"].as_u64().unwrap();
+                ensure!(millis <= 2000, "Bounded hint delay required");
+                shared.hint_delay_ms.store(millis, Ordering::Release);
+            }
+            "deny-hint" => shared
+                .deny_hint
+                .store(value["deny"].as_bool().unwrap(), Ordering::Release),
+            "session" => {
+                let mut session = shared.session.lock().unwrap();
+                if let Some(v) = value["uid"].as_u64() {
+                    session.uid = v.try_into()?;
+                }
+                if let Some(v) = value["active"].as_bool() {
+                    session.active = v;
+                }
+                if let Some(v) = value["remote"].as_bool() {
+                    session.remote = v;
+                }
+                if let Some(v) = value["idle"].as_bool() {
+                    session.idle = v;
+                }
+                if let Some(v) = value["class"].as_str() {
+                    session.class = v.to_owned();
+                }
+                if let Some(v) = value["kind"].as_str() {
+                    session.kind = v.to_owned();
+                }
+                if let Some(v) = value["seat"].as_str() {
+                    session.seat = v.to_owned();
+                }
+                if let Some(v) = value["vt"].as_u64() {
+                    session.vt = v.try_into()?;
+                }
+                drop(session);
+                // Invalidate all observed fields; the worker must fetch actual
+                // values rather than trusting arbitrary signal payloads.
+                let fields = vec![
+                    "User", "Seat", "Class", "Type", "Active", "Remote", "VTNr", "IdleHint",
+                ];
+                connection.emit_signal(
+                    None::<&str>,
+                    SESSION_PATH,
+                    "org.freedesktop.DBus.Properties",
+                    "PropertiesChanged",
+                    &(
+                        SESSION_IFACE,
+                        std::collections::HashMap::<&str, zbus::zvariant::Value<'_>>::new(),
+                        fields,
+                    ),
+                )?;
+            }
+            "idle-action" => {
+                let action = value["action"].as_str().unwrap();
+                ensure!(action.len() < 64, "Bounded fixture action");
+                *shared.idle_action.lock().unwrap() = action.into();
+                if let Some(delay) = value["delay_us"].as_u64() {
+                    shared.idle_delay_us.store(delay, Ordering::Release);
+                }
+                connection.emit_signal(
+                    None::<&str>,
+                    "/org/freedesktop/login1",
+                    "org.freedesktop.DBus.Properties",
+                    "PropertiesChanged",
+                    &(
+                        "org.freedesktop.login1.Manager",
+                        std::collections::HashMap::<&str, zbus::zvariant::Value<'_>>::new(),
+                        vec!["IdleAction", "IdleActionUSec"],
+                    ),
+                )?;
+            }
             "release" => {
                 connection.release_name("org.freedesktop.login1")?;
             }

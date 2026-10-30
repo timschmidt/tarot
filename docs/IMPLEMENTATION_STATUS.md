@@ -14,6 +14,27 @@ for their graphics and authoring source. No Pre3 runtime work has started.
 
 ## Audio activity and system sleep
 
+October 30 source-only T016 progress: an opt-in
+[session idle publisher](SESSION_IDLE.md) now connects protected physical
+panel-off readiness to the actual authenticated GUI session's idle hint.
+It requires healthy sleep/audio coordination and known power, defaults to
+battery-only readiness, validates the real caller's session, clears old hints
+on reconnect and attempts a clear before protected backend shutdown. Late,
+denied or timed-out writes report unknown state. Idle hints are persistent
+manager state; an asynchronous private fixture proves that a timed-out write
+can apply after client exit. Native teardown/recovery remains a required gate.
+
+Both frozen current/minimum builds pass fourteen private idle cases and the
+existing protected sleep-delay regression. Both compilers pass 278 workspace
+tests with nine ignored; strict host/ARM lint and minimum-Rust AArch64 DRM
+all-target checks pass. All 473 compiler inputs/155 QA files verify. An initial
+fixture API acronym mismatch is independently reproduced and corrected; sandbox
+socket/display failures and all earlier logs remain retained. This source is
+not enabled by the normal launcher or installed on the phone. Automatic sleep,
+persistent Power controls, policy packaging and native/current-kernel acceptance
+remain incomplete; normal Tarot57 and paused Bluetooth testing are unchanged.
+[Evidence and exact limitations](recordings/session-idle/README.md).
+
 [Revision 57](AUDIO_INHIBITION.md) observes bounded uncorked playback/capture
 counts and holds one ordinary-user login1 sleep/block FD while either is active.
 It leaves automatic lock/display idle and protected sleep-delay ownership

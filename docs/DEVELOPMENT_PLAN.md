@@ -327,6 +327,18 @@ configuration. [Exact-version research and device results](recordings/audio-kern
    no successful sleep cycle. Unplugged-device and sustained power/energy tests
    remain separate from USB-connected results.
 
+T016 source checkpoint, October 30: an opt-in
+[session idle publisher](SESSION_IDLE.md) and protected-off readiness model are
+implemented. Fourteen private cases pass on frozen current/minimum binaries,
+alongside the protected-delay regression, 278 workspace tests per compiler and
+host/ARM/minimum-target checks. The normal launcher does not enable it and no
+new package is installed. Idle hints persist after connection loss; a deliberately
+late write after client exit is reported as unknown, with native session teardown
+and recovery still unqualified. Next exercise real GUI-session hint publication
+while manager action remains ignore, then complete Power controls, explicit
+manager policy/packaging, global-inhibitor and actual automatic sleep/wake tests.
+The USB kernel failure remains retained. This does not close T016 or M4.
+
 ### M4 addition: double-chop flashlight from suspend
 
 **Requested October 30, 2026; planned, not implemented.** Recognize a
