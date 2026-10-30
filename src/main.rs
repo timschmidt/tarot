@@ -1,6 +1,7 @@
 mod app_menus;
 mod apps;
 mod audio;
+mod audio_inhibit;
 mod authorization;
 mod bluetooth;
 mod card_renderer;
@@ -418,6 +419,14 @@ fn main() -> Result<()> {
     } else {
         None
     };
+    if options.sleep_coordination {
+        data.state.audio_inhibit = Some(audio_inhibit::start(
+            event_loop.handle(),
+            &mut data.state,
+            options.platform_bus.clone(),
+            physical,
+        )?);
+    }
     let _control = options
         .control_socket
         .as_ref()

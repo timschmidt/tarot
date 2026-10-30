@@ -76,7 +76,8 @@ Action lookup routes `app.` and `win.` through their respective declared paths
 on the same validated unique connection. Unknown actions remain unavailable.
 
 These parser/graph limits now sit behind the revision-48
-[guarded socket](../src/native_menu/socket.rs). Concrete local Unix connect,
+[guarded socket](../src/local_bus.rs), now shared with audio sleep coordination.
+Concrete local Unix connect,
 authentication and initial Hello have a two-second budget; retirement shuts down
 an owned descriptor without waiting for zbus's writer lock. The receive path
 rejects body lengths over 64 KiB, header fields over 16 KiB and excess descriptors

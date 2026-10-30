@@ -206,6 +206,7 @@ pub struct ShellModel {
     pub rotation_locked: bool,
     pub display: display::Snapshot,
     pub audio: audio::Snapshot,
+    pub audio_inhibition: audio::Inhibition,
     pub feedback: feedback::Snapshot,
     pub volume_feedback: Option<audio::KeyFeedback>,
     pub network: network::Snapshot,

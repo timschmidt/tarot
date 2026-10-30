@@ -259,10 +259,7 @@ pub fn start(path: &Path, handle: &LoopHandle<'_, CalloopData>) -> Result<Contro
                 "authorization": {"can_prompt":state.shell.authorization.snapshot.can_prompt,"enabled":state.shell.authorization.snapshot.enabled,"available":state.shell.authorization.snapshot.available,"epoch":state.shell.authorization.snapshot.epoch,"generation":state.shell.authorization.snapshot.generation,"error":state.shell.authorization.snapshot.error,
                     "request":state.shell.authorization.snapshot.request.as_ref().map(|r|json!({"id":r.id,"phase":match &r.phase {tarot_core::authorization::Phase::Choose=>"Choose",tarot_core::authorization::Phase::Starting=>"Starting",tarot_core::authorization::Phase::Checking=>"Checking",tarot_core::authorization::Phase::Question(_)=>"Question"},"turn":match &r.phase {tarot_core::authorization::Phase::Question(q)=>Some(q.id),_=>None},"echo":match &r.phase {tarot_core::authorization::Phase::Question(q)=>Some(q.echo),_=>None}}))},
                 "power": state.shell.power,
-                "audio": {"enabled":state.shell.audio.enabled,"available":state.shell.audio.available,"generation":state.shell.audio.generation,"epoch":state.shell.audio.epoch,"pending":state.shell.audio.pending,"error":state.shell.audio.error,"action_error":state.shell.audio.action_error,
-                    "outputs":state.shell.audio.outputs.iter().map(audio_device_metadata).collect::<Vec<_>>(),
-                    "inputs":state.shell.audio.inputs.iter().map(audio_device_metadata).collect::<Vec<_>>(),
-                    "cards":state.shell.audio.cards.iter().map(audio_card_metadata).collect::<Vec<_>>()},
+                "audio": audio_metadata(&state.shell.audio),
                 "feedback": {"enabled":state.shell.feedback.enabled,"available":state.shell.feedback.available,"generation":state.shell.feedback.generation,"epoch":state.shell.feedback.epoch,"profile":state.shell.feedback.profile,"pending":state.shell.feedback.pending,"test_active":state.shell.feedback.test_active,"test_result":state.shell.feedback.test_result,"active_notifications":state.shell.feedback.active_notifications,"notifications_enabled":state.shell.feedback.notifications_enabled,"settings_saved":state.shell.feedback.settings_saved,"settings_error":state.shell.feedback.settings_error,"error":state.shell.feedback.error,"action_error":state.shell.feedback.action_error},
                 "notifications": notifications,
                 "launcher_query": state.shell.launcher_query,
@@ -295,6 +292,7 @@ pub fn start(path: &Path, handle: &LoopHandle<'_, CalloopData>) -> Result<Contro
             response["app_menu"] = json!(state.shell.app_menu);
             response["top_menu"] = json!({"revision":state.shell.menus.revision,"owner":state.shell.menus.owner,"entry":state.shell.menus.entry,"history":state.shell.menus.history,"panel":state.shell.menus.panel,"selected":state.shell.menus.selected,"motion":state.shell.menu_visual()});
             response["hardware_keys"] = json!(state.hardware.enabled);
+            response["audio_inhibition"] = json!(state.shell.audio_inhibition);
             response["volume_feedback"] = json!(state.shell.volume_feedback);
             response["favorites"] = json!(state.shell.favorites);
             response["clock"] = json!(state.shell.clock_label);
@@ -388,4 +386,12 @@ fn audio_card_metadata(card: &tarot_core::audio::Card) -> serde_json::Value {
     json!({"id":card.id,"profiles":card.profiles.iter().map(|p|
         json!({"id":p.id,"available":p.available,"active":p.active,"outputs":p.outputs,"inputs":p.inputs}))
         .collect::<Vec<_>>()})
+}
+
+fn audio_metadata(audio: &tarot_core::audio::Snapshot) -> serde_json::Value {
+    json!({"enabled":audio.enabled,"available":audio.available,"generation":audio.generation,"epoch":audio.epoch,"pending":audio.pending,"error":audio.error,"action_error":audio.action_error,
+        "outputs":audio.outputs.iter().map(audio_device_metadata).collect::<Vec<_>>(),
+        "inputs":audio.inputs.iter().map(audio_device_metadata).collect::<Vec<_>>(),
+        "cards":audio.cards.iter().map(audio_card_metadata).collect::<Vec<_>>(),
+        "activity":audio.activity})
 }

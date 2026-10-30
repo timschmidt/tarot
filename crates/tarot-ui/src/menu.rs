@@ -794,6 +794,39 @@ mod tests {
     }
 
     #[test]
+    fn audio_awake_status_does_not_move_power_controls() {
+        let ctx = egui::Context::default();
+        let mut model = ShellModel::default();
+        let size = Vec2::new(360.0, 720.0);
+        model.power.enabled = true;
+        model.power.brightness.maximum = 100;
+        model.power.brightness.actual = Some(50);
+        model.audio_inhibition.enabled = true;
+        model.apply(Command::SystemMenuOpen(true));
+        model.apply(Command::SystemPage(SystemPage::Power));
+        let initial = position(&settle(&ctx, &model, size), "Brightness: 50%");
+        for (active, held, error) in [
+            (true, false, None),
+            (true, true, None),
+            (
+                true,
+                false,
+                Some("Audio sleep coordination unavailable; reconnecting".to_owned()),
+            ),
+            (false, false, None),
+        ] {
+            model.audio_inhibition.active = active;
+            model.audio_inhibition.held = held;
+            model.audio_inhibition.error = error;
+            assert_eq!(
+                position(&settle(&ctx, &model, size), "Brightness: 50%"),
+                initial,
+                "Audio status must not move controls under a held contact"
+            );
+        }
+    }
+
+    #[test]
     fn sound_scroll_survives_service_updates_while_held_route_choices_retire() {
         use tarot_core::audio::{Availability, Output, Port, UiAction};
         for feedback_update in [false, true] {

@@ -26,6 +26,7 @@ use zbus::{
     connection::socket::{ReadHalf, Split, WriteHalf},
 };
 
+pub const METHOD_TIMEOUT: Duration = Duration::from_millis(500);
 const SETUP_TIMEOUT: Duration = Duration::from_secs(2);
 const CANCEL_POLL: Duration = Duration::from_millis(10);
 const MAX_AUTH: usize = 4096;
@@ -35,18 +36,18 @@ const MAX_FIELDS: usize = 16 * 1024;
 const MAX_FDS: usize = 4;
 
 #[derive(Debug)]
-pub(super) struct Cancellation {
+pub struct Cancellation {
     stop: Arc<AtomicBool>,
     socket: Mutex<Option<UnixStream>>,
 }
 impl Cancellation {
-    pub(super) fn new(stop: Arc<AtomicBool>) -> Self {
+    pub fn new(stop: Arc<AtomicBool>) -> Self {
         Self {
             stop,
             socket: Mutex::new(None),
         }
     }
-    pub(super) fn cancel(&self) {
+    pub fn cancel(&self) {
         self.stop.store(true, Ordering::Release);
         if let Some(socket) = self.socket.lock().unwrap().as_ref() {
             // Do not wait for zbus's async writer lock on the compositor thread.
@@ -116,7 +117,7 @@ fn complete<F: Future>(future: F, guard: &Guard) -> io::Result<F::Output> {
     }
 }
 
-pub(super) fn connect(address: &str, cancel: Arc<Cancellation>) -> Result<Connection> {
+pub fn connect(address: &str, cancel: Arc<Cancellation>) -> Result<Connection> {
     ensure!(address.len() <= 4096, "oversized local bus address");
     let guard = Arc::new(Guard {
         cancel,
@@ -176,7 +177,7 @@ pub(super) fn connect(address: &str, cancel: Arc<Cancellation>) -> Result<Connec
         }),
     );
     let builder = zbus::connection::Builder::socket(split)
-        .method_timeout(super::transport::METHOD_TIMEOUT)
+        .method_timeout(METHOD_TIMEOUT)
         .max_queued(16);
     let connection = complete(builder.build(), &guard)??;
     if let Some(guid) = address.guid() {

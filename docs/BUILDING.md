@@ -607,6 +607,32 @@ control. Never use that option without controller-owned restoration. No stream
 is opened. Process signals use verified identity and bound pidfds; the normal
 user owns all audio commands. [Accepted evidence and failure](recordings/audio-modes/README.md).
 
+With `--sleep-coordination`, observed uncorked playback or recording now holds a
+separate normal-user login1 sleep/block descriptor. Automatic lock and panel off
+remain independent; Power & display shows grant/error status. See the
+[audio-inhibition contract](AUDIO_INHIBITION.md). The private regression requires
+Tarot's `lock-probe` and `sleep-probe` examples, a private X display, and an
+installed or extracted PulseAudio daemon/modules/common libraries:
+
+```sh
+cargo build --offline --bin tarot --example lock-probe --example sleep-probe
+python3 tests/with_xvfb.py --log artifacts/m4/audio-inhibit/xvfb.log -- \
+  python3 tests/audio_inhibit_replay.py --output artifacts/m4/audio-inhibit/check \
+  --pulse-daemon /path/to/pulseaudio --pulse-modules /path/to/modules \
+  --pulse-libraries /path/to/pulseaudio/libraries
+```
+
+It owns its broker/audio server/null devices and never calls Suspend or selects
+physical audio. The installed replay's `--audio-inhibit` component instead uses
+the phone's real user audio server and actual login1 manager, with a uniquely
+named owned null sink/monitor. Its controller must restore idle and audio
+preferences, close clients and verify module identity before removal, then audit
+normal startup with no audio block. A black panel-off frame is valid protection:
+wake before requiring the current locker buffer, then retain all presentation/
+orientation/PAM guards before credentials. The test checks driver DPMS/backlight
+power and makes no kernel enforcement claim while SSH also inhibits sleep.
+[Accepted native evidence and failures](recordings/audio-inhibit/README.md).
+
 The native replay requires a running bounded phone harness with the keyboard and a GTK startup client, plus a running user audio service with exactly one playback output. A normal user `pactl subscribe` client can keep an autospawned development service alive for the experiment; stop that recorded client afterward. Run through the existing authenticated administrative terminal:
 
 ```sh

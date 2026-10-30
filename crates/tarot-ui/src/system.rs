@@ -118,6 +118,29 @@ fn power_controls(
                 ui.colored_label(Color32::LIGHT_RED, error);
             }
             ui.separator();
+            let inhibition = &model.audio_inhibition;
+            if inhibition.enabled {
+                let status = if inhibition.error.is_some() {
+                    "Audio may be interrupted by sleep"
+                } else if inhibition.held {
+                    "Audio keeps the phone awake"
+                } else if inhibition.active {
+                    "Requesting awake time for audio…"
+                } else {
+                    "No active audio streams"
+                };
+                let status = egui::RichText::new(status).color(if inhibition.error.is_some() {
+                    Color32::LIGHT_RED
+                } else {
+                    crate::theme::TEXT
+                });
+                // Keep the row and following controls stationary when a
+                // background stream starts/stops or a grant arrives/fails.
+                ui.add_sized(
+                    [ui.available_width(), 48.0],
+                    egui::Label::new(status).wrap(),
+                );
+            }
             if model.sensors.enabled {
                 let mut locked = model.rotation_locked;
                 if ui.checkbox(&mut locked, "Rotation lock").changed() {

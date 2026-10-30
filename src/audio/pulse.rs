@@ -87,6 +87,7 @@ pub(super) struct Inventory {
     pub outputs: Vec<Device>,
     pub inputs: Vec<Device>,
     pub cards: Vec<Card>,
+    pub activity: tarot_core::audio::Activity,
     pub defaults: Defaults,
     pub removed: HashSet<(bool, u32)>,
     pub removed_cards: HashSet<u32>,
@@ -206,6 +207,8 @@ impl Connection {
                 c,
                 pa::PA_SUBSCRIPTION_MASK_SINK
                     | pa::PA_SUBSCRIPTION_MASK_SOURCE
+                    | pa::PA_SUBSCRIPTION_MASK_SINK_INPUT
+                    | pa::PA_SUBSCRIPTION_MASK_SOURCE_OUTPUT
                     | pa::PA_SUBSCRIPTION_MASK_CARD
                     | pa::PA_SUBSCRIPTION_MASK_SERVER,
                 Some(success),
@@ -294,12 +297,22 @@ impl Connection {
             let cards = self.request(Vec::new(), |c, data| unsafe {
                 pa::pa_context_get_card_info_list(c, Some(card_info), data)
             })?;
+            let playback = self.request(StreamCount::default(), |c, data| unsafe {
+                pa::pa_context_get_sink_input_info_list(c, Some(playback_info), data)
+            })?;
+            let recording = self.request(StreamCount::default(), |c, data| unsafe {
+                pa::pa_context_get_source_output_info_list(c, Some(recording_info), data)
+            })?;
             let changes = self.take_removed()?;
             if changes.is_empty() {
                 return Ok(Inventory {
                     outputs,
                     inputs,
                     cards,
+                    activity: tarot_core::audio::Activity {
+                        playback: playback.active,
+                        recording: recording.active,
+                    },
                     defaults,
                     removed: removed.devices,
                     removed_cards: removed.cards,
@@ -649,6 +662,47 @@ extern "C" fn card_info(
         profiles,
     });
 }
+#[derive(Default)]
+struct StreamCount {
+    seen: u32,
+    active: u32,
+}
+macro_rules! stream_callback {
+    ($callback:ident, $info:ty) => {
+        extern "C" fn $callback(
+            _: *mut pa::pa_context,
+            info: *const $info,
+            eol: i32,
+            data: *mut c_void,
+        ) {
+            // SAFETY: the locked request owns this Reply through completion or
+            // cancellation. Only the typed call-scoped corked flag is read.
+            let reply = unsafe { &mut *data.cast::<Reply<StreamCount>>() };
+            if eol != 0 {
+                let result = if eol > 0 {
+                    Ok(std::mem::take(&mut reply.value))
+                } else {
+                    Err(anyhow!("Audio stream query failed"))
+                };
+                let _ = reply.sender.try_send(result);
+            } else if !info.is_null() {
+                if reply.value.seen >= 256 {
+                    let _ = reply
+                        .sender
+                        .try_send(Err(anyhow!("Audio streams exceed limits")));
+                    return;
+                }
+                reply.value.seen += 1;
+                if unsafe { (*info).corked } == 0 {
+                    reply.value.active += 1;
+                }
+            }
+        }
+    };
+}
+stream_callback!(playback_info, pa::pa_sink_input_info);
+stream_callback!(recording_info, pa::pa_source_output_info);
+
 fn copy_optional_name(value: *const c_char) -> Option<CString> {
     if value.is_null() {
         return None;
@@ -670,6 +724,37 @@ fn copy_label(value: *const c_char) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn typed_stream_counts_ignore_metadata_and_mute_but_bound_corked_entries_too() {
+        macro_rules! check {
+            ($callback:ident, $info:ty) => {{
+                let (sender, receiver) = mpsc::sync_channel(1);
+                let mut reply = Box::new(Reply {
+                    sender,
+                    value: StreamCount::default(),
+                });
+                let data = ptr::from_mut(&mut *reply).cast();
+                // SAFETY: these C info types contain zero-valid primitives,
+                // enums and pointers. No string/sample data is accessed.
+                let mut info: $info = unsafe { std::mem::zeroed() };
+                info.name = ptr::dangling();
+                info.mute = 1;
+                $callback(ptr::null_mut(), &info, 0, data);
+                info.corked = 1;
+                $callback(ptr::null_mut(), &info, 0, data);
+                $callback(ptr::null_mut(), ptr::null(), 1, data);
+                let result = receiver.recv().unwrap().unwrap();
+                assert_eq!((result.seen, result.active), (2, 1));
+                for _ in 0..257 {
+                    $callback(ptr::null_mut(), &info, 0, data);
+                }
+                assert!(receiver.recv().unwrap().is_err());
+                assert_eq!(reply.value.seen, 256);
+            }};
+        }
+        check!(playback_info, pa::pa_sink_input_info);
+        check!(recording_info, pa::pa_source_output_info);
+    }
 
     #[test]
     fn source_callback_copies_ports_and_excludes_playback_monitors() {

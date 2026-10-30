@@ -157,14 +157,24 @@ mod tests {
         let helper = dir.path().join("gio");
         let output = dir.path().join("argument");
         let sentinel = dir.path().join("must-not-exist");
-        std::fs::write(
-            &helper,
-            format!(
-                "#!/bin/sh\n[ \"$1\" = open ] || exit 2\nprintf '%s' \"$2\" > '{}'\n",
-                output.display()
-            ),
-        )
-        .unwrap();
+        // Another concurrent Command::spawn can fork while this test writes
+        // its executable. CLOEXEC closes that inherited writer only at exec;
+        // until then Linux can reject our launch with ETXTBSY. Publish from an
+        // owned child instead, so the test process never owns a writer lease.
+        let script = format!(
+            "#!/bin/sh\n[ \"$1\" = open ] || exit 2\nprintf '%s' \"$2\" > '{}'\n",
+            output.display()
+        );
+        assert!(
+            Command::new("/bin/sh")
+                .args(["-c", "printf '%s' \"$2\" > \"$1\"", "write-uri-fixture"])
+                .arg(&helper)
+                .arg(script)
+                .stdin(Stdio::null())
+                .status()
+                .unwrap()
+                .success()
+        );
         std::fs::set_permissions(&helper, std::fs::Permissions::from_mode(0o755)).unwrap();
         let uri = format!(
             "https://example.invalid/?q=$(touch {})&x=one;two",

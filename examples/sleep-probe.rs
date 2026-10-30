@@ -41,6 +41,8 @@ struct Shared {
     deny: AtomicBool,
     serial: AtomicU64,
     resume_busy_ms: AtomicU64,
+    block_delay_ms: AtomicU64,
+    deny_block: AtomicBool,
     busy_until: Mutex<Option<Instant>>,
 }
 impl Shared {
@@ -53,7 +55,7 @@ impl Shared {
 struct Manager(Arc<Shared>);
 #[zbus::interface(name = "org.freedesktop.login1.Manager")]
 impl Manager {
-    fn inhibit(
+    async fn inhibit(
         &self,
         what: &str,
         who: &str,
@@ -63,10 +65,23 @@ impl Manager {
         if self.0.deny.load(Ordering::Acquire) {
             return Err(InhibitError::AccessDenied("Fixture rejection".into()));
         }
-        if what != "sleep" || who != "Tarot" || why.is_empty() || mode != "delay" {
+        if what != "sleep" || who != "Tarot" || why.is_empty() || !matches!(mode, "delay" | "block")
+        {
             return Err(InhibitError::InvalidArgs(
                 "Unexpected inhibit request".into(),
             ));
+        }
+        if mode == "block" {
+            if why != "Audio playback or recording is active"
+                || self.0.deny_block.load(Ordering::Acquire)
+            {
+                return Err(InhibitError::AccessDenied("Fixture block rejection".into()));
+            }
+            self.0.record(json!({"event":"block-request"}));
+            async_io::Timer::after(Duration::from_millis(
+                self.0.block_delay_ms.load(Ordering::Acquire),
+            ))
+            .await;
         }
         if self.0.preparing.load(Ordering::Acquire)
             || self
@@ -118,6 +133,8 @@ fn main() -> Result<()> {
         deny: AtomicBool::new(false),
         serial: AtomicU64::new(0),
         resume_busy_ms: AtomicU64::new(0),
+        block_delay_ms: AtomicU64::new(0),
+        deny_block: AtomicBool::new(false),
         busy_until: Mutex::new(None),
     });
     let connection = Builder::address(address.as_str())?
@@ -175,6 +192,14 @@ fn main() -> Result<()> {
                 ensure!(millis <= 10_000, "Bounded fixture busy period required");
                 shared.resume_busy_ms.store(millis, Ordering::Release);
             }
+            "block-delay" => {
+                let millis = value["milliseconds"].as_u64().unwrap();
+                ensure!(millis <= 2000, "Bounded block delay required");
+                shared.block_delay_ms.store(millis, Ordering::Release);
+            }
+            "deny-block" => shared
+                .deny_block
+                .store(value["deny"].as_bool().unwrap(), Ordering::Release),
             "release" => {
                 connection.release_name("org.freedesktop.login1")?;
             }

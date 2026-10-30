@@ -145,6 +145,9 @@ pub fn start(
                 let mut snapshot = snapshot;
                 snapshot.pending = updates.requested.lock().unwrap().clone();
                 data.state.shell.audio = snapshot;
+                if let Some(server) = &data.state.audio_inhibit {
+                    server.activity(&data.state.shell.audio);
+                }
                 data.state.ui_dirty = true;
                 data.state.redraw = true;
             }
@@ -181,6 +184,7 @@ impl Session {
         self.update_inventory(connection.snapshot()?, next_id)
     }
     fn update_inventory(&mut self, inventory: pulse::Inventory, next_id: &mut u64) -> Result<()> {
+        self.snapshot.activity = inventory.activity;
         for index in &inventory.removed_cards {
             self.card_ids.remove(index);
         }
@@ -503,6 +507,7 @@ mod tests {
     }
     fn inventory(removed: HashSet<(bool, u32)>) -> pulse::Inventory {
         pulse::Inventory {
+            activity: Default::default(),
             cards: Vec::new(),
             removed_cards: HashSet::new(),
             outputs: vec![device(false)],

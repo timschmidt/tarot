@@ -1,0 +1,208 @@
+{
+  "revision": 57,
+  "date": "2026-10-30",
+  "scope": "Observed audio activity, ordinary-user sleep/block FD ownership, protected display idle/PAM and scoped restoration; full goal active",
+  "source_sha256": "18ec9e0d820b1844a12e2e33cefc324564865d757e64e38e213809263520783f",
+  "package_sha256": "9287b6d723209e9cdd8fc2eca0436de79ca7d008703b7d862eb00b2601059753",
+  "binaries_sha256": {
+    "tarot": "06915806ba813c76bcf89684b033cc236d069505e6bd114e0321a8abc55c909e",
+    "tarot-session": "a40f8e0e711b8a32cd8de54e130fdf18ded1a072da628be29d19a1e470e64139",
+    "tarot-lock": "385d7e6637f646d5271f5fd877f5643056867b6ac5ed7f23ce6651d74a5dc9b5",
+    "tarot-keyboard": "5f84ef3d22ed09f2f67bb99e91a2469b3244031c091b5159ca585cceb31e0228"
+  },
+  "host": {
+    "passed": true,
+    "native_acceptance": false,
+    "workspace": {
+      "current": {
+        "passed": 275,
+        "failed": 0,
+        "ignored": 9
+      },
+      "minimum": {
+        "passed": 275,
+        "failed": 0,
+        "ignored": 9
+      }
+    },
+    "binaries": {
+      "current": {
+        "tarot": "31fb627043b1b32576f1b629dfcc8b3d369d7b36342324097d9270e5a6e8e921",
+        "examples/lock-probe": "3195b384f6cf1b7a4cd0a7d888a490685bafd3e4b1295d6e7eff490e325787bb",
+        "examples/sleep-probe": "d91dcc89417a793bfa3feb5f9fc864f5c2aa3e2f6e5463d7ea6ac78a37742185",
+        "examples/notification-probe": "fc06625f0d0d1d1ccff313b4a41eb2972d4bf5f3c15fa6efe6f2d95480d3b01d",
+        "examples/native-menu-egui": "8536ed405229953ed1c6569b25a626e98a9afe39f407906c56d997126273f255"
+      },
+      "minimum": {
+        "tarot": "caf67ce78d47c7fd5ed1f305f8acf9b1416c465f1bbc6c5d99e67ff06be093f6",
+        "examples/lock-probe": "46063db7fa91d3b8bc43a6528b03e654f4d6d32fc405ffb635efbe8b1dbbda0c",
+        "examples/sleep-probe": "800ae1a801ea110e9fbda44c2dca6bd02c2bcd27c687518c7769d6674a286ba5",
+        "examples/notification-probe": "7d4bfed0acaa20a1a01944918a066f8222a31189bb0abc1349aec5420bd80819",
+        "examples/native-menu-egui": "90ec2f052460e867aa8fed9775ddce3e8879720bd6c64db85a2134afc6355dc9"
+      }
+    },
+    "matrices": {
+      "delivery-lifecycle-current": {
+        "passed": true,
+        "result_sha256": "51c9f28df277bb035aa57c1d4164e355e805dd9012a5d2f14ce69772814b78d8",
+        "binary_sha256": "31fb627043b1b32576f1b629dfcc8b3d369d7b36342324097d9270e5a6e8e921",
+        "shutdown_seconds": 0.031536265974864364
+      },
+      "delivery-audio-current": {
+        "compositor_exit": 0,
+        "shutdown_seconds": 0.11641511099878699,
+        "private_session_bus": true,
+        "recording_stream_opened": false,
+        "passed": true,
+        "result_sha256": "fe17d4c6f50e51cb3f80d5b3e076ae6b37f2c0b958c93c781fe472d87a035634",
+        "status_sha256": "e8aef8de14a025c2721fb55307b66105ac58943c15f08b91ba76dd460f466b1d",
+        "binary_sha256": "31fb627043b1b32576f1b629dfcc8b3d369d7b36342324097d9270e5a6e8e921"
+      },
+      "delivery-feedback-current": {
+        "passed": true,
+        "result_sha256": "8d1d7b8ab1aaa0fd1a220976baaaa79fa15d81eae101ddd93053c7f4e31c2fd5",
+        "binary_sha256": "31fb627043b1b32576f1b629dfcc8b3d369d7b36342324097d9270e5a6e8e921",
+        "shutdown_seconds": 1.07105574401794
+      },
+      "menu-current": {
+        "passed": true,
+        "summary_sha256": "964b5ae6e1426e620367ab1ef612490deba384e308524452a1596bd606235f7d"
+      },
+      "delivery-lifecycle-minimum": {
+        "passed": true,
+        "result_sha256": "e94f114035520461bf9dc661354c7a4e5122bbf77eb0c1d4aa7e7e011d6f796f",
+        "binary_sha256": "caf67ce78d47c7fd5ed1f305f8acf9b1416c465f1bbc6c5d99e67ff06be093f6",
+        "shutdown_seconds": 0.015437710011610761
+      },
+      "delivery-audio-minimum": {
+        "compositor_exit": 0,
+        "shutdown_seconds": 0.1175341339840088,
+        "private_session_bus": true,
+        "recording_stream_opened": false,
+        "passed": true,
+        "result_sha256": "26749fb719ce716ea0292e2227bfb5f8329fee77879a2a38fb3793e130c7077b",
+        "status_sha256": "93c428b9420241f876e8a52f244c674df89044e128a4adce5e0ea8b568d22ce2",
+        "binary_sha256": "caf67ce78d47c7fd5ed1f305f8acf9b1416c465f1bbc6c5d99e67ff06be093f6"
+      },
+      "delivery-feedback-minimum": {
+        "passed": true,
+        "result_sha256": "c1aea072d0e5f696c4059717ef74f36f48b6f712a8ba5a7e0fb003451711a671",
+        "binary_sha256": "caf67ce78d47c7fd5ed1f305f8acf9b1416c465f1bbc6c5d99e67ff06be093f6",
+        "shutdown_seconds": 1.022225035005249
+      },
+      "menu-minimum": {
+        "passed": true,
+        "summary_sha256": "964b5ae6e1426e620367ab1ef612490deba384e308524452a1596bd606235f7d"
+      }
+    },
+    "logs": {
+      "workspace-delivery-current.log": "43e253c63d3f894ab2f7b0cb75febcaf19cae988983b0460855e087ae1d31fd6",
+      "delivery-lifecycle-current.log": "c58e1b384eee2230787e560168b4cfacc9f427a5e8b957214305ffb776311dfc",
+      "delivery-audio-current.log": "789096fb6f8d480c3c7d4990b83732abb2fd1d044599dc0f49dfc4a1ba4c8540",
+      "delivery-feedback-current.log": "159df86a4f01e8315e78e3315a2205cba7cb383931f8a427483acc4320f447dd",
+      "workspace-delivery-minimum.log": "2b6a542a86f8008d75a13d998de9c86318f943e160eadb6be751b8e493427f50",
+      "delivery-lifecycle-minimum.log": "c58e1b384eee2230787e560168b4cfacc9f427a5e8b957214305ffb776311dfc",
+      "delivery-audio-minimum.log": "789096fb6f8d480c3c7d4990b83732abb2fd1d044599dc0f49dfc4a1ba4c8540",
+      "delivery-feedback-minimum.log": "bc47edc5174cc500ffc1697a75d70b105c8d14a264a4080e9849d946cefacfd4",
+      "clippy-delivery-host.log": "f7ec8ec9086b4d9d8d017b3ee0240cebd86b34f9dc563abfd360e92c7104ff7b",
+      "clippy-delivery-arm.log": "bedc294669bbd6ddeecf06c041ee270bc5188b8e20fa8bb3e29ca2eef7816890",
+      "delivery-sleep.log": "7f22bfef7a339968e5bcccb1c681de3467cb231107059152ec0099e48be653e2"
+    },
+    "source_archive_sha256": "18ec9e0d820b1844a12e2e33cefc324564865d757e64e38e213809263520783f",
+    "retained_failures": [
+      "Earlier URI fixture ETXTBSY, reproduced by inherited writer lease; child-published fixture passes forty full process suites",
+      "Initial Power audio status shifted controls; fixed row passes rendered regression",
+      "Private QA lock handshake, wrong pa_stream_discard symbol, and nested DRM-only panel-off assumption corrected before final matrices"
+    ],
+    "compiler_inputs_match_archive": true,
+    "compiler_input_count": 469,
+    "native_only_qa_changes": "native-only-qa-changes.json"
+  },
+  "native": {
+    "passed": true,
+    "sha256": "e1f341a94dce2d6df13bc5488fcde3d212ef8d1f02efd22915ec4058e38b3aa8",
+    "members": 645,
+    "frozen_inputs": 630,
+    "actual_pam": true,
+    "native_null_streams": true,
+    "actual_user_sleep_block_fd": true,
+    "close_on_exec": true,
+    "combined_playback_capture": true,
+    "corking_and_client_exit_release": true,
+    "protected_panel_off_with_block": true,
+    "last_stream_releases_while_panel_off": true,
+    "protected_status_redacted": true,
+    "exact_audio_controls_restored": true,
+    "normal_default_tarot_and_panfrost": true,
+    "feedback_settings_and_overrides_restored": true,
+    "physical_audio_used": false,
+    "samples_inspected": false,
+    "suspend_cycles": 0,
+    "kernel_sleep_blocking_tested": false,
+    "roles": {
+      "tarot-session": {
+        "pid": 19332,
+        "start": "23089791",
+        "sha256": "a40f8e0e711b8a32cd8de54e130fdf18ded1a072da628be29d19a1e470e64139"
+      },
+      "tarot": {
+        "pid": 19336,
+        "start": "23089793",
+        "sha256": "06915806ba813c76bcf89684b033cc236d069505e6bd114e0321a8abc55c909e"
+      },
+      "tarot-lock": {
+        "pid": 19346,
+        "start": "23089835",
+        "sha256": "385d7e6637f646d5271f5fd877f5643056867b6ac5ed7f23ce6651d74a5dc9b5"
+      },
+      "tarot-keyboard": {
+        "pid": 19361,
+        "start": "23089837",
+        "sha256": "5f84ef3d22ed09f2f67bb99e91a2469b3244031c091b5159ca585cceb31e0228"
+      }
+    }
+  },
+  "withheld_candidate": {
+    "installed": false,
+    "withheld": true,
+    "reason": "Rendered regression proves audio status moves following Power controls; fixed-height row required before native installation",
+    "package_sha256": "efd569e8e9d2e6c0663c9aa45cc5cf9eecd956dea96c04a9015958e97c1b3aba",
+    "source_sha256": "2fb417d26ec898b964eb0ddec36e02d74d4198c8ff10207a626f149e7d5ff023",
+    "build_exit": 0
+  },
+  "superseded_candidate": {
+    "installed": false,
+    "superseded": true,
+    "reason": "Include verified URI test fixture writer isolation in canonical source; URI production code unchanged",
+    "package_sha256": "43fb8ca2e6cd0f873e47d732b3fcf6537f26e5b49b5787384d968e53efdebb2a",
+    "source_sha256": "9c1bc4a35fc2bd0d962e44fceb8539db59f6c65b659f5618920dd93c5f87c7bb",
+    "build_exit": 0
+  },
+  "retained_native_failures": [
+    {
+      "passed": true,
+      "failed_native_qa": true,
+      "restoration_verified": true,
+      "members": 649,
+      "frozen_inputs": 630,
+      "sha256": "3c72f3f7945e7f1a2a6bca672f9e37e05c7b0da857913a16fcccea015db5e173",
+      "stage": "Authentication helper waited for a locker buffer while panel-off correctly presented black; wake must precede full locker presentation proof",
+      "unchanged_package_retry": true
+    }
+  ],
+  "capture": {
+    "sha256": "a017e1e7dffc642c70c62dc01718a75d19b909ebfe84e0028f47084c64670b5f",
+    "archive_member": "native-proof/first-replay/audio-inhibit-power-status.png",
+    "edited": false
+  },
+  "full_plan_complete": false,
+  "physical_bluetooth_deferred": true,
+  "remaining": [
+    "Kernel sleep enforcement/reliability with other inhibitors absent",
+    "Acoustic output/capture, physical Bluetooth and call acceptance",
+    "Direct ALSA/independent-server and broader application/call/work policy",
+    "MPRIS media controls",
+    "Accessibility, power/performance and endurance",
+    "All unfinished milestones"
+  ]
+}

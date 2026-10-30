@@ -117,13 +117,19 @@ def run(args, password):
 
     def authenticate(label):
         nonlocal typing
-        covered = protected(label+'-protected')
+        # A completed display-off intentionally presents compositor black,
+        # rather than a locker buffer. Wake from verified protection first;
+        # require the full current locker presentation before credentials.
+        covered = state(label+'-wake-ready', lambda s: s['lock']['phase']=='Locked'
+                        and s['lock']['sleep']['armed'] and not s['lock']['sleep']['initializing']
+                        and not s['lock']['sleep']['rearming'] and s['lock']['sleep']['gate']['barrier'] is None)
         if covered['lock']['idle']['output_off']:
             # A session may idle while the operator answers getpass. Consume a
             # neutral wake contact and wait for its new protected completion
             # before the unlock puck or any credential input is touched.
             tap(180,350)
             covered = state(label+'-panel-woken', lambda s: s['lock']['phase']=='Locked' and not s['lock']['idle']['output_off'] and s['lock']['generation']==s['lock']['last_presented_generation'])
+        covered = protected(label+'-protected')
         covered = state(label+'-portrait-ready', lambda s: s['lock']['phase']=='Locked' and s['lock']['last_presented_surface'] is True and s['lock']['generation']==s['lock']['last_presented_generation'] and (s['lock'].get('output') is None or (s['lock']['output']['orientation']=='normal' and s['lock']['output']['requested'] is None and s['lock']['output']['presented_revision']==s['lock']['output']['revision'])))
         typing = True
         tap(180, 608)
@@ -234,6 +240,9 @@ def run(args, password):
         if getattr(args, 'audio_profiles', False):
             from phone_audio_profiles_replay import replay as audio_profiles_replay
             records['audio_profiles'] = audio_profiles_replay(socket,screen,tap,state,capture,before,args.output,cgroup,authenticate,getattr(args,'audio_profiles_save',False))
+        if getattr(args, 'audio_inhibit', False):
+            from phone_audio_inhibit_replay import replay as audio_inhibit_replay
+            records['audio_inhibit'] = audio_inhibit_replay(socket,state,capture,before,args.output,authenticate)
         if getattr(args, 'audio_input', False):
             from phone_audio_input_replay import replay as audio_input_replay
             records['audio_input'] = audio_input_replay(socket,screen,tap,state,capture,before,args.output,cgroup,authenticate)
@@ -540,6 +549,7 @@ def main():
     parser.add_argument('--authorization', action='store_true')
     parser.add_argument('--network-authorization', action='store_true', help='Real Wi-Fi scan authorization with a temporary restrictive process-scoped policy; no radio/profile changes')
     parser.add_argument('--audio-profiles', action='store_true', help='Card modes, Off recovery, bounded server pause/reconnect, label touch and PAM without streams')
+    parser.add_argument('--audio-inhibit', action='store_true', help='Real user audio sleep-block ownership, null streams, protected panel off/PAM and exact restoration; no Suspend call')
     parser.add_argument('--audio-profiles-save', action='store_true', help='Leave the selected test mode for a controller-owned saved-login check and exact restoration')
     parser.add_argument('--audio-input', action='store_true', help='Input level/mute/default/routes with independent readback, no recording, exact restoration and PAM')
     parser.add_argument('--feedback', action='store_true', help='Feedback profile controls, silent no-output and qualified quiet single-play events, daemon recovery and PAM')

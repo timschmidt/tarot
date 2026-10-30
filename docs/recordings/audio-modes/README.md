@@ -2,9 +2,13 @@
 
 October 30, 2026. Signed revision 56 adds explicit audio-card mode selection and
 prevents explanatory shell menu labels from selecting text during finger drags.
-The phone defaults to normal Tarot56 with diagnostics off. This is scoped M4
+That checkpoint verifies normal Tarot56 with diagnostics off. This is scoped M4
 progress; the full development plan remains active.
 [Implementation contract](../../AUDIO_MODES.md).
+
+The later [revision-57 checkpoint](../audio-inhibit/README.md) adds observed audio
+sleep-block ownership with independent lock/display idle; its limits and native
+acceptance are recorded separately.
 
 ![Native Earpiece mode selected](modes.png)
 

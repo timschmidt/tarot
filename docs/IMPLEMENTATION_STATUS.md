@@ -12,6 +12,32 @@ The newly supplied [Pre3 packet](PRE3_REFERENCE.md) is queued as
 original files remain reference material; the owner selected MIT OR Apache-2.0
 for their graphics and authoring source. No Pre3 runtime work has started.
 
+## Audio activity and system sleep
+
+[Revision 57](AUDIO_INHIBITION.md) observes bounded uncorked playback/capture
+counts and holds one ordinary-user login1 sleep/block FD while either is active.
+It leaves automatic lock/display idle and protected sleep-delay ownership
+independent. Late grants retire with their observation; timeout and service loss
+close the owned connection and descriptors. The existing bounded Unix transport
+is shared as `tarot::local_bus`. A fixed-height Power status avoids moving controls
+when audio/grant state changes.
+
+Both compilers pass 275 workspace tests and strict host/ARM lint. Final frozen
+audio-inhibition, existing audio/feedback, protected-delay and shared-transport
+matrices pass. A URI fixture ETXTBSY failure is reproduced with an inherited
+writer lease; child-published fixture creation passes forty complete process
+suites with URI runtime unchanged. Native null playback/monitor capture verify
+one real manager grant, correct UID/PID, close-on-exec, cork/client-exit release,
+protected panel off/wake with driver readback and actual PAM. The first native
+QA wake-order failure and exact restoration audit remain retained; the accepted
+retry uses the same installed package. Original preferences, audio controls,
+feedback settings and policies are restored. Independent normal/default Tarot57,
+loaded hashes, Panfrost, services and cleanup pass; all 645 members/630 frozen
+inputs verify. No physical audio, call/Bluetooth acceptance or kernel suspend
+cycle is added. Kernel enforcement with other inhibitors absent, broader work/
+call policy, MPRIS controls and power/performance/endurance remain open.
+[Exact scope and artifacts](recordings/audio-inhibit/README.md).
+
 ## Audio device modes and menu touch behavior
 
 [Revision 56](AUDIO_MODES.md) adds explicit card modes through the ordinary-user

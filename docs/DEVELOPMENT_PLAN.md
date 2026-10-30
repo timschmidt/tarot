@@ -268,6 +268,22 @@ suspend cycles or whole milestone completion follow from this component.
 Per-app routing, automatic call/media policy, PipeWire runtime, physical hotplug,
 accessibility and power/performance/endurance remain required.
 
+Audio-inhibition checkpoint, October 30:
+[revision 57](recordings/audio-inhibit/README.md) holds a normal-user sleep/block
+descriptor for observed uncorked playback/capture while leaving lock and display
+idle independent. Counts are bounded and contain no stream metadata or samples;
+late grants, timeout, service loss and shutdown retire descriptor ownership.
+Both compilers pass 275 workspace tests, strict host/ARM lint and final private
+audio/feedback, protected-delay and shared-transport matrices. Native null
+streams verify real UID/PID-owned registration, combined retention, release,
+driver-confirmed protected panel off/wake, actual PAM and exact restoration.
+Independent normal/default Tarot57/Panfrost and all 645 members/630 frozen inputs
+verify. The initial Power-layout defect, inherited-writer URI fixture failure
+and native QA wake-order failure remain recorded with their fixes. No kernel
+Suspend call, acoustic, Bluetooth, call or whole-milestone acceptance follows.
+Actual kernel policy without other inhibitors, broader application/call/work
+coordination, MPRIS controls and endurance remain required.
+
 Bluetooth implementation checkpoint, October 30: the initial Rust BlueZ adapter and KeyboardDisplay agent now provide discovery, PIN/passkey/confirmation and authorization prompts, explicit trust, connection controls and confirmed Forget. Private rendered/protocol checks cover lock cancellation, stale identities and daemon/broker recovery. Signed revision 51 passes native radio/discovery/visibility controls, independent ordinary-user BlueZ readback, actual PAM and normal-session restoration. A separate revision-52 JLab Studio check observes actual pairing and Trust changes, but stable connection fails; an independent ordinary-user client reports br-connection-page-timeout. Audio/acoustic acceptance was not reached. Further physical Bluetooth tests are deferred at the owner's request; other development continues. Physical peripheral acceptance remains open; generic Connect does not establish Bluetooth audio or call support. [Contract and remaining work](BLUETOOTH.md).
 
 ### M4 addition: double-chop flashlight from suspend

@@ -159,5 +159,10 @@
     "PipeWire runtime",
     "Accessibility, power/performance and endurance",
     "All unfinished milestones"
-  ]
+  ],
+  "follow_up": {
+    "revision": 57,
+    "record": "../audio-inhibit/README.md",
+    "scope": "Observed audio sleep-block ownership and independent display idle; prior mode acceptance remains historical"
+  }
 }

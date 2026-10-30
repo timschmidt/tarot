@@ -27,6 +27,27 @@ pub struct Output {
 /// An input has the same observed controls; monitor sources are excluded.
 pub type Input = Output;
 
+/// Counts of uncorked server streams, without stream names, metadata or samples.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize)]
+pub struct Activity {
+    pub playback: u32,
+    pub recording: u32,
+}
+impl Activity {
+    pub fn active(self) -> bool {
+        self.playback != 0 || self.recording != 0
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize)]
+pub struct Inhibition {
+    pub enabled: bool,
+    pub available: bool,
+    pub active: bool,
+    pub held: bool,
+    pub error: Option<String>,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct CardProfile {
     pub id: u64,
@@ -52,6 +73,7 @@ pub struct Snapshot {
     pub outputs: Vec<Output>,
     pub inputs: Vec<Input>,
     pub cards: Vec<Card>,
+    pub activity: Activity,
     pub pending: Option<UiAction>,
     pub error: Option<String>,
     pub action_error: Option<String>,
