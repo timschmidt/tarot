@@ -1,16 +1,17 @@
 # Session idle reporting
 
-The source now has an opt-in publisher for the authenticated GUI session's
-login1 idle hint. This is T016 integration work. It is not enabled by the normal
-launcher, has not been delivered to the phone, and does not implement automatic
-sleep by itself. The phone remains on normal signed Tarot57 with its existing
-`IdleAction=ignore` configuration. [Full automatic-suspend plan](DEVELOPMENT_PLAN.md#m4-addition-automatic-suspend-policy).
+Tarot has an opt-in publisher for the authenticated GUI session's login1 idle
+hint. This is T016 integration work. Signed revision 58 is installed as the
+phone's normal default session, and its normal launcher leaves the publisher
+disabled. The publisher does not implement automatic sleep by itself, and the
+phone keeps its existing `IdleAction=ignore` configuration. [Full automatic-suspend plan](DEVELOPMENT_PLAN.md#m4-addition-automatic-suspend-policy).
 
 `--session-idle` requires sleep coordination, the trusted locker, system services
 and an idle policy. The local readiness calculation requires all of the following:
 
-- A locked session and actual panel off, with the matching protected presentation,
-  lock generation, output revision and off counter. A pending wake retires
+- A protected session and actual panel off, with a protected presentation for
+  the current off counter. That historical proof survives a new locker
+  generation or output geometry while the panel stays off. A pending wake retires
   readiness immediately, even before the physical panel turns on.
 - An active seat, a healthy armed sleep-delay coordinator, available audio
   observation, and a held audio block when uncorked audio needs one.
@@ -79,9 +80,16 @@ compositor wiring remains false because a synthetic lock supplies no physical
 panel-off proof. These checks do not substitute for native KMS/PAM integration.
 [Evidence and retained failures](recordings/session-idle/README.md).
 
-Next qualify the publisher in the installed native authenticated session while
-manager action remains ignore, including physical off/wake, audio blocks,
-rotation/recovery and complete session teardown. Then resolve the recorded USB
-kernel sleep failure and complete T016's global-inhibitor, Power controls,
-policy packaging/rollback and actual automatic-sleep tests. Bluetooth stays
+Signed revision 58 passes native qualification in two real diagnostic greetd/PAM
+sessions, with manager action `ignore`. With external power allowed, the hint
+follows automatic and manual protected panel-off, coexists with a held audio
+block, and survives locker replacement while the panel is off. It clears on wake
+and PAM, and an explicit false precedes session removal. Under the battery-only
+default on USB power, the hint stays false with `ExternalPower` readiness. Kernel
+counters are unchanged, and normal Tarot58 is independently restored with the
+hint false. [Native evidence and limits](recordings/session-idle-native/README.md).
+
+Next: persistent Power controls, then resolution of the recorded USB kernel
+sleep failure. After that, complete T016's global-inhibitor, policy
+packaging/rollback and actual automatic-sleep tests. Bluetooth stays
 paused at the owner's request. No complete milestone is closed here.

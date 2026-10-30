@@ -96,6 +96,18 @@ def run(args, password):
         except (FileNotFoundError, ProcessLookupError):
             return False
 
+    def signal_current(number):
+        descriptor = None
+        try:
+            descriptor = os.pidfd_open(pid)
+            if not alive():return False
+            signal.pidfd_send_signal(descriptor, 0)
+            signal.pidfd_send_signal(descriptor, number)
+            return True
+        except (FileNotFoundError, ProcessLookupError):return False
+        finally:
+            if descriptor is not None:os.close(descriptor)
+
     def guard():
         assert Path('/sys/class/tty/tty0/active').read_text().strip() == 'tty7' and alive()
         value = request(socket, 'status')
@@ -120,7 +132,12 @@ def run(args, password):
         # A completed display-off intentionally presents compositor black,
         # rather than a locker buffer. Wake from verified protection first;
         # require the full current locker presentation before credentials.
-        covered = state(label+'-wake-ready', lambda s: s['lock']['phase']=='Locked'
+        # A replacement owner arriving while the panel is off cannot present
+        # until wake, so it remains protected in Preparing until the touch.
+        covered = state(label+'-wake-ready', lambda s: (s['lock']['phase']=='Locked'
+                        or s['lock']['phase'] in ['Awaiting','Preparing'] and s['lock']['idle']['output_off']
+                        and s['lock']['locker'] is not None and s['lock']['locker']['pid'] is not None
+                        and not s['lock']['locker']['restart_pending'])
                         and s['lock']['sleep']['armed'] and not s['lock']['sleep']['initializing']
                         and not s['lock']['sleep']['rearming'] and s['lock']['sleep']['gate']['barrier'] is None)
         if covered['lock']['idle']['output_off']:
@@ -151,8 +168,14 @@ def run(args, password):
             (RTC/'wakealarm').write_text('0')
         owned_alarm = None
 
+    idle_observer = None
+    idle_mode = getattr(args, 'session_idle_test', None)
+    assert not idle_mode or args.cycles == 0 and not args.crash
     save()
     try:
+        if idle_mode:
+            from phone_session_idle_replay import Observer
+            idle_observer = Observer(pid)
         initial = protected('startup-protected')
         assert initial['lock']['first_presented_protected'] and initial['lock']['unprotected_presentations'] == 0
         assert not Path('/run/seatd.sock').exists()
@@ -393,7 +416,12 @@ def run(args, password):
             cycle['validated'] = True
             save()
             mark('cycle-validated', cycle=index)
+        if idle_mode:
+            from phone_session_idle_replay import replay as session_idle_replay
+            records['session_idle'] = session_idle_replay(socket,state,before,args.output,guard,authenticate,idle_mode,idle_observer)
         records['before-end'] = request(socket, 'status')
+        if idle_observer is not None:
+            idle_observer.before_exit(idle_mode == 'external')
         if sensor_monitor is not None:
             records['sensor_claims'] = sensor_monitor.snapshot()
             sensor_monitor.close()
@@ -402,7 +430,7 @@ def run(args, password):
         screen = None
         if args.crash:
             guard()
-            os.kill(pid, signal.SIGKILL)
+            assert signal_current(signal.SIGKILL)
         else:
             request(socket, 'exit')
         after = await_value(processes, lambda ps: not alive() and any(p['uid'] == pwd.getpwnam('greetd').pw_uid and p['name'] == 'phrog' for p in ps), seconds=35)
@@ -419,6 +447,10 @@ def run(args, password):
         records['remaining_session_processes'] = remaining
         assert not remaining and Path('/sys/class/tty/tty0/active').read_text().strip() == 'tty7'
         assert not socket.exists(), 'Supervisor must remove its diagnostic socket before ending the login session'
+        if idle_observer is not None:
+            try:
+                records['session_idle_observation'] = idle_observer.finish(require_teardown=True, expect_true=idle_mode=='external')
+            finally:idle_observer=None
         records['validation'] = {'passed': True, 'packaged_greetd_session': True, 'root_seatd_used': False, 'protected_startup_and_actual_pam': True, 'native_app_in_same_login_session': True, 'actual_kernel_suspend_cycles': args.cycles, 'audio_ready_checked':args.require_audio, 'compositor_killed': args.crash, 'returned_to_phrog': True, 'login_cgroup_empty': True, 'diagnostic_socket_removed': True, 'native_panel_off_sensor_release_reclaim':getattr(args,'panel_off',False), 'manual_sensor_tested': False, 'password_logged': False}
         print('PASS: installed unprivileged login/session, native app, real PAM and greeter recovery; actual suspend cycles:', len(records['cycles']), flush=True)
     except BaseException as error:
@@ -453,6 +485,12 @@ def run(args, password):
         raise
     finally:
         password = None
+        if idle_observer is not None:
+            try:records['session_idle_observation_after_failure'] = idle_observer.finish()
+            except BaseException as error:
+                records['session_idle_observer_cleanup_error'] = type(error).__name__
+                records.setdefault('validation', {})['passed'] = False
+            finally:idle_observer=None
         if sensor_monitor is not None:
             try:
                 records['sensor_claims'] = sensor_monitor.snapshot()
@@ -470,7 +508,7 @@ def run(args, password):
         if screen is not None:
             screen.close()
         if alive():
-            os.kill(pid, signal.SIGTERM)
+            signal_current(signal.SIGTERM)
         if getattr(args, 'resource_sample', False):
             try:
                 def remaining_group():
@@ -555,6 +593,7 @@ def main():
     parser.add_argument('--feedback', action='store_true', help='Feedback profile controls, silent no-output and qualified quiet single-play events, daemon recovery and PAM')
     parser.add_argument('--headphones', action='store_true', help='Owner-assisted JLab Studio test; requires live readiness handoff and independent normal-session audit')
     parser.add_argument('--text-enable-reset', action='store_true')
+    parser.add_argument('--session-idle-test', choices=['battery','external'], help='Qualify actual GUI idle hints with manager action ignore; no kernel sleep')
     parser.add_argument('--detach', action='store_true')
     args = parser.parse_args()
     assert bool(args.transient_fixture_binary)==bool(args.transient_fixture_audit)

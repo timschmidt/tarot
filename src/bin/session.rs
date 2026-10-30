@@ -31,6 +31,12 @@ struct Options {
     /// Enable the private development control socket; never enables unlock.
     #[arg(long)]
     diagnostics: bool,
+    /// Qualify authenticated-session idle reporting through diagnostics only.
+    #[arg(long, requires = "diagnostics")]
+    session_idle: bool,
+    /// Permit the idle experiment on observed external power.
+    #[arg(long, requires = "session_idle")]
+    session_idle_on_external_power: bool,
     /// Inspect local session/device prerequisites without starting graphics.
     #[arg(long)]
     check_session: bool,
@@ -239,7 +245,12 @@ fn remove_diagnostic_socket(path: &Path, uid: u32) -> Result<()> {
     Ok(())
 }
 
-fn compositor_arguments(card: &Path, control: Option<&Path>) -> Vec<std::ffi::OsString> {
+fn compositor_arguments(
+    card: &Path,
+    control: Option<&Path>,
+    session_idle: bool,
+    on_external_power: bool,
+) -> Vec<std::ffi::OsString> {
     let mut args = vec![
         "--drm-device".into(),
         card.as_os_str().into(),
@@ -259,6 +270,12 @@ fn compositor_arguments(card: &Path, control: Option<&Path>) -> Vec<std::ffi::Os
     if let Some(path) = control {
         args.extend(["--control-socket".into(), path.as_os_str().into()]);
         args.extend(["--input-method-arg".into(), "--metadata".into()]);
+        if session_idle {
+            args.push("--session-idle".into());
+            if on_external_power {
+                args.push("--session-idle-on-external-power".into());
+            }
+        }
     }
     args
 }
@@ -316,6 +333,12 @@ fn run(options: Options) -> Result<()> {
         if options.diagnostics {
             command.arg("--diagnostics");
         }
+        if options.session_idle {
+            command.arg("--session-idle");
+        }
+        if options.session_idle_on_external_power {
+            command.arg("--session-idle-on-external-power");
+        }
         command
             .env_remove("DBUS_SESSION_BUS_ADDRESS")
             .env_remove("DBUS_SESSION_BUS_PID");
@@ -361,11 +384,11 @@ fn run(options: Options) -> Result<()> {
     writeln!(
         log,
         "{}",
-        serde_json::json!({"event":"session-start","session":session,"card":card,"diagnostics":options.diagnostics})
+        serde_json::json!({"event":"session-start","session":session,"card":card,"diagnostics":options.diagnostics,"session_idle":options.session_idle,"session_idle_on_external_power":options.session_idle_on_external_power})
     )?;
     let mut command = Command::new("/usr/bin/tarot");
     command
-        .args(compositor_arguments(&card, control.as_deref()))
+        .args(compositor_arguments(&card, control.as_deref(), options.session_idle, options.session_idle_on_external_power))
         .env("LIBSEAT_BACKEND", "logind")
         .env("XDG_CURRENT_DESKTOP", "Tarot")
         .env("XDG_SESSION_DESKTOP", "tarot")
@@ -566,7 +589,7 @@ mod tests {
     }
     #[test]
     fn installed_session_always_has_managed_lock_and_no_test_escape() {
-        let args = compositor_arguments(Path::new("/dev/dri/card1"), None);
+        let args = compositor_arguments(Path::new("/dev/dri/card1"), None, false, false);
         assert!(args.contains(&OsStr::new("--sleep-coordination").to_owned()));
         assert!(args.contains(&OsStr::new("--hardware-keys").to_owned()));
         assert!(
@@ -580,17 +603,61 @@ mod tests {
             "--screenshot",
             "--platform-bus",
             "--input-method-arg",
+            "--session-idle",
+            "--session-idle-on-external-power",
         ] {
             assert!(!args.contains(&OsStr::new(escape).to_owned()));
         }
         let diagnostics = compositor_arguments(
             Path::new("/dev/dri/card1"),
             Some(Path::new("/tmp/control.sock")),
+            false,
+            false,
         );
         assert!(
             diagnostics
                 .windows(2)
                 .any(|p| p == ["--input-method-arg", "--metadata"])
+        );
+    }
+    #[test]
+    fn idle_experiment_requires_explicit_diagnostics_and_power_policy() {
+        assert!(Options::try_parse_from(["tarot-session", "--session-idle"]).is_err());
+        assert!(
+            Options::try_parse_from([
+                "tarot-session",
+                "--diagnostics",
+                "--session-idle-on-external-power"
+            ])
+            .is_err()
+        );
+        let options = Options::try_parse_from([
+            "tarot-session",
+            "--diagnostics",
+            "--session-idle",
+            "--session-idle-on-external-power",
+        ])
+        .unwrap();
+        assert!(
+            options.diagnostics && options.session_idle && options.session_idle_on_external_power
+        );
+        let diagnostic = compositor_arguments(
+            Path::new("/dev/dri/card1"),
+            Some(Path::new("/tmp/control.sock")),
+            true,
+            true,
+        );
+        assert!(diagnostic.iter().any(|v| v == "--session-idle"));
+        assert!(
+            diagnostic
+                .iter()
+                .any(|v| v == "--session-idle-on-external-power")
+        );
+        let normal = compositor_arguments(Path::new("/dev/dri/card1"), None, true, true);
+        assert!(
+            !normal
+                .iter()
+                .any(|v| v == "--session-idle" || v == "--session-idle-on-external-power")
         );
     }
 }

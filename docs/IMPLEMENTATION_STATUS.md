@@ -14,6 +14,19 @@ for their graphics and authoring source. No Pre3 runtime work has started.
 
 ## Audio activity and system sleep
 
+Revision 58 native T016 checkpoint, October 30: signed Tarot58 publishes the
+real authenticated GUI session's login1 idle hint behind explicit diagnostic
+flags. The manager action stays `ignore`. With external power allowed, the hint
+follows automatic and manual protected panel-off, coexists with a held audio
+block, survives a locker replacement while the panel is off, and clears on wake
+and actual PAM. An explicit false precedes session removal. Under the battery-only
+default on USB power, it stays false. No Suspend call is made, and kernel
+counters are unchanged. Normal Tarot58 is the default with the hint false. Both
+compilers pass 280 tests and the fourteen-case private matrix. The first native
+controller's QA wake precondition failure is retained. Power controls, manager
+policy packaging, global-inhibitor and actual automatic-sleep acceptance remain.
+[Evidence and limits](recordings/session-idle-native/README.md).
+
 October 30 source-only T016 progress: an opt-in
 [session idle publisher](SESSION_IDLE.md) now connects protected physical
 panel-off readiness to the actual authenticated GUI session's idle hint.

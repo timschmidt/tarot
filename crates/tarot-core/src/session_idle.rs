@@ -1,10 +1,21 @@
 //! Readiness for the session manager's automatic idle action, not a sleep call.
 use serde::Serialize;
 
+/// Evidence of a protected KMS completion for the current power-off transaction.
+/// Locker generation/output geometry may change while that panel stays off;
+/// the caller separately requires current protection and no pending wake.
+pub fn protected_off_proof(
+    phase: crate::session::LockPhase,
+    proof_count: u64,
+    current_count: u64,
+) -> bool {
+    phase != crate::session::LockPhase::Unlocked && proof_count != 0 && proof_count == current_count
+}
+
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Conditions {
     pub enabled: bool,
-    pub locked: bool,
+    pub protected: bool,
     pub output_off: bool,
     pub protected_off_proof: bool,
     pub seat_active: bool,
@@ -35,7 +46,7 @@ impl Conditions {
     pub fn readiness(self) -> Readiness {
         if !self.enabled {
             Readiness::Disabled
-        } else if !self.locked || !self.output_off {
+        } else if !self.protected || !self.output_off {
             Readiness::Active
         } else if !self.protected_off_proof {
             Readiness::ProtectionPending
@@ -73,7 +84,7 @@ mod tests {
     fn ready() -> Conditions {
         Conditions {
             enabled: true,
-            locked: true,
+            protected: true,
             output_off: true,
             protected_off_proof: true,
             seat_active: true,
@@ -90,7 +101,7 @@ mod tests {
         assert_eq!(ready().readiness(), Readiness::Ready);
         for c in [
             Conditions {
-                locked: false,
+                protected: false,
                 ..ready()
             },
             Conditions {
@@ -181,5 +192,20 @@ mod tests {
             .readiness(),
             Readiness::PowerUnknown
         );
+    }
+    #[test]
+    fn historical_protection_survives_owner_changes_but_not_a_different_power_transaction() {
+        use crate::session::LockPhase;
+        for phase in [
+            LockPhase::Awaiting,
+            LockPhase::Preparing,
+            LockPhase::Locked,
+            LockPhase::Orphaned,
+        ] {
+            assert!(protected_off_proof(phase, 7, 7));
+            assert!(!protected_off_proof(phase, 6, 7));
+            assert!(!protected_off_proof(phase, 0, 0));
+        }
+        assert!(!protected_off_proof(LockPhase::Unlocked, 7, 7));
     }
 }

@@ -339,6 +339,15 @@ while manager action remains ignore, then complete Power controls, explicit
 manager policy/packaging, global-inhibitor and actual automatic sleep/wake tests.
 The USB kernel failure remains retained. This does not close T016 or M4.
 
+T016 native checkpoint, October 30: signed revision 58 passes real GUI-session
+hint publication in two diagnostic greetd/PAM logins while `IdleAction` stays
+`ignore`. External-power policy covers automatic and manual protected panel-off
+with an audio block, locker replacement while off, wake/PAM clearing, and
+explicit false before session removal. The battery-only policy on USB power
+stays false. Normal Tarot58 is independently restored with the publisher
+disabled. A QA-only wake-precondition failure is retained. Steps 1 and 3–5
+remain open. [Native evidence](recordings/session-idle-native/README.md).
+
 ### M4 addition: double-chop flashlight from suspend
 
 **Requested October 30, 2026; planned, not implemented.** Recognize a

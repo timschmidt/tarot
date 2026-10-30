@@ -52,16 +52,20 @@ impl Compositor {
         let Some(worker) = &self.session_idle_worker else {
             return;
         };
+        // This is a historical proof of the still-disabled panel. A new
+        // trusted owner/generation or orientation while off does not expose
+        // an ordinary frame and must not invalidate that physical transaction.
         let proof = self.idle.off_presentation.is_some_and(|proof| {
-            proof.generation == self.protection.gate.generation
-                && proof.output_revision == self.output_geometry.revision
-                && proof.off_count == self.idle.off_count
-                && proof.phase == tarot_core::session::LockPhase::Locked
+            tarot_core::session_idle::protected_off_proof(
+                proof.phase,
+                proof.off_count,
+                self.idle.off_count,
+            )
         });
         let power = &self.shell.power.battery;
         let readiness = Conditions {
             enabled: self.session_idle.enabled,
-            locked: self.protection.gate.phase == tarot_core::session::LockPhase::Locked,
+            protected: self.protected(),
             output_off: self.idle.off() && self.idle.output_off,
             protected_off_proof: proof,
             seat_active: !self.idle.seat_inactive,

@@ -1,0 +1,116 @@
+{
+  "date": "2026-10-30",
+  "package": "tarot-0.1.0-r58",
+  "scope": "Signed r58 native GUI-session IdleHint publication with manager IdleAction ignore; external-power and battery-only policies; owned null playback; protected panel off, owner replacement, actual PAM and teardown ordering; no Suspend call",
+  "native_acceptance": true,
+  "automatic_suspend_implemented": false,
+  "normal_launcher_enables_publisher": false,
+  "manager_idle_action": "ignore",
+  "workspace": {
+    "current": {
+      "compiler": "1.98.1",
+      "passed": 280,
+      "failed": 0,
+      "ignored": 9
+    },
+    "minimum": {
+      "compiler": "1.89.0",
+      "passed": 280,
+      "failed": 0,
+      "ignored": 9
+    }
+  },
+  "private_matrix_cases": {
+    "current": 14,
+    "minimum": 14
+  },
+  "source_archive_sha256": "1441f159bb2755b5391ba929cde95efeed39470716f0654334e38e64186bcaea",
+  "project_files_verified": 1178,
+  "registry_packages": 446,
+  "apk_sha256": "5de0f9dc6bb0eaa0c7847e0d9e025e09faba69860e5cd53ef9efc7376ee84e28",
+  "binaries_sha256": {
+    "tarot": "e8bed4890e12092598c49a58b425ba918de9e785c691309f6de1c0b49736905b",
+    "tarot-session": "18cdb48a371fc34a9885ad733ba0e85ca89741b070a2bd7bad5d61a79065dbfd",
+    "tarot-lock": "6f7420e83b27ff8318e5ea35b453377cb514113c27a1f3b923635c77a5269488",
+    "tarot-keyboard": "1a2209533d17ac4f594dc7096baacf82cb150a520d0712012e80a0f908419c9c"
+  },
+  "native_payload_sha256": "d6faa9e40880b1078ead67517c2cf26eeed2abb671a0816556a86b871d64834e",
+  "native_inputs": 637,
+  "native_evidence_sha256": "bee02d3b3c269a1f71321ca84838507921c200db999562456f088d591413e5d0",
+  "native_evidence_members": 656,
+  "modes": {
+    "external": {
+      "passed": true,
+      "expected_idle": true,
+      "hint_events": [
+        true,
+        false,
+        true,
+        false,
+        true,
+        false,
+        "session-removed"
+      ],
+      "false_before_removal_verified": true,
+      "actual_pam": true,
+      "audio_block_and_idle_coexist": true,
+      "historical_proof_survives_owner_recovery": true,
+      "kernel_counters_unchanged": true,
+      "suspend_called": false,
+      "physical_audio_used": false,
+      "exact_audio_restored": true,
+      "readiness_when_off": {
+        "session-idle-automatic-off-with-audio": "Ready",
+        "session-idle-manual-power-off": "Ready",
+        "session-idle-ready-for-shutdown": "Ready"
+      }
+    },
+    "battery": {
+      "passed": true,
+      "expected_idle": false,
+      "hint_events": [
+        "session-removed"
+      ],
+      "false_before_removal_verified": false,
+      "actual_pam": true,
+      "audio_block_and_idle_coexist": true,
+      "historical_proof_survives_owner_recovery": false,
+      "kernel_counters_unchanged": true,
+      "suspend_called": false,
+      "physical_audio_used": false,
+      "exact_audio_restored": true,
+      "readiness_when_off": {
+        "session-idle-automatic-off-with-audio": "ExternalPower",
+        "session-idle-manual-power-off": "ExternalPower"
+      }
+    }
+  },
+  "normal_restoration": {
+    "passed": true,
+    "normal_idle_hint_false": true,
+    "manager_idle_action_ignore": true,
+    "session_idle_disabled_in_normal": true,
+    "diagnostics_and_metadata_off": true,
+    "hardware_keys_on": true,
+    "default_tarot": true
+  },
+  "retained_failures": [
+    {
+      "run": "failed1",
+      "proof_sha256": "6a8d4ab78231a9d203eede49d06a2e9a0cf003aae9a7b4d3c971f70bda1f40ff",
+      "cause": "QA wake precondition required Locked while a replacement owner correctly remained Preparing with panel off",
+      "runtime_changed": false,
+      "restoration_passed": true,
+      "post_failure_normal_audit_passed": true
+    },
+    {
+      "run": "private-first-no-xvfb",
+      "cause": "system Xvfb absent; rerun used bundled Xvfb",
+      "runtime_changed": false
+    }
+  ],
+  "kernel_usb_failure_retained": {
+    "last_failed_dev": "fe800000.usb",
+    "last_failed_errno": -11
+  }
+}

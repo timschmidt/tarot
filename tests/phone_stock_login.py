@@ -24,6 +24,8 @@ def processes():
 
 def login(args, password=None):
     assert not args.diagnostics or args.session=='tarot'
+    assert not getattr(args,'session_idle',False) or args.session=='tarot' and args.diagnostics
+    assert not getattr(args,'session_idle_on_external_power',False) or getattr(args,'session_idle',False)
     assert os.geteuid()==0 and 'PinePhone Pro' in Path('/proc/device-tree/model').read_text()
     assert Path('/sys/class/tty/tty0/active').read_text().strip()=='tty7' and not Path('/run/user/10000/tarot-drm.sock').exists()
     args.output=args.output.resolve();args.output.mkdir(mode=0o700,parents=True,exist_ok=False)
@@ -62,12 +64,17 @@ def login(args, password=None):
         assert authenticated and records['secret_prompts']==1
         desktop='Phosh:GNOME' if args.session=='phosh' else 'Tarot'
         command=['/usr/bin/phosh-session'] if args.session=='phosh' else ['/usr/bin/tarot-session']+(['--diagnostics'] if args.diagnostics else [])
+        if getattr(args,'session_idle',False):command.append('--session-idle')
+        if getattr(args,'session_idle_on_external_power',False):command.append('--session-idle-on-external-power')
         response=request({'type':'start_session','cmd':command,'env':['XDG_SESSION_TYPE=wayland','XDG_CURRENT_DESKTOP='+desktop,'XDG_SESSION_DESKTOP='+args.session]})
         assert response['type']=='success','Session launch refused'
         # This auxiliary test client does not own the greeter. Its verified
         # compositor must end so greetd can start the authenticated session.
-        current=next(p for p in processes() if p['pid']==compositors[0]['pid']);assert current==compositors[0]
-        os.kill(current['pid'],signal.SIGTERM)
+        descriptor=os.pidfd_open(compositors[0]['pid'])
+        try:
+            current=next(p for p in processes() if p['pid']==compositors[0]['pid']);assert current==compositors[0]
+            signal.pidfd_send_signal(descriptor,signal.SIGTERM)
+        finally:os.close(descriptor)
         expected=['phoc','phosh'] if args.session=='phosh' else ['tarot','tarot-session','tarot-lock','tarot-keyboard']
         after=await_value(processes,lambda ps:all(any(p['uid']==10000 and p['name']==name for p in ps) for name in expected),seconds=30)
         records['after']=after;records['active_vt']=Path('/sys/class/tty/tty0/active').read_text().strip();assert records['active_vt']=='tty7'
@@ -83,6 +90,7 @@ def login(args, password=None):
 
 def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',type=Path,required=True);p.add_argument('--session',choices=['phosh','tarot'],default='phosh');p.add_argument('--diagnostics',action='store_true')
+    p.add_argument('--session-idle',action='store_true');p.add_argument('--session-idle-on-external-power',action='store_true')
     login(p.parse_args())
 
 
