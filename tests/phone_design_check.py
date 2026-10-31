@@ -22,12 +22,24 @@ def replay(socket, screen, state, capture, output):
         screen.up()
         time.sleep(.15)
 
-    def swipe(y, x0=60.0, x1=320.0):
+    def swipe(y, x0=60.0, x1=320.0, held=None, slow=False):
         screen.down(x0, y)
+        if slow:
+            time.sleep(.15)
         for i in range(1, 9):
-            screen.move(x0 + (x1 - x0) * i / 8, y)
+            screen.move(x0 + (x1 - x0) * i / 8, y, delay=.06 if slow else .035)
+            if i == 4 and held:
+                capture(held)  # the finger rests halfway: does the row follow it?
+        if slow:
+            time.sleep(.3)
         screen.up()
         time.sleep(.3)
+
+    def gone(predicate, seconds):
+        try:
+            return await_value(lambda: request(socket, 'status'), predicate, seconds=seconds)
+        except AssertionError:
+            return None
 
     # Device menu: glyph rows, right-aligned values, no top-level chevrons.
     request(socket, 'home')
@@ -70,11 +82,30 @@ def replay(socket, screen, state, capture, output):
     time.sleep(.4)
     capture('design-banner')
     well = shown['notifications']['well']
+    # The banner's text row is the bottom 48 units of the well, which ends at
+    # the gesture strip; the well's middle can sit on that boundary, where a
+    # touch belongs to the strip.
+    banner_y = well['y'] + well['height'] - 24
+    def banner_hidden(s):
+        return s['notifications']['banner'] is None and len(s['notifications']['items']) == before + 1
     swiped_at = time.monotonic()
-    swipe(well['y'] + well['height'] / 2)
+    swipe(banner_y, held='design-banner-held')
     # Banners also hide on a timer; only a prompt disappearance is the swipe.
-    hidden = await_value(lambda: request(socket, 'status'), lambda s: s['notifications']['banner'] is None
-                         and len(s['notifications']['items']) == before + 1, seconds=2)
+    hidden = gone(banner_hidden, 1.5)
+    result['banner_fast_swipe'] = hidden is not None
+    if hidden is None:
+        # Diagnose timing: the banner timer restarts with a fresh notification.
+        subprocess.run(['notify-send', '--app-name', 'Design check', '--expire-time', '0',
+                        'Design check', 'Swipe me aside slowly'], env=env, user=10000, group=account.pw_gid,
+                       extra_groups=os.getgrouplist('user', account.pw_gid), check=True, timeout=10)
+        again = state('design-banner-again', lambda s: s['notifications']['banner'] is not None)
+        before = len(again['notifications']['items']) - 1
+        swiped_at = time.monotonic()
+        swipe(banner_y, held='design-banner-held-slow', slow=True)
+        hidden = gone(banner_hidden, 1.5)
+        result['banner_slow_swipe'] = hidden is not None
+    (Path(output) / 'design-check.json').write_text(json.dumps(result, indent=2) + '\n')
+    assert hidden is not None, result
     result['banner_hidden_after_s'] = round(time.monotonic() - swiped_at, 2)
     step('banner-hidden-by-swipe', hidden['notifications']['surface'])
     request(socket, 'notifications', open=True)
