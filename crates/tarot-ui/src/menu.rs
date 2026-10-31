@@ -546,7 +546,7 @@ fn brightness(ui: &mut egui::Ui, model: &ShellModel, commands: &mut Vec<Command>
         ui.label("Changing brightness…");
     }
     if let Some(error) = b.action_error.as_ref().or(b.error.as_ref()) {
-        ui.label(egui::RichText::new(error).color(Color32::LIGHT_RED));
+        ui.label(egui::RichText::new(error).color(crate::theme::ERROR_ON_DARK));
     }
 }
 

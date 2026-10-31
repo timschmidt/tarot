@@ -13,7 +13,7 @@ pub fn show(ui: &mut egui::Ui, model: &ShellModel, _layout: Layout, commands: &m
         ui.label("System services are disabled.");
     }
     if let Some(error) = &network.error {
-        ui.colored_label(Color32::LIGHT_RED, error);
+        ui.colored_label(crate::theme::ERROR_ON_DARK, error);
     }
     let mut radio = network.radio;
     if ui
@@ -88,7 +88,7 @@ pub fn show(ui: &mut egui::Ui, model: &ShellModel, _layout: Layout, commands: &m
         });
     }
     if let Some(error) = &network.action_error {
-        ui.colored_label(Color32::LIGHT_RED, error);
+        ui.colored_label(crate::theme::ERROR_ON_DARK, error);
     }
     egui::ScrollArea::vertical()
         .id_salt("wifi_networks")

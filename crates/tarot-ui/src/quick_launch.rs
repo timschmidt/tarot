@@ -370,7 +370,7 @@ pub fn editor(ui: &mut egui::Ui, model: &ShellModel, layout: Layout, commands: &
         .show(&mut child, |ui| {
             ui.label("Four favorites, then Apps or a fifth application");
             if let Some(error) = &model.favorites_error {
-                ui.colored_label(Color32::LIGHT_RED, error);
+                ui.colored_label(crate::theme::ERROR_ON_DARK, error);
             } else if !model.favorites_saved {
                 ui.label("Saving changes…");
             }

@@ -185,7 +185,7 @@ fn power_controls(
                 });
             }
             if let Some(error) = &battery.error {
-                ui.colored_label(Color32::LIGHT_RED, error);
+                ui.colored_label(crate::theme::ERROR_ON_DARK, error);
             }
             ui.separator();
             let inhibition = &model.audio_inhibition;
@@ -200,7 +200,7 @@ fn power_controls(
                     "No active audio streams"
                 };
                 let status = egui::RichText::new(status).color(if inhibition.error.is_some() {
-                    Color32::LIGHT_RED
+                    crate::theme::ERROR_ON_DARK
                 } else {
                     crate::theme::TEXT
                 });
@@ -254,10 +254,10 @@ fn power_controls(
                 }
             });
             if let Some(error) = &brightness.error {
-                ui.colored_label(Color32::LIGHT_RED, error);
+                ui.colored_label(crate::theme::ERROR_ON_DARK, error);
             }
             if let Some(error) = &brightness.action_error {
-                ui.colored_label(Color32::LIGHT_RED, error);
+                ui.colored_label(crate::theme::ERROR_ON_DARK, error);
             }
             ui.separator();
             if ui
@@ -289,7 +289,7 @@ fn power_controls(
             if model.display.settings_available {
                 if model.display.settings_error.is_some() {
                     ui.colored_label(
-                        Color32::LIGHT_RED,
+                        crate::theme::ERROR_ON_DARK,
                         "Settings could not be saved. Changes apply until logout.",
                     );
                 } else if !model.display.settings_saved {
@@ -439,7 +439,7 @@ fn sleep_controls(ui: &mut egui::Ui, model: &ShellModel, commands: &mut Vec<Comm
             ui.label(note);
         }
         if let Some(error) = &policy.error {
-            ui.colored_label(Color32::LIGHT_RED, error);
+            ui.colored_label(crate::theme::ERROR_ON_DARK, error);
         }
     }
     let status = if display.sleep_error {
@@ -490,6 +490,6 @@ fn boot_controls(ui: &mut egui::Ui, model: &ShellModel, commands: &mut Vec<Comma
         ui.label("Waiting for administrator authentication…");
     }
     if let Some(error) = &boot.error {
-        ui.colored_label(Color32::LIGHT_RED, error);
+        ui.colored_label(crate::theme::ERROR_ON_DARK, error);
     }
 }

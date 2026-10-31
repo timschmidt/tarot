@@ -52,7 +52,7 @@ pub fn show_key_feedback(
                     if feedback.muted {
                         Color32::GRAY
                     } else {
-                        Color32::from_rgb(115, 195, 207)
+                        crate::theme::FOCUS
                     },
                 );
             }
@@ -65,10 +65,10 @@ pub fn show(ui: &mut egui::Ui, model: &ShellModel, _layout: Layout, commands: &m
         ui.label("System services are disabled for this session.");
     }
     if let Some(error) = &audio.error {
-        ui.colored_label(Color32::LIGHT_RED, error);
+        ui.colored_label(crate::theme::ERROR_ON_DARK, error);
     }
     if let Some(error) = &audio.action_error {
-        ui.colored_label(Color32::LIGHT_RED, error);
+        ui.colored_label(crate::theme::ERROR_ON_DARK, error);
     }
     if audio.pending.is_some() {
         ui.label("Changing audio…");
@@ -374,6 +374,6 @@ fn feedback(ui: &mut egui::Ui, model: &ShellModel, commands: &mut Vec<Command>) 
         .into_iter()
         .flatten()
     {
-        ui.colored_label(Color32::LIGHT_RED, error);
+        ui.colored_label(crate::theme::ERROR_ON_DARK, error);
     }
 }

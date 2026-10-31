@@ -662,7 +662,7 @@ fn show_cards(
             FontId::proportional(13.0),
             Color32::LIGHT_GRAY,
         );
-        let accent = Color32::from_rgb(135, 210, 245);
+        let accent = crate::theme::FOCUS;
         if let Some(target) = arrange.target
             && let Some(window) = presentation.window(target.anchor())
         {

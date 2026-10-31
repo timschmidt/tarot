@@ -1,6 +1,6 @@
 //! Bluetooth controls and transient pairing prompts. No pairing input is stored
 //! in egui TextEdit state, undo history, accessibility values or diagnostics.
-use egui::{Color32, Vec2};
+use egui::Vec2;
 use tarot_core::{
     Command, KeyboardAction, ShellModel,
     bluetooth::{Action, Answer, PromptKind, UiAction},
@@ -74,8 +74,8 @@ pub fn show(ui: &mut egui::Ui, model: &ShellModel, commands: &mut Vec<Command>) 
             });
             return;
         }
-        if let Some(error)=&bt.error {ui.colored_label(Color32::LIGHT_RED,error);}
-        if let Some(error)=&bt.action_error {ui.colored_label(Color32::LIGHT_RED,error);}
+        if let Some(error)=&bt.error {ui.colored_label(crate::theme::ERROR_ON_DARK,error);}
+        if let Some(error)=&bt.action_error {ui.colored_label(crate::theme::ERROR_ON_DARK,error);}
         if !bt.enabled {ui.label("System services are disabled.");}
         if let Some(pending)=bt.pending {
             ui.label(format!("{}…",match pending {
