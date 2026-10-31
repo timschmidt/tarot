@@ -7,6 +7,8 @@ defines the complete scope. Newer entries come first.
 
 ## Revision history
 
+Revision 64 follow-up: GNOME Audio Player (Decibels) appears in Tarot's media controls, and pausing it by touch corks its real audio stream. The test played generated silence through an owned null sink, so nothing was audible. [Evidence](recordings/media/README.md#a-real-player-gnome-audio-player).
+
 Revision 64 adds media controls. Any app that exports the standard MPRIS interface appears in the notification dashboard with Previous, Play/Pause and Next. A host matrix covers discovery, text cleaning, stale and unsupported controls, signal floods, hung players and owner replacement. On the phone, Play and Pause work by touch. [Evidence](recordings/media/README.md).
 
 Revision 63 makes direct boot safe to uninstall. greetd 0.10.3 refuses to start when its PAM service is missing, so the boot-destination helper now writes that service itself instead of the package shipping it. On the phone, Tarot was removed with direct boot still selected and the phone still booted to Phrog; reinstalling and choosing the login screen restored the original configuration exactly. [Evidence](recordings/boot-destination/README.md#package-removal-safety-revision-63).

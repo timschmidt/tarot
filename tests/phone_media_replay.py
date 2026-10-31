@@ -46,6 +46,7 @@ def replay(socket, state, capture, tap, before, directory):
             top = (target['crop_top'] + int(row['top']) / target['scale']) / 2
             r.setdefault('targets', []).append(dict(label=label, left=left, top=top))
             # Transport row: 64-point buttons below the title and artist lines.
+            # Transport row: below the title and the fixture's artist line.
             return left + 99, top + 75
 
         m = media('discovered', lambda m: m['available'] and len(m['players']) == 1)

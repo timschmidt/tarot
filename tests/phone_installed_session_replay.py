@@ -257,6 +257,9 @@ def run(args, password):
         if getattr(args, 'authorization', False):
             from phone_authorization_replay import replay as authorization_replay
             records['authorization'] = authorization_replay(socket,screen,tap,state,capture,before,args.output,cgroup,authenticate,password)
+        if getattr(args, 'media_app', False):
+            from phone_media_app_replay import replay as media_app_replay
+            records['media_app'] = media_app_replay(socket,state,capture,tap,before,args.output)
         if getattr(args, 'media', False):
             from phone_media_replay import replay as media_replay
             records['media'] = media_replay(socket,state,capture,tap,before,args.output)
@@ -601,6 +604,7 @@ def main():
     parser.add_argument('--native-menu-traffic', action='store_true')
     parser.add_argument('--bluetooth', action='store_true')
     parser.add_argument('--authorization', action='store_true')
+    parser.add_argument('--media-app', action='store_true', help='GNOME Decibels as a real MPRIS player on a null sink')
     parser.add_argument('--media', action='store_true', help='Media controls by touch against a private MPRIS fixture')
     parser.add_argument('--showcase', action='store_true', help='Capture ordinary screens for documentation')
     parser.add_argument('--keyring', action='store_true', help='Read the login keyring lock before/after a real Tarot unlock')

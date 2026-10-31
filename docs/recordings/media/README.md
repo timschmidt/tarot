@@ -79,11 +79,31 @@ Two earlier native runs failed in QA only; neither changed any runtime code:
 | Signed APK `tarot-0.1.0-r64.apk` | `35768895f062ed629e76e7eafe23e23a961b38ccf6a6f625ea2ee9aa12475db0` |
 | Canonical source archive | `d755ae7d72e0cf05ce3719c836166afc6707c1ca7ccbfff24eea49076dad7f6a` |
 
+## A real player: GNOME Audio Player
+
+A second native run on the same r64 package used Decibels, the phone's
+installed audio player, playing a generated silent WAV. The run temporarily
+made an owned null sink the default output, so nothing was audible. It proceeded
+as follows:
+1. Decibels registered on Tarot's session bus as "Audio Player", with title
+   "Quiet Morning.wav", status Playing and all controls offered.
+2. Its real stream on the null sink was uncorked while playing.
+3. A real touch on the dashboard's Pause button paused it: Tarot read back
+   Paused, and the stream became corked.
+4. When the app exited, the player left the dashboard.
+5. All audio defaults and controls were restored exactly, and an independent
+   normal audit passed. Evidence archive
+   `686b80d221c36d3cf4a203406168349bef25ded9d13a54d509ea437c1c4bfe4d`.
+
+The first Decibels attempt found the right row, but its tap assumed an artist
+line, which Decibels doesn't send for this file, and landed below the buttons.
+The replay now places the tap according to whether an artist line is shown.
+
 ## Limits
 
-- **Real players.** No real media application or audio stream was tested
-  natively. GNOME's Audio Player and browsers that export MPRIS should work,
-  but they aren't yet in the compatibility record.
+- **Real players.** Of real players, only GNOME's Audio Player has been tested
+  natively, and only for pause on a silent stream. Browsers and other players
+  remain to be tested.
 - **Layout.** The compact landscape dashboard doesn't show the row. There is no
   progress bar, seeking, artwork or volume control.
 - **Hardware keys.** Media keys are not routed to players.
