@@ -12,52 +12,53 @@ const MATERIAL: Color32 = Color32::from_rgb(24, 32, 36);
 /// its width was released.
 fn swipe(ui: &egui::Ui, rect: Rect, id: egui::Id) -> (f32, bool, bool) {
     // Only clicks are sensed here, so a vertical drag still scrolls the
-    // dashboard; the sideways offset is measured from the press origin.
+    // dashboard. The swipe is read from the frame's own press and release
+    // events, which carry their positions: on the phone a whole touch swipe,
+    // press included, can arrive in a single frame. A cancelled pointer is
+    // released far off screen and never counts.
     let response = ui.interact(rect, id, Sense::click());
-    let (origin, latest, down, release) = ui.input(|i| {
-        (
-            i.pointer.press_origin(),
-            i.pointer.latest_pos(),
-            i.pointer.primary_down(),
-            // The release event carries its own position, even when the
-            // pointer is gone by the end of the frame.
-            i.events.iter().rev().find_map(|e| match e {
+    let (buttons, latest, down) = ui.input(|i| {
+        let buttons: Vec<(bool, Pos2)> = i
+            .events
+            .iter()
+            .filter_map(|e| match e {
                 egui::Event::PointerButton {
                     pos,
                     button: egui::PointerButton::Primary,
-                    pressed: false,
+                    pressed,
                     ..
-                } => Some(*pos),
+                } => Some((*pressed, *pos)),
                 _ => None,
-            }),
-        )
+            })
+            .collect();
+        (buttons, i.pointer.latest_pos(), i.pointer.primary_down())
     });
-    // egui forgets the press origin on the release frame, and a touch's last
-    // moves can arrive in that same frame; keep the origin and measure the
-    // release position against it. A cancelled pointer is moved far off
-    // screen and never counts.
-    let kept = ui.ctx().data(|d| d.get_temp::<Pos2>(id));
     let horizontal = |from: Pos2, to: Pos2| {
         let delta = to - from;
         (delta.x.abs() > 12.0 && delta.x.abs() > delta.y.abs() * 1.5).then_some(delta.x)
     };
-    let mut offset = 0.0;
-    let mut dismissed = false;
-    let mut moved = false;
-    if down && let Some(origin) = origin.filter(|o| rect.contains(*o)) {
-        ui.ctx().data_mut(|d| d.insert_temp(id, origin));
-        if let Some(dx) = latest.and_then(|at| horizontal(origin, at)) {
-            offset = dx;
-        }
-    } else if let Some(origin) = kept {
-        ui.ctx().data_mut(|d| d.remove::<Pos2>(id));
-        if let Some(at) = release.filter(|at| at.x > -1000.0 && at.y > -1000.0)
-            && let Some(dx) = horizontal(origin, at)
+    let mut origin = ui.ctx().data(|d| d.get_temp::<Pos2>(id));
+    let (mut moved, mut dismissed) = (false, false);
+    for (pressed, pos) in buttons {
+        if pressed {
+            origin = rect.contains(pos).then_some(pos);
+        } else if let Some(start) = origin.take()
+            && pos.x > -1000.0
+            && pos.y > -1000.0
+            && let Some(dx) = horizontal(start, pos)
         {
             moved = true;
             dismissed = dx.abs() > rect.width() * 0.35;
         }
     }
+    let offset = match (origin, latest) {
+        (Some(start), Some(at)) if down => horizontal(start, at).unwrap_or(0.0),
+        _ => 0.0,
+    };
+    ui.ctx().data_mut(|d| match origin {
+        Some(start) => d.insert_temp(id, start),
+        None => d.remove::<Pos2>(id),
+    });
     (
         offset,
         response.clicked() && !moved && offset == 0.0,
@@ -931,10 +932,14 @@ mod tests {
     fn swiping_a_banner_aside_hides_it_and_a_short_drag_does_not() {
         // The last case delivers every move and the release in one frame, as
         // touch input can on the phone.
+        // Batched cases deliver the moves and release (1) or the whole swipe,
+        // press included (2), in one frame, as touch input can on the phone.
         for (distance, hides, batched) in [
-            (160.0, true, false),
-            (20.0, false, false),
-            (160.0, true, true),
+            (160.0, true, 0),
+            (20.0, false, 0),
+            (160.0, true, 1),
+            (160.0, true, 2),
+            (20.0, false, 2),
         ] {
             let ctx = egui::Context::default();
             let mut store = Store::default();
@@ -947,14 +952,22 @@ mod tests {
             }
             let well = layout(&model).notification_well();
             let start = Pos2::new(120.0, well.y + well.height * 0.5);
-            let mut commands = frame(&ctx, &model, pointer(start, true));
+            let press = pointer(start, true);
+            let mut commands = if batched == 2 {
+                vec![]
+            } else {
+                frame(&ctx, &model, press.clone())
+            };
             let moves: Vec<_> = (1..=8)
                 .map(|step| {
                     egui::Event::PointerMoved(start + Vec2::new(distance * step as f32 / 8.0, 0.0))
                 })
                 .collect();
             let release = pointer(start + Vec2::new(distance, 0.0), false);
-            if batched {
+            if batched == 2 {
+                let all = press.into_iter().chain(moves).chain(release).collect();
+                commands.extend(frame(&ctx, &model, all));
+            } else if batched == 1 {
                 commands.extend(frame(
                     &ctx,
                     &model,
@@ -976,6 +989,47 @@ mod tests {
                     .iter()
                     .any(|c| matches!(c, Command::Notification(UiAction::Invoke { .. }))),
                 "a swipe never invokes"
+            );
+        }
+    }
+
+    #[test]
+    fn swiping_a_dashboard_row_dismisses_it_even_in_one_frame() {
+        for batched in [false, true] {
+            let ctx = egui::Context::default();
+            let mut store = Store::default();
+            let id = store.notify(":1.1", 0, incoming(), Duration::ZERO).unwrap();
+            let mut model = ShellModel::default();
+            model.notifications = store.snapshot();
+            model.apply(Command::NotificationsOpen(true));
+            for _ in 0..3 {
+                frame(&ctx, &model, vec![]);
+            }
+            let well = layout(&model).notification_well();
+            // Header row, item spacing, row frame margin, then the row middle.
+            let start = Pos2::new(60.0, well.y + 48.0 + 4.0 + 4.0 + 24.0);
+            let press = pointer(start, true);
+            let moves: Vec<_> = (1..=8)
+                .map(|step| egui::Event::PointerMoved(start + Vec2::new(32.0 * step as f32, 0.0)))
+                .collect();
+            let release = pointer(start + Vec2::new(256.0, 0.0), false);
+            let mut commands = vec![];
+            if batched {
+                let all = press.into_iter().chain(moves).chain(release).collect();
+                commands.extend(frame(&ctx, &model, all));
+            } else {
+                commands.extend(frame(&ctx, &model, press));
+                for event in moves {
+                    commands.extend(frame(&ctx, &model, vec![event]));
+                }
+                commands.extend(frame(&ctx, &model, release));
+            }
+            assert!(
+                commands.contains(&Command::Notification(UiAction::Dismiss {
+                    id,
+                    revision: model.notifications.items[0].revision,
+                })),
+                "batched {batched}: {commands:?}"
             );
         }
     }
