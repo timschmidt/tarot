@@ -265,7 +265,7 @@ def run(args, password):
             records['media_app'] = media_app_replay(socket,state,capture,tap,before,args.output)
         if getattr(args, 'waydroid', False):
             from phone_waydroid_replay import replay as waydroid_replay
-            records['waydroid'] = waydroid_replay(socket,state,capture,before,args.output)
+            records['waydroid'] = waydroid_replay(socket,state,capture,before,args.output,tap if getattr(args,'waydroid_text',False) else None)
         if getattr(args, 'media', False):
             from phone_media_replay import replay as media_replay
             records['media'] = media_replay(socket,state,capture,tap,before,args.output)

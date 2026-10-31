@@ -150,6 +150,49 @@ evaluation (`rc-update add waydroid-container default`); Android itself only
 boots on the first launch. Undo with `rc-update del waydroid-container
 default`, or remove the packages and `/var/lib/waydroid`.
 
+## Text input
+
+Measured on revision 71 in two native diagnostic runs that opened F-Droid's
+Search tab and tapped its search field by OCR (both restored the normal session
+and passed independent audits):
+
+- **No Tarot keyboard.** Waydroid's composer implements no Wayland
+  text-input protocol; it forwards only `wl_keyboard` key events. Tarot's
+  keyboard shows only while a client has an active input-method context, so a
+  focused Android field never brings it up, and the gesture strip's
+  **Keyboard** button does not show it either.
+- **Android's keyboard, as a separate card.** With the field focused, Android
+  showed its own keyboard (`mInputShown=true`); the image already sets
+  `show_ime_with_hard_keyboard=1`. Waydroid's multi-window mode maps Android's
+  input-method layer to its own toplevel, `app_id` "InputMethod", with no
+  parent ([`multi-window.cpp`](https://github.com/waydroid/android_hardware_waydroid/blob/HEAD/hwcomposer/modes/multi-window.cpp)).
+  Tarot therefore made it a card and switched to it, so the keyboard appears
+  over the wallpaper and the field being typed into is out of sight. The two
+  keyboards never competed.
+- Run 1 tapped only the Search tab, focused no field, and saw neither keyboard;
+  run 2 tapped the field.
+
+<img src="recordings/waydroid/android-keyboard-card.png" alt="Android's keyboard shown as a separate Tarot card titled InputMethod, over Tarot's wallpaper" width="240">
+
+Options for plan step 4:
+
+1. **Upstream: parent the keyboard window.** Waydroid could call
+   `xdg_toplevel.set_parent` on the "InputMethod" window with the focused task's
+   window; Tarot already keeps child windows inside their owner's card family.
+   Small and upstreamable, but it ships in Waydroid's vendor image, which this
+   host cannot build.
+2. **Tarot's keyboard in key-event mode.** When the focused client has no
+   active text-input, the Keyboard button could show Tarot's keyboard and send
+   key events through the virtual-keyboard protocol it already uses for
+   terminal keys, with Android's own keyboard turned off
+   (`show_ime_with_hard_keyboard=0`). It is generic (any client without
+   text-input benefits) and keeps the trusted keyboard, but it cannot follow
+   Android focus, so the user opens it by hand, and Android's suggestions are
+   lost.
+3. **Tarot special case.** Treat a Waydroid "InputMethod" toplevel as an
+   overlay of the current Android card. The plan prefers upstream fixes over
+   this.
+
 ## Idle cost
 
 With the screen locked and dark, CPU busy time (percent of one core) and
@@ -176,5 +219,5 @@ power.
    elsewhere), and consider hiding Android's freeform caption, which
    duplicates Tarot's own card controls.
 2. Measure energy unplugged with the container stopped, frozen and running.
-3. Text input (Tarot keyboard or Android IME), Back mapping, lock and suspend
-   with the container frozen.
+3. Choose the text-input option above; Back mapping; lock and suspend with the
+   container frozen.

@@ -13,6 +13,7 @@ import re
 import subprocess
 import time
 from pathlib import Path
+from dialog_button import locate
 from notification_replay import await_value
 from phone_gesture_replay import request
 
@@ -20,7 +21,50 @@ PACKAGE = 'org.fdroid.fdroid'
 ENTRY = 'waydroid.' + PACKAGE + '.desktop'
 
 
-def replay(socket, state, capture, before, directory):
+def text_input(r, socket, tap, capture, directory, waydroid):
+    """Measure, not assert: which keyboard an Android text field gets.
+
+    Waydroid has no text-input protocol, so Tarot's keyboard cannot follow
+    Android focus; Android reports a hardware keyboard and hides its own.
+    Records the field as configured, then with Android's
+    show_ime_with_hard_keyboard on, and restores that setting.
+    """
+    def word(label, text, vertical=(.07, .97), alternatives=()):
+        capture(label)
+        target = locate(directory / (label + '.png'), text, vertical=vertical, scale=1, alternatives=alternatives)
+        r.setdefault('text_targets', []).append(dict(label=label, word=target['word'], point=target['point']))
+        tap(target['point'][0] / 2, target['point'][1] / 2)
+        return target
+
+    def shell(*command):
+        return waydroid('shell', '--', *command, user=False, timeout=30)
+
+    def observe(label):
+        time.sleep(4)
+        capture(label)
+        ime = [line.strip() for line in shell('dumpsys', 'input_method').splitlines() if 'mInputShown' in line]
+        return dict(tarot_keyboard=request(socket, 'status')['keyboard_visible'],
+                    android_ime_shown=any('mInputShown=true' in line for line in ime))
+
+    word('waydroid-search-tab', 'Search', vertical=(.8, .97))
+    time.sleep(3)
+    field = word('waydroid-search-field', 'Search...', vertical=(.08, .25), alternatives=('Search…', 'Search..'))
+    r['field_as_configured'] = observe('waydroid-field-focused')
+    previous = shell('settings', 'get', 'secure', 'show_ime_with_hard_keyboard').strip()
+    r['show_ime_with_hard_keyboard_before'] = previous
+    try:
+        shell('settings', 'put', 'secure', 'show_ime_with_hard_keyboard', '1')
+        tap(field['point'][0] / 2, field['point'][1] / 2)
+        r['field_with_soft_keyboard_setting'] = observe('waydroid-field-soft-setting')
+    finally:
+        if previous in ('null', ''):
+            shell('settings', 'delete', 'secure', 'show_ime_with_hard_keyboard')
+        else:
+            shell('settings', 'put', 'secure', 'show_ime_with_hard_keyboard', previous)
+        r['setting_restored'] = shell('settings', 'get', 'secure', 'show_ime_with_hard_keyboard').strip() == previous
+
+
+def replay(socket, state, capture, before, directory, tap=None):
     r = dict(passed=False, entry=ENTRY)
     environ = dict(f.decode().split('=', 1) for f in Path('/proc', str(before['pid']), 'environ').read_bytes().split(b'\0') if b'=' in f)
     env = dict(PATH='/usr/bin:/bin', HOME='/home/user', USER='user', LOGNAME='user',
@@ -86,6 +130,11 @@ def replay(socket, state, capture, before, directory):
         r['new_cards'] = new
         r['native_geometry'] = [g for g in current['native_geometry'] if g['id'] in [c['id'] for c in new]]
         r['android_bounds'] = bounds()
+        if tap is not None:
+            try:
+                text_input(r, socket, tap, capture, directory, waydroid)
+            except Exception as error:
+                r['text_input_error'] = '%s: %s' % (type(error).__name__, str(error)[:300])
         r['view'] = current['view']
         r['android_tasks_open'] = tasks()
         capture('waydroid-card')
