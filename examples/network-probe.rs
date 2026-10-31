@@ -715,6 +715,10 @@ fn main() -> Result<()> {
                 d.second = v;
             }
         }
+        // Like NetworkManager after a Polkit authority change.
+        if value.get("permission").is_some() {
+            connection.emit_signal(None::<&str>, ROOT, NM, "CheckPermissions", &())?;
+        }
         for (p, interface) in [
             (ROOT, NM),
             (DEV, "org.freedesktop.NetworkManager.Device"),

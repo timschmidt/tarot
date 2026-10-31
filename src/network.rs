@@ -39,6 +39,8 @@ const CREATE: &str = "org.freedesktop.NetworkManager.settings.modify.own";
 // Add-and-activate can authorize network control and profile creation in
 // successive conversations. Keep their bounded human time separate from reads.
 const WRITE_TIMEOUT: Duration = Duration::from_secs(400);
+/// Shortest interval between full rereads while nobody is looking.
+const IDLE_REFRESH: Duration = Duration::from_secs(10);
 type Connections = Arc<Mutex<Vec<Connection>>>;
 
 enum Event {
@@ -56,6 +58,9 @@ struct Shared {
     busy: AtomicBool,
     in_flight: AtomicBool,
     watching: AtomicBool,
+    /// NetworkManager's CheckPermissions signal, or the page opening, asks for
+    /// a fresh GetPermissions; each one costs NetworkManager many Polkit checks.
+    permissions_stale: AtomicBool,
     wake_queued: AtomicBool,
     agent: Arc<agent::State>,
     authorization: crate::authorization::Readiness,
@@ -87,6 +92,9 @@ pub struct Server {
 }
 impl Server {
     pub fn watch(&self, watching: bool) {
+        if watching {
+            self.shared.permissions_stale.store(true, Ordering::Release);
+        }
         self.shared.watching.store(watching, Ordering::Release);
         self.shared.wake();
     }
@@ -144,6 +152,7 @@ pub fn start(
         busy: AtomicBool::new(false),
         in_flight: AtomicBool::new(false),
         watching: AtomicBool::new(false),
+        permissions_stale: AtomicBool::new(false),
         wake_queued: AtomicBool::new(false),
         agent: Arc::new(agent::State::new(weak.clone())),
         authorization,
@@ -194,12 +203,15 @@ struct Registry {
     next: u64,
     ids: HashMap<String, u64>,
     seen: HashSet<String>,
+    /// The current daemon's GetPermissions answer, until it signals a change.
+    permissions: Option<HashMap<String, String>>,
 }
 impl Registry {
     fn bind(&mut self, owner: &str) {
         if self.owner != owner {
             self.owner = owner.to_owned();
             self.ids.clear();
+            self.permissions = None;
             self.epoch += 1;
         }
         self.seen.clear();
@@ -207,6 +219,7 @@ impl Registry {
     fn disconnected(&mut self) {
         self.owner.clear();
         self.ids.clear();
+        self.permissions = None;
     }
     fn id(&mut self, key: String) -> Result<u64> {
         self.seen.insert(key.clone());
@@ -403,6 +416,13 @@ fn watch(
                         .deserialize::<(String, String, String)>()
                         .is_ok_and(|(name, _, _)| name == NM)
                 } else {
+                    if message
+                        .header()
+                        .member()
+                        .is_some_and(|member| member.as_str() == "CheckPermissions")
+                    {
+                        shared.permissions_stale.store(true, Ordering::Release);
+                    }
                     true
                 };
                 if relevant {
@@ -474,6 +494,7 @@ fn run(
         let mut agent_owner = String::new();
         let mut agent_available = false;
         let mut agent_retry = Instant::now();
+        let mut last_read: Instant;
         loop {
             if shared.stop.load(Ordering::Acquire) {
                 return Ok(());
@@ -504,7 +525,8 @@ fn run(
                     call = None;
                 }
             }
-            let inventory = read_inventory(&connection, registry);
+            let inventory = read_inventory(&connection, registry, shared);
+            last_read = Instant::now();
             if let Ok(i) = &inventory {
                 if i.owner != agent_owner || !agent_available && Instant::now() >= agent_retry {
                     if i.owner != agent_owner {
@@ -637,7 +659,8 @@ fn run(
                 let remaining = deadline.saturating_duration_since(Instant::now());
                 timeout = Some(timeout.map_or(remaining, |d| d.min(remaining)));
             }
-            let event = if let Some(timeout) = timeout {
+            let idle = timeout.is_none();
+            let mut event = if let Some(timeout) = timeout {
                 match receiver.recv_timeout(timeout) {
                     Ok(event) => Some(event),
                     Err(mpsc::RecvTimeoutError::Timeout) => None,
@@ -646,6 +669,31 @@ fn run(
             } else {
                 receiver.recv().ok()
             };
+            // With the Wi-Fi page closed and nothing in flight, signal-strength
+            // and statistics updates need not trigger a full reread each time.
+            // Coalesce them; an action or the page opening still ends the wait.
+            if idle && matches!(event, Some(Event::Wake)) {
+                let until = last_read + IDLE_REFRESH;
+                while !shared.watching.load(Ordering::Acquire) {
+                    shared.wake_queued.store(false, Ordering::Release);
+                    let remaining = until.saturating_duration_since(Instant::now());
+                    if remaining.is_zero() {
+                        break;
+                    }
+                    match receiver.recv_timeout(remaining) {
+                        Ok(Event::Wake) => {}
+                        Ok(other) => {
+                            event = Some(other);
+                            break;
+                        }
+                        Err(mpsc::RecvTimeoutError::Timeout) => break,
+                        Err(mpsc::RecvTimeoutError::Disconnected) => {
+                            event = Some(Event::Stop);
+                            break;
+                        }
+                    }
+                }
+            }
             match event {
                 Some(Event::Stop) => return Ok(()),
                 Some(Event::Wake) | None => {
@@ -654,7 +702,7 @@ fn run(
                 Some(Event::Action(action)) => {
                     action_error = None;
                     // Refresh before resolving an intent; stale IDs never map to a new owner.
-                    let fresh = read_inventory(&connection, registry);
+                    let fresh = read_inventory(&connection, registry, shared);
                     match fresh.and_then(|i| begin_call(shared, &writer, i, action)) {
                         Ok(value) => call = Some(value),
                         Err(_error) => {
@@ -972,7 +1020,11 @@ fn compatible(ap: &AccessPoint, profile: &SavedProfile) -> bool {
             _ => false,
         }
 }
-fn read_inventory(connection: &Connection, registry: &mut Registry) -> Result<Inventory> {
+fn read_inventory(
+    connection: &Connection,
+    registry: &mut Registry,
+    shared: &Shared,
+) -> Result<Inventory> {
     let owner = DBusProxy::new(connection)?
         .get_name_owner(NM.try_into()?)?
         .to_string();
@@ -984,7 +1036,10 @@ fn read_inventory(connection: &Connection, registry: &mut Registry) -> Result<In
         root.get("WirelessHardwareEnabled")
             .context("missing hardware state")?,
     )?;
-    let permissions: HashMap<String, String> = manager.call("GetPermissions", &())?;
+    if shared.permissions_stale.swap(false, Ordering::AcqRel) || registry.permissions.is_none() {
+        registry.permissions = Some(manager.call("GetPermissions", &())?);
+    }
+    let permissions = registry.permissions.clone().unwrap_or_default();
     let devices: Vec<OwnedObjectPath> = manager.call("GetDevices", &())?;
     ensure!(devices.len() <= 32, "Too many network devices");
     let mut wifi_devices = Vec::new();

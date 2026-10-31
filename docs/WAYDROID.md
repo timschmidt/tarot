@@ -150,11 +150,31 @@ evaluation (`rc-update add waydroid-container default`); Android itself only
 boots on the first launch. Undo with `rc-update del waydroid-container
 default`, or remove the packages and `/var/lib/waydroid`.
 
+## Idle cost
+
+With the screen locked and dark, CPU busy time (percent of one core) and
+interrupts over 60 s windows on revision 70:
+
+| State | Busy | Interrupts/s | Memory available |
+| --- | --- | --- | --- |
+| Stopped (container manager only) | 9.7% | 449 | 2989 MB |
+| Session running, nothing shown (container frozen) | 16.7% | 2164 | 1955 MB |
+| F-Droid open | 14.0% | 2104 | 1883 MB |
+| Stopped again | 7.5% | 394 | 3137 MB |
+
+Most of the frozen state's extra cost was not Android: Tarot's Wi-Fi adapter
+reread NetworkManager on every signal, and Waydroid's bridge and veth devices
+made each reread bigger. Revision 71 fixes that
+([measurements](recordings/network-idle/README.md)); with the container frozen,
+polkitd dropped out of the busy list. Memory stays about 1 GB lower while a
+session runs, frozen or not. No energy figure is claimed: the phone was on USB
+power.
+
 ## Next
 
 1. Propose the launch-bounds change upstream (it needs an image build
    elsewhere), and consider hiding Android's freeform caption, which
    duplicates Tarot's own card controls.
-2. Measure idle power with the container stopped, frozen and running.
+2. Measure energy unplugged with the container stopped, frozen and running.
 3. Text input (Tarot keyboard or Android IME), Back mapping, lock and suspend
    with the container frozen.
