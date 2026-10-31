@@ -59,7 +59,7 @@ impl Compositor {
         let owns = self.families.owner(id).is_some_and(|root| {
             self.keyboard
                 .as_ref()
-                .is_some_and(|keyboard| keyboard.owner == Some(root))
+                .is_some_and(|keyboard| keyboard.owner == Some(root) && !keyboard.overlay)
         });
         if owns {
             layout.content()
@@ -79,7 +79,7 @@ impl Compositor {
             && self
                 .keyboard
                 .as_ref()
-                .is_some_and(|keyboard| keyboard.owner == Some(owner));
+                .is_some_and(|keyboard| keyboard.owner == Some(owner) && !keyboard.overlay);
         let bottom = if reserved {
             layout.keyboard().y
         } else {

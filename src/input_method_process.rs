@@ -176,6 +176,20 @@ pub fn exited(state: &mut Compositor, generation: u64, result: Result<ExitStatus
 
 pub fn toggle(state: &mut Compositor) {
     let visible = state.native_keyboard_visible();
+    // Showing the keyboard for a focused client without any text-input
+    // object makes it an overlay; see `KeyboardSurface::overlay`.
+    let has_text_input = {
+        use smithay::wayland::text_input::TextInputSeat;
+        let mut found = false;
+        state
+            .seat
+            .text_input()
+            .with_focused_text_input(|_, _| found = true);
+        found
+    };
+    if let Some(keyboard) = &mut state.keyboard {
+        keyboard.overlay = !visible && !has_text_input;
+    }
     let Some(managed) = &mut state.input_method else {
         return;
     };

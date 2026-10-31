@@ -399,7 +399,7 @@ pub fn build_scene(
     }
     if state.native_keyboard_visible() {
         let keyboard = state.keyboard.as_ref().unwrap();
-        let rect = state.layout.keyboard();
+        let rect = state.native_keyboard_rect();
         let origin = (rect.x as i32, rect.y as i32).into();
         crate::focus::cache_surface_tree(
             keyboard.layer.wl_surface(),

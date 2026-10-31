@@ -59,7 +59,19 @@ def text_input(r, socket, tap, capture, directory, waydroid):
         time.sleep(3)
         word('waydroid-search-field', 'Search...', vertical=(.08, .25), alternatives=('Search…', 'Search..'))
         r['field_focused'] = observe('waydroid-field-focused')
+        def sample():
+            status = request(socket, 'status')
+            return dict(at=round(time.monotonic() - started, 2), view=status['view'],
+                        keyboard_visible=status['keyboard_visible'], keyboard_owner=status['keyboard_owner'],
+                        cards=[(c['id'], c['title'], c['app_id']) for c in status['cards']])
+        started = time.monotonic()
+        r['before_keyboard'] = sample()
         word('waydroid-keyboard-button', 'Keyboard', vertical=(.94, 1.0))
+        timeline = []
+        for _ in range(16):
+            timeline.append(sample())
+            time.sleep(.25)
+        r['keyboard_timeline'] = timeline
         r['tarot_keyboard_opened'] = bool(await_value(lambda: request(socket, 'status')['keyboard_visible'], bool, seconds=10))
         capture('waydroid-keyboard-open')
         status = request(socket, 'status')

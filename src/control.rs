@@ -278,7 +278,7 @@ pub fn start(path: &Path, handle: &LoopHandle<'_, CalloopData>) -> Result<Contro
                 "notifications": notifications,
                 "launcher_query": state.shell.launcher_query,
                 "just_type": {"active":state.shell.just_type_active(), "origin":state.shell.search.origin, "revision":state.shell.search.revision, "selection_revision":state.shell.search.selection_revision, "selected":state.shell.search.selected, "query_chars":state.shell.launcher_query.chars().count()},
-                "keyboard_rect": state.layout.keyboard(),
+                "keyboard_rect": state.native_keyboard_rect(),
                 "app_area": state.layout.content(),
                 "selected": state.shell.selected,
                 "presentation": state.presentation,
@@ -311,6 +311,8 @@ pub fn start(path: &Path, handle: &LoopHandle<'_, CalloopData>) -> Result<Contro
             response["hardware_keys"] = json!(state.hardware.enabled);
             response["audio_inhibition"] = json!(state.shell.audio_inhibition);
             response["volume_feedback"] = json!(state.shell.volume_feedback);
+            response["keyboard_overlay"] =
+                json!(state.keyboard.as_ref().is_some_and(|k| k.overlay));
             response["favorites"] = json!(state.shell.favorites);
             response["clock"] = json!(state.shell.clock_label);
             response["calendar_day"] = json!(state.shell.calendar_day);

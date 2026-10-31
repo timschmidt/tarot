@@ -21,9 +21,31 @@ pub struct KeyboardSurface {
     pub owner: Option<WindowId>,
     pub height: i32,
     pub mapped: bool,
+    /// Opened by hand for a client without text-input (such as Waydroid): it
+    /// overlays the app instead of shrinking it. Waydroid recreates a window
+    /// it is asked to resize, which would orphan the keyboard's owner.
+    pub overlay: bool,
 }
 
 impl Compositor {
+    /// Where the native keyboard is drawn and receives touches. An overlay
+    /// keyboard sits above the gesture strip without entering the layout.
+    pub fn native_keyboard_rect(&self) -> tarot_core::Rect {
+        match &self.keyboard {
+            Some(keyboard) if keyboard.overlay => {
+                let height = keyboard.height as f32;
+                tarot_core::Rect {
+                    x: 0.0,
+                    y: (self.layout.height - tarot_core::Layout::GESTURE - height)
+                        .max(tarot_core::Layout::STATUS),
+                    width: self.layout.width,
+                    height,
+                }
+            }
+            _ => self.layout.keyboard(),
+        }
+    }
+
     pub fn keyboard_visible(&self) -> bool {
         self.shell_keyboard_visible() || self.native_keyboard_visible()
     }
@@ -58,7 +80,7 @@ impl Compositor {
         if !self.native_keyboard_visible() {
             return None;
         }
-        let rect = self.layout.keyboard();
+        let rect = self.native_keyboard_rect();
         if !rect.contains(pos.x as f32, pos.y as f32) {
             return None;
         }
@@ -94,6 +116,7 @@ impl Compositor {
         {
             keyboard.layer.layer_surface().send_close();
             keyboard.mapped = false;
+            keyboard.overlay = false;
             self.refresh_keyboard();
             return;
         }
@@ -128,7 +151,12 @@ impl Compositor {
         let height = if self.shell_keyboard_visible() {
             240.0_f32.min(self.layout.height * 0.5)
         } else if self.native_keyboard_visible() {
-            self.keyboard.as_ref().unwrap().height as f32
+            let keyboard = self.keyboard.as_ref().unwrap();
+            if keyboard.overlay {
+                0.0
+            } else {
+                keyboard.height as f32
+            }
         } else {
             0.0
         };
@@ -197,6 +225,7 @@ impl WlrLayerShellHandler for Compositor {
             owner: None,
             height: 240,
             mapped: false,
+            overlay: false,
         });
     }
     fn layer_destroyed(&mut self, surface: LayerSurface) {

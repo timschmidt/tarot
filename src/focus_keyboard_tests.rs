@@ -191,6 +191,25 @@ fn mapped_keyboard_has_coordinates_before_first_render() {
         child.position(&data.state, origin + Point::from((-10.0, -10.0))),
         sibling.position(&data.state, root_point),
     ];
+    // An overlay keyboard (shown by hand for a client without text-input)
+    // reserves no layout space but keeps its rect and touch routing.
+    let reserved = data.state.layout.keyboard_height;
+    assert!(reserved > 0.0);
+    data.state.keyboard.as_mut().unwrap().overlay = true;
+    data.state.refresh_keyboard();
+    assert_eq!(data.state.layout.keyboard_height, 0.0);
+    let overlay = data.state.native_keyboard_rect();
+    assert_eq!(overlay.height, reserved);
+    assert_eq!(
+        overlay.y + overlay.height,
+        data.state.layout.height - tarot_core::Layout::GESTURE
+    );
+    let inside: Point<f64, Logical> =
+        (f64::from(overlay.x) + 10.0, f64::from(overlay.y) + 10.0).into();
+    assert!(data.state.keyboard_surface_under(inside).is_some());
+    data.state.keyboard.as_mut().unwrap().overlay = false;
+    data.state.refresh_keyboard();
+    assert_eq!(data.state.layout.keyboard_height, reserved);
     data.state.shell.view = View::Overview;
     let hidden = root.position(&data.state, root_point);
     data.state.shell.view = View::App(WindowId(1));

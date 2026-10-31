@@ -328,7 +328,7 @@ impl SurfaceFocus {
             {
                 return None;
             }
-            let rect = data.layout.keyboard();
+            let rect = data.native_keyboard_rect();
             cache_surface_tree(
                 keyboard.layer.wl_surface(),
                 (rect.x as i32, rect.y as i32).into(),
