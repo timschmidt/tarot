@@ -257,6 +257,9 @@ def run(args, password):
         if getattr(args, 'authorization', False):
             from phone_authorization_replay import replay as authorization_replay
             records['authorization'] = authorization_replay(socket,screen,tap,state,capture,before,args.output,cgroup,authenticate,password)
+        if getattr(args, 'showcase', False):
+            from phone_showcase_replay import replay as showcase_replay
+            records['showcase'] = showcase_replay(socket,state,capture,before,args.output)
         if getattr(args, 'keyring', False):
             from phone_keyring_replay import replay as keyring_replay
             records['keyring'] = keyring_replay(socket,state,before,args.output,authenticate)
@@ -595,6 +598,7 @@ def main():
     parser.add_argument('--native-menu-traffic', action='store_true')
     parser.add_argument('--bluetooth', action='store_true')
     parser.add_argument('--authorization', action='store_true')
+    parser.add_argument('--showcase', action='store_true', help='Capture ordinary screens for documentation')
     parser.add_argument('--keyring', action='store_true', help='Read the login keyring lock before/after a real Tarot unlock')
     parser.add_argument('--boot-destination', action='store_true', help='At startup by finger through the real Polkit agent; restores the login screen')
     parser.add_argument('--network-authorization', action='store_true', help='Real Wi-Fi scan authorization with a temporary restrictive process-scoped policy; no radio/profile changes')

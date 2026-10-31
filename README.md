@@ -1,114 +1,148 @@
-# Tarot
+<p align="center">
+  <img src="docs/images/tarot-banner.png" alt="Tarot: a webOS-inspired phone shell for Linux, in Rust" width="100%">
+</p>
 
-Tarot is a Rust phone shell in development for Nura on the PinePhone Pro, recreating the visual character and interactions of classic WebOS and LuneOS with egui.
+**Tarot** is a phone shell and Wayland compositor for Linux, written in Rust. It
+brings back the feel of the classic webOS phones: live **cards** you flick
+through and toss away, **stacks** of related cards, a gesture area, banner
+notifications that stay out of the way, and **Just Type** search. Underneath,
+it runs ordinary Linux applications such as GTK, Qt, terminals and Firefox, each
+as its own card.
 
-The intended result is a complete Wayland session that runs native Linux applications: cards and stacks, a launcher and quick-launch dock, gestures, notifications, system controls, and eventually Rust phone applications. Tarot-owned application code will be Rust; standard Linux services, drivers, and native libraries are part of the platform.
+Tarot is developed on a **PinePhone Pro** running Nura. Its shell is drawn with
+[egui](https://github.com/emilk/egui) on a [Smithay](https://smithay.github.io/)
+compositor, and its visual design, **Nocturne**, is an original design system
+modeled on the Pre 2-era webOS 2.x interaction style.
 
-The original [Nocturne design packet](docs/Tarot_Design_Packet/README.txt) now guides the shell’s appearance and Pre 2-era interaction model. Its wallpaper, original icons, Lato typography and shared geometry run in the installed phone session. [Design coverage and remaining work](docs/DESIGN_APPLICATION.md) distinguish implemented foundations from the full design.
+> **Status: early development preview.** Tarot boots, locks, sleeps and runs
+> real apps on the phone today, but it is not yet a daily-driver phone OS.
+> Calls, SMS and contacts are still ahead. See [what works](#what-works-today)
+> and the [roadmap](#roadmap).
 
-## Project status
+## Screenshots
 
-Implementation is underway. The workspace contains a Smithay compositor with shared egui/GLES rendering, a platform-independent window/gesture model, a nested desktop backend, and an experimental direct DRM/libseat/libinput backend. The optimized AArch64 build runs on the phone's Panfrost GPU with a real GTK client. Basic touchscreen navigation and VT release/reacquisition have been exercised on hardware.
+Real screenshots from a PinePhone Pro running Tarot (revision 62):
 
-M0 remains in progress. The phone has been upgraded through supported releases to 26.06; build reproduction, recovery, and the remaining hardware baseline are being recorded. Most planned phone-shell features are still outstanding. See [implementation status](docs/IMPLEMENTATION_STATUS.md) for evidence and limitations.
+| Home | Cards | Launcher |
+| :---: | :---: | :---: |
+| <img src="docs/images/home.png" alt="Home screen with Just Type search and the dock" width="240"> | <img src="docs/images/overview.png" alt="Card view with native GNOME Weather and Clocks cards" width="240"> | <img src="docs/images/launcher.png" alt="Launcher grid of installed applications" width="240"> |
+| **Notifications** | **Power & display** | **Authentication** |
+| <img src="docs/images/notifications.png" alt="Notification dashboard above the gesture area" width="240"> | <img src="docs/images/power.png" alt="Power and display settings page" width="240"> | <img src="docs/images/authentication.png" alt="Tarot's own administrator authentication prompt with the private keyboard" width="240"> |
 
-Tarot is now the default login session on the development phone, with the normal installed entry running and diagnostics disabled. The retained revision 8 → 5 → 8 package round trip passes real PAM, native app/audio and cleanup checks on both revisions.
+The [Nocturne design packet](docs/Tarot_Design_Packet/README.txt) shows the full
+intended look, including screens that are not built yet.
 
-Revision 62 adds an **At startup** choice on the Power page: show the login screen, or start Tarot directly, still locked behind your password. Changing it asks for administrator authentication. On the phone, direct boot starts Tarot as a proper Wayland session without the greeter, logging out returns to Phrog, and switching back restores the original configuration exactly. [Evidence and limits](docs/recordings/boot-destination/README.md).
+## What works today
 
-Revision 61 achieves the first real automatic sleep. With the opt-in `tarot-automatic-sleep` package (`IdleAction=suspend`, active after a reboot), the session manager suspends the phone once Tarot reports a protected idle session. Tarot resumes protected, and the password restores the same session. Automatic sleep stays off by default and was tested on external power only. [Evidence and limits](docs/recordings/automatic-sleep/README.md).
+- **Cards and stacks.** Native apps open as cards. Swipe through them, flick
+  up to close, drag one card onto another to stack it, and rearrange or
+  separate them again. Switching never relaunches an app.
+- **Launcher and Just Type.** Named launcher pages, a Quick Launch dock you
+  can edit, and search over apps, settings and notifications, with web and
+  URI handoff.
+- **Real Linux apps.** GTK 3/4, Qt, the foot terminal, Firefox and egui apps
+  run with their dialogs, popups, fullscreen modes and clipboard. A
+  [compatibility record](docs/APPLICATION_COMPATIBILITY.md) tracks what has
+  been tested.
+- **Tarot's own on-screen keyboard.** A trusted Rust keyboard types into apps,
+  terminals (with Ctrl/Alt and arrows) and password fields.
+- **Notifications.** A standard freedesktop notification server with banners,
+  a dashboard, actions, do-not-disturb and preview hiding.
+- **System controls.** Wi-Fi with password entry, audio output, input and
+  device modes, brightness, battery, Bluetooth pairing, vibration profiles,
+  hardware buttons and rotation.
+- **Security.** The screen locks before anything is shown, unlocking uses the
+  real system password (PAM), and Tarot has its own Polkit authentication
+  agent. Locked content can't be captured or reached by input.
+- **Sleep.** Protected suspend and resume with the phone's real hardware,
+  opt-in automatic sleep after the screen turns off, and a choice to boot
+  straight into a locked Tarot or show the login screen.
 
-Revision 60 fixes system sleep on the phone when it is charging with no USB host attached. In that state the USB controller's gadget made every suspend fail with `-11`. A packaged Rust elogind sleep hook now unbinds only detached gadgets and restores them afterward. Ten real RTC-woken deep-sleep cycles succeed in normal Tarot60. [Evidence and limits](docs/recordings/usb-sleep/README.md).
+Everything above has been exercised on the phone itself. Each feature's tests,
+evidence and known limits are recorded in
+[implementation status](docs/IMPLEMENTATION_STATUS.md) and
+[progress notes](docs/PROGRESS.md).
 
-Revision 59 adds persistent **Automatic sleep** Power settings: off by default, a delay after the protected screen turns off, and optional external power. They gate the idle publisher. Native disabled, 10-second delay, battery-only and external-power cases pass, with the saved settings verified across logins. [Evidence and limits](docs/recordings/sleep-settings/README.md).
+## Quick start
 
-Revision 58 adds [authenticated-session idle reporting](docs/SESSION_IDLE.md) behind explicit diagnostic flags; the normal launcher keeps it disabled. In real greetd/PAM sessions with manager action `ignore`, the session's login1 idle hint follows protected panel-off. It holds with active audio and across locker replacement, clears on wake and PAM, and is cleared before session teardown. The battery-only default stays false on USB power. At that checkpoint the phone defaulted to normal Tarot58. Automatic system sleep, Power controls and the current USB kernel sleep failure remain separate gates. [Evidence and limits](docs/recordings/session-idle-native/README.md).
+### Try it on a Linux desktop
 
-Revision 57 adds [audio sleep coordination](docs/AUDIO_INHIBITION.md): observed uncorked playback or recording holds one ordinary-user sleep-block descriptor while lock and screen off still work. Both compilers pass 275 workspace tests and the final private audio, feedback and recovery checks. Native descriptor ownership, combined streams, driver-confirmed panel off/wake, actual PAM and exact restoration pass. At that checkpoint the phone defaults to normal Tarot57 with diagnostics off. Kernel enforcement without other inhibitors, acoustic quality, broader call/media policy and physical Bluetooth remain open. [Evidence and limits](docs/recordings/audio-inhibit/README.md).
-
-Revision 56 adds [audio device modes](docs/AUDIO_MODES.md) and prevents menu explanation text from selecting during touch scrolling. At that checkpoint both compilers pass 273 workspace tests and private audio/feedback matrices; native Speaker/Earpiece/Off recovery, server timeout/replacement, saved mode across fresh login, lock/PAM and exact restoration pass. [Evidence and limits](docs/recordings/audio-modes/README.md).
-
-Revision 55 adds [recording-input and route controls](docs/AUDIO_INPUTS.md): input level/mute, default input and the routes reported by the sound server. Sound-page updates preserve scroll position while retiring stale held controls. At that checkpoint both compilers pass 267 workspace tests and private audio/feedback matrices; native controls, default-input round trip, lock/PAM and exact restoration pass. [Evidence and limits](docs/recordings/audio-input/README.md).
-
-Revision 54 adds [feedback profiles and notification feedback](docs/FEEDBACK.md), including a persistent switch and a one-shot vibration test. Both compilers pass 261 workspace tests and the private rendered lifecycle/recovery matrix. Native profile controls, Silent suppression, successful vibrator-driver requests, daemon recovery, lock/PAM and exact restoration pass. That checkpoint verified normal Tarot54 with diagnostics off. Felt vibration and acoustic quality remain unverified; physical Bluetooth testing stays deferred. [Evidence and limits](docs/recordings/feedback/README.md).
-
-Revision 53 adds [Wi-Fi authentication integration](docs/WIFI_AUTHORIZATION.md): live inventory during prompts, settings return and stale-operation rejection across service/broker replacement. Both supported Rust toolchains pass all 256 workspace tests and the isolated rendered integration. Native authenticated scanning, rejection/cancel/lock and independent normal-session restoration pass. That checkpoint verified normal Tarot53 with diagnostics off. [Evidence and limits](docs/recordings/network-authorization/README.md).
-
-Revision 52 adds a [session-bound Polkit agent and trusted authentication dialog](docs/POLKIT.md). Current/minimum Rust each pass 251 tests, private rendered/credential regressions pass, and the phone passes real authority grant/rejection/cancel/lock/helper-failure cases. The temporary test policy is removed; an independent audit verifies normal default Tarot with diagnostics off. [Exact evidence and remaining gates](docs/recordings/polkit/README.md).
-
-Revision 51 adds [Bluetooth settings and a BlueZ pairing agent](docs/BLUETOOTH.md): discovery, PIN/passkey/confirmation prompts, explicit trust, connection controls and confirmed Forget. Current/minimum Rust each pass 241 tests and isolated rendered/protocol checks; native radio/discovery/visibility/PAM and independent normal-session audits pass. The phone defaults to normal Tarot with diagnostics off. Physical peripheral pairing and audio profiles remain unverified. [Evidence and remaining gates](docs/recordings/bluetooth/README.md).
-
-Revision 50 clears stale pending text-input state across consecutive enables. Current/minimum protocol and workspace checks pass, followed by native keyboard layout/input/PAM acceptance and independently verified normal Tarot with diagnostics off. The retained Firefox activation race remains open. [Current scope and evidence](docs/recordings/text-enable-reset/README.md).
-
-Revision 49 fixes unrelated large broadcasts retiring native app menus by narrowing subscriptions at the broker. Host and phone broadcast/claim/menu/PAM checks pass. [Earlier scope and evidence](docs/recordings/menu-signals/README.md).
-
-Revision 48 bounds native-menu connection setup and cancellation, rejects oversized frames before allocation and marks received descriptors close-on-exec. Eleven host fault/recovery cases pass, followed by native kernel tests and a combined protocol/toolkit/menu/claim/PAM login. [Earlier scope and evidence](docs/recordings/menu-setup/README.md).
-
-Revision 47 fixes a reproduced stale shell tooltip over native app content. Final host pointer/lifecycle checks pass at both scales, and a combined native login passes seven protocol cases, real GTK/Qt dialogs/text/fullscreen, GTK/Rust-egui menus and actual PAM before restoring normal Tarot. All 237 current/minimum-Rust workspace tests pass. [Package evidence and limits](docs/recordings/menu-compat/README.md). The unchanged package also passes native foreign-claim/release/reconnect/held-input/PAM checks; host cases cover exact-name reuse across private bus replacement. [Mapped claim lifecycle evidence](docs/recordings/menu-claims/README.md). The full development plan remains unfinished.
-
-The earlier revision 46 delivered validated GTK/GIO app commands and a cooperating [Rust/egui export example](docs/RUST_APP_MENUS.md). Current/minimum Rust each pass 237 workspace tests; rendered host checks cover typed actions, live state, stale held choices and in-window fallback controls. Scoped native GTK/egui touch, rotation, PAM and cooperative close checks pass, with independent normal-session/restoration audits. The two earlier QA failures and their recoveries remain recorded. GTK capability flags remain zero. [Current evidence and limits](docs/recordings/menu-egui/README.md).
-
-The earlier revision-42 development package fixes repeated touch scrolling, dense result-grid drag ownership, wheel direction and completed-touch gesture handling. All 222 workspace tests pass on current/minimum Rust, plus strict host/ARM checks and thirteen host reports. All fourteen scoped native shell components, Launcher pages and saved restart pass; independent audits verify exact restoration, normal default Tarot and Panfrost. The owner confirms landscape result scrolling and Sound selection with a finger. [Revision-42 evidence and limits](docs/recordings/r42/README.md) · [Menu contract](docs/MENUS.md). Prior failures and a rejected pre-installation candidate remain recorded. The separate [menu-export experiment](experiments/menu-export/README.md) adds no shell capability by itself. Complete export compatibility, physical calibration, retained browser failures and current-binary endurance remain open; revision 32 is the last accepted complete scoped native checkpoint including the browser. The complete development-plan goal remains unfinished.
-
-Revision 26 introduced [native Firefox acceptance and standard surface viewports](docs/BROWSER_COMPATIBILITY.md), including corrected rendering/input, text/password entry, history, popup windows and fullscreen Unicode entry above the keyboard. It retains native transient families, popup overflow and [explicit maximize/fullscreen negotiation](docs/WINDOW_STATES.md). [Fullscreen text fields](docs/FULLSCREEN_TEXT_INPUT.md) now remain above the trusted keyboard: real GTK/Qt bottom fields resize, accept exact text and survive keyboard hide/reopen, overview and actual PAM unlock. All six native protocol cases (47 input requests) and existing shell regressions pass, with saved restart and independent cleanup. Revision 23 also [blocks virtual keyboard input during protection](docs/VIRTUAL_KEYBOARD_PROTECTION.md), closing a reproduced path from the trusted helper to the locker. [Historical revision-26 evidence and identities](docs/recordings/r26/README.md) retain the exact scope. Broader IME/application coverage and the remaining plan gates stay open.
-
-Revision 14 adds the live local Calendar icon date and retained KMS power-off evidence, with native touch/PAM, favorite persistence, protected rotation and power/volume checks. Visual conformance remains open; isolated captures include pixel checks for status visibility. The phone remains in normal Tarot with diagnostics disabled.
-
-Revision 9 introduced [hardware power and volume buttons](docs/BUILDING.md#hardware-buttons), with native protected panel off/wake and real PAM-worker cancellation tests. The owner confirms the physical buttons and volume indicator work. Revision 8's longer login/suspend results remain scoped to that earlier package.
-
-Real foot/ash [terminal and clipboard acceptance](docs/TERMINAL_CLIPBOARD.md) now covers native touch typing, Backspace/Enter, exact UTF-8 output and Unicode/newline exchange with GTK through real PAM restoration. Revision 25 adds [touch terminal controls](docs/TERMINAL_CONTROLS.md): one-shot Ctrl/Alt, navigation, Escape/Tab and Paste, with actual shell editing, foreground interruption, exact PTY bytes, helper recovery and fullscreen/PAM checks. A reproduced stuck-Control helper-death bug is corrected before installation. Broader bindings, layouts and clipboard coverage remain open.
-
-The additional [Fx0 Gold packet](docs/FX0_GOLD_REFERENCE.md) is reference material for a deferred optional theme and device-support phase after the existing plan.
-
-## Build and run
-
-On Linux with Rust, a C linker, libxkbcommon development files, and Wayland/EGL/GLES runtimes for the native keyboard:
+Tarot runs nested inside an existing desktop session for development. You need
+Rust 1.89 or newer, a C linker, libxkbcommon development files, and the Wayland,
+EGL and GLES runtime libraries.
 
 ```sh
-cargo test --workspace
-cargo run --bin tarot
-cargo run --bin tarot -- -- gtk3-demo
+git clone https://github.com/timschmidt/tarot.git
+cd tarot
+cargo run --bin tarot                 # the shell in a window
+cargo run --bin tarot -- -- gtk3-demo # with a native app as a card
 ```
 
-F1 opens card overview; F2 opens the installed-app launcher. The bottom strip also provides overview access. Client arguments follow `--`. The launcher now discovers desktop entries, searches their metadata and launches them with structured arguments. GTK3, GTK4, Qt/Kalk and foot have rendered together on the phone; the [compatibility record](docs/APPLICATION_COMPATIBILITY.md) distinguishes proven behavior from pending checks.
-
-The interaction prototype now follows a strip drag into overview, browses cards horizontally and requests close with an upward card flick. Canceled drags settle back without opening the card; launcher scrolling stays within the launcher. Motion uses elapsed time, with `--reduced-motion` available. A real phone input replay covers these paths; faithful visual styling and the remaining shell features are still in development. See the [reference board](docs/REFERENCE_BOARD.md).
-
-In overview, hold a card to arrange it, drag onto another card to stack it, or use the separate-card rail to reorder/unstack it. Edge holds page through the deck. Each member remains its own native window; its menu also supplies move/stack/separate actions. These interactions have a [phone replay](docs/BUILDING.md#native-stack-interaction-replay), including cancellation and closing one member while retaining its sibling.
-
-A separate Rust/egui [native keyboard](docs/BUILDING.md#native-egui-keyboard) now types into real GTK4 fields on the phone through the native text bridge. The same key view supports touch search in the launcher and masked Wi-Fi password entry. Letter and two symbol pages cover all 95 printable ASCII characters, with native touch replay coverage. Native typing uses Panfrost/GLES, reserves app space above the gesture strip and preserves app focus. The strip's Keyboard button reopens a hidden keyboard, and bounded process supervision recovers from a helper crash. These paths have real phone replay evidence; broader toolkit input, layouts and visual refinement remain in development.
-
-An ordinary [egui application fixture](docs/BUILDING.md#ordinary-egui-application-fixture) also runs as independent native cards, with phone tests for text/password entry, two windows, cooperative close and app-crash isolation. Its pinned egui host includes a direct-commit adapter. Multiwindow testing exposed and fixed hidden-window frame starvation; hidden clients now receive bounded callbacks while windows sharing a visible client remain responsive.
-
-The development wrappers now enable a Rust [standard notification service](docs/BUILDING.md#native-notifications) on their private session bus. Native notifications appear as bottom banners and remain in a touch dashboard. Revisions 43–44 add a [reserved notification well and source rail](docs/NOTIFICATIONS.md), with exposed foreground interaction and a notification button/count in the gesture strip. Fifteen non-browser shell components now have passing current-package evidence across separate runs, with pages/restart and independent restoration audits. Browser compatibility and physical/visual acceptance remain open. Replacement, actions, expiry, do-not-disturb, preview hiding and input isolation have real phone replay evidence. Notification settings use a versioned TOML file with atomic saves. The service retries unavailable buses/names and retires old actions after a bus disconnect. History, authenticated lock privacy and notification styling remain in development.
-
-The top-right status area now opens a [power and display menu](docs/BUILDING.md#power-and-display-controls). With `--system-services`, battery/charging data comes from UPower and brightness changes go through the active local login session. Real phone taps changed brightness with driver readback, and the menu preserved native text focus on dismissal. Opt-in idle/panel paths and twenty consecutive actual RTC-woken kernel suspend cycles now have native evidence; broader wake/reliability coverage, power policy and a full Settings application remain in development.
-
-The menu's [Audio page](docs/BUILDING.md#audio-controls) now controls playback volume, mute and the default output for new playback through the existing sound server. Native phone taps passed independent server readback, temporary-output selection/removal, exact restoration and same-field typing. Private real-server tests cover hotplug, delayed replies, timeout, service replacement and pending shutdown. Hardware volume keys now have native readback and owner confirmation. Microphone, headset/profile routing, call audio and acoustic validation remain in development.
-
-Its [Wi-Fi page](docs/BUILDING.md#wi-fi-controls) now scans, connects saved or new visible open/personal networks, disconnects Wi-Fi and changes the Wi-Fi radio through NetworkManager. A masked form uses the shared private keyboard, with remembered or temporary profiles; a restricted secret agent answers missing-password requests for user-initiated connections. Native phone tests created a temporary connection, answered a real password request, restored the original network and kept USB available. A remembered personal profile also passed complete touch password entry, private on-disk credential verification and reconnection without entry in a new compositor session. NetworkManager was not restarted. Pending operations require observed service state before reporting completion. Hidden networks, enterprise setup, authorization prompts and broader Settings remain in development.
-
-An opt-in [Rust/egui locker](docs/BUILDING.md#authenticated-locker-experiment) now provides a clock/unlock view and private touch/physical password entry. An unprivileged bounded worker verifies the current account through Linux-PAM. Real phone tests cover wrong-password rejection, Cancel, authenticated touch unlock and trusted crash recovery. The compositor separately protects rendering, input, clipboard and captures. With a locker configured, startup is protected before the first compositor frame, the system menu supplies a reusable Lock action, and bounded automatic recovery replaces a failed locker. Native tests cover startup, crash recovery and a second touch lock/authentication cycle. A separate protected recovery view now retries an exhausted locker, with native touch/keyboard and PAM handoff evidence. Opt-in sleep coordination holds a real elogind inhibitor until protected KMS completion and requires a new protected frame and next-cycle inhibitor before unlock. Native evidence includes twenty consecutive actual RTC-woken kernel suspend cycles with fresh PAM and app/input restoration, in addition to signal-only tests. Opt-in idle locking, visible-surface inhibition and real panel off/wake have native input/PAM evidence. Broader wake/endurance coverage, authentication policy and release packaging remain in development; the authenticated installed session preview is described below.
-
-The inspected NVIDIA desktop driver produces an empty framebuffer with the current integration. For the verified Mesa software path on this host:
+Press **F1** for the card view and **F2** for the launcher, or use the gesture
+strip at the bottom. If your GPU driver shows a blank window, use Mesa's
+software renderer:
 
 ```sh
 TAROT_SOFTWARE_RENDERER=1 ./scripts/run-nested.sh -- gtk3-demo
 ```
 
-A source-built [installed session preview](docs/PACKAGING.md) now runs unprivileged through the actual Phrog picker and greetd/PAM/elogind alongside Phosh. Revision 5 passes ten normal login/exit cycles and twenty consecutive actual RTC deep-suspend cycles, with protected resume, fresh PAM, app/audio continuity and forced-crash cgroup/socket cleanup. Independent Phosh restoration and resource/policy checks pass; earlier incomplete attempts remain separate. Broader reliability and release packaging remain under development.
+Run the test suite with `cargo test --workspace`.
 
-Shared output rotation and the SensorProxy adapter now have native four-orientation KMS/pixel/touch/keyboard evidence, plus real sensor directions and owner-confirmed upright behavior. Native panel-off tests observe accepted sensor release/reclaim and protected wake/authentication. Installed revision 8 also passes persistent rotation/idle settings, actual timeout dropdowns, saved panel-off timing, protected landscape restart and touch/PAM in all four orientations. Fresh ten-login and twenty-suspend runs plus independent Phosh recovery also pass on these exact binaries. Broader hardware keys/wake sources and sustained performance/power measurements remain open. See the [current plan](docs/DEVELOPMENT_PLAN.md#m3-deliver-a-native-pinephone-pro-session) and [evidence](docs/IMPLEMENTATION_STATUS.md#persistent-display-policy-checkpoint).
+### Install it on a PinePhone Pro
 
-See [building and diagnostics](docs/BUILDING.md) for cross-compilation, captures, and device access.
+Tarot installs as an ordinary Nura package next to the existing Phosh session,
+which stays available as a fallback. You pick **Tarot** in the login screen's
+session list. See [packaging and installation](docs/PACKAGING.md) for building
+the package, and [building and diagnostics](docs/BUILDING.md) for
+cross-compilation, device access and recovery.
 
-## Development documentation
+## How it fits together
 
-- [Development plan](docs/DEVELOPMENT_PLAN.md): scope, milestones, acceptance criteria, testing, risks, and the initial backlog.
-- [Session packaging](docs/PACKAGING.md): source APK builds, authenticated startup, diagnostics and recovery.
-- [Architecture](docs/ARCHITECTURE.md): component boundaries, rendering, protocols, services, packaging, and proposed decisions.
-- [Interaction design](docs/INTERACTION_DESIGN.md): WebOS fidelity, card behavior, gesture ownership, visual design, and accessibility.
-- [Research](docs/RESEARCH.md): dated findings, primary sources, dependency candidates, and remaining technical unknowns.
-- [Device baseline](docs/DEVICE_BASELINE.md): observed hardware, OS transitions, and provisioning changes.
+| Piece | What it does |
+| --- | --- |
+| `tarot` | The Wayland compositor and shell: cards, gestures, launcher, notifications, system menus, lock enforcement |
+| `tarot-session` | Starts the shell inside a real authenticated login session |
+| `tarot-lock` | The trusted lock screen, which checks passwords through PAM |
+| `tarot-keyboard` | The on-screen keyboard |
+| `tarot-core` / `tarot-ui` | The platform-independent shell model and its egui views |
 
-Start with the development plan. Its milestones define the intended complete system; the status record distinguishes demonstrated behavior from remaining work. Tarot-owned code is licensed under [MIT](LICENSE-MIT) or [Apache-2.0](LICENSE-APACHE), at your option. Adapted upstream scaffolding retains its [source attribution](third-party/README.md).
+Tarot-owned code is Rust. Standard Linux services (NetworkManager, UPower,
+PulseAudio, BlueZ, elogind, Polkit, feedbackd) provide the platform. The
+[architecture](docs/ARCHITECTURE.md) describes the boundaries, rendering and
+protocols.
+
+## Roadmap
+
+| Milestone | Focus |
+| --- | --- |
+| M0–M3 | Feasibility, interaction model, native app windows, and a recoverable phone session (largely in place; evidence gaps remain) |
+| **M4** | **Shell alpha: services, keyboard, locking and power (in progress)** |
+| M5 | Phone, Messages and Contacts apps with real calls and SMS |
+| M6 | Beta: performance, accessibility, compatibility and endurance |
+| M6A | Android apps as Tarot cards through Waydroid |
+| M7 | Gold theme, LG Fx0 support and a reusable device layer |
+| M8 | HP Pre3 |
+
+The [development plan](docs/DEVELOPMENT_PLAN.md) defines each milestone's full
+scope and acceptance criteria.
+
+## Documentation
+
+- [Development plan](docs/DEVELOPMENT_PLAN.md): scope, milestones, acceptance criteria and risks
+- [Implementation status](docs/IMPLEMENTATION_STATUS.md): what has been demonstrated, with evidence
+- [Progress notes](docs/PROGRESS.md): revision-by-revision history and detailed feature notes
+- [Architecture](docs/ARCHITECTURE.md) and [interaction design](docs/INTERACTION_DESIGN.md)
+- [Design application](docs/DESIGN_APPLICATION.md): how the Nocturne packet maps to the implementation
+- [Building](docs/BUILDING.md) and [packaging](docs/PACKAGING.md)
+- [Device baseline](docs/DEVICE_BASELINE.md) and [research notes](docs/RESEARCH.md)
+
+## License
+
+Tarot's own code and original design assets are available under either the
+[MIT](LICENSE-MIT) or [Apache 2.0](LICENSE-APACHE) license, at your option.
+Adapted upstream code keeps its [original attribution](third-party/README.md),
+and the bundled Lato and Instrument Serif fonts use the SIL Open Font License.
+
+Tarot is an independent project inspired by webOS and LuneOS. It is not
+affiliated with or endorsed by LG, HP or Palm. webOS is a trademark of its
+respective owner.
