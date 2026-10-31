@@ -16,18 +16,19 @@ from pathlib import Path
 from dialog_button import locate
 from notification_replay import await_value
 from phone_gesture_replay import request
+from phone_touch_keyboard import Keyboard
 
 PACKAGE = 'org.fdroid.fdroid'
 ENTRY = 'waydroid.' + PACKAGE + '.desktop'
 
 
 def text_input(r, socket, tap, capture, directory, waydroid):
-    """Measure, not assert: which keyboard an Android text field gets.
+    """Type into an Android field with Tarot's keyboard in key-event mode.
 
-    Waydroid has no text-input protocol, so Tarot's keyboard cannot follow
-    Android focus; Android reports a hardware keyboard and hides its own.
-    Records the field as configured, then with Android's
-    show_ime_with_hard_keyboard on, and restores that setting.
+    Waydroid has no text-input protocol, so Tarot's keyboard is opened by hand
+    and sends key events. Android's own keyboard, which Waydroid would show as a
+    separate card, is disabled for the run (show_ime_with_hard_keyboard alone
+    does not stop it) and its enabled set is restored.
     """
     def word(label, text, vertical=(.07, .97), alternatives=()):
         capture(label)
@@ -43,25 +44,44 @@ def text_input(r, socket, tap, capture, directory, waydroid):
         time.sleep(4)
         capture(label)
         ime = [line.strip() for line in shell('dumpsys', 'input_method').splitlines() if 'mInputShown' in line]
-        return dict(tarot_keyboard=request(socket, 'status')['keyboard_visible'],
+        status = request(socket, 'status')
+        return dict(tarot_keyboard=status['keyboard_visible'], cards=len(status['cards']),
                     android_ime_shown=any('mInputShown=true' in line for line in ime))
 
-    word('waydroid-search-tab', 'Search', vertical=(.8, .97))
-    time.sleep(3)
-    field = word('waydroid-search-field', 'Search...', vertical=(.08, .25), alternatives=('Search…', 'Search..'))
-    r['field_as_configured'] = observe('waydroid-field-focused')
-    previous = shell('settings', 'get', 'secure', 'show_ime_with_hard_keyboard').strip()
-    r['show_ime_with_hard_keyboard_before'] = previous
+    enabled = [line.strip() for line in shell('ime', 'list', '-s').splitlines() if line.strip()]
+    default = shell('settings', 'get', 'secure', 'default_input_method').strip()
+    r['android_imes_before'] = dict(enabled=enabled, default=default)
     try:
-        shell('settings', 'put', 'secure', 'show_ime_with_hard_keyboard', '1')
-        tap(field['point'][0] / 2, field['point'][1] / 2)
-        r['field_with_soft_keyboard_setting'] = observe('waydroid-field-soft-setting')
+        for ime in enabled:
+            shell('ime', 'disable', ime)
+        r['android_imes_disabled'] = [line.strip() for line in shell('ime', 'list', '-s').splitlines() if line.strip()]
+        word('waydroid-search-tab', 'Search', vertical=(.8, .97))
+        time.sleep(3)
+        word('waydroid-search-field', 'Search...', vertical=(.08, .25), alternatives=('Search…', 'Search..'))
+        r['field_focused'] = observe('waydroid-field-focused')
+        word('waydroid-keyboard-button', 'Keyboard', vertical=(.94, 1.0))
+        r['tarot_keyboard_opened'] = bool(await_value(lambda: request(socket, 'status')['keyboard_visible'], bool, seconds=10))
+        capture('waydroid-keyboard-open')
+        status = request(socket, 'status')
+        r['keyboard_owner'] = status['keyboard_owner']
+        r['view_at_keyboard'] = status['view']
+        Keyboard(tap).type_ascii('fdroid')
+        r['after_typing'] = observe('waydroid-typed')
+        status = request(socket, 'status')
+        r['geometry_with_keyboard'] = [g for g in status['native_geometry'] if g['id'] == status['view'].get('App')]
+        try:
+            locate(directory / 'waydroid-typed.png', 'fdroid', vertical=(.07, .4), scale=1)
+            r['typed_text_visible'] = True
+        except AssertionError:
+            r['typed_text_visible'] = False
     finally:
-        if previous in ('null', ''):
-            shell('settings', 'delete', 'secure', 'show_ime_with_hard_keyboard')
-        else:
-            shell('settings', 'put', 'secure', 'show_ime_with_hard_keyboard', previous)
-        r['setting_restored'] = shell('settings', 'get', 'secure', 'show_ime_with_hard_keyboard').strip() == previous
+        for ime in enabled:
+            shell('ime', 'enable', ime)
+        if default not in ('null', ''):
+            shell('ime', 'set', default)
+        after = [line.strip() for line in shell('ime', 'list', '-s').splitlines() if line.strip()]
+        r['android_imes_restored'] = (sorted(after) == sorted(enabled)
+                                      and shell('settings', 'get', 'secure', 'default_input_method').strip() == default)
 
 
 def replay(socket, state, capture, before, directory, tap=None):

@@ -79,6 +79,9 @@ struct Keyboard {
     scale: i32,
     configured: bool,
     active: bool,
+    /// Shown by the Keyboard button for a client without text-input support
+    /// (such as Waydroid): taps become plain key events, never committed text.
+    key_mode: bool,
     hidden: bool,
     serial: u32,
     pending_active: Option<bool>,
@@ -127,6 +130,7 @@ impl Keyboard {
             scale: 1,
             configured: false,
             active: false,
+            key_mode: false,
             hidden: false,
             serial: 0,
             pending_active: None,
@@ -193,7 +197,7 @@ impl Keyboard {
         self.metadata(Stage::ContextReset, 0, 0);
     }
     fn show_surface(&mut self) {
-        if self.surface.is_some() || !self.active || self.hidden {
+        if self.surface.is_some() || !(self.active || self.key_mode) || self.hidden {
             return;
         }
         let surface = self
@@ -310,6 +314,30 @@ impl Keyboard {
         }
         self.dirty = true;
     }
+    /// Key-event mode: the client receives key presses through the virtual
+    /// keyboard, as from a physical one. Characters without a key on the US
+    /// layout are dropped.
+    fn key_action(&mut self, action: ui::Action) {
+        let none = Modifiers {
+            control: false,
+            alt: false,
+        };
+        match action {
+            ui::Action::Text(text) => {
+                for stroke in text.chars().filter_map(terminal::stroke) {
+                    self.virtual_chord(stroke.code, none, stroke.shift);
+                }
+            }
+            ui::Action::Backspace => self.virtual_key(14),
+            ui::Action::Enter => self.virtual_key(28),
+            ui::Action::Hide => {
+                self.key_mode = false;
+                self.hidden = true;
+                self.hide_surface();
+            }
+        }
+        self.dirty = true;
+    }
     fn action(&mut self, action: ui::Action) {
         self.metadata(
             match &action {
@@ -322,6 +350,9 @@ impl Keyboard {
             1,
         );
         if !self.active {
+            if self.key_mode {
+                self.key_action(action);
+            }
             return;
         }
         if self.terminal_mode() && !matches!(action, ui::Action::Hide) {
@@ -465,8 +496,12 @@ impl Keyboard {
         self.serial = self.serial.wrapping_add(1);
         if let Some(active) = self.pending_active.take() {
             if active {
+                // A real text field takes over from key-event mode.
+                self.key_mode = false;
                 self.reset_context_input();
-            } else {
+            } else if !self.key_mode {
+                // Key-event mode was opened by hand for a client without
+                // text-input; a context ending elsewhere does not close it.
                 self.hide_surface();
             }
             self.active = active;
@@ -581,12 +616,14 @@ fn main() -> Result<()> {
                         Ok(count) => {
                             for command in &bytes[..count] {
                                 match command {
-                                    b'S' if state.active => {
+                                    b'S' => {
+                                        state.key_mode = !state.active;
                                         state.hidden = false;
                                         state.show_surface();
                                         state.dirty = true;
                                     }
                                     b'H' => {
+                                        state.key_mode = false;
                                         state.hidden = true;
                                         state.hide_surface();
                                     }
