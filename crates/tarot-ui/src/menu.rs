@@ -920,6 +920,71 @@ mod tests {
     }
 
     #[test]
+    fn system_sleep_switch_reflects_observed_policy_and_emits_one_request() {
+        use tarot_core::display::SleepPolicySnapshot;
+        let ctx = egui::Context::default();
+        let mut model = ShellModel::default();
+        let size = Vec2::new(360.0, 1800.0);
+        model.power.enabled = true;
+        model.lock_available = true;
+        model.display.idle_configurable = true;
+        model.display.sleep_available = true;
+        model.apply(Command::SystemMenuOpen(true));
+        model.apply(Command::SystemPage(SystemPage::Power));
+        let label = "Let the system sleep when idle";
+        let output = settle(&ctx, &model, size);
+        assert!(!output.shapes.iter().any(|s| matches!(&s.shape,
+            egui::Shape::Text(t) if t.galley.job.text == label)));
+        model.display.sleep_policy = SleepPolicySnapshot {
+            available: true,
+            enabled: Some(false),
+            ..Default::default()
+        };
+        let tap = |model: &ShellModel| {
+            let target = position(&settle(&ctx, model, size), label);
+            let mut commands = render(&ctx, model, size, vec![Event::PointerMoved(target)]).0;
+            commands.extend(render(&ctx, model, size, vec![button(target, true)]).0);
+            commands.extend(render(&ctx, model, size, vec![button(target, false)]).0);
+            commands
+        };
+        let commands = tap(&model);
+        assert_eq!(commands, [Command::SleepPolicy(true)]);
+        for command in commands {
+            model.apply(command);
+        }
+        position(
+            &settle(&ctx, &model, size),
+            "Waiting for administrator authentication…",
+        );
+        assert!(
+            tap(&model).is_empty(),
+            "a pending change cannot queue another"
+        );
+        model.display.sleep_policy.pending = None;
+        model.display.sleep_policy.enabled = Some(true);
+        model.display.sleep_policy.restart_required = true;
+        position(
+            &settle(&ctx, &model, size),
+            "Restart the phone to finish turning this on.",
+        );
+        assert_eq!(tap(&model), [Command::SleepPolicy(false)]);
+        model.display.sleep_policy = SleepPolicySnapshot {
+            available: true,
+            enabled: Some(true),
+            package: true,
+            ..Default::default()
+        };
+        position(
+            &settle(&ctx, &model, size),
+            "Turned on by the tarot-automatic-sleep package.",
+        );
+        assert!(
+            tap(&model).is_empty(),
+            "the package's policy is not changed here"
+        );
+    }
+
+    #[test]
     fn sound_scroll_survives_service_updates_while_held_route_choices_retire() {
         use tarot_core::audio::{Availability, Output, Port, UiAction};
         for feedback_update in [false, true] {

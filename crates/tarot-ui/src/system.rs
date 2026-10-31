@@ -341,11 +341,44 @@ fn sleep_controls(ui: &mut egui::Ui, model: &ShellModel, commands: &mut Vec<Comm
             );
         });
     });
+    let policy = &display.sleep_policy;
+    if policy.available {
+        let mut allowed = policy.pending.or(policy.enabled).unwrap_or(false);
+        ui.add_enabled_ui(
+            policy.pending.is_none() && policy.enabled.is_some() && !policy.package,
+            |ui| {
+                ui.spacing_mut().interact_size.y = 44.0;
+                if ui
+                    .checkbox(&mut allowed, "Let the system sleep when idle")
+                    .changed()
+                {
+                    commands.push(Command::SleepPolicy(allowed));
+                }
+            },
+        );
+        let note = if policy.package {
+            Some("Turned on by the tarot-automatic-sleep package.")
+        } else if policy.pending.is_some() {
+            Some("Waiting for administrator authentication…")
+        } else if policy.restart_required {
+            Some("Restart the phone to finish turning this on.")
+        } else {
+            None
+        };
+        if let Some(note) = note {
+            ui.label(note);
+        }
+        if let Some(error) = &policy.error {
+            ui.colored_label(Color32::LIGHT_RED, error);
+        }
+    }
     let status = if display.sleep_error {
         Some("Sleep status is unavailable.")
     } else if !settings.automatic {
         None
-    } else if display.sleep_manager_action.as_deref() == Some("ignore") {
+    } else if display.sleep_manager_action.as_deref() == Some("ignore")
+        && policy.enabled != Some(true)
+    {
         Some("The system is not configured to sleep when idle.")
     } else if display.sleep_readiness == Readiness::PowerUnknown {
         Some("Power source is unknown, so sleep waits.")

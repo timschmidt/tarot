@@ -36,6 +36,7 @@ mod renderer;
 mod sensors;
 mod session_idle_host;
 mod sleep;
+mod sleep_policy_settings;
 mod state;
 mod text;
 mod window_state;
@@ -440,9 +441,11 @@ fn main() -> Result<()> {
             physical,
         )?);
     }
-    // Startup destination is a system setting of installed physical sessions.
+    // Startup destination and sleep policy are system settings of installed physical sessions.
     if physical && data.state.shell.display.idle_configurable {
         data.state.boot_settings = boot_settings::start(&event_loop.handle(), &mut data.state)?;
+        data.state.sleep_policy_settings =
+            sleep_policy_settings::start(&event_loop.handle(), &mut data.state)?;
     }
     if options.session_idle {
         anyhow::ensure!(

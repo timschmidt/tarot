@@ -71,6 +71,7 @@ pub struct Compositor {
     pub session_idle: crate::session_idle_host::State,
     pub session_idle_worker: Option<tarot::session_idle::Worker>,
     pub boot_settings: Option<crate::boot_settings::Server>,
+    pub sleep_policy_settings: Option<crate::sleep_policy_settings::Server>,
     pub hardware: crate::hardware::State,
     pub locker: Option<crate::lock::ManagedLocker>,
     pub pointer_buttons: HashSet<u32>,
@@ -257,6 +258,7 @@ impl Compositor {
             session_idle: Default::default(),
             session_idle_worker: None,
             boot_settings: None,
+            sleep_policy_settings: None,
             hardware: Default::default(),
             locker: None,
             pointer_buttons: Default::default(),
@@ -759,6 +761,25 @@ impl Compositor {
                         let boot = &mut self.shell.display.boot;
                         boot.pending = None;
                         boot.error = Some("Startup setting is busy; try again".into());
+                    }
+                }
+                Effect::RefreshSystemSettings => {
+                    if let Some(server) = &self.boot_settings {
+                        server.refresh();
+                    }
+                    if let Some(server) = &self.sleep_policy_settings {
+                        server.refresh();
+                    }
+                }
+                Effect::SleepPolicy(enabled) => {
+                    if !self
+                        .sleep_policy_settings
+                        .as_ref()
+                        .is_some_and(|server| server.request(enabled))
+                    {
+                        let policy = &mut self.shell.display.sleep_policy;
+                        policy.pending = None;
+                        policy.error = Some("Sleep policy is busy; try again".into());
                     }
                 }
                 Effect::RotationLock(locked) => {

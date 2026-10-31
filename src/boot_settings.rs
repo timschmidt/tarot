@@ -13,7 +13,7 @@ use tarot::boot_destination::{self, Destination, Paths};
 use tarot_core::display::BootDestination;
 
 const HELPER: &str = "/usr/libexec/tarot-boot-destination";
-const PKEXEC: &str = "/usr/bin/pkexec";
+pub const PKEXEC: &str = "/usr/bin/pkexec";
 /// Authentication waits for a person; a stuck helper must still end.
 const CHANGE_TIMEOUT: Duration = Duration::from_secs(300);
 
@@ -23,12 +23,16 @@ enum Update {
 }
 
 pub struct Server {
-    requests: mpsc::SyncSender<BootDestination>,
+    requests: mpsc::SyncSender<Option<BootDestination>>,
 }
 
 impl Server {
     pub fn request(&self, choice: BootDestination) -> bool {
-        self.requests.try_send(choice).is_ok()
+        self.requests.try_send(Some(choice)).is_ok()
+    }
+    /// Reread the files; dropped while a change is still waiting.
+    pub fn refresh(&self) {
+        let _ = self.requests.try_send(None);
     }
 }
 
@@ -42,14 +46,19 @@ fn observed() -> Result<BootDestination, String> {
     }
 }
 
-/// pkexec reports a dismissed or denied authentication as 126/127.
 fn change(choice: BootDestination) -> Option<String> {
     let argument = match choice {
         BootDestination::Greeter => "greeter",
         BootDestination::Tarot => "tarot",
     };
+    run_helper(HELPER, argument, "the startup setting")
+}
+
+/// Runs `pkexec <helper> set <argument>` and describes any failure; pkexec
+/// reports a dismissed or denied authentication as 126/127.
+pub fn run_helper(helper: &str, argument: &str, setting: &str) -> Option<String> {
     let mut child = match Command::new(PKEXEC)
-        .args([HELPER, "set", argument])
+        .args([helper, "set", argument])
         .stdin(Stdio::null())
         .stdout(Stdio::null())
         .stderr(Stdio::null())
@@ -65,7 +74,7 @@ fn change(choice: BootDestination) -> Option<String> {
                 return match status.code() {
                     Some(0) => None,
                     Some(126 | 127) => Some("Not changed: authorization was not given".into()),
-                    _ => Some("Not changed: the startup setting could not be written".into()),
+                    _ => Some(format!("Not changed: {setting} could not be written")),
                 };
             }
             Ok(None) if Instant::now() < deadline => std::thread::sleep(Duration::from_millis(50)),
@@ -108,10 +117,14 @@ pub fn start(
             }
         })
         .map_err(|error| anyhow::anyhow!(error.to_string()))?;
-    let (requests, incoming) = mpsc::sync_channel::<BootDestination>(1);
+    let (requests, incoming) = mpsc::sync_channel::<Option<BootDestination>>(1);
     std::thread::spawn(move || {
         let _ = sender.send(Update::Current(observed()));
-        while let Ok(choice) = incoming.recv() {
+        while let Ok(request) = incoming.recv() {
+            let Some(choice) = request else {
+                let _ = sender.send(Update::Current(observed()));
+                continue;
+            };
             let error = change(choice);
             // Report what the files now say, not what was requested.
             let _ = sender.send(Update::Current(observed()));

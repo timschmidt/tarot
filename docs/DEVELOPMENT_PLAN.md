@@ -384,9 +384,16 @@ preparation and resume ran with no unprotected frame, and actual PAM restored
 the session. The policy was then removed and normal Tarot61 audited. Four QA
 failures are retained, including an earlier run whose suspend succeeded.
 
-Still open: battery automatic sleep, greeter behavior with the policy, other
-sessions and users, call/work/audio policy, endurance, and a Settings path to
-enable the policy. [Evidence](recordings/automatic-sleep/README.md).
+Settings checkpoint, October 31: signed revision 67 adds **Let the system sleep
+when idle** to the Power page. A Polkit-guarded helper writes its own elogind
+drop-in, says when a restart is needed and turns the policy off at once with a
+verified elogind reload. The owner switched it on, canceled and off by finger
+through Tarot's Polkit agent, and the restart path was verified by reboot. With
+the policy on, the login screen reports itself idle and the phone sleeps about
+half a minute after it is left there. [Evidence](recordings/sleep-policy/README.md).
+
+Still open: battery automatic sleep, other sessions and users, call/work/audio
+policy and endurance. [Evidence](recordings/automatic-sleep/README.md).
 
 ### M4 addition: double-chop flashlight from suspend
 

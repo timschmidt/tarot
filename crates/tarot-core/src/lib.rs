@@ -100,6 +100,8 @@ pub enum Command {
     IdleTimeouts(idle::Settings),
     SleepSettings(session_idle::Settings),
     BootDestination(display::BootDestination),
+    /// Allow or stop the system's own sleep when every session is idle.
+    SleepPolicy(bool),
     RotationLock(bool),
     Lock,
     Home,
@@ -120,9 +122,15 @@ pub enum Command {
     Activate(WindowId),
     BrowseCards(i32),
     Close(WindowId),
-    Stack { card: WindowId, with: WindowId },
+    Stack {
+        card: WindowId,
+        with: WindowId,
+    },
     Unstack(WindowId),
-    PlaceCard { card: WindowId, target: CardDrop },
+    PlaceCard {
+        card: WindowId,
+        target: CardDrop,
+    },
     CancelGesture,
     CardMenuOpen(bool),
     NotificationsOpen(bool),
@@ -159,6 +167,9 @@ pub enum Effect {
     IdleTimeouts(idle::Settings),
     SleepSettings(session_idle::Settings),
     BootDestination(display::BootDestination),
+    SleepPolicy(bool),
+    /// Reread system settings changed outside this session.
+    RefreshSystemSettings,
     RotationLock(bool),
     Lock,
     Focus(Option<WindowId>),
@@ -880,6 +891,9 @@ impl ShellModel {
                     self.menus.dismiss();
                 }
                 let mut effects = canceled;
+                if open && !was_open && self.system_page == SystemPage::Power {
+                    effects.push(Effect::RefreshSystemSettings);
+                }
                 effects.push(Effect::Focus(
                     if !open
                         && restore_owner
@@ -916,6 +930,21 @@ impl ShellModel {
                 boot.error = None;
                 return vec![Effect::BootDestination(choice)];
             }
+            Command::SleepPolicy(enabled) => {
+                let policy = &mut self.display.sleep_policy;
+                // Same rules as the startup choice; the package's drop-in is
+                // changed only by removing the package.
+                if !policy.available
+                    || policy.pending.is_some()
+                    || policy.package
+                    || policy.enabled == Some(enabled)
+                {
+                    return Vec::new();
+                }
+                policy.pending = Some(enabled);
+                policy.error = None;
+                return vec![Effect::SleepPolicy(enabled)];
+            }
             Command::RotationLock(locked) => {
                 self.rotation_locked = locked;
                 return vec![Effect::RotationLock(locked)];
@@ -947,6 +976,10 @@ impl ShellModel {
                         self.menus.history.remove(1);
                     }
                     self.menus.history.push(self.system_page);
+                }
+                let mut effects = effects;
+                if page == SystemPage::Power && self.system_page != page {
+                    effects.push(Effect::RefreshSystemSettings);
                 }
                 self.system_page = page;
                 self.menus.invalidate();
@@ -1443,6 +1476,56 @@ mod tests {
         m.menus.history = vec![SystemPage::Power];
         m
     }
+    #[test]
+    fn opening_the_power_page_rereads_system_settings() {
+        let mut model = ShellModel::default();
+        model.apply(Command::SystemPage(SystemPage::Wifi));
+        let effects = model.apply(Command::SystemPage(SystemPage::Power));
+        assert!(effects.contains(&Effect::RefreshSystemSettings));
+        assert!(
+            !model
+                .apply(Command::SystemPage(SystemPage::Power))
+                .contains(&Effect::RefreshSystemSettings),
+            "staying on the page does not reread"
+        );
+        let effects = model.apply(Command::SystemMenuOpen(true));
+        assert!(effects.contains(&Effect::RefreshSystemSettings));
+        assert!(
+            !model
+                .apply(Command::SystemMenuOpen(true))
+                .contains(&Effect::RefreshSystemSettings)
+        );
+    }
+
+    #[test]
+    fn sleep_policy_requests_are_single_and_respect_the_package() {
+        use display::SleepPolicySnapshot;
+        let mut model = ShellModel::default();
+        assert!(model.apply(Command::SleepPolicy(true)).is_empty());
+        model.display.sleep_policy = SleepPolicySnapshot {
+            available: true,
+            enabled: Some(false),
+            error: Some("old".into()),
+            ..Default::default()
+        };
+        assert!(model.apply(Command::SleepPolicy(false)).is_empty());
+        assert_eq!(
+            model.apply(Command::SleepPolicy(true)),
+            [Effect::SleepPolicy(true)]
+        );
+        let policy = &model.display.sleep_policy;
+        assert_eq!((policy.pending, policy.enabled), (Some(true), Some(false)));
+        assert!(policy.error.is_none());
+        assert!(model.apply(Command::SleepPolicy(false)).is_empty());
+        model.display.sleep_policy = SleepPolicySnapshot {
+            available: true,
+            enabled: Some(true),
+            package: true,
+            ..Default::default()
+        };
+        assert!(model.apply(Command::SleepPolicy(false)).is_empty());
+    }
+
     #[test]
     fn boot_destination_requests_are_single_and_never_assume_success() {
         use display::{BootDestination, BootSnapshot};

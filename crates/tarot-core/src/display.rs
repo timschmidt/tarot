@@ -28,9 +28,23 @@ pub struct BootSnapshot {
     pub error: Option<String>,
 }
 
+/// The system's own sleep-when-idle policy, observed from its drop-ins.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize)]
+pub struct SleepPolicySnapshot {
+    pub available: bool,
+    pub enabled: Option<bool>,
+    /// The tarot-automatic-sleep package provides it; only removal changes it.
+    pub package: bool,
+    /// Turned on during this boot; elogind applies it after a restart.
+    pub restart_required: bool,
+    pub pending: Option<bool>,
+    pub error: Option<String>,
+}
+
 #[derive(Clone, Debug, Default, Serialize)]
 pub struct Snapshot {
     pub boot: BootSnapshot,
+    pub sleep_policy: SleepPolicySnapshot,
     pub idle: idle::Settings,
     pub sleep: session_idle::Settings,
     /// This session runs the idle publisher; otherwise sleep settings only persist.

@@ -81,5 +81,9 @@ name = "tarot-boot-destination"
 path = "src/bin/boot_destination.rs"
 
 [[bin]]
+name = "tarot-sleep-policy"
+path = "src/bin/sleep_policy.rs"
+
+[[bin]]
 name = "tarot-usb-sleep-hook"
 path = "src/bin/usb_sleep_hook.rs"

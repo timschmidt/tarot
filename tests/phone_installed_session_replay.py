@@ -278,6 +278,9 @@ def run(args, password):
         if getattr(args, 'boot_destination', False):
             from phone_boot_destination_replay import replay as boot_destination_replay
             records['boot_destination'] = boot_destination_replay(socket,screen,tap,state,capture,before,args.output,password)
+        if getattr(args, 'sleep_policy', False):
+            from phone_sleep_policy_replay import replay as sleep_policy_replay
+            records['sleep_policy'] = sleep_policy_replay(socket,screen,tap,state,capture,before,args.output,password)
         if getattr(args, 'network_authorization', False):
             from phone_network_authorization_replay import replay as network_authorization_replay
             records['network_authorization'] = network_authorization_replay(socket,screen,tap,state,capture,before,args.output,cgroup,authenticate,password)
