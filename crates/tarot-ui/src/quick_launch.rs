@@ -138,14 +138,18 @@ pub fn show(
                 crate::native_icons::request(model, &app.id, commands);
             }
             if !original && !native {
-                icon(
-                    &painter,
-                    center,
-                    app.map(|a| a.id.as_str()),
-                    launcher,
-                    id.is_none(),
-                    tint,
-                );
+                if let Some(app) = app.filter(|_| !launcher) {
+                    crate::launcher::fallback_icon(&painter, center, 20.0, app, 1.0);
+                } else {
+                    icon(
+                        &painter,
+                        center,
+                        app.map(|a| a.id.as_str()),
+                        launcher,
+                        id.is_none(),
+                        tint,
+                    );
+                }
             }
         }
         if selected {

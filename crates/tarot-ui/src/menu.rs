@@ -194,7 +194,8 @@ fn row(ui: &mut egui::Ui, model: &ShellModel, item: Item, commands: &mut Vec<Com
     let width = (ui.available_width() - inset - 24.0).max(1.0);
     let label = ui.painter().layout(
         item.label.clone(),
-        FontId::proportional(20.0),
+        // Packet 08: ~18-unit labels.
+        FontId::proportional(18.0),
         if item.enabled {
             TEXT
         } else {
@@ -271,11 +272,15 @@ fn row(ui: &mut egui::Ui, model: &ShellModel, item: Item, commands: &mut Vec<Com
     ui.painter()
         .galley(Pos2::new(rect.left() + inset, top), label, TEXT);
     if has_detail {
-        ui.painter().galley(
-            Pos2::new(rect.left() + inset, top + label_height + 3.0),
-            detail,
-            SECONDARY,
-        );
+        // Packet 08 sets a row's value right-aligned beneath its label.
+        let device = model.system_page == SystemPage::Device;
+        let x = if device {
+            rect.right() - 12.0 - detail.size().x
+        } else {
+            rect.left() + inset
+        };
+        ui.painter()
+            .galley(Pos2::new(x, top + label_height + 3.0), detail, SECONDARY);
     }
     if item.checked {
         glyph::paint(
@@ -293,7 +298,8 @@ fn row(ui: &mut egui::Ui, model: &ShellModel, item: Item, commands: &mut Vec<Com
             SECONDARY,
         );
     }
-    if item.submenu {
+    // The packet's device menu shows no chevrons on its top-level rows.
+    if item.submenu && model.system_page != SystemPage::Device {
         glyph::paint_scaled(
             ui.painter(),
             Pos2::new(rect.right() - 12.0, rect.center().y),

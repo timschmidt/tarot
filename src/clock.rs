@@ -59,7 +59,8 @@ fn local_fields() -> (String, Option<u8>, String) {
             format!("{weekday}, {month} {day}")
         });
     (
-        format!("{:02}:{:02}", local.tm_hour, local.tm_min),
+        // Packet clock style: no leading zero on the hour ("9:41").
+        format!("{}:{:02}", local.tm_hour, local.tm_min),
         day,
         date,
     )

@@ -96,7 +96,15 @@ At the owner's request, rendered host captures of every shell surface were compa
 
 The remaining errors and off-palette accents (volume bar, stack target) now use the token colours.
 
-Open, needing the owner's decision: per-row and banner dismiss buttons (the packet shows none), keyboard key labels and height (packet: glyphs, "?123", "Go", 220 units), device-menu typography (labels ~20 vs ~17–18, right-aligned values, chevrons on root rows), the 24-hour zero-padded clock, and differing fallback icons in the launcher and tray. Some one-off greys remain as literals.
+The owner asked for adherence to the packet, so the remaining deviations were then resolved toward it:
+
+- **Dismissal.** Notification rows and banners have no "×", as in packets 05 and 06; a sideways swipe past 35% of the row dismisses a row or hides a banner (it stays in the dashboard). A vertical drag still scrolls the dashboard. Expanded rows keep a plain Dismiss button, so dismissal never depends on a gesture alone.
+- **Keyboard.** Shift and Backspace are drawn as glyphs (Shift filled while active), the symbols key reads "?123" and the space bar "space". Enter stays "Enter" rather than the packet's search-specific "Go". The keyboard keeps its 240-unit height instead of the token's 220: every native touch replay types at fixed 240-unit coordinates, and the taller keys are easier to hit; this is a deliberate deviation.
+- **Device menu.** 18-unit labels, values right-aligned beneath them, and no chevrons on the top-level rows.
+- **Clock.** No leading zero on the hour ("9:41"), in the status bar and on the lock screen; 24-hour time is kept.
+- **Fallback icons.** The launcher and the dock share one fallback: a circle tinted from the application identity, with its initial.
+
+Some one-off greys remain as literals.
 
 
 

@@ -343,12 +343,11 @@ fn clock() -> (String, String) {
         if libc::localtime_r(&now, &mut tm).is_null() {
             return ("--:--".into(), String::new());
         }
-        let mut a = [0u8; 64];
         let mut b = [0u8; 128];
-        let n = libc::strftime(a.as_mut_ptr().cast(), a.len(), c"%H:%M".as_ptr(), &tm);
         let m = libc::strftime(b.as_mut_ptr().cast(), b.len(), c"%A, %B %e".as_ptr(), &tm);
         (
-            String::from_utf8_lossy(&a[..n]).into_owned(),
+            // Packet clock style: no leading zero on the hour ("9:41").
+            format!("{}:{:02}", tm.tm_hour, tm.tm_min),
             String::from_utf8_lossy(&b[..m]).into_owned(),
         )
     }

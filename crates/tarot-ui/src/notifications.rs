@@ -7,6 +7,38 @@ use tarot_core::{
 
 const MATERIAL: Color32 = Color32::from_rgb(24, 32, 36);
 
+/// A sideways swipe, as in packet 05/06 (no dismiss buttons): returns the
+/// row's current offset, whether it was tapped, and whether a swipe past 35% of
+/// its width was released.
+fn swipe(ui: &egui::Ui, rect: Rect, id: egui::Id) -> (f32, bool, bool) {
+    // Only clicks are sensed here, so a vertical drag still scrolls the
+    // dashboard; the sideways offset is measured from the press origin.
+    let response = ui.interact(rect, id, Sense::click());
+    let (origin, latest, down, released) = ui.input(|i| {
+        (
+            i.pointer.press_origin(),
+            i.pointer.latest_pos(),
+            i.pointer.primary_down(),
+            i.pointer.primary_released(),
+        )
+    });
+    // egui forgets the press origin on the release frame; keep the last offset.
+    let last = ui.ctx().data(|d| d.get_temp::<f32>(id)).unwrap_or(0.0);
+    let mut offset = 0.0;
+    if down
+        && let (Some(origin), Some(latest)) = (origin, latest)
+        && rect.contains(origin)
+    {
+        let delta = latest - origin;
+        if delta.x.abs() > 12.0 && delta.x.abs() > delta.y.abs() * 1.5 {
+            offset = delta.x;
+        }
+    }
+    let dismissed = released && last.abs() > rect.width() * 0.35;
+    ui.ctx().data_mut(|d| d.insert_temp(id, offset));
+    (offset, response.clicked() && last == 0.0, dismissed)
+}
+
 /// Packet 06's dashboard row: a dark vertical gradient with a hairline below.
 fn row_material(rect: Rect) -> egui::Shape {
     let mut mesh = egui::Mesh::default();
@@ -227,13 +259,15 @@ fn item(
             .show(ui, |ui| {
                 let width = ui.available_width();
                 let (row, _) = ui.allocate_exact_size(Vec2::new(width, 48.0), Sense::hover());
-                let dismiss = Rect::from_min_max(Pos2::new(row.right() - 48.0, row.top()), row.max);
-                let content = Rect::from_min_max(row.min, Pos2::new(dismiss.left(), row.bottom()));
+                let (offset, opened, dismissed) = swipe(ui, row, ui.id().with("swipe"));
+                let content = row.translate(Vec2::new(offset, 0.0));
+                let fade = 1.0 - (offset.abs() / row.width()).min(1.0);
                 let icon = Rect::from_min_size(content.min, Vec2::splat(44.0));
                 neutral_icon(ui, icon, 1);
                 let label =
                     Rect::from_min_max(Pos2::new(icon.right() + 4.0, row.top()), content.max);
-                let painter = ui.painter().with_clip_rect(label);
+                let mut painter = ui.painter().with_clip_rect(label.intersect(row));
+                painter.set_opacity(fade);
                 let summary = if item.summary.is_empty() {
                     "Notification"
                 } else {
@@ -262,10 +296,7 @@ fn item(
                     egui::FontId::proportional(tarot_core::design::TYPE_SECONDARY),
                     crate::theme::SECONDARY,
                 );
-                if ui
-                    .interact(content, ui.id().with("open"), Sense::click())
-                    .clicked()
-                {
+                if opened {
                     ui.ctx().data_mut(|d| {
                         let mut entries = d.get_temp::<Vec<(u32, u64)>>(key).unwrap_or_default();
                         entries.retain(|identity| *identity != (item.id, item.revision));
@@ -275,18 +306,7 @@ fn item(
                         d.insert_temp(key, entries);
                     });
                 }
-                if ui
-                    .put(
-                        dismiss,
-                        crate::menu::glyph::GlyphButton::new(
-                            crate::menu::glyph::Glyph::Close,
-                            "Dismiss notification",
-                        )
-                        .frame(false),
-                    )
-                    .on_hover_text("Dismiss notification")
-                    .clicked()
-                {
+                if dismissed {
                     action(
                         commands,
                         UiAction::Dismiss {
@@ -298,6 +318,16 @@ fn item(
                 if expanded {
                     if !item.body.is_empty() {
                         ui.label(&item.body);
+                    }
+                    // A non-gesture path for keyboards and accessibility.
+                    if button(ui, "Dismiss").clicked() {
+                        action(
+                            commands,
+                            UiAction::Dismiss {
+                                id: item.id,
+                                revision: item.revision,
+                            },
+                        );
                     }
                     ui.label(
                         egui::RichText::new(&item.app_name)
@@ -673,7 +703,7 @@ fn banner(ui: &mut egui::Ui, model: &ShellModel, commands: &mut Vec<Command>) {
             // Packet 05: the source icon, then left-aligned text.
             let (icon, _) = ui.allocate_exact_size(Vec2::splat(44.0), Sense::hover());
             neutral_icon(ui, icon, 1);
-            let width = (ui.available_width() - 56.0).max(1.0);
+            let width = ui.available_width().max(1.0);
             ui.vertical(|ui| {
                 ui.set_max_width(width);
                 if !compact {
@@ -689,18 +719,25 @@ fn banner(ui: &mut egui::Ui, model: &ShellModel, commands: &mut Vec<Command>) {
                     &entry.summary
                 };
                 let (rect, response) =
-                    ui.allocate_exact_size(Vec2::new(width, 48.0), Sense::click());
+                    ui.allocate_exact_size(Vec2::new(width, 48.0), Sense::hover());
                 response.widget_info(|| {
                     egui::WidgetInfo::labeled(egui::WidgetType::Button, true, label)
                 });
-                ui.painter().with_clip_rect(rect).text(
-                    Pos2::new(rect.left(), rect.center().y),
+                // Swiping the banner aside hides it; it stays in the dashboard.
+                let (offset, tapped, swiped) = swipe(ui, rect, ui.id().with("banner_swipe"));
+                if swiped {
+                    action(commands, UiAction::HideBanner { id, revision });
+                }
+                let mut painter = ui.painter().with_clip_rect(rect);
+                painter.set_opacity(1.0 - (offset.abs() / rect.width()).min(1.0));
+                painter.text(
+                    Pos2::new(rect.left() + offset, rect.center().y),
                     egui::Align2::LEFT_CENTER,
                     label,
                     egui::FontId::proportional(tarot_core::design::TYPE_SECONDARY),
                     crate::theme::TEXT,
                 );
-                if response.clicked() {
+                if tapped {
                     if entry.actions.iter().any(|a| a.key == "default")
                         && !entry.orphaned
                         && entry.live
@@ -718,20 +755,6 @@ fn banner(ui: &mut egui::Ui, model: &ShellModel, commands: &mut Vec<Command>) {
                     }
                 }
             });
-            if ui
-                .add_sized(
-                    [48.0, 48.0],
-                    crate::menu::glyph::GlyphButton::new(
-                        crate::menu::glyph::Glyph::Close,
-                        "Hide banner",
-                    )
-                    .frame(false),
-                )
-                .on_hover_text("Hide banner; keep in dashboard")
-                .clicked()
-            {
-                action(commands, UiAction::HideBanner { id, revision });
-            }
         });
     });
 }
@@ -876,5 +899,43 @@ mod tests {
                 key: "default".into()
             })]
         );
+    }
+
+    #[test]
+    fn swiping_a_banner_aside_hides_it_and_a_short_drag_does_not() {
+        for (distance, hides) in [(160.0, true), (20.0, false)] {
+            let ctx = egui::Context::default();
+            let mut store = Store::default();
+            let id = store.notify(":1.1", 0, incoming(), Duration::ZERO).unwrap();
+            let mut model = ShellModel::default();
+            model.add_window(tarot_core::WindowId(7), "Fixture".into(), "fixture".into());
+            model.notifications = store.snapshot();
+            for _ in 0..3 {
+                frame(&ctx, &model, vec![]);
+            }
+            let well = layout(&model).notification_well();
+            let start = Pos2::new(120.0, well.y + well.height * 0.5);
+            let mut commands = frame(&ctx, &model, pointer(start, true));
+            for step in 1..=8 {
+                let at = start + Vec2::new(distance * step as f32 / 8.0, 0.0);
+                commands.extend(frame(&ctx, &model, vec![egui::Event::PointerMoved(at)]));
+            }
+            commands.extend(frame(
+                &ctx,
+                &model,
+                pointer(start + Vec2::new(distance, 0.0), false),
+            ));
+            let hidden = commands.contains(&Command::Notification(UiAction::HideBanner {
+                id,
+                revision: model.notifications.items[0].revision,
+            }));
+            assert_eq!(hidden, hides, "distance {distance}");
+            assert!(
+                !commands
+                    .iter()
+                    .any(|c| matches!(c, Command::Notification(UiAction::Invoke { .. }))),
+                "a swipe never invokes"
+            );
+        }
     }
 }

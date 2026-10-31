@@ -182,7 +182,7 @@ impl KeyboardUi {
                 let w = ui.available_width();
                 if key(
                     ui,
-                    if self.symbols { "ABC" } else { "123" },
+                    if self.symbols { "ABC" } else { "?123" },
                     w * 0.15,
                     row_height,
                 ) {
@@ -190,7 +190,7 @@ impl KeyboardUi {
                     self.symbols_more = false;
                     self.shift = false;
                 }
-                if key(ui, "Space", w * 0.45 - 4.0, row_height) {
+                if key(ui, "space", w * 0.45 - 4.0, row_height) {
                     actions.push(Action::Text(" ".into()));
                 }
                 if key(ui, "Enter", w * 0.18 - 4.0, row_height) {
@@ -259,15 +259,77 @@ fn paint_keys(ui: &mut egui::Ui, rest: egui::Color32, pressed: egui::Color32, te
 
 fn key(ui: &mut egui::Ui, label: &str, width: f32, height: f32) -> bool {
     let label = if label == "🙂" { ":)" } else { label };
-    if matches!(label, "Shift" | "Bksp" | "Enter") {
+    if matches!(label, "Shift" | "SHIFT" | "Bksp" | "Enter") {
         return ui
             .scope(|ui| {
                 paint_keys(ui, FUNCTION_KEY, FUNCTION_PRESSED, crate::theme::TEXT);
-                plain_key(ui, label, width, height)
+                match label {
+                    "Shift" | "SHIFT" => glyph_key(ui, label, width, height),
+                    "Bksp" => glyph_key(ui, label, width, height),
+                    _ => plain_key(ui, label, width, height),
+                }
             })
             .inner;
     }
     plain_key(ui, label, width, height)
+}
+
+/// Packet 10 draws Shift and Backspace as glyphs; Lato has neither, so they
+/// are vector shapes. The accessible names stay "Shift" and "Backspace".
+fn glyph_key(ui: &mut egui::Ui, label: &str, width: f32, height: f32) -> bool {
+    let response = ui.add_sized([width, height], egui::Button::new("").corner_radius(5.0));
+    let name = match label {
+        "Bksp" => "Backspace",
+        "SHIFT" => "Shift (on)",
+        _ => "Shift",
+    };
+    response
+        .widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, ui.is_enabled(), name));
+    let color = ui.style().interact(&response).fg_stroke.color;
+    let stroke = egui::Stroke::new(1.6_f32, color);
+    let c = response.rect.center();
+    let at = |x: f32, y: f32| c + egui::vec2(x, y);
+    let painter = ui.painter();
+    match label {
+        "Bksp" => {
+            let outline = vec![
+                at(-11.0, 0.0),
+                at(-5.0, -7.0),
+                at(10.0, -7.0),
+                at(10.0, 7.0),
+                at(-5.0, 7.0),
+            ];
+            painter.add(egui::Shape::closed_line(outline, stroke));
+            painter.line_segment([at(-1.0, -3.0), at(5.0, 3.0)], stroke);
+            painter.line_segment([at(5.0, -3.0), at(-1.0, 3.0)], stroke);
+        }
+        _ => {
+            let arrow = vec![
+                at(0.0, -9.0),
+                at(9.0, 0.0),
+                at(4.0, 0.0),
+                at(4.0, 8.0),
+                at(-4.0, 8.0),
+                at(-4.0, 0.0),
+                at(-9.0, 0.0),
+            ];
+            if label == "SHIFT" {
+                // Filled while active: the head and stem are each convex.
+                painter.add(egui::Shape::convex_polygon(
+                    vec![at(0.0, -9.0), at(9.0, 0.0), at(-9.0, 0.0)],
+                    color,
+                    egui::Stroke::NONE,
+                ));
+                painter.rect_filled(
+                    egui::Rect::from_min_max(at(-4.0, 0.0), at(4.0, 8.0)),
+                    0.0,
+                    color,
+                );
+            }
+            painter.add(egui::Shape::closed_line(arrow, stroke));
+        }
+    }
+    response.clicked()
 }
 
 fn plain_key(ui: &mut egui::Ui, label: &str, width: f32, height: f32) -> bool {

@@ -537,28 +537,12 @@ pub(crate) fn paint_application(
         crate::native_icons::request(model, &app.id, commands);
     }
     if !original && !native {
-        let hue = app.id.bytes().fold(0u8, u8::wrapping_add);
-        let color = if app.unavailable.is_some() {
-            Color32::from_gray(80)
-        } else {
-            Color32::from_rgb(55 + hue % 80, 100 + hue % 90, 110 + hue % 75)
-        };
-        ui.painter().circle_filled(
+        fallback_icon(
+            ui.painter(),
             center,
             if compact { 14.0 } else { 24.0 },
-            color.gamma_multiply(opacity),
-        );
-        ui.painter().text(
-            center,
-            Align2::CENTER_CENTER,
-            app.name
-                .chars()
-                .next()
-                .unwrap_or('?')
-                .to_uppercase()
-                .to_string(),
-            FontId::proportional(if compact { 18.0 } else { 25.0 }),
-            Color32::WHITE.gamma_multiply(opacity),
+            app,
+            opacity,
         );
     }
     let mut job = egui::text::LayoutJob::simple(
@@ -578,6 +562,36 @@ pub(crate) fn paint_application(
             label,
             label_color,
         );
+}
+
+/// The one fallback for an application without usable artwork, shared by the
+/// launcher and the dock: a circle tinted from its identity, with its initial.
+pub(crate) fn fallback_icon(
+    painter: &Painter,
+    center: Pos2,
+    radius: f32,
+    app: &tarot_core::Application,
+    opacity: f32,
+) {
+    let hue = app.id.bytes().fold(0u8, u8::wrapping_add);
+    let color = if app.unavailable.is_some() {
+        Color32::from_gray(80)
+    } else {
+        Color32::from_rgb(55 + hue % 80, 100 + hue % 90, 110 + hue % 75)
+    };
+    painter.circle_filled(center, radius, color.gamma_multiply(opacity));
+    painter.text(
+        center,
+        Align2::CENTER_CENTER,
+        app.name
+            .chars()
+            .next()
+            .unwrap_or('?')
+            .to_uppercase()
+            .to_string(),
+        FontId::proportional(radius * 25.0 / 24.0),
+        Color32::WHITE.gamma_multiply(opacity),
+    );
 }
 
 #[cfg(test)]
