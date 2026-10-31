@@ -14,6 +14,8 @@ M0 remains in progress. The phone has been upgraded through supported releases t
 
 Tarot is now the default login session on the development phone, with the normal installed entry running and diagnostics disabled. The retained revision 8 → 5 → 8 package round trip passes real PAM, native app/audio and cleanup checks on both revisions.
 
+Revision 62 adds an **At startup** choice on the Power page: show the login screen, or start Tarot directly, still locked behind your password. Changing it asks for administrator authentication. On the phone, direct boot starts Tarot as a proper Wayland session without the greeter, logging out returns to Phrog, and switching back restores the original configuration exactly. [Evidence and limits](docs/recordings/boot-destination/README.md).
+
 Revision 61 achieves the first real automatic sleep. With the opt-in `tarot-automatic-sleep` package (`IdleAction=suspend`, active after a reboot), the session manager suspends the phone once Tarot reports a protected idle session. Tarot resumes protected, and the password restores the same session. Automatic sleep stays off by default and was tested on external power only. [Evidence and limits](docs/recordings/automatic-sleep/README.md).
 
 Revision 60 fixes system sleep on the phone when it is charging with no USB host attached. In that state the USB controller's gadget made every suspend fail with `-11`. A packaged Rust elogind sleep hook now unbinds only detached gadgets and restores them afterward. Ten real RTC-woken deep-sleep cycles succeed in normal Tarot60. [Evidence and limits](docs/recordings/usb-sleep/README.md).

@@ -4,6 +4,7 @@ mod audio;
 mod audio_inhibit;
 mod authorization;
 mod bluetooth;
+mod boot_settings;
 mod card_renderer;
 mod clock;
 mod control;
@@ -434,6 +435,10 @@ fn main() -> Result<()> {
             options.platform_bus.clone(),
             physical,
         )?);
+    }
+    // Startup destination is a system setting of installed physical sessions.
+    if physical && data.state.shell.display.idle_configurable {
+        data.state.boot_settings = boot_settings::start(&event_loop.handle(), &mut data.state)?;
     }
     if options.session_idle {
         anyhow::ensure!(

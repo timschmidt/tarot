@@ -215,6 +215,7 @@ fn power_controls(
             ui.separator();
             idle_controls(ui, model, commands);
             sleep_controls(ui, model, commands);
+            boot_controls(ui, model, commands);
             if model.display.settings_available {
                 if model.display.settings_error.is_some() {
                     ui.colored_label(
@@ -356,5 +357,36 @@ fn sleep_controls(ui: &mut egui::Ui, model: &ShellModel, commands: &mut Vec<Comm
     }
     if settings != previous {
         commands.push(Command::SleepSettings(settings));
+    }
+}
+
+/// What the phone shows at boot. The radio reflects the observed system file;
+/// a choice stays pending until the helper finishes and the file is reread.
+fn boot_controls(ui: &mut egui::Ui, model: &ShellModel, commands: &mut Vec<Command>) {
+    use tarot_core::display::BootDestination;
+    let boot = &model.display.boot;
+    if !model.lock_available || !boot.available {
+        return;
+    }
+    ui.separator();
+    ui.label(egui::RichText::new("At startup").strong());
+    let shown = boot.pending.or(boot.current);
+    ui.add_enabled_ui(boot.pending.is_none() && boot.current.is_some(), |ui| {
+        ui.spacing_mut().interact_size.y = 44.0;
+        for (choice, label) in [
+            (BootDestination::Greeter, "Show the login screen"),
+            (BootDestination::Tarot, "Start Tarot, locked"),
+        ] {
+            if ui.radio(shown == Some(choice), label).clicked() && shown != Some(choice) {
+                commands.push(Command::BootDestination(choice));
+            }
+        }
+    });
+    ui.label("Tarot still asks for your password before showing anything. Changes apply at the next restart.");
+    if boot.pending.is_some() {
+        ui.label("Waiting for administrator authentication…");
+    }
+    if let Some(error) = &boot.error {
+        ui.colored_label(Color32::LIGHT_RED, error);
     }
 }

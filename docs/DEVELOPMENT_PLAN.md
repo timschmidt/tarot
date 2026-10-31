@@ -449,7 +449,10 @@ identities, failures and unsupported states with the device evidence.
 
 ### M4 addition: boot destination setting
 
-**Requested October 30, 2026 by the owner; planned, not implemented.** Add a
+**Requested October 30, 2026 by the owner. Implemented in signed revision 62;
+native helper and boot evidence pass.** The finger and Polkit-agent acceptance
+path, keyring and encryption audit, and guarded package removal remain open.
+[Evidence](recordings/boot-destination/README.md). Add a
 Settings choice for what Nura shows at boot:
 - **Login screen:** the distribution's greeter (currently Phrog) offers the
   session list and authenticates. This is today's behavior.

@@ -98,6 +98,7 @@ pub enum Command {
     LoadIcon(String),
     IdleTimeouts(idle::Settings),
     SleepSettings(session_idle::Settings),
+    BootDestination(display::BootDestination),
     RotationLock(bool),
     Lock,
     Home,
@@ -155,6 +156,7 @@ pub enum Effect {
     },
     IdleTimeouts(idle::Settings),
     SleepSettings(session_idle::Settings),
+    BootDestination(display::BootDestination),
     RotationLock(bool),
     Lock,
     Focus(Option<WindowId>),
@@ -900,6 +902,16 @@ impl ShellModel {
             Command::SleepSettings(settings) => {
                 return vec![Effect::SleepSettings(settings)];
             }
+            Command::BootDestination(choice) => {
+                let boot = &mut self.display.boot;
+                // One request at a time; a confirmed current choice is a no-op.
+                if !boot.available || boot.pending.is_some() || boot.current == Some(choice) {
+                    return Vec::new();
+                }
+                boot.pending = Some(choice);
+                boot.error = None;
+                return vec![Effect::BootDestination(choice)];
+            }
             Command::RotationLock(locked) => {
                 self.rotation_locked = locked;
                 return vec![Effect::RotationLock(locked)];
@@ -1420,6 +1432,40 @@ mod tests {
         m.menus.history = vec![SystemPage::Power];
         m
     }
+    #[test]
+    fn boot_destination_requests_are_single_and_never_assume_success() {
+        use display::{BootDestination, BootSnapshot};
+        let mut model = ShellModel::default();
+        assert!(
+            model
+                .apply(Command::BootDestination(BootDestination::Tarot))
+                .is_empty()
+        );
+        model.display.boot = BootSnapshot {
+            available: true,
+            current: Some(BootDestination::Greeter),
+            pending: None,
+            error: Some("old".into()),
+        };
+        assert!(
+            model
+                .apply(Command::BootDestination(BootDestination::Greeter))
+                .is_empty()
+        );
+        assert_eq!(
+            model.apply(Command::BootDestination(BootDestination::Tarot)),
+            [Effect::BootDestination(BootDestination::Tarot)]
+        );
+        assert_eq!(model.display.boot.pending, Some(BootDestination::Tarot));
+        assert_eq!(model.display.boot.current, Some(BootDestination::Greeter));
+        assert!(model.display.boot.error.is_none());
+        assert!(
+            model
+                .apply(Command::BootDestination(BootDestination::Greeter))
+                .is_empty()
+        );
+    }
+
     #[test]
     fn authentication_returns_to_settings_and_retires_both_private_fields() {
         let mut m = wifi_model();

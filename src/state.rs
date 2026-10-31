@@ -70,6 +70,7 @@ pub struct Compositor {
     pub idle: crate::idle::State,
     pub session_idle: crate::session_idle_host::State,
     pub session_idle_worker: Option<tarot::session_idle::Worker>,
+    pub boot_settings: Option<crate::boot_settings::Server>,
     pub hardware: crate::hardware::State,
     pub locker: Option<crate::lock::ManagedLocker>,
     pub pointer_buttons: HashSet<u32>,
@@ -254,6 +255,7 @@ impl Compositor {
             idle: Default::default(),
             session_idle: Default::default(),
             session_idle_worker: None,
+            boot_settings: None,
             hardware: Default::default(),
             locker: None,
             pointer_buttons: Default::default(),
@@ -733,6 +735,17 @@ impl Compositor {
                     if self.shell.display.idle_configurable && settings.valid() {
                         self.shell.display.sleep = settings;
                         self.persist_display_preferences();
+                    }
+                }
+                Effect::BootDestination(choice) => {
+                    if !self
+                        .boot_settings
+                        .as_ref()
+                        .is_some_and(|server| server.request(choice))
+                    {
+                        let boot = &mut self.shell.display.boot;
+                        boot.pending = None;
+                        boot.error = Some("Startup setting is busy; try again".into());
                     }
                 }
                 Effect::RotationLock(locked) => {

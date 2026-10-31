@@ -11,8 +11,26 @@ pub struct Preferences {
     pub sleep: session_idle::Settings,
 }
 
+/// What the phone shows at boot: the distribution greeter, or Tarot directly.
+/// Direct boot still starts protected; actual PAM precedes any content.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+pub enum BootDestination {
+    Greeter,
+    Tarot,
+}
+
+/// Observed system configuration, never assumed from a request.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize)]
+pub struct BootSnapshot {
+    pub available: bool,
+    pub current: Option<BootDestination>,
+    pub pending: Option<BootDestination>,
+    pub error: Option<String>,
+}
+
 #[derive(Clone, Debug, Default, Serialize)]
 pub struct Snapshot {
+    pub boot: BootSnapshot,
     pub idle: idle::Settings,
     pub sleep: session_idle::Settings,
     /// This session runs the idle publisher; otherwise sleep settings only persist.

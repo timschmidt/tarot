@@ -7,10 +7,15 @@ The newly supplied Fx0 Gold packet is retained as reference. The owner's deferre
 schedules an optional Gold theme and reusable device support/Fx0 port after all
 existing work. It changes no current runtime theme or hardware baseline.
 
-A Settings choice between booting to the greeter and booting directly
-into a locked Tarot session is now planned as an
-[M4 addition](DEVELOPMENT_PLAN.md#m4-addition-boot-destination-setting).
-It is not yet implemented.
+Revision 62 implements the
+[boot destination setting](DEVELOPMENT_PLAN.md#m4-addition-boot-destination-setting).
+The Power page chooses Phrog or a direct, locked Tarot session through a
+Polkit-gated Rust helper and greetd's `initial_session`. A Tarot PAM service
+supplies the Wayland session type that greetd 0.10.3 omits. Native
+reboot-separated phases pass: inactive caller refused, a real direct boot to a
+valid login1 Wayland session with no greeter, fallback to Phrog on exit, and
+exact restoration. The finger/Polkit-agent path and keyring audit remain.
+[Evidence](recordings/boot-destination/README.md).
 
 Android applications through Waydroid are now planned as
 [M6A](DEVELOPMENT_PLAN.md#m6a-android-applications-as-cards-through-waydroid),

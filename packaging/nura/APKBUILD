@@ -1,7 +1,7 @@
 # Local source-snapshot recipe. Keep Phosh installed as a recovery session.
 pkgname=tarot
 pkgver=0.1.0
-pkgrel=61
+pkgrel=62
 pkgdesc="Rust phone shell and Wayland compositor (development preview)"
 url="https://github.com/timschmidt/tarot"
 arch="aarch64"
@@ -43,6 +43,13 @@ package() {
 		"$pkgdir/usr/libexec/elogind/system-sleep/tarot-usb-gadget"
 	install -Dm644 packaging/nura/tarot.desktop "$pkgdir/usr/share/wayland-sessions/tarot.desktop"
 	install -Dm644 packaging/pam/tarot-lock "$pkgdir/etc/pam.d/tarot-lock"
+	# Boot destination: root helper behind Polkit, and the direct-boot PAM service.
+	install -Dm755 "target/$_rust_target/release/tarot-boot-destination" \
+		"$pkgdir/usr/libexec/tarot-boot-destination"
+	install -Dm644 packaging/nura/org.tarot.boot-destination.policy \
+		"$pkgdir/usr/share/polkit-1/actions/org.tarot.boot-destination.policy"
+	install -Dm644 packaging/pam/tarot-greetd "$pkgdir/etc/pam.d/tarot-greetd"
+	install -Dm644 packaging/nura/greetd-session.conf "$pkgdir/usr/share/tarot/greetd-session.conf"
 	install -Dm644 LICENSE-MIT "$pkgdir/usr/share/licenses/tarot/LICENSE-MIT"
 	install -Dm644 LICENSE-APACHE "$pkgdir/usr/share/licenses/tarot/LICENSE-APACHE"
 	install -Dm644 third-party/gtk/COPYING "$pkgdir/usr/share/licenses/tarot/GTK-COPYING"

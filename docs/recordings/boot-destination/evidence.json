@@ -1,0 +1,85 @@
+{
+  "date": "2026-10-30",
+  "package": "tarot-0.1.0-r62",
+  "apk_sha256": "c238a0ded4ba26669223084a512de4b4e07938691375083ef73db1eb85b35ad4",
+  "added_files": {
+    "usr/libexec/tarot-boot-destination": "e7df7566e960a3dc2d01e9532b09702dd87e83cd0ef4f083bb1f7cc2be1b70e7",
+    "usr/share/polkit-1/actions/org.tarot.boot-destination.policy": "86f960fa1bb329d422d8700d81bdfe57f4440194f6217d281a76be9a5da20c8f",
+    "etc/pam.d/tarot-greetd": "862f6aa88751b9d715569ca3fa4ac6c9d2d019cbac787b9d43db72d03a53b7a3",
+    "usr/share/tarot/greetd-session.conf": "0a5cba54a032d9f3f5e0075f3f7ca1c0f6c107bec16544443dbe5b179717e1fa"
+  },
+  "binaries_sha256": {
+    "tarot": "baab15ab2215c01ba758c8a4e56b0205d6b229400796ebd065cc993c4908a2cb",
+    "tarot-session": "90ae33b2a8943a0f179837be857e1de686f1b13e5e306830830f0b7f7926d215",
+    "tarot-lock": "cd084fe0e6cde2d0778a80cccf8d693a88fef467c042335476d5dfe686aeb3ec",
+    "tarot-keyboard": "d6b4e53a4eec35d814a6092e4f4ed0374b8ca71d367fbff8ddd660c2f47bb931"
+  },
+  "source_archive_sha256": "33332882726407389004a796b41a68bd3d2a801df4b536199a12e40730a858d2",
+  "workspace": {
+    "current": {
+      "passed": 294,
+      "failed": 0,
+      "ignored": 9
+    },
+    "minimum": {
+      "passed": 294,
+      "failed": 0,
+      "ignored": 9
+    }
+  },
+  "phases": {
+    "select": {
+      "boot_id": "c7f57001-e1f8-4dfa-97fe-29ca81768f22",
+      "passed": true,
+      "status_before": {
+        "destination": "Greeter",
+        "user": null
+      },
+      "inactive_pkexec": {
+        "code": 127,
+        "err": "Error executing command as another user: Not authorized\n\nThis incident has been reported."
+      },
+      "select": {
+        "code": 0,
+        "out": "{\"destination\":\"Tarot\",\"user\":\"user\"}",
+        "err": ""
+      },
+      "managed_sha256": "961b0c580a8ed4959e7e5d1d3b8ec88a08d234473e5408a3360b2a6cebfcecc0"
+    },
+    "direct": {
+      "boot_id": "d180dfa1-7278-4709-aa47-bad66a37cb15",
+      "passed": true,
+      "greeter_absent": true,
+      "locker_running": true,
+      "session": {
+        "path": "/org/freedesktop/login1/session/c1",
+        "User": "(<(uint32 10000, objectpath '/org/freedesktop/login1/user/_10000')>,)",
+        "Type": "(<'wayland'>,)",
+        "Class": "(<'user'>,)",
+        "Active": "(<true>,)",
+        "Remote": "(<false>,)",
+        "VTNr": "(<uint32 7>,)",
+        "Service": "(<'tarot-greetd'>,)",
+        "Seat": "(<('seat0', objectpath '/org/freedesktop/login1/seat/seat0')>,)"
+      },
+      "greeter_fallback": true,
+      "initial_session_not_repeated": true,
+      "restore": {
+        "code": 0,
+        "out": "{\"destination\":\"Greeter\",\"user\":null}",
+        "err": ""
+      }
+    },
+    "final": {
+      "boot_id": "026ac89f-d639-4e0b-9c33-52224870708a",
+      "passed": true,
+      "greeter_at_boot": true,
+      "no_direct_session": true
+    }
+  },
+  "original_confd_sha256": "6523d36fa3490b4f518184bb0d5a1dd025f14e93ead2b0f9a80f82d685a953f0",
+  "record_sha256": "b5d057406cae775f6ca3dcbdc403f66607785a1b6119e998694d5f77fabe7f99",
+  "touch_polkit_path_tested": false,
+  "protected_startup_measured_in_direct_boot": false,
+  "default": "greeter"
+}

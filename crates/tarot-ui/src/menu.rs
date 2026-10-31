@@ -875,6 +875,51 @@ mod tests {
     }
 
     #[test]
+    fn startup_choice_reflects_observed_state_and_emits_one_request() {
+        use tarot_core::display::{BootDestination, BootSnapshot};
+        let ctx = egui::Context::default();
+        let mut model = ShellModel::default();
+        let size = Vec2::new(360.0, 1800.0);
+        model.power.enabled = true;
+        model.lock_available = true;
+        model.display.idle_configurable = true;
+        model.apply(Command::SystemMenuOpen(true));
+        model.apply(Command::SystemPage(SystemPage::Power));
+        let output = settle(&ctx, &model, size);
+        assert!(!output.shapes.iter().any(|s| matches!(&s.shape,
+            egui::Shape::Text(t) if t.galley.job.text == "At startup")));
+        model.display.boot = BootSnapshot {
+            available: true,
+            current: Some(BootDestination::Greeter),
+            pending: None,
+            error: None,
+        };
+        let output = settle(&ctx, &model, size);
+        let tarot = position(&output, "Start Tarot, locked");
+        let mut commands = render(&ctx, &model, size, vec![Event::PointerMoved(tarot)]).0;
+        commands.extend(render(&ctx, &model, size, vec![button(tarot, true)]).0);
+        commands.extend(render(&ctx, &model, size, vec![button(tarot, false)]).0);
+        assert_eq!(commands, [Command::BootDestination(BootDestination::Tarot)]);
+        for command in commands {
+            model.apply(command);
+        }
+        let output = settle(&ctx, &model, size);
+        position(&output, "Waiting for administrator authentication…");
+        // While pending, further touches cannot queue another change.
+        let greeter = position(&output, "Show the login screen");
+        let mut commands = render(&ctx, &model, size, vec![Event::PointerMoved(greeter)]).0;
+        commands.extend(render(&ctx, &model, size, vec![button(greeter, true)]).0);
+        commands.extend(render(&ctx, &model, size, vec![button(greeter, false)]).0);
+        assert!(commands.is_empty(), "{commands:?}");
+        model.display.boot.pending = None;
+        model.display.boot.error = Some("Not changed: authorization was not given".into());
+        position(
+            &settle(&ctx, &model, size),
+            "Not changed: authorization was not given",
+        );
+    }
+
+    #[test]
     fn sound_scroll_survives_service_updates_while_held_route_choices_retire() {
         use tarot_core::audio::{Availability, Output, Port, UiAction};
         for feedback_update in [false, true] {
