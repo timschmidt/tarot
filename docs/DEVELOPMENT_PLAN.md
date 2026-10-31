@@ -701,9 +701,11 @@ container, image and kernel features are standard platform components.
 Investigation checkpoint, October 31: on the PinePhone Pro, the distribution's
 Waydroid 1.6.2 runs a Google-free LineageOS 20 image with hardware GLES on
 Panfrost, after enabling the firewall rules postmarketOS ships separately.
-Multi-window mode opens an Android app as its own task and follows the
-configured size. Tarot's view of the cards, power and input remain to be
-measured. [Audit and findings](WAYDROID.md).
+Launched from Tarot's catalog in multi-window mode, an Android app becomes one
+correctly titled card, and closing the card ends its Android task. Apps do not
+yet fill their card: Android runs them as small freeform windows, and Waydroid
+has no task resize to follow the card's size, so an upstream change is needed.
+Power and input remain to be measured. [Audit and findings](WAYDROID.md).
 
 **Acceptance:** run the following on the PinePhone Pro, from a fresh install
 with Android support enabled in Settings:
