@@ -11,6 +11,27 @@ const MATERIAL: Color32 = Color32::from_rgb(24, 32, 36);
 /// row's current offset, whether it was tapped, and whether a swipe past 35% of
 /// its width was released.
 fn swipe(ui: &egui::Ui, rect: Rect, id: egui::Id) -> (f32, bool, bool) {
+    // `Context::run` may repeat a pass, and the compositor keeps only the
+    // final pass's commands; input events reach the first pass alone. Decide
+    // once per frame and repeat that decision in later passes.
+    let decided = id.with("decision");
+    let frame = ui.ctx().cumulative_frame_nr();
+    if ui.ctx().current_pass_index() > 0
+        && let Some((at, decision)) = ui
+            .ctx()
+            .data(|d| d.get_temp::<(u64, (f32, bool, bool))>(decided))
+        && at == frame
+    {
+        let _ = ui.interact(rect, id, Sense::click());
+        return decision;
+    }
+    let decision = swipe_events(ui, rect, id);
+    ui.ctx()
+        .data_mut(|d| d.insert_temp(decided, (frame, decision)));
+    decision
+}
+
+fn swipe_events(ui: &egui::Ui, rect: Rect, id: egui::Id) -> (f32, bool, bool) {
     // Only clicks are sensed here, so a vertical drag still scrolls the
     // dashboard. The swipe is read from the frame's own press and release
     // events, which carry their positions: on the phone a whole touch swipe,
@@ -1032,5 +1053,61 @@ mod tests {
                 "batched {batched}: {commands:?}"
             );
         }
+    }
+
+    #[test]
+    fn a_swipe_survives_a_repeated_egui_pass() {
+        // egui may run a frame's UI twice; only the final pass's commands are
+        // kept, as in the compositor, and input events reach the first pass.
+        fn frame_with_discard(
+            ctx: &egui::Context,
+            model: &ShellModel,
+            events: Vec<egui::Event>,
+        ) -> Vec<Command> {
+            crate::prepare_pointer_input(ctx, &events);
+            let mut commands = vec![];
+            let _ = ctx.run(
+                egui::RawInput {
+                    screen_rect: Some(Rect::from_min_size(Pos2::ZERO, Vec2::new(360.0, 720.0))),
+                    events,
+                    focused: true,
+                    ..Default::default()
+                },
+                |ctx| {
+                    if ctx.current_pass_index() == 0 {
+                        ctx.request_discard("test: repeat this pass");
+                    }
+                    commands = crate::show(ctx, model, layout(model));
+                },
+            );
+            commands
+        }
+        let ctx = egui::Context::default();
+        let mut store = Store::default();
+        let id = store.notify(":1.1", 0, incoming(), Duration::ZERO).unwrap();
+        let mut model = ShellModel::default();
+        model.notifications = store.snapshot();
+        model.apply(Command::NotificationsOpen(true));
+        for _ in 0..3 {
+            frame(&ctx, &model, vec![]);
+        }
+        let well = layout(&model).notification_well();
+        let start = Pos2::new(60.0, well.y + 48.0 + 4.0 + 4.0 + 24.0);
+        let all =
+            pointer(start, true)
+                .into_iter()
+                .chain((1..=8).map(|step| {
+                    egui::Event::PointerMoved(start + Vec2::new(32.0 * step as f32, 0.0))
+                }))
+                .chain(pointer(start + Vec2::new(256.0, 0.0), false))
+                .collect();
+        let commands = frame_with_discard(&ctx, &model, all);
+        assert!(
+            commands.contains(&Command::Notification(UiAction::Dismiss {
+                id,
+                revision: model.notifications.items[0].revision,
+            })),
+            "{commands:?}"
+        );
     }
 }
