@@ -99,8 +99,16 @@ windows. Reloading the Wi-Fi driver (`brcmfmac`) cleared it, and it could not
 be reproduced afterwards. The patch firmware, the 32 kHz clock, UART flow
 control and power saving were ruled out. `tests/bluetooth_reachability.py`
 with `tests/phone_bluetooth_visible.py` checks the incoming direction from
-the host. Headset audio remains open.
+the host.
 [Investigation and evidence](recordings/bluetooth-peer/README.md).
+
+The owner's JLab Studio then passed A2DP stereo (SBC) and HFP wideband voice
+(mSBC) in both directions, checked by ear, after re-pairing: it had forgotten
+the phone's link key (`br-connection-key-missing`). PulseAudio switches output
+to the headset on connect. From revision 65 its play and pause buttons control
+the player shown in the dashboard. Tarot's Sound page with a headset, call
+audio and in-Tarot profile switching remain untested.
+[Evidence and limits](recordings/bluetooth-headset/README.md).
 
 API references: [Adapter1](https://bluez.readthedocs.io/en/latest/adapter-api/),
 [Device1](https://bluez.readthedocs.io/en/latest/device-api/) and

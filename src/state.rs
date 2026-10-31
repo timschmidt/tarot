@@ -685,6 +685,17 @@ impl Compositor {
         self.redraw = true;
     }
 
+    /// Send a control the media snapshot already accepted as pending.
+    pub fn media_control(&mut self, control: tarot_core::media::Control) {
+        if !self
+            .media
+            .as_ref()
+            .is_some_and(|server| server.control(control))
+        {
+            self.shell.media.pending = None;
+            self.shell.media.error = Some("Media controls are busy".into());
+        }
+    }
     pub fn apply_effects(&mut self, effects: Vec<Effect>) {
         for effect in effects {
             if self.protected()
@@ -807,16 +818,7 @@ impl Compositor {
                         }
                     }
                 }
-                Effect::Media(control) => {
-                    if !self
-                        .media
-                        .as_ref()
-                        .is_some_and(|server| server.control(control))
-                    {
-                        self.shell.media.pending = None;
-                        self.shell.media.error = Some("Media controls are busy".into());
-                    }
-                }
+                Effect::Media(control) => self.media_control(control),
                 Effect::Feedback(action) => {
                     if let Some(server) = &self.feedback {
                         match server.action(action) {

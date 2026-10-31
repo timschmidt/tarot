@@ -415,6 +415,8 @@ fn send(connection: &Connection, known: &[Known], control: Control) -> Result<()
     ensure!(owner == target.owner, "player changed owner");
     let method = match control.action {
         Action::PlayPause => "PlayPause",
+        Action::Play => "Play",
+        Action::Pause => "Pause",
         Action::Next => "Next",
         Action::Previous => "Previous",
     };

@@ -122,8 +122,8 @@ members, 654 frozen inputs), the host peer report `run2.jsonl`, and
 
 ## Still open
 
-- **Audio:** A2DP or HFP audio with a real headset, and its sound quality.
-  Pairing a headset close to the phone is the next physical step.
+- **Audio:** done with the owner's headset at close range; see the
+  [headset check](../bluetooth-headset/README.md).
 - **Incoming trigger:** what puts coexistence into the state that blocks
   incoming connections.
 - **Range:** classic Bluetooth range at the phone's −72 dBm spot was poor in

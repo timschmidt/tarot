@@ -5,6 +5,10 @@ identified JLab Studio and made it available for testing. Further physical
 Bluetooth testing is now deferred at the owner's request. No complete headset
 acceptance or Bluetooth audio pass is claimed.
 
+**Update, October 31:** the owner resumed physical tests. The same headset,
+re-paired at close range, now passes A2DP and HFP audio, and its buttons control
+playback from revision 65; see the [headset check](../bluetooth-headset/README.md).
+
 The native touchscreen selected the exact advertised name and paired the
 headphones. Independent ordinary-user BlueZ readback observed Paired=true and a
 transient connection with resolved services. A later test changed Trust while
@@ -67,5 +71,5 @@ reply in a live, unlocked session. The five-minute handoff needs suitably longer
 temporary idle preferences and exact restoration afterward. A separate normal
 session audit is required, including after failure/cancellation.
 
-Do not resume physical Bluetooth tests, request headphone actions or play tones
-until the owner resumes that work. The rest of Tarot development remains active.
+Physical tests resumed on October 31 with the owner present; see the
+[headset check](../bluetooth-headset/README.md).

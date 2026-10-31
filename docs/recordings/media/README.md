@@ -106,6 +106,7 @@ The replay now places the tap according to whether an artist line is shown.
   remain to be tested.
 - **Layout.** The compact landscape dashboard doesn't show the row. There is no
   progress bar, seeking, artwork or volume control.
-- **Hardware keys.** Media keys are not routed to players.
+- **Hardware keys.** From revision 65, media keys go to the shown player; see
+  the [headset check](../bluetooth-headset/README.md).
 - **Policy.** Audio focus and call-time media pausing belong to the later
   call/media policy work.

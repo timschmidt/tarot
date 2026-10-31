@@ -38,8 +38,8 @@ Revision 64 media checkpoint, October 31: the notification dashboard shows the c
 with Previous, Play/Pause and Next. A bounded session-bus worker rereads players on signals without
 polling, cleans and caps their text, and delivers each control to the exact observed exporter. Ten
 private-bus host cases pass on both compilers. On the phone, Play and Pause by touch reach a
-user-session fixture and are read back, and locked status omits media. Real players, media keys and
-call-time pausing remain. [Evidence](recordings/media/README.md).
+user-session fixture and are read back, and locked status omits media. Media keys are routed from revision 65
+([headset check](recordings/bluetooth-headset/README.md)); more real players and call-time pausing remain. [Evidence](recordings/media/README.md).
 
 Revision 61 automatic sleep checkpoint, October 30: with the opt-in
 `tarot-automatic-sleep` drop-in active from boot, elogind's own idle action
@@ -240,6 +240,10 @@ The owner's JLab Studio pairs through the revision-52 UI, and Trust changes have
 ## Physical Bluetooth pairing, revision 64
 
 With an owner-provided host USB adapter as the peer, signed revision 64 pairs by touch end to end: discovery, a numeric-comparison code that matches the peer's, trust, connect/disconnect and two-step Forget, each with independent BlueZ readback. The controller restored the normal session, baseline, controls and preferences exactly, and an independent normal audit passed (proof `1bdf99efda123b0f4e95980b48951b05b5304232b3ca3f17b3294e3fd3f582f4`). The first run's `Page Timeout` was mostly distance. A Wi-Fi coexistence state that blocked incoming discovery and pages was cleared by a `brcmfmac` reload and could not be reproduced over reboot, an hour of monitoring or reload variants; its trigger is unknown. Headset audio and acoustic checks remain open. [Investigation and evidence](recordings/bluetooth-peer/README.md).
+
+## Headset audio and media keys, revision 65
+
+The owner's JLab Studio, re-paired after it had forgotten the phone's key, plays A2DP stereo (SBC) and HFP wideband voice (mSBC) in both directions, confirmed by ear. The HFP recordings are complete, and their muffled tone is attributed to the headset's microphone. Signed revision 65 (`e77f6214ac8fa2f714b668299b3fdc0015a96832e39e1c13902d24ccb5463063`) routes play, pause, play/pause, next and previous keys to the shown MPRIS player, also while locked and without waking the display. On the phone, two headset pause/play cycles paused and resumed GNOME Audio Player, read back over MPRIS. Next/previous against a player, a locked press, the Sound page with a headset and call audio remain untested. This is an owner-assisted check, not a frozen QA run. [Evidence and limits](recordings/bluetooth-headset/README.md).
 
 ## Bluetooth in revision 51
 

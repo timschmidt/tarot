@@ -1,4 +1,4 @@
-//! Compositor-owned buttons; no hardware key reaches a client or credential UI.
+//! Compositor-owned buttons; no hardware or media key reaches a client or credential UI.
 use crate::{CalloopData, Compositor};
 use smithay::{
     backend::input::{Device, Event, InputBackend, InputEvent, KeyState, KeyboardKeyEvent},
@@ -12,6 +12,7 @@ use tarot_core::{
     audio::KeyQueue,
     hardware::{Action, Buttons, Key},
     idle::Phase,
+    media,
 };
 
 #[derive(Default)]
@@ -44,6 +45,19 @@ impl Compositor {
         let InputEvent::Keyboard { event } = event else {
             return false;
         };
+        if let Some(action) = media::Action::from_xkb(event.key_code().raw()) {
+            // Headset buttons control playback even while locked or dark,
+            // without waking the display.
+            if event.state() == KeyState::Pressed
+                && !self.idle.seat_inactive
+                && let Some(control) = self.shell.media.key(action)
+            {
+                self.media_control(control);
+                self.ui_dirty = true;
+                self.redraw = true;
+            }
+            return true;
+        }
         let Some(key) = Key::from_xkb(event.key_code().raw()) else {
             return false;
         };

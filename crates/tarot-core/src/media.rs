@@ -30,8 +30,25 @@ pub struct Player {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize, Serialize)]
 pub enum Action {
     PlayPause,
+    /// Headset buttons send explicit play and pause, not a toggle.
+    Play,
+    Pause,
     Next,
     Previous,
+}
+
+impl Action {
+    /// Media keys, as evdev codes plus XKB's eight-code offset.
+    pub fn from_xkb(code: u32) -> Option<Self> {
+        match code {
+            172 => Some(Self::PlayPause),
+            208 => Some(Self::Play),
+            209 => Some(Self::Pause),
+            171 => Some(Self::Next),
+            173 => Some(Self::Previous),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize, Serialize)]
@@ -72,6 +89,8 @@ impl Snapshot {
                 p.id == control.player
                     && match control.action {
                         Action::PlayPause => p.can_play || p.can_pause,
+                        Action::Play => p.can_play,
+                        Action::Pause => p.can_pause,
                         Action::Next => p.can_go_next,
                         Action::Previous => p.can_go_previous,
                     }
@@ -81,6 +100,16 @@ impl Snapshot {
             self.error = None;
         }
         allowed
+    }
+
+    /// A media key controls the player the dashboard shows.
+    pub fn key(&mut self, action: Action) -> Option<Control> {
+        let control = Control {
+            player: self.active()?.id,
+            generation: self.generation,
+            action,
+        };
+        self.request(control).then_some(control)
     }
 }
 
@@ -182,5 +211,27 @@ mod tests {
         assert_eq!(cleaned.chars().count(), MAX_TEXT);
         assert!(cleaned.ends_with('…'));
         assert_eq!(clean("ab\u{202e}cd\u{2066}"), "abcd");
+    }
+
+    #[test]
+    fn media_keys_control_the_shown_player_by_capability() {
+        assert_eq!(Action::from_xkb(208), Some(Action::Play));
+        assert_eq!(Action::from_xkb(209), Some(Action::Pause));
+        assert_eq!(Action::from_xkb(172), Some(Action::PlayPause));
+        assert_eq!(Action::from_xkb(123), None);
+        let mut snapshot = Snapshot {
+            available: true,
+            generation: 7,
+            players: vec![player(1, Status::Paused), player(2, Status::Playing)],
+            ..Default::default()
+        };
+        let pause = snapshot.key(Action::Pause).unwrap();
+        assert_eq!((pause.player, pause.generation), (2, 7));
+        assert_eq!(snapshot.key(Action::Play), None, "one control at a time");
+        snapshot.pending = None;
+        snapshot.players[1].can_pause = false;
+        assert_eq!(snapshot.key(Action::Pause), None);
+        snapshot.players.clear();
+        assert_eq!(snapshot.key(Action::PlayPause), None);
     }
 }
