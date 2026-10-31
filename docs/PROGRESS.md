@@ -7,6 +7,8 @@ defines the complete scope. Newer entries come first.
 
 ## Revision history
 
+Revision 76 follows the design packet on the last open points: notifications and banners are dismissed by swiping them sideways instead of an "×", the keyboard shows Shift and Backspace symbols with "?123", device-menu values sit on the right, the clock drops the hour's leading zero, and apps without artwork get the same placeholder icon everywhere. [Details](DESIGN_APPLICATION.md#design-audit-october-31).
+
 Revision 75 lets you type into Android apps with Tarot's keyboard: open it with the Keyboard button and it sends key presses to the app. Getting there showed that Waydroid resizes Android's whole display when Tarot makes room for a keyboard, which restarts the app, so the keyboard now lies over Android apps instead of shrinking them. "fdroid" typed by touch appeared in F-Droid's search on the phone. [Details](WAYDROID.md#text-input).
 
 On October 31, at the owner's request: cards no longer carry close and arrange buttons (close by flicking up; Open, Arrange and Close are in the System Menu), so card view shows them about 11% larger. The dock's fifth position can hold an app instead of Apps. Swiping up on the lock screen now opens password entry; before, only a tap worked, because the swipe was measured on a frame where egui always reports zero movement. A design audit against the packet restyled buttons, switches, glyphs, the status bar, notification rows, media controls, banners, the keyboard and the Just type field. Revision 73 packages these; on revision 75 the phone opened password entry by swipe at startup and after a real suspend. [Audit and open decisions](DESIGN_APPLICATION.md#design-audit-october-31).
