@@ -72,6 +72,12 @@ def text_input(r, socket, tap, capture, directory, waydroid):
             timeline.append(sample())
             time.sleep(.25)
         r['keyboard_timeline'] = timeline
+        # Android's view of the same second: relaunches, configuration and
+        # focus changes explain a window Waydroid drops and recreates.
+        log = shell('logcat', '-d', '-v', 'time', '-t', '800')
+        pattern = re.compile(r'Relaunch|onConfigurationChanged|Config changes|config|keyboard|Keyboard|'
+                             r'setFocusedTask|Focus|Destroy|Displayed|InputReader|InputManager|waydroid', re.I)
+        r['android_log_after_keyboard'] = [line for line in log.splitlines() if pattern.search(line)][-160:]
         r['tarot_keyboard_opened'] = bool(await_value(lambda: request(socket, 'status')['keyboard_visible'], bool, seconds=10))
         capture('waydroid-keyboard-open')
         status = request(socket, 'status')

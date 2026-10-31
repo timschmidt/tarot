@@ -117,6 +117,7 @@ impl Compositor {
             keyboard.layer.layer_surface().send_close();
             keyboard.mapped = false;
             keyboard.overlay = false;
+            self.keyboard_overlay_requested = false;
             self.refresh_keyboard();
             return;
         }
@@ -225,7 +226,7 @@ impl WlrLayerShellHandler for Compositor {
             owner: None,
             height: 240,
             mapped: false,
-            overlay: false,
+            overlay: self.keyboard_overlay_requested,
         });
     }
     fn layer_destroyed(&mut self, surface: LayerSurface) {
@@ -251,6 +252,7 @@ impl WlrLayerShellHandler for Compositor {
                 self.cancel_native_touch_sequence();
             }
             self.keyboard = None;
+            self.keyboard_overlay_requested = false;
             self.refresh_keyboard();
             self.redraw = true;
         }

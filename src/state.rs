@@ -82,6 +82,9 @@ pub struct Compositor {
     pub layer_shell_state: WlrLayerShellState,
     pub virtual_keyboard_state: VirtualKeyboardManagerState,
     pub keyboard: Option<crate::keyboard::KeyboardSurface>,
+    /// An overlay requested by the Keyboard button before the keyboard
+    /// process has created its surface; applied when the surface appears.
+    pub keyboard_overlay_requested: bool,
     pub input_method: Option<crate::input_method_process::ManagedInputMethod>,
     pub notifications: Option<crate::notifications::Server>,
     pub preferences: Option<crate::preferences::Server>,
@@ -268,6 +271,7 @@ impl Compositor {
             layer_shell_state,
             virtual_keyboard_state,
             keyboard: None,
+            keyboard_overlay_requested: false,
             input_method: None,
             notifications: None,
             preferences: None,

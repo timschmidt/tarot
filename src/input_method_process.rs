@@ -187,8 +187,11 @@ pub fn toggle(state: &mut Compositor) {
             .with_focused_text_input(|_, _| found = true);
         found
     };
+    // The keyboard process may not have created its surface yet; keep the
+    // request so the surface starts as an overlay.
+    state.keyboard_overlay_requested = !visible && !has_text_input;
     if let Some(keyboard) = &mut state.keyboard {
-        keyboard.overlay = !visible && !has_text_input;
+        keyboard.overlay = state.keyboard_overlay_requested;
     }
     let Some(managed) = &mut state.input_method else {
         return;
