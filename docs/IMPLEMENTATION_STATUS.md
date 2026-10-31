@@ -34,6 +34,13 @@ for their graphics and authoring source. No Pre3 runtime work has started.
 
 ## Audio activity and system sleep
 
+Revision 64 media checkpoint, October 31: the notification dashboard shows the current MPRIS player
+with Previous, Play/Pause and Next. A bounded session-bus worker rereads players on signals without
+polling, cleans and caps their text, and delivers each control to the exact observed exporter. Ten
+private-bus host cases pass on both compilers. On the phone, Play and Pause by touch reach a
+user-session fixture and are read back, and locked status omits media. Real players, media keys and
+call-time pausing remain. [Evidence](recordings/media/README.md).
+
 Revision 61 automatic sleep checkpoint, October 30: with the opt-in
 `tarot-automatic-sleep` drop-in active from boot, elogind's own idle action
 suspended the phone after Tarot reported a protected idle session. Tarot's

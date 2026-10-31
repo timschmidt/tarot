@@ -23,6 +23,7 @@ mod input;
 mod input_method_process;
 mod keyboard;
 mod lock;
+mod media;
 mod metrics;
 mod network;
 mod notifications;
@@ -409,6 +410,9 @@ fn main() -> Result<()> {
                 &mut data.state,
                 preferences.clone(),
             )?);
+        }
+        if options.system_services {
+            data.state.media = Some(media::start(event_loop.handle(), &mut data.state)?);
         }
         let feedback = data.state.feedback.as_ref().map(|s| s.handle.clone());
         data.state.notifications = Some(notifications::start(

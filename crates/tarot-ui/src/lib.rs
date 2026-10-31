@@ -1794,6 +1794,156 @@ mod tests {
     }
 
     #[test]
+    fn now_playing_controls_offer_only_supported_actions_and_one_request() {
+        use tarot_core::media::{Action, Control, Player, Snapshot, Status};
+        let ctx = egui::Context::default();
+        let mut model = ShellModel::default();
+        model.apply(Command::NotificationsOpen(true));
+        model.notifications.available = true;
+        model.media = Snapshot {
+            enabled: true,
+            available: true,
+            generation: 7,
+            players: vec![Player {
+                id: 3,
+                identity: "Fixture Player".into(),
+                title: "Morning Song".into(),
+                artist: "A".into(),
+                status: Status::Paused,
+                can_play: true,
+                can_pause: true,
+                can_go_next: true,
+                can_go_previous: false,
+            }],
+            ..Default::default()
+        };
+        text_position(&ctx, &model, "Morning Song");
+        // The Play glyph is the only closed four-point stroke; buttons are
+        // laid out in one row, so the others sit one button width either side.
+        let play_center = glyph_center(&ctx, &model);
+        let spacing = 64.0 + ctx.style().spacing.item_spacing.x;
+        let button = |index: f32| Pos2::new(play_center.x + (index - 1.0) * spacing, play_center.y);
+        assert!(
+            click(&ctx, &model, button(0.0)).is_empty(),
+            "no previous capability"
+        );
+        let play = click(&ctx, &model, button(1.0));
+        assert_eq!(
+            play,
+            vec![Command::Media(Control {
+                player: 3,
+                generation: 7,
+                action: Action::PlayPause
+            })]
+        );
+        for command in play {
+            model.apply(command);
+        }
+        assert!(model.media.pending.is_some());
+        assert!(
+            click(&ctx, &model, button(2.0)).is_empty(),
+            "pending blocks a second request"
+        );
+        model.media.pending = None;
+        model.media.generation = 8;
+        assert_eq!(
+            click(&ctx, &model, button(2.0)),
+            vec![Command::Media(Control {
+                player: 3,
+                generation: 8,
+                action: Action::Next
+            })]
+        );
+        model.media.players.clear();
+        let output = settle_text(&ctx, &model);
+        assert!(!output.contains(&"Fixture Player".to_owned()));
+    }
+
+    fn glyph_center(ctx: &egui::Context, model: &ShellModel) -> Pos2 {
+        fn find(shape: &egui::epaint::Shape) -> Option<Pos2> {
+            match shape {
+                egui::epaint::Shape::Path(path)
+                    if path.points.len() == 4 && path.points[0] == path.points[3] =>
+                {
+                    let rect = Rect::from_points(&path.points);
+                    // The Play triangle's bounding box is 12 x 16 points.
+                    ((rect.width() - 12.0).abs() < 0.5 && (rect.height() - 16.0).abs() < 0.5)
+                        .then(|| rect.center() + Vec2::new(-1.0, 0.0))
+                }
+                egui::epaint::Shape::Vec(shapes) => shapes.iter().find_map(find),
+                _ => None,
+            }
+        }
+        let mut found = None;
+        for _ in 0..3 {
+            prepare_pointer_input(ctx, &[]);
+            let output = ctx.run(
+                egui::RawInput {
+                    screen_rect: Some(Rect::from_min_size(Pos2::ZERO, Vec2::new(360.0, 720.0))),
+                    ..Default::default()
+                },
+                |ctx| {
+                    let _ = show(
+                        ctx,
+                        model,
+                        Layout {
+                            width: 360.0,
+                            height: 720.0,
+                            keyboard_height: 0.0,
+                            notification_height: 0.0,
+                        }
+                        .with_notifications(model),
+                    );
+                },
+            );
+            // Only a glyph inside its clip rectangle can be touched.
+            found = output
+                .shapes
+                .iter()
+                .find_map(|c| find(&c.shape).filter(|p| c.clip_rect.contains(*p)));
+        }
+        found.expect("the Play glyph must be painted")
+    }
+
+    fn settle_text(ctx: &egui::Context, model: &ShellModel) -> Vec<String> {
+        fn collect(shape: &egui::epaint::Shape, out: &mut Vec<String>) {
+            match shape {
+                egui::epaint::Shape::Text(text) => out.push(text.galley.job.text.clone()),
+                egui::epaint::Shape::Vec(shapes) => shapes.iter().for_each(|s| collect(s, out)),
+                _ => {}
+            }
+        }
+        let mut found = Vec::new();
+        for _ in 0..3 {
+            prepare_pointer_input(ctx, &[]);
+            let output = ctx.run(
+                egui::RawInput {
+                    screen_rect: Some(Rect::from_min_size(Pos2::ZERO, Vec2::new(360.0, 720.0))),
+                    ..Default::default()
+                },
+                |ctx| {
+                    let _ = show(
+                        ctx,
+                        model,
+                        Layout {
+                            width: 360.0,
+                            height: 720.0,
+                            keyboard_height: 0.0,
+                            notification_height: 0.0,
+                        }
+                        .with_notifications(model),
+                    );
+                },
+            );
+            found.clear();
+            for clipped in &output.shapes {
+                collect(&clipped.shape, &mut found);
+            }
+        }
+        found
+    }
+
+    #[test]
     fn gesture_strip_has_a_tappable_overview_alternative_in_app_view() {
         let ctx = egui::Context::default();
         let mut model = ShellModel::default();

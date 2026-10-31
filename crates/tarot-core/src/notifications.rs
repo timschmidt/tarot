@@ -74,6 +74,9 @@ pub fn surface(model: &crate::ShellModel) -> Surface {
 
 /// One reservation, recomputed from current state rather than accumulated.
 /// The well sits above an unchanged keyboard; scarce space uses a compact row.
+/// The now-playing row: source, title, artist and a 48-point control row.
+pub const MEDIA_HEIGHT: f32 = 140.0;
+
 pub fn reserved_height(model: &crate::ShellModel, layout: crate::Layout) -> f32 {
     // Keep compact search geometry stable when its own app hold hides the
     // keyboard. The strip entry/count persists, and an explicit dashboard
@@ -88,7 +91,12 @@ pub fn reserved_height(model: &crate::ShellModel, layout: crate::Layout) -> f32 
         Surface::Banner => crate::design::BANNER_ACCESSIBLE,
         Surface::Dashboard => {
             let rows = model.notifications.items.len().clamp(1, 3) as f32;
-            (RAIL_HEIGHT + rows * ROW_HEIGHT + 8.0).min(available * 0.6)
+            let media = if model.media.active().is_some() {
+                MEDIA_HEIGHT
+            } else {
+                0.0
+            };
+            (RAIL_HEIGHT + media + rows * ROW_HEIGHT + 8.0).min(available * 0.6)
         }
     };
     // Shell text entry needs its field and at least one result/control row.

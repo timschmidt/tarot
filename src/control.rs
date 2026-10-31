@@ -62,6 +62,9 @@ enum Request {
     FeedbackAction {
         action: tarot_core::feedback::UiAction,
     },
+    MediaAction {
+        control: tarot_core::media::Control,
+    },
     NetworkAction {
         action: tarot_core::network::UiAction,
     },
@@ -181,6 +184,7 @@ pub fn start(path: &Path, handle: &LoopHandle<'_, CalloopData>) -> Result<Contro
                 Request::BluetoothSelect {device} => state.apply_command(Command::Bluetooth(tarot_core::bluetooth::Action::Select(device))),
                 Request::AudioAction {action} =>state.apply_command(Command::Audio(action)),
                 Request::FeedbackAction {action} =>state.apply_command(Command::Feedback(action)),
+                Request::MediaAction {control} =>state.apply_command(Command::Media(control)),
                 Request::NetworkSetup {network} =>state.apply_command(Command::NetworkSetup(network)),
                 Request::CredentialText {value}=>state.apply_command(Command::CredentialText(value)),
                 Request::CredentialBackspace=>state.apply_command(Command::CredentialBackspace),
@@ -313,6 +317,8 @@ pub fn start(path: &Path, handle: &LoopHandle<'_, CalloopData>) -> Result<Contro
                 "editing_name":state.shell.launcher.rename.is_some(),"saved":state.shell.launcher.saved,
                 "settings_available":state.shell.launcher.available,
                 "error":state.shell.launcher.save_error});
+            // Added after the macro, which is at its recursion limit.
+            response["media"] = json!(state.shell.media);
             if include_apps {
                 response["applications"] = json!(state.shell.applications);
             }

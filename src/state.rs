@@ -92,6 +92,7 @@ pub struct Compositor {
     pub audio: Option<crate::audio::Server>,
     pub audio_inhibit: Option<crate::audio_inhibit::Server>,
     pub feedback: Option<crate::feedback::Server>,
+    pub media: Option<crate::media::Server>,
     pub popups: PopupManager,
     pub popup_grab: Option<smithay::desktop::PopupGrab<Self>>,
     pub popup_owner: Option<WindowId>,
@@ -276,6 +277,7 @@ impl Compositor {
             audio: None,
             audio_inhibit: None,
             feedback: None,
+            media: None,
             popups,
             popup_grab: None,
             popup_owner: None,
@@ -803,6 +805,16 @@ impl Compositor {
                             Ok(()) => self.shell.audio.pending = Some(action),
                             Err(error) => self.shell.audio.action_error = Some(error.to_string()),
                         }
+                    }
+                }
+                Effect::Media(control) => {
+                    if !self
+                        .media
+                        .as_ref()
+                        .is_some_and(|server| server.control(control))
+                    {
+                        self.shell.media.pending = None;
+                        self.shell.media.error = Some("Media controls are busy".into());
                     }
                 }
                 Effect::Feedback(action) => {

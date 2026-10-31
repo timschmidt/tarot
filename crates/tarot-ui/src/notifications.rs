@@ -362,6 +362,80 @@ fn compact_item(ui: &mut egui::Ui, entry: &Notification, commands: &mut Vec<Comm
     });
 }
 
+/// The active MPRIS player, with only the controls it offers. A request stays
+/// pending until the player's own state is reread.
+fn now_playing(ui: &mut egui::Ui, model: &ShellModel, commands: &mut Vec<Command>) {
+    use crate::menu::glyph::{Glyph, paint};
+    use tarot_core::media::{Action, Control, Status};
+    let media = &model.media;
+    let Some(player) = media.active() else {
+        return;
+    };
+    egui::Frame::group(ui.style()).show(ui, |ui| {
+        ui.set_width(ui.available_width());
+        ui.label(egui::RichText::new(&player.identity).small());
+        let title = if player.title.is_empty() {
+            "Nothing playing"
+        } else {
+            &player.title
+        };
+        ui.add(egui::Label::new(egui::RichText::new(title).strong()).truncate());
+        if !player.artist.is_empty() {
+            ui.add(egui::Label::new(&player.artist).truncate());
+        }
+        let playing = player.status == Status::Playing;
+        ui.horizontal(|ui| {
+            for (action, glyph, label, enabled) in [
+                (
+                    Action::Previous,
+                    Glyph::Previous,
+                    "Previous",
+                    player.can_go_previous,
+                ),
+                (
+                    Action::PlayPause,
+                    if playing { Glyph::Pause } else { Glyph::Play },
+                    if playing { "Pause" } else { "Play" },
+                    if playing {
+                        player.can_pause
+                    } else {
+                        player.can_play
+                    },
+                ),
+                (Action::Next, Glyph::Next, "Next", player.can_go_next),
+            ] {
+                let enabled = enabled && media.pending.is_none() && media.available;
+                let response = ui
+                    .add_enabled(
+                        enabled,
+                        egui::Button::new("").min_size(egui::vec2(64.0, 48.0)),
+                    )
+                    .on_hover_text(label);
+                response.widget_info(|| {
+                    egui::WidgetInfo::labeled(egui::WidgetType::Button, enabled, label)
+                });
+                let color = if enabled {
+                    ui.visuals().text_color()
+                } else {
+                    ui.visuals().weak_text_color()
+                };
+                paint(ui.painter(), response.rect.center(), glyph, color);
+                if response.clicked() {
+                    commands.push(Command::Media(Control {
+                        player: player.id,
+                        generation: media.generation,
+                        action,
+                    }));
+                }
+            }
+        });
+        if let Some(error) = &media.error {
+            ui.colored_label(Color32::LIGHT_RED, error);
+        }
+    });
+    ui.add_space(4.0);
+}
+
 fn dashboard(ui: &mut egui::Ui, model: &ShellModel, layout: Layout, commands: &mut Vec<Command>) {
     let key = egui::Id::new("notification_settings");
     let mut show_settings = ui
@@ -439,6 +513,7 @@ fn dashboard(ui: &mut egui::Ui, model: &ShellModel, layout: Layout, commands: &m
                 if show_settings {
                     settings(ui, model, commands, false);
                 } else {
+                    now_playing(ui, model, commands);
                     if model.notifications.items.is_empty() {
                         ui.label("No notifications");
                     }

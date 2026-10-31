@@ -10,6 +10,10 @@ pub(crate) enum Glyph {
     Lock,
     Sun,
     Check,
+    Play,
+    Pause,
+    Previous,
+    Next,
 }
 
 pub(crate) fn paint(p: &Painter, center: Pos2, glyph: Glyph, color: Color32) {
@@ -85,6 +89,19 @@ pub(crate) fn paint(p: &Painter, center: Pos2, glyph: Glyph, color: Color32) {
                 egui::StrokeKind::Inside,
             );
             p.circle_filled(at(0.0, 4.5), 1.4, color);
+        }
+        Glyph::Play => line(&[(-5.0, -8.0), (7.0, 0.0), (-5.0, 8.0), (-5.0, -8.0)]),
+        Glyph::Pause => {
+            line(&[(-4.0, -8.0), (-4.0, 8.0)]);
+            line(&[(4.0, -8.0), (4.0, 8.0)]);
+        }
+        Glyph::Previous => {
+            line(&[(-7.0, -8.0), (-7.0, 8.0)]);
+            line(&[(7.0, -8.0), (-4.0, 0.0), (7.0, 8.0), (7.0, -8.0)]);
+        }
+        Glyph::Next => {
+            line(&[(7.0, -8.0), (7.0, 8.0)]);
+            line(&[(-7.0, -8.0), (4.0, 0.0), (-7.0, 8.0), (-7.0, -8.0)]);
         }
         Glyph::Sun => {
             p.circle_stroke(center, 5.0, stroke);

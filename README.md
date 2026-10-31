@@ -46,8 +46,9 @@ intended look, including screens that are not built yet.
   been tested.
 - **Tarot's own on-screen keyboard.** A trusted Rust keyboard types into apps,
   terminals (with Ctrl/Alt and arrows) and password fields.
-- **Notifications.** A standard freedesktop notification server with banners,
-  a dashboard, actions, do-not-disturb and preview hiding.
+- **Notifications and media.** A standard freedesktop notification server with
+  banners, a dashboard, actions, do-not-disturb and preview hiding, plus
+  play/pause and track controls for any MPRIS media player.
 - **System controls.** Wi-Fi with password entry, audio output, input and
   device modes, brightness, battery, Bluetooth pairing, vibration profiles,
   hardware buttons and rotation.

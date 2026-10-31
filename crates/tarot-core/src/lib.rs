@@ -17,6 +17,7 @@ pub mod hardware;
 pub mod icons;
 pub mod idle;
 pub mod launcher;
+pub mod media;
 pub mod menu;
 pub mod motion;
 pub mod network;
@@ -130,6 +131,7 @@ pub enum Command {
     Power(power::UiAction),
     Audio(audio::UiAction),
     Feedback(feedback::UiAction),
+    Media(media::Control),
     Network(network::UiAction),
     Bluetooth(bluetooth::Action),
     Authorization(authorization::Action),
@@ -174,6 +176,7 @@ pub enum Effect {
     Power(power::UiAction),
     Audio(audio::UiAction),
     Feedback(feedback::UiAction),
+    Media(media::Control),
     Network(network::UiAction),
     Bluetooth(bluetooth::UiAction),
     Authorization(authorization::UiAction),
@@ -213,6 +216,7 @@ pub struct ShellModel {
     pub audio: audio::Snapshot,
     pub audio_inhibition: audio::Inhibition,
     pub feedback: feedback::Snapshot,
+    pub media: media::Snapshot,
     pub volume_feedback: Option<audio::KeyFeedback>,
     pub network: network::Snapshot,
     pub authorization: authorization::State,
@@ -968,6 +972,13 @@ impl ShellModel {
             }
             Command::Notification(action) => return vec![Effect::Notification(action)],
             Command::Feedback(action) => return vec![Effect::Feedback(action)],
+            Command::Media(control) => {
+                return if self.media.request(control) {
+                    vec![Effect::Media(control)]
+                } else {
+                    Vec::new()
+                };
+            }
             Command::CancelGesture => return Vec::new(),
             Command::CardMenuOpen(open) => {
                 self.card_menu_open = open && self.view == View::Overview && !self.system_menu_open;
