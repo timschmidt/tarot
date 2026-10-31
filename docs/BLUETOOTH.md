@@ -88,6 +88,14 @@ at the owner's request; normal Tarot52 is independently restored with discovery
 off and the saved pairing untrusted/disconnected.
 [Partial results and retained failures](recordings/headphones/README.md).
 
+October 31: with an owner-provided host USB adapter as a dedicated peer, Tarot
+discovers and selects the peer by touch. Pairing fails below Tarot: BlueZ called
+directly on the phone reports `Page Timeout`, and the phone does not answer
+inquiries while visible. The phone's Broadcom controller (generic Raspberry Pi
+`BCM4345C0.hcd` patch) is the suspected cause. The peer and pairing replay are
+ready to rerun once that is resolved.
+[Investigation and evidence](recordings/bluetooth-peer/README.md).
+
 API references: [Adapter1](https://bluez.readthedocs.io/en/latest/adapter-api/),
 [Device1](https://bluez.readthedocs.io/en/latest/device-api/) and
 [Agent1](https://bluez.readthedocs.io/en/latest/agent-api/).
