@@ -1412,9 +1412,16 @@ impl Layout {
         }
     }
 
+    /// Card view scale and top edge. The packet proposes 0.66 at y 139, leaving
+    /// room above the card for per-card controls. Tarot has none (close is the
+    /// upward flick; arrangement is in the System Menu), so cards use that
+    /// space and grow to 0.73, starting 12 units below the Just type field.
+    pub const CARD_VIEW_SCALE: f32 = 0.73;
+    pub const CARD_VIEW_Y: f32 = 92.0;
+
     pub fn card(self, index: usize, selected_index: usize) -> Rect {
         let content = self.content();
-        let scale = design::CARD_SCALE.min(
+        let scale = Self::CARD_VIEW_SCALE.min(
             ((self.height - Self::STATUS - Self::GESTURE - Self::DOCK - 24.0) / content.height)
                 .max(0.1),
         );
@@ -1422,7 +1429,7 @@ impl Layout {
         let height = content.height * scale;
         Rect {
             x: (self.width - width) / 2.0 + (index as f32 - selected_index as f32) * (width + 18.0),
-            y: (self.height * design::CARD_Y / 720.0)
+            y: (self.height * Self::CARD_VIEW_Y / 720.0)
                 .min(self.tray_bottom() - Self::DOCK - 12.0 - height)
                 .max(Self::STATUS + 12.0),
             width,

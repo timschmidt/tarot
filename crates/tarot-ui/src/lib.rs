@@ -592,11 +592,19 @@ fn show_cards(
             {
                 commands.push(Command::Activate(card.id));
             }
-            let label = if card.closing {
+            let mut label = if card.closing {
                 format!("Closing… {}", card.title)
             } else {
                 card.title.clone()
             };
+            // Cards carry no buttons: close is the upward flick and the System
+            // Menu holds Open, Arrange and Close. A stack's position joins the
+            // title below the card.
+            if members.len() > 1
+                && let Some(index) = members.iter().position(|id| *id == card.id)
+            {
+                label = format!("{label}  {} / {}", index + 1, members.len());
+            }
             if representative == Some(card.id) && presentation.arrange.is_none() {
                 painter
                     .with_clip_rect(Rect::from_min_size(
@@ -610,102 +618,6 @@ fn show_cards(
                         FontId::proportional(14.0),
                         Color32::WHITE,
                     );
-            }
-            // Only the selected card exposes controls; neighboring members
-            // remain selectable through their visible card strips.
-            if Some(card.id) == model.selected && presentation.arrange.is_none() {
-                let close = Rect::from_center_size(
-                    Pos2::new(hit_rect.right() - 16.0, hit_rect.top() - 26.0),
-                    Vec2::splat(48.0),
-                );
-                if ui
-                    .scope(|ui| {
-                        if card.closing || model.view != View::Overview {
-                            ui.disable();
-                        }
-                        ui.put(close, egui::Button::new("×"))
-                            .on_hover_text(format!("Close {}", card.title))
-                    })
-                    .inner
-                    .clicked()
-                {
-                    commands.push(Command::Close(card.id));
-                }
-                let options = Rect::from_center_size(
-                    Pos2::new(hit_rect.left() + 16.0, hit_rect.top() - 26.0),
-                    Vec2::splat(48.0),
-                );
-                let response = ui
-                    .add_enabled_ui(!card.closing, |ui| {
-                        ui.put(options, egui::Button::new("…"))
-                            .on_hover_text(format!("Arrange {}", card.title))
-                    })
-                    .inner;
-                egui::Popup::menu(&response).show(|ui| {
-                    ui.set_min_width(220.0);
-                    ui.spacing_mut().interact_size = Vec2::new(220.0, 48.0);
-                    let index = model
-                        .cards
-                        .iter()
-                        .position(|item| item.id == card.id)
-                        .unwrap();
-                    for (label, neighbor, before) in [
-                        (
-                            "Move left",
-                            index.checked_sub(1).and_then(|i| model.cards.get(i)),
-                            true,
-                        ),
-                        ("Move right", model.cards.get(index + 1), false),
-                    ] {
-                        if let Some(neighbor) = neighbor {
-                            let target = if neighbor.stack == card.stack {
-                                CardDrop::Into {
-                                    anchor: neighbor.id,
-                                    before,
-                                }
-                            } else {
-                                CardDrop::Separate {
-                                    anchor: neighbor.id,
-                                    before,
-                                }
-                            };
-                            if ui.button(label).clicked() {
-                                commands.push(Command::PlaceCard {
-                                    card: card.id,
-                                    target,
-                                });
-                                ui.close();
-                            }
-                            if neighbor.stack != card.stack
-                                && ui
-                                    .button(format!("Stack with {}", neighbor.title))
-                                    .clicked()
-                            {
-                                commands.push(Command::Stack {
-                                    card: card.id,
-                                    with: neighbor.id,
-                                });
-                                ui.close();
-                            }
-                        }
-                    }
-                    if model.stack_members(card.id).len() > 1
-                        && ui.button("Separate from stack").clicked()
-                    {
-                        commands.push(Command::Unstack(card.id));
-                        ui.close();
-                    }
-                });
-                if members.len() > 1 {
-                    let index = members.iter().position(|id| *id == card.id).unwrap();
-                    painter.text(
-                        Pos2::new(hit_rect.center().x, hit_rect.top() - 26.0),
-                        Align2::CENTER_CENTER,
-                        format!("{} / {}", index + 1, members.len()),
-                        FontId::proportional(13.0),
-                        Color32::WHITE,
-                    );
-                }
             }
         });
     }
