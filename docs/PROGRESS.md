@@ -7,6 +7,10 @@ defines the complete scope. Newer entries come first.
 
 ## Revision history
 
+Revision 63 makes direct boot safe to uninstall. greetd 0.10.3 refuses to start when its PAM service is missing, so the boot-destination helper now writes that service itself instead of the package shipping it. On the phone, Tarot was removed with direct boot still selected and the phone still booted to Phrog; reinstalling and choosing the login screen restored the original configuration exactly. [Evidence](recordings/boot-destination/README.md#package-removal-safety-revision-63).
+
+Revision 62 adds the **At startup** choice: the login screen, or a direct, locked Tarot session through greetd's initial session. It was verified by reboot, by finger through Tarot's Polkit agent, and for keyring behavior. [Evidence](recordings/boot-destination/README.md).
+
 Implementation is underway. The workspace contains a Smithay compositor with shared egui/GLES rendering, a platform-independent window/gesture model, a nested desktop backend, and an experimental direct DRM/libseat/libinput backend. The optimized AArch64 build runs on the phone's Panfrost GPU with a real GTK client. Basic touchscreen navigation and VT release/reacquisition have been exercised on hardware.
 
 M0 remains in progress. The phone has been upgraded through supported releases to 26.06; build reproduction, recovery, and the remaining hardware baseline are being recorded. Most planned phone-shell features are still outstanding. See [implementation status](IMPLEMENTATION_STATUS.md) for evidence and limitations.

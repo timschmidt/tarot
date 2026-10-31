@@ -18,6 +18,8 @@ exact restoration. A separate finger run selects and restores the setting throug
 with the real password, and a cancel leaves the file unchanged. A locked login keyring opens at
 Tarot's first real unlock, and the image has no disk encryption, so direct boot loses no secrets
 access.
+Revision 63 makes the helper write the greetd PAM service itself. On the phone, removing Tarot with
+direct boot still selected boots to Phrog, and reinstalling restores everything exactly.
 [Evidence](recordings/boot-destination/README.md).
 
 Android applications through Waydroid are now planned as
