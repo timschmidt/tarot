@@ -117,8 +117,6 @@ What does not yet:
   In the revision 70 run the boot window and the F-Droid card acknowledged only
   360×652. Evidence `efcbd685bdcd85f882ebb2ba89bc4720d02c4987e00b09364d882c4f56af4d8a`.
 
-<img src="recordings/waydroid/fdroid-card-r70.png" alt="F-Droid filling its Tarot card, with Android's freeform caption bar at the top" width="240">
-
   In that run F-Droid also filled its card. That is partly because Android
   remembers an app's last freeform bounds, and the earlier `am task resize`
   experiment left F-Droid's at the full display; a newly installed app still
@@ -129,6 +127,8 @@ What does not yet:
   state to match its start before the session ends.
 - Android's app icon is not yet shown on the card, and popups other than the
   permission prompt, fullscreen and the keyboard reservation are untested.
+
+<img src="recordings/waydroid/fdroid-card-r70.png" alt="F-Droid filling its Tarot card, with Android's freeform caption bar at the top" width="240">
 
 ## Launch and catalog, first observations
 
