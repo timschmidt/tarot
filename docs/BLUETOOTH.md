@@ -106,8 +106,10 @@ The owner's JLab Studio then passed A2DP stereo (SBC) and HFP wideband voice
 (mSBC) in both directions, checked by ear, after re-pairing: it had forgotten
 the phone's link key (`br-connection-key-missing`). PulseAudio switches output
 to the headset on connect. From revision 65 its play and pause buttons control
-the player shown in the dashboard. Tarot's Sound page with a headset, call
-audio and in-Tarot profile switching remain untested.
+the player shown in the dashboard, including next and previous. From revision
+66 the Sound page switches the headset between A2DP and HFP, after a fix for
+the greeter's leftover PulseAudio claiming the hands-free profile. Call audio
+remains untested.
 [Evidence and limits](recordings/bluetooth-headset/README.md).
 
 API references: [Adapter1](https://bluez.readthedocs.io/en/latest/adapter-api/),

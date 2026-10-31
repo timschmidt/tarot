@@ -163,10 +163,13 @@ def replay(socket, screen, tap, state, capture, before, directory, cgroup, authe
         synthetic_id = next(i['id'] for i in two['inputs'] if i['id'] != input_id)
         if not input_row(two)['default']:
             action('physical-default-baseline', {'DefaultInput': dict(input=input_id)}, lambda a: input_row(a)['default'])
-        text_button('select-synthetic-default', 'Use for new recordings')
+        # Defaults are radio rows under "Record from"; OCR order puts them before
+        # the same name's volume group below.
+        labels = {i['id']: i['label'] for i in two['inputs']}
+        text_button('select-synthetic-default', labels[synthetic_id])
         audio('synthetic-default', lambda a: next(i for i in a['inputs'] if i['id'] == synthetic_id)['default'] and a['pending'] is None)
         assert pactl('get-default-source') == 'tarot_qa_input_r55'
-        text_button('restore-physical-default', 'Use for new recordings')
+        text_button('restore-physical-default', labels[input_id])
         audio('physical-default', lambda a: input_row(a)['default'] and a['pending'] is None)
         assert pactl('get-default-source') == physical_name
         assert_owned_module(module)

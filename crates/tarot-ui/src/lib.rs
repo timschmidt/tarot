@@ -1556,6 +1556,34 @@ mod tests {
         });
         assert!(click_text(&ctx, &model, "Mute").is_empty());
         model.audio.pending = None;
+        model.audio.outputs.push(Output {
+            ports: Vec::new(),
+            id: 10,
+            label: "JLab Studio".into(),
+            percent: 100,
+            muted: false,
+            default: false,
+        });
+        let speaker = text_position(&ctx, &model, "Speaker");
+        assert!(
+            click_text(&ctx, &model, "Speaker").is_empty(),
+            "the chosen output stays chosen"
+        );
+        assert_eq!(
+            click_text(&ctx, &model, "JLab Studio"),
+            vec![Command::Audio(UiAction::Default { output: 10 })]
+        );
+        model.audio.outputs[0].default = false;
+        model.audio.outputs[1].default = true;
+        assert_eq!(
+            text_position(&ctx, &model, "Speaker"),
+            speaker,
+            "choosing another output must not move the list"
+        );
+        assert_eq!(
+            click_text(&ctx, &model, "Speaker"),
+            vec![Command::Audio(UiAction::Default { output: 9 })]
+        );
         model.audio.available = false;
         assert!(click_text(&ctx, &model, "+").is_empty());
     }
@@ -1604,8 +1632,9 @@ mod tests {
                 muted: true
             })]
         );
+        // The first painted match is the "Record from" radio row.
         assert_eq!(
-            click_text(&ctx, &model, "Use for new recordings"),
+            click_text(&ctx, &model, "Built-in microphone"),
             vec![Command::Audio(UiAction::DefaultInput { input: 31 })]
         );
         assert_eq!(

@@ -85,11 +85,15 @@ pub fn show(ui: &mut egui::Ui, model: &ShellModel, _layout: Layout, commands: &m
     if audio.available && audio.outputs.is_empty() {
         ui.label("No playback outputs available");
     }
-    ui.label("Default output applies to new playback. Apps may keep their own route.");
     egui::ScrollArea::vertical()
         .id_salt("audio_outputs")
         .max_height(ui.available_height().max(1.0))
         .show(ui, |ui| {
+            default_choice(ui, audio, false, commands);
+            ui.label("Applies to new playback. Apps may keep their own route.");
+            default_choice(ui, audio, true, commands);
+            ui.label("Applies to new recordings. Apps may keep their current input.");
+            ui.separator();
             for output in &audio.outputs {
                 device_controls(
                     ui,
@@ -102,7 +106,6 @@ pub fn show(ui: &mut egui::Ui, model: &ShellModel, _layout: Layout, commands: &m
             }
             ui.separator();
             ui.label(egui::RichText::new("Recording inputs").strong());
-            ui.label("Default input applies to new recordings. Apps may keep their current input.");
             if audio.available && audio.inputs.is_empty() {
                 ui.label("No recording inputs available");
             }
@@ -127,6 +130,7 @@ pub fn show(ui: &mut egui::Ui, model: &ShellModel, _layout: Layout, commands: &m
                                         if card.profiles.is_empty() {
                                             ui.label("Modes unavailable");
                                         }
+                                        ui.spacing_mut().interact_size.y = 44.0;
                                         for profile in &card.profiles {
                                             let label = if profile.available {
                                                 profile.label.clone()
@@ -138,14 +142,10 @@ pub fn show(ui: &mut egui::Ui, model: &ShellModel, _layout: Layout, commands: &m
                                                     audio.available
                                                         && audio.pending.is_none()
                                                         && profile.available,
-                                                    egui::Button::new(label)
-                                                        .selected(profile.active)
-                                                        .min_size(Vec2::new(
-                                                            ui.available_width(),
-                                                            48.0,
-                                                        )),
+                                                    egui::RadioButton::new(profile.active, label),
                                                 )
                                                 .clicked()
+                                                && !profile.active
                                             {
                                                 commands.push(Command::Audio(
                                                     UiAction::CardProfile {
@@ -178,6 +178,42 @@ pub fn show(ui: &mut egui::Ui, model: &ShellModel, _layout: Layout, commands: &m
                 );
             }
         });
+}
+
+/// One radio list per direction, so the chosen device is always visible in one
+/// place and choosing another never moves the page.
+fn default_choice(
+    ui: &mut egui::Ui,
+    audio: &tarot_core::audio::Snapshot,
+    input: bool,
+    commands: &mut Vec<Command>,
+) {
+    let devices = if input { &audio.inputs } else { &audio.outputs };
+    if devices.is_empty() {
+        return;
+    }
+    ui.label(
+        egui::RichText::new(if input {
+            "Record from"
+        } else {
+            "Play sound on"
+        })
+        .strong(),
+    );
+    ui.push_id(("default_choice", input, audio.generation), |ui| {
+        ui.add_enabled_ui(audio.available && audio.pending.is_none(), |ui| {
+            ui.spacing_mut().interact_size.y = 44.0;
+            for device in devices {
+                if ui.radio(device.default, &device.label).clicked() && !device.default {
+                    commands.push(Command::Audio(if input {
+                        UiAction::DefaultInput { input: device.id }
+                    } else {
+                        UiAction::Default { output: device.id }
+                    }));
+                }
+            }
+        });
+    });
 }
 
 fn device_controls(
@@ -245,30 +281,6 @@ fn device_controls(
                     }));
                 }
             });
-            if device.default {
-                ui.label(if input {
-                    "Default input"
-                } else {
-                    "Default output"
-                });
-            } else if ui
-                .add_enabled(
-                    enabled,
-                    egui::Button::new(if input {
-                        "Use for new recordings"
-                    } else {
-                        "Use for new playback"
-                    })
-                    .min_size(Vec2::new(ui.available_width(), 48.0)),
-                )
-                .clicked()
-            {
-                commands.push(Command::Audio(if input {
-                    UiAction::DefaultInput { input: device.id }
-                } else {
-                    UiAction::Default { output: device.id }
-                }));
-            }
             for port in &device.ports {
                 let label = match port.available {
                     tarot_core::audio::Availability::No => format!("{} · Unavailable", port.label),

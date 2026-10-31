@@ -1,5 +1,8 @@
 # Bluetooth headset audio and buttons
 
+From revision 66 the Sound page chooses outputs and inputs with radio lists,
+and the greeter's leftover services no longer take the headset's HFP mode.
+
 October 31, 2026. The owner's JLab Studio headset, held close to the phone,
 plays A2DP stereo and HFP wideband voice in both directions. From signed
 revision 65 its play and pause buttons control the media player Tarot shows.
@@ -83,6 +86,59 @@ Decibels exports MPRIS
 only once its window is active, so two earlier runs with the screen off
 registered no player; those key presses reached Tarot with nothing to control.
 
+Next and previous were then checked with mpv and its MPRIS plugin playing a
+three-track playlist (low, middle and high patterns), without a window:
+
+| Time | Headset key | mpv |
+| --- | --- | --- |
+| 0.7 s | | Playing "Track 1 low" |
+| 18.2 s | Next | "Track 2 middle" |
+| 26.0 s | Next | "Track 3 high" |
+| 30.0 s | Previous | "Track 2 middle" |
+| 37.4 s | Pause | Paused |
+
+## Sound page (revision 66)
+
+With signed r65, the owner reported two problems on the Sound page:
+
+- **Choosing an output was confusing.** Each device had its own "Use for new
+  playback" button, which turned into a "Default output" label once chosen, so
+  the page rearranged itself with every choice. Revision 66 puts two radio
+  lists at the top, **Play sound on** and **Record from**, so the chosen device
+  is visible in one place and choosing another moves nothing. Device modes are
+  radio buttons too; choosing the current device or mode does nothing.
+- **The headset's HFP mode was greyed out.** Tarot showed PulseAudio's state
+  correctly: PulseAudio itself reported HFP unavailable. Its log showed that
+  the headset's hands-free connection never reached it ("still has disconnected
+  profiles: handsfree_head_unit"). A second PulseAudio, owned by the `greetd`
+  user, had it. The greeter (Phrog) starts its own PulseAudio, feedbackd,
+  keyring, session bus and other services. They daemonize, and nothing ended
+  them after login. feedbackd stays connected to the greeter's PulseAudio, so
+  it never exits on idle. That PulseAudio registered BlueZ's hands-free profile
+  first at boot, so the headset's hands-free link, and with it the microphone,
+  went to a process owned by the greeter account. HFP had worked earlier only
+  because, in that boot, the greeter's PulseAudio did not hold the profile.
+
+  Stopping the greeter's PulseAudio and letting the session's own PulseAudio
+  register made HFP available at once. On the way, reloading the session's
+  Bluetooth module crashed PulseAudio 17 (`object_manager_init()` assertion),
+  and an autospawned replacement took over; that diagnostic step is not part
+  of the fix. Revision 66, with the owner's agreement, installs
+  `/etc/elogind/logind.conf.d/40-tarot-greeter-cleanup.conf`
+  (`KillUserProcesses=yes`, `KillOnlyUsers=greetd`): when the greeter's session
+  ends at login, elogind ends its remaining processes. No other user is
+  affected. elogind reads it at startup.
+
+After installing r66 and rebooting, the owner logged in through Phrog. The
+greeter's session cgroup existed and held no processes, the session's
+PulseAudio was the only one, and HFP was available as soon as the headset
+connected. On the Sound page the owner then switched the default output
+between speaker and headset 13 times, each read back from PulseAudio within a
+second, and switched the headset A2DP → HFP → A2DP. In HFP, PulseAudio made the
+headset's speaker and microphone the defaults; back in A2DP, the phone's
+microphone returned. Volume steps (100 → 60 → 100%) were checked on r65. The
+owner found the new layout fine.
+
 ## Tools
 
 - `tests/phone_media_keys_check.py` runs on the phone in the normal session.
@@ -91,6 +147,7 @@ registered no player; those key presses reached Tarot with nothing to control.
   read the device through a buffered file, which delayed some key lines by one
   event; the player status lines were unaffected. The committed version, used
   for the locked run, reads unbuffered and adds the kernel's event time.
+  `--player mpv` plays the three-track playlist.
 - `tests/bluetooth_reachability.py` and `tests/phone_bluetooth_visible.py`
   check reachability, as before.
 
@@ -100,15 +157,21 @@ Kept in `artifacts/m4/media-keys/`: signed `tarot-0.1.0-r65.apk` (SHA-256
 `e77f6214ac8fa2f714b668299b3fdc0015a96832e39e1c13902d24ccb5463063`, compositor
 `30f20c0e36b37e5da93e7db151ae5e305721346dfd9c5cba9b4a7af7d154d071`, matching
 the running process), the package audit, the re-pair log, both HFP recordings,
-the r64 button capture and the four r65 key runs. Source archive
+the r64 button capture, the four r65 key runs and the mpv run. Signed
+`tarot-0.1.0-r66.apk` (SHA-256
+`7b9a4049672fb4124f55553c2fbc4478dd90427d9bb20e67aacc8530444c2c28`, compositor
+`a4a5715407efb5c2da0164b204feed3474f073244069c40d7677fcb6dcfea03d`) with its
+audit, the Sound page logs for r65 and r66 and PulseAudio's HFP debug log are
+alongside. A first r66 build without the elogind drop-in was never installed. Source archive
 `d67a7358a95210f798f8f341cee506e67a75a6d6796908cd3e9a64f3731339ac`.
 
 ## Limits
 
-- Next and previous were sent by the headset but not checked against a player
-  that offers them: Decibels with one file offers neither, and Tarot correctly
-  sent nothing.
-- Tarot's Sound page with the headset card, Bluetooth audio for calls, and
-  switching between A2DP and HFP from Tarot remain untested. The profile switch
-  above used `pactl`.
-- This was a native owner-assisted check, not a frozen QA controller run.
+- Bluetooth audio during calls is untested: the phone has no SIM.
+- Mute on the headset output from the Sound page was not separately exercised.
+- `tests/phone_audio_input_replay.py` now taps the device name in **Record
+  from**; it has not been rerun natively since.
+- With direct boot there is no greeter at startup, so the cleanup only matters
+  after a logout or with the login screen selected; direct boot was not rebooted
+  with r66.
+- These were native owner-assisted checks, not frozen QA controller runs.

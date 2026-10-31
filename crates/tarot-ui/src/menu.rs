@@ -963,11 +963,17 @@ mod tests {
                     },
                 ],
             );
+            // Wheel scrolling animates; wait until the route stops moving.
             let mut output = settle(&ctx, &model, size);
-            for _ in 0..30 {
+            let mut target = position(&output, "Tail route");
+            for _ in 0..300 {
                 output = render(&ctx, &model, size, vec![]).1;
+                let next = position(&output, "Tail route");
+                if next == target {
+                    break;
+                }
+                target = next;
             }
-            let target = position(&output, "Tail route");
             assert!(
                 render(
                     &ctx,
@@ -1127,6 +1133,14 @@ mod tests {
                     outputs: 0,
                     inputs: 0,
                 },
+                CardProfile {
+                    id: 33,
+                    label: "Playback".into(),
+                    available: true,
+                    active: false,
+                    outputs: 1,
+                    inputs: 0,
+                },
             ],
         }];
         model.apply(Command::SystemMenuOpen(true));
@@ -1171,7 +1185,20 @@ mod tests {
                 .0
                 .is_empty()
         );
-        let target = position(&settle(&ctx, &model, size), "Off");
+        let active = position(&settle(&ctx, &model, size), "Off");
+        render(
+            &ctx,
+            &model,
+            size,
+            vec![Event::PointerMoved(active), button(active, true)],
+        );
+        assert!(
+            render(&ctx, &model, size, vec![button(active, false)])
+                .0
+                .is_empty(),
+            "the active mode stays chosen"
+        );
+        let target = position(&settle(&ctx, &model, size), "Playback");
         render(
             &ctx,
             &model,
@@ -1191,14 +1218,14 @@ mod tests {
             render(&ctx, &model, size, vec![button(target, false)]).0,
             vec![Command::Audio(UiAction::CardProfile {
                 card: 30,
-                profile: 32
+                profile: 33
             })]
         );
         model.audio.pending = Some(UiAction::CardProfile {
             card: 30,
-            profile: 32,
+            profile: 33,
         });
-        let target = position(&settle(&ctx, &model, size), "Off");
+        let target = position(&settle(&ctx, &model, size), "Playback");
         render(
             &ctx,
             &model,
