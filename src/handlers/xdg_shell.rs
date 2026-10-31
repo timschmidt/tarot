@@ -22,8 +22,8 @@ use smithay::{
     wayland::{
         compositor::with_states,
         shell::xdg::{
-            PopupSurface, PositionerState, ToplevelSurface, XdgShellHandler, XdgShellState,
-            XdgToplevelSurfaceData,
+            Configure, PopupSurface, PositionerState, ToplevelSurface, XdgShellHandler,
+            XdgShellState, XdgToplevelSurfaceData,
         },
     },
 };
@@ -33,9 +33,37 @@ use crate::{
     grabs::{MoveSurfaceGrab, ResizeSurfaceGrab},
 };
 
+/// The last sizes a toplevel acknowledged, oldest first, for diagnostics.
+/// Clients such as Waydroid size internal state from early configures.
+#[derive(Default)]
+pub struct AckedSizes(pub std::cell::RefCell<std::collections::VecDeque<Option<(i32, i32)>>>);
+
+impl AckedSizes {
+    const KEEP: usize = 8;
+}
+
 impl XdgShellHandler for Compositor {
     fn xdg_shell_state(&mut self) -> &mut XdgShellState {
         &mut self.xdg_shell_state
+    }
+
+    fn ack_configure(&mut self, surface: WlSurface, configure: Configure) {
+        let Configure::Toplevel(configure) = configure else {
+            return;
+        };
+        let Some(window) = self
+            .space
+            .elements()
+            .find(|w| w.toplevel().is_some_and(|top| top.wl_surface() == &surface))
+        else {
+            return;
+        };
+        let history = window.user_data().get_or_insert(AckedSizes::default);
+        let mut sizes = history.0.borrow_mut();
+        if sizes.len() == AckedSizes::KEEP {
+            sizes.pop_front();
+        }
+        sizes.push_back(configure.state.size.map(|size| (size.w, size.h)));
     }
 
     fn new_toplevel(&mut self, surface: ToplevelSurface) {

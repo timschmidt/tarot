@@ -49,9 +49,30 @@ The owner confirmed every message appeared as described.
 That run also found a stale-state bug: the session had read the policy as on
 when it started, and an off change made from SSH afterwards was not reflected,
 so the first tap asked to turn off a policy that was already off. The helper is
-idempotent, so nothing went wrong. The source now rereads both system settings
-(this switch and At startup) whenever the Power page opens; that fix is not in
-the r67 package.
+idempotent, so nothing went wrong. Revision 68 rereads both system settings
+(this switch and At startup) whenever the Power page opens.
+
+### Automated run on revision 68
+
+A frozen native controller upgraded the phone from r67 to signed r68
+(`1e06227d2ac2ea95b26c231795766ea1235dbdd026ff6b461700fd4a71078029`, compositor
+`bf89fa07bc9f362637f829752fcc960c180cfc92c3c36be7e4b401b9ebb8bbcf`), logged into
+a diagnostic session and ran `tests/phone_sleep_policy_replay.py`. By OCR-located
+touch, with the real password typed on Tarot's keyboard into its Polkit agent,
+it switched the policy on (drop-in present, restart note, elogind still
+`ignore`), canceled a request to switch it off (file unchanged, "Not changed"
+shown) and switched it off (file removed, `ignore`). The normal session was
+restored exactly and an independent normal audit passed. Evidence
+`3eedf3d53ed00d4a21bde368b35e9758b6686ffedcf9a5aaa5cc296c5f6eda77`.
+
+The first audit attempt failed because ModemManager was stopped. It had been
+running before the two suspends at the login screen, and the modem had
+re-enumerated twice since (ModemManager listed it as `Modem/2` once started
+again). OpenRC reported it stopped rather than crashed, and the rotated log no
+longer showed why. Starting it again restored the baseline, and the audit
+passed. Suspend at the login screen therefore appears to leave ModemManager
+stopped; that needs its own investigation before automatic sleep is enabled by
+default.
 
 ### The login screen with the policy on
 
@@ -81,9 +102,8 @@ journal lines.
 
 ## Limits
 
-- The frozen native replay `tests/phone_sleep_policy_replay.py` (enable,
-  cancel, disable by OCR taps) is written but has not run; the owner's own taps
-  covered the same path.
+- ModemManager was found stopped after real suspends at the login screen
+  (see above).
 - An actual automatic sleep from Tarot with this switch (rather than the
   package) was not repeated; the earlier [package run](../automatic-sleep/README.md)
   covers elogind's behavior.

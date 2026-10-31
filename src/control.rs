@@ -295,8 +295,11 @@ pub fn start(path: &Path, handle: &LoopHandle<'_, CalloopData>) -> Result<Contro
             response["native_geometry"] = json!(state.space.elements().filter_map(|window| {
                 let id = window.user_data().get::<tarot_core::WindowId>()?;
                 let geometry = window.geometry();
+                let acked = window.user_data().get::<crate::handlers::xdg_shell::AckedSizes>()
+                    .map(|sizes| sizes.0.borrow().iter().copied().collect::<Vec<_>>()).unwrap_or_default();
                 Some(json!({"id":id,"fullscreen":state.fullscreen_window(*id),
-                    "geometry":{"x":geometry.loc.x,"y":geometry.loc.y,"width":geometry.size.w,"height":geometry.size.h}}))
+                    "geometry":{"x":geometry.loc.x,"y":geometry.loc.y,"width":geometry.size.w,"height":geometry.size.h},
+                    "acked_sizes":acked}))
             }).collect::<Vec<_>>());
             response["native_export_peers"] = json!(state.space.elements().filter_map(|window| {
                 let id = window.user_data().get::<WindowId>()?;

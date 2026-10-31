@@ -64,7 +64,10 @@ def replay(socket, state, capture, before, directory):
         state('waydroid-card', lambda s: len(s['cards']) > len(cards), seconds=180)
         r['first_card_seconds'] = round(time.monotonic() - started, 1)
         # The first window can be Android's boot screen; wait for the app's own task.
-        r['boot_cards'] = [c for c in request(socket, 'status')['cards'] if c['id'] not in cards]
+        boot = request(socket, 'status')
+        r['boot_cards'] = [c for c in boot['cards'] if c['id'] not in cards]
+        # Waydroid sizes Android's display from this window's early configures.
+        r['boot_geometry'] = [g for g in boot['native_geometry'] if g['id'] not in cards]
         capture('waydroid-boot')
         await_value(tasks, lambda t: t != 'timeout' and any(row[2] == PACKAGE for row in t), seconds=180)
         r['app_task_seconds'] = round(time.monotonic() - started, 1)
