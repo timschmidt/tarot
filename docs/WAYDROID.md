@@ -92,6 +92,19 @@ What does not yet:
   fix is upstream: resize a task window's Android task to the size the
   compositor configures, or launch tasks fullscreen on phone-sized displays.
   Sending F11 from Tarot would be a special case and is not planned.
+
+  Where the freeform mode comes from: Android's display is fullscreen, but its
+  task display area carries a freeform override in multi-window mode, and
+  Waydroid's `PlatformService.launchApp` (in its `lineage-sdk` patch) starts the
+  app with a plain `startActivity` and no launch options. Nothing at runtime
+  (`cmd window`, `enable_freeform_support`, Waydroid properties) changes this.
+  The smallest upstreamable change is in that method: when
+  `persist.waydroid.multi_windows` is on, pass `ActivityOptions` with
+  `setLaunchBounds` set to the display bounds (or fullscreen windowing), behind
+  a property such as `persist.waydroid.launch_maximized` so desktop users keep
+  freeform. It only takes effect in a rebuilt LineageOS system image, which
+  this development host cannot build (its disk is full), so it is not yet
+  written or tested.
 - **The Android display size varies.** Run 3 calibrated to 720×728 and clipped
   the window; outside the diagnostic session the same phone calibrated to
   720×1304. Tarot reported the boot card at the full card size, so the exact
