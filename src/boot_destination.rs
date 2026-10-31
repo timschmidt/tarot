@@ -21,10 +21,34 @@ pub const PAM_SERVICE: &str = "tarot-greetd";
 pub const SESSION_COMMAND: &str = "/usr/bin/tarot-session";
 const MAX_BYTES: u64 = 64 * 1024;
 
+/// greetd exits at startup when its general PAM service is missing, and this
+/// image's greeter falls back to that service. The helper therefore writes the
+/// service itself instead of the package owning it: removing Tarot while
+/// direct boot is selected leaves a working greeter, whose initial session
+/// simply fails to start and returns to the login screen.
+fn pam_text(env: &Path) -> String {
+    format!(
+        "#%PAM-1.0\n\
+         # Written by tarot-boot-destination while direct boot is selected; removed\n\
+         # when the login screen is selected again. Sessions whose greeter provides\n\
+         # a type keep it; greetd 0.10.3's initial session gets Wayland.\n\
+         auth include base-auth\n\
+         account include base-account\n\
+         password include base-password\n\
+         session required pam_env.so readenv=0 user_readenv=0 conffile={}\n\
+         session include base-session\n",
+        env.display()
+    )
+}
+const ENV_TEXT: &str = "# pam_env configuration for Tarot's direct-boot greetd service.\n\
+XDG_SESSION_TYPE DEFAULT=wayland OVERRIDE=${XDG_SESSION_TYPE}\n";
+
 pub struct Paths {
     pub confd: PathBuf,
     pub managed: PathBuf,
     pub state: PathBuf,
+    pub pam: PathBuf,
+    pub env: PathBuf,
 }
 
 impl Default for Paths {
@@ -33,6 +57,8 @@ impl Default for Paths {
             confd: "/etc/conf.d/greetd".into(),
             managed: "/etc/tarot/greetd-direct.toml".into(),
             state: "/etc/tarot/boot-destination".into(),
+            pam: "/etc/pam.d/tarot-greetd".into(),
+            env: "/etc/tarot/greetd-session.conf".into(),
         }
     }
 }
@@ -198,6 +224,9 @@ pub fn select_tarot(paths: &Paths, user: &str) -> Result<()> {
         0o644,
         None,
     )?;
+    // The session service must exist before greetd can be pointed at it.
+    replace(&paths.env, ENV_TEXT, 0o644, None)?;
+    replace(&paths.pam, &pam_text(&paths.env), 0o644, None)?;
     replace(&paths.managed, &text, 0o644, None)?;
     if cfgfile(&confd)? != paths.managed {
         let meta = fs::metadata(&paths.confd)?;
@@ -218,6 +247,7 @@ pub fn select_greeter(paths: &Paths) -> Result<()> {
         // Already the greeter; clear any leftovers from an interrupted change.
         let _ = fs::remove_file(&paths.managed);
         let _ = fs::remove_file(&paths.state);
+        remove_written(paths);
         return Ok(());
     }
     let original = PathBuf::from(read_small(&paths.state)?.trim());
@@ -234,7 +264,21 @@ pub fn select_greeter(paths: &Paths) -> Result<()> {
     )?;
     fs::remove_file(&paths.managed)?;
     fs::remove_file(&paths.state)?;
+    remove_written(paths);
     Ok(())
+}
+
+/// Remove the PAM files only when they still hold exactly what was written;
+/// an administrator's edits are left in place.
+fn remove_written(paths: &Paths) {
+    for (path, text) in [
+        (&paths.pam, pam_text(&paths.env)),
+        (&paths.env, ENV_TEXT.to_owned()),
+    ] {
+        if read_small(path).is_ok_and(|current| current == text) {
+            let _ = fs::remove_file(path);
+        }
+    }
 }
 
 /// Resolve a numeric UID to a local account through the passwd database file.
@@ -263,10 +307,13 @@ mod tests {
         let confd = dir.path().join("greetd");
         fs::write(&confd, CONFD.replace("/GREETER", greeter.to_str().unwrap())).unwrap();
         fs::set_permissions(&confd, fs::Permissions::from_mode(0o640)).unwrap();
+        fs::create_dir(dir.path().join("pam.d")).unwrap();
         let paths = Paths {
             confd,
             managed: dir.path().join("tarot/greetd-direct.toml"),
             state: dir.path().join("tarot/boot-destination"),
+            pam: dir.path().join("pam.d/tarot-greetd"),
+            env: dir.path().join("tarot/greetd-session.conf"),
         };
         (dir, paths, greeter)
     }
@@ -295,6 +342,15 @@ mod tests {
             managed["default_session"]["command"].as_str(),
             Some("/usr/libexec/phrog-greetd-session")
         );
+        // The session service exists before greetd is pointed at it.
+        let pam = fs::read_to_string(&paths.pam).unwrap();
+        assert!(pam.contains(&format!("conffile={}", paths.env.display())));
+        assert!(pam.find("pam_env.so").unwrap() < pam.find("include base-session").unwrap());
+        assert!(
+            fs::read_to_string(&paths.env)
+                .unwrap()
+                .contains("DEFAULT=wayland OVERRIDE=${XDG_SESSION_TYPE}")
+        );
         // Only the cfgfile line changes, and the file keeps its mode.
         let switched = fs::read_to_string(&paths.confd).unwrap();
         assert_eq!(switched.lines().count(), original.lines().count());
@@ -311,6 +367,7 @@ mod tests {
         select_greeter(&paths).unwrap();
         assert_eq!(fs::read_to_string(&paths.confd).unwrap(), original);
         assert!(!paths.managed.exists() && !paths.state.exists());
+        assert!(!paths.pam.exists() && !paths.env.exists());
         assert_eq!(status(&paths).unwrap().destination, Destination::Greeter);
         select_greeter(&paths).unwrap();
         assert_eq!(fs::read_to_string(&paths.confd).unwrap(), original);
@@ -345,6 +402,15 @@ mod tests {
             );
             assert!(select_tarot(&paths, "user").is_err(), "{confd:?}");
         }
+    }
+
+    #[test]
+    fn an_edited_pam_service_is_kept_when_returning_to_the_greeter() {
+        let (_dir, paths, _greeter) = setup();
+        select_tarot(&paths, "user").unwrap();
+        fs::write(&paths.pam, "#%PAM-1.0\n# administrator edit\n").unwrap();
+        select_greeter(&paths).unwrap();
+        assert!(paths.pam.exists() && !paths.env.exists() && !paths.managed.exists());
     }
 
     #[test]

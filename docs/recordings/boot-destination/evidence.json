@@ -87,5 +87,23 @@
     "select-tarot-by-password",
     "cancel-unchanged",
     "restore-greeter-by-password"
-  ]
+  ],
+  "r63": {
+    "apk_sha256": "97ce64b6eb4a6d80810be52c0863f5a17c9f9d1755dedbc52618262f24243cdc",
+    "source_archive_sha256": "08a6fb5bec07e8fa337d4bdb3f3bd08dd15b8125983c84cee697058a720367b4",
+    "record_sha256": "a4eb8b9d720a60c94b6a248dfa1b40eaa761fbad41fc093d14ed5572496d532e",
+    "failed_record_sha256": "4a200db8bb9daea9560f4c03b9f6e7686473ca7fe06cee67fe86e532f6b307fc",
+    "phases": [
+      "select",
+      "direct --keep",
+      "orphan (package removed)",
+      "final"
+    ],
+    "helper_written_pam": true,
+    "workspace": {
+      "current": 295,
+      "minimum": 295,
+      "ignored": 9
+    }
+  }
 }

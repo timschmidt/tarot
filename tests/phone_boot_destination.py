@@ -5,7 +5,10 @@ select:  record the original greetd selection, prove an inactive caller is
          refused by Polkit, then select direct boot through the root helper.
 direct:  after a reboot, require greetd's initial session to be a valid local
          Wayland Tarot session with no greeter, then end it and require the
-         greeter fallback; restore the greeter selection.
+         greeter fallback; restore the greeter selection unless --keep.
+orphan:  after Tarot was removed with direct boot still selected and a reboot,
+         require the greeter (the initial session cannot start); reinstall the
+         given package and restore the greeter selection.
 final:   after another reboot, require the original configuration and greeter.
 Only process identities verified through pidfds receive signals. No password
 is read here; normal login afterwards uses the existing greetd helper.
@@ -24,6 +27,8 @@ HELPER = '/usr/libexec/tarot-boot-destination'
 CONFD = Path('/etc/conf.d/greetd')
 MANAGED = Path('/etc/tarot/greetd-direct.toml')
 STATE = Path('/etc/tarot/boot-destination')
+PAM = Path('/etc/pam.d/tarot-greetd')
+ENV = Path('/etc/tarot/greetd-session.conf')
 USER = 'user'
 
 
@@ -78,7 +83,9 @@ def helper(*args, uid=None):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('phase', choices=['select', 'direct', 'final'])
+    parser.add_argument('phase', choices=['select', 'direct', 'orphan', 'final'])
+    parser.add_argument('--keep', action='store_true', help='direct: keep direct boot selected')
+    parser.add_argument('--apk', type=Path, help='orphan: package to reinstall')
     parser.add_argument('--record', type=Path, required=True)
     args = parser.parse_args()
     assert os.geteuid() == 0 and 'PinePhone Pro' in Path('/proc/device-tree/model').read_text()
@@ -95,7 +102,7 @@ def main():
             args.record.with_suffix('.started').write_text('')
             record['original'] = dict(confd_sha256=sha(CONFD), confd=CONFD.read_text(),
                                       mode=CONFD.stat().st_mode & 0o7777, uid=CONFD.stat().st_uid)
-            assert not MANAGED.exists() and not STATE.exists()
+            assert not MANAGED.exists() and not STATE.exists() and not PAM.exists() and not ENV.exists()
             phase['status_before'] = json.loads(helper('status')['out'])
             assert phase['status_before'] == dict(destination='Greeter', user=None)
             # An ordinary process outside the active seat session must be refused.
@@ -115,7 +122,11 @@ def main():
             phase['managed'] = MANAGED.read_text()
             phase['managed_sha256'] = sha(MANAGED)
             assert 'service = "tarot-greetd"' in phase['managed'] and 'user = "%s"' % USER in phase['managed']
-            assert Path('/etc/pam.d/tarot-greetd').is_file() and Path('/usr/share/tarot/greetd-session.conf').is_file()
+            # The helper, not the package, owns the greetd PAM service.
+            assert PAM.is_file() and ENV.is_file() and 'conffile=%s' % ENV in PAM.read_text()
+            owner = subprocess.run(['apk', 'info', '--who-owns', str(PAM)], capture_output=True, text=True)
+            phase['pam_package_owner'] = dict(code=owner.returncode, out=owner.stdout.strip(), err=owner.stderr.strip()[-200:])
+            assert owner.returncode != 0 and not owner.stdout.strip(), 'No package may own the PAM service'
         elif args.phase == 'direct':
             assert record['phases']['select']['passed'] and phase['boot_id'] != record['phases']['select']['boot_id']
             ps = await_value(processes, lambda ps: any(p['uid'] == account.pw_uid and p['name'] == 'tarot' for p in ps), seconds=90)
@@ -145,16 +156,40 @@ def main():
             time.sleep(10)
             phase['initial_session_not_repeated'] = not any(p['uid'] == account.pw_uid and p['name'] == 'tarot' for p in processes())
             assert phase['initial_session_not_repeated']
+            if args.keep:
+                phase['kept'] = True
+            else:
+                phase['restore'] = helper('set', 'greeter', uid=account.pw_uid)
+                assert phase['restore']['code'] == 0 and json.loads(phase['restore']['out']) == dict(destination='Greeter', user=None)
+                assert sha(CONFD) == record['original']['confd_sha256'] and not MANAGED.exists() and not STATE.exists()
+                assert not PAM.exists() and not ENV.exists()
+        elif args.phase == 'orphan':
+            assert record['phases']['direct']['passed'] and record['phases']['direct'].get('kept')
+            assert phase['boot_id'] != record['phases']['direct']['boot_id']
+            assert not Path(HELPER).exists() and not Path('/usr/bin/tarot-session').exists(), 'Tarot must be removed first'
+            assert 'cfgfile="%s"' % MANAGED in CONFD.read_text() and PAM.is_file() and ENV.is_file()
+            ps = await_value(processes, lambda ps: any(p['name'] == 'phrog' for p in ps), seconds=120)
+            phase['greeter_without_tarot'] = True
+            phase['greetd_running'] = any(p['name'] == 'greetd' and p['uid'] == 0 for p in ps)
+            assert phase['greetd_running']
+            assert args.apk and args.apk.is_file()
+            install = subprocess.run(['apk', 'add', '--network=no', '--allow-untrusted', str(args.apk)],
+                                     stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=240)
+            phase['reinstall'] = install.returncode
+            assert install.returncode == 0, install.stderr[-300:]
             phase['restore'] = helper('set', 'greeter', uid=account.pw_uid)
             assert phase['restore']['code'] == 0 and json.loads(phase['restore']['out']) == dict(destination='Greeter', user=None)
             assert sha(CONFD) == record['original']['confd_sha256'] and not MANAGED.exists() and not STATE.exists()
+            assert not PAM.exists() and not ENV.exists()
         else:
-            assert record['phases']['direct']['passed'] and phase['boot_id'] != record['phases']['direct']['boot_id']
+            previous = record['phases'].get('orphan') or record['phases']['direct']
+            assert previous['passed'] and phase['boot_id'] != previous['boot_id']
             ps = await_value(processes, lambda ps: any(p['name'] == 'phrog' for p in ps), seconds=90)
             phase['greeter_at_boot'] = True
             phase['no_direct_session'] = not any(p['uid'] == account.pw_uid and p['name'] == 'tarot' for p in ps)
             assert phase['no_direct_session']
             assert sha(CONFD) == record['original']['confd_sha256'] and not MANAGED.exists() and not STATE.exists()
+            assert not PAM.exists() and not ENV.exists()
             assert json.loads(helper('status')['out']) == dict(destination='Greeter', user=None)
         phase['passed'] = True
         print('PASS', args.phase, flush=True)

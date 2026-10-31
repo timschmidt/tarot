@@ -25,8 +25,8 @@ default stays the login screen.
 - **Session type.** greetd 0.10.3 opens an initial session with an empty
   environment, and it ignores a per-initial-session PAM service. Without
   `XDG_SESSION_TYPE`, login1 would register a non-Wayland session, and
-  `tarot-session` correctly refuses that. The packaged `tarot-greetd` PAM
-  service therefore runs `pam_env` before `base-session` with
+  `tarot-session` correctly refuses that. The `tarot-greetd` PAM service
+  (helper-written from revision 63) therefore runs `pam_env` before `base-session` with
   `XDG_SESSION_TYPE DEFAULT=wayland OVERRIDE=${XDG_SESSION_TYPE}`. Linux-PAM
   1.7.1 reads the override through `pam_getenv`, so a greeter-provided type
   is kept.
@@ -133,6 +133,44 @@ answering on Tarot's private bus from a different daemon instance than the one
 PAM started. How the keyring daemon starts relative to Tarot's private session
 bus is worth a separate check.
 
+## Package-removal safety (revision 63)
+
+greetd 0.10.3 exits at startup when its general PAM service is missing, and this
+image has no separate greeter service, so the greeter also uses it. In revision
+62 the package owned `/etc/pam.d/tarot-greetd`. Removing Tarot while direct boot
+was selected would have left the phone with no login screen at all.
+
+From revision 63 the helper writes that service, and its `pam_env` file at
+`/etc/tarot/greetd-session.conf`, when direct boot is selected. It writes them
+before pointing greetd at the managed configuration, and removes them when the
+login screen is selected again. An administrator-edited service is left in
+place. The package no longer ships either file.
+
+A native run with signed r63 went through four phases:
+
+1. **select:** no package owns the PAM service.
+2. **direct:** after a reboot, a Wayland session through `tarot-greetd`, with no
+   greeter. Ending it falls back to Phrog, and the selection is kept.
+3. **orphan:** `apk del tarot` with direct boot still selected, then a reboot.
+   greetd starts from the managed configuration. The initial session's command
+   no longer exists, so Phrog comes up normally. Reinstalling r63 and selecting
+   the login screen restores the original `cfgfile` exactly and removes all
+   helper-written files.
+4. **final:** after a reboot, the original configuration and Phrog are back,
+   and a normal login reaches Tarot63.
+
+The first select attempt (record `4a200db8…`) changed the configuration, then
+failed the test's own check. For an unowned file, apk's "no owner" error
+message contains the path, which itself contains "tarot-". The check now uses
+apk's exit status. The helper restored the login screen before the accepted
+run (record `a4eb8b9d…`).
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Signed APK `tarot-0.1.0-r63.apk` | `97ce64b6eb4a6d80810be52c0863f5a17c9f9d1755dedbc52618262f24243cdc` |
+| Canonical source archive | `08a6fb5bec07e8fa337d4bdb3f3bd08dd15b8125983c84cee697058a720367b4` |
+| Phase record | `a4eb8b9d720a60c94b6a248dfa1b40eaa761fbad41fc093d14ed5572496d532e` |
+
 ## Limits
 
 - **Diagnostics were off** during direct boot, so this run did not read
@@ -141,11 +179,9 @@ bus is worth a separate check.
   qualified, not on a new measurement here.
 - **No single combined run.** The finger path and the reboot phases passed
   in separate runs; they have not been combined into one finger-to-reboot run.
-- **Package removal.** Removing the package while direct boot is selected
-  would leave greetd pointing at a configuration whose PAM service no longer
-  exists. Switch back to the login screen before removing Tarot. A guarded
-  removal path remains open, because the package deliberately has no install
-  scripts.
+- **Leftovers after removal.** If Tarot is removed while direct boot is
+  selected, the phone still boots to Phrog, but greetd keeps using the managed
+  configuration. Reinstall Tarot and choose the login screen to clean up.
 - **Stale switch.** A greetd or Phrog update that changes the greeter
   configuration while direct boot is selected takes effect only after
   switching again.

@@ -452,8 +452,9 @@ identities, failures and unsupported states with the device evidence.
 **Requested October 30, 2026 by the owner. Implemented in signed revision 62;
 native helper, boot, finger/Polkit-agent and keyring evidence pass.** This image
 has no disk or home encryption, and Tarot's first unlock opens the login
-keyring. Guarded package removal and a single combined finger-to-reboot run
-remain open.
+keyring. From revision 63 the helper writes the greetd PAM service itself, so
+removing Tarot while direct boot is selected still boots to Phrog (verified on
+the phone). A single combined finger-to-reboot run remains open.
 [Evidence](recordings/boot-destination/README.md). Add a
 Settings choice for what Nura shows at boot:
 - **Login screen:** the distribution's greeter (currently Phrog) offers the
