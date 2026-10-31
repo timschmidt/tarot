@@ -48,6 +48,14 @@ def replay(socket, state, capture, before, directory):
             return 'timeout'
         return sorted(set(re.findall(r'Task\{\w+ #(\d+) type=(\w+) A=\d+:([\w.]+)', out)))
 
+    def network():
+        # NetworkManager keeps runtime profiles for Waydroid's bridge and veth
+        # while they exist; the controller's baseline compares them.
+        runtime = Path('/run/NetworkManager/system-connections')
+        return dict(bridge=Path('/sys/class/net/waydroid0').exists(),
+                    profiles=sorted(p.name for p in runtime.iterdir()) if runtime.is_dir() else [])
+
+    r['network_before'] = network()
     try:
         initial = status()
         r['waydroid_before'] = initial
@@ -96,6 +104,11 @@ def replay(socket, state, capture, before, directory):
             r['waydroid_after'] = await_value(status, lambda s: s.get('Session') == 'STOPPED', seconds=60)
         except Exception as error:
             r['session_stop_error'] = type(error).__name__
+            r['passed'] = False
+        try:
+            r['network_after'] = await_value(network, lambda n: n == r['network_before'], seconds=90)
+        except AssertionError:
+            r['network_after'] = network()
             r['passed'] = False
         r['cards_after'] = [c for c in request(socket, 'status')['cards'] if c['id'] not in {c['id'] for c in before['cards']}]
         (directory / 'waydroid-result.json').write_text(json.dumps(r, indent=2) + '\n')

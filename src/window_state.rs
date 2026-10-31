@@ -51,6 +51,27 @@ impl Compositor {
         }
     }
 
+    /// The input panel reserves space only for its owning card family. Other
+    /// cards, including a window that appears while another card's keyboard is
+    /// up, keep their full size: clients such as Waydroid fix internal sizes
+    /// from their first configure.
+    fn content_in(&self, id: WindowId, layout: Layout) -> Rect {
+        let owns = self.families.owner(id).is_some_and(|root| {
+            self.keyboard
+                .as_ref()
+                .is_some_and(|keyboard| keyboard.owner == Some(root))
+        });
+        if owns {
+            layout.content()
+        } else {
+            Layout {
+                keyboard_height: 0.0,
+                ..layout
+            }
+            .content()
+        }
+    }
+
     fn fullscreen_viewport_in(&self, owner: WindowId, layout: Layout) -> Rect {
         // The input panel reserves space only for its owning card family.
         // Hidden fullscreen clients keep their full-output configuration.
@@ -141,10 +162,10 @@ impl Compositor {
             {
                 self.fullscreen_viewport_in(root, layout)
             } else {
-                layout.content()
+                self.content_in(id, layout)
             }
         } else {
-            layout.content()
+            self.content_in(id, layout)
         };
         let size: Size<i32, Logical> = (area.width as i32, area.height as i32).into();
         top.with_pending_state(|state| {

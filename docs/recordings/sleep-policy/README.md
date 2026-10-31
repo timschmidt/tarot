@@ -65,14 +65,20 @@ shown) and switched it off (file removed, `ignore`). The normal session was
 restored exactly and an independent normal audit passed. Evidence
 `3eedf3d53ed00d4a21bde368b35e9758b6686ffedcf9a5aaa5cc296c5f6eda77`.
 
-The first audit attempt failed because ModemManager was stopped. It had been
-running before the two suspends at the login screen, and the modem had
-re-enumerated twice since (ModemManager listed it as `Modem/2` once started
-again). OpenRC reported it stopped rather than crashed, and the rotated log no
-longer showed why. Starting it again restored the baseline, and the audit
-passed. Suspend at the login screen therefore appears to leave ModemManager
-stopped; that needs its own investigation before automatic sleep is enabled by
-default.
+The first audit attempt failed because OpenRC reported ModemManager stopped.
+The cause is in the image, not Tarot: ModemManager's D-Bus activation file,
+whose own comment says its `Exec` should be `/bin/false` outside systemd, runs
+the real `/usr/sbin/ModemManager`. When ModemManager is not yet running, any
+system-bus client that asks for it starts it directly, parented by init, and
+OpenRC's supervised start then fails because the name is taken. On the boot
+that suspended at the login screen about 30 seconds in, ModemManager had been
+activated this way (PID 1284, parent init) and ran normally the whole time
+while OpenRC said stopped. Stopping it and starting the service reproduced the
+race at once: a new ModemManager appeared, parented by init, before OpenRC's
+supervisor. The modem worked throughout. Later audits accept exactly this
+case (one ModemManager from `/usr/sbin`, parented by init, with the modem
+listed) and record it; a normal boot that starts the service in time avoids
+it.
 
 ### The login screen with the policy on
 
@@ -102,8 +108,8 @@ journal lines.
 
 ## Limits
 
-- ModemManager was found stopped after real suspends at the login screen
-  (see above).
+- ModemManager can be D-Bus-activated outside OpenRC's supervision on this
+  image (see above); that is a distribution packaging issue.
 - An actual automatic sleep from Tarot with this switch (rather than the
   package) was not repeated; the earlier [package run](../automatic-sleep/README.md)
   covers elogind's behavior.

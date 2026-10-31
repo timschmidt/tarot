@@ -105,11 +105,28 @@ What does not yet:
   freeform. It only takes effect in a rebuilt LineageOS system image, which
   this development host cannot build (its disk is full), so it is not yet
   written or tested.
-- **The Android display size varies.** Run 3 calibrated to 720×728 and clipped
-  the window; outside the diagnostic session the same phone calibrated to
-  720×1304. Tarot reported the boot card at the full card size, so the exact
-  configure sequence during Waydroid's calibration (including its fallback to
-  the output size) still needs tracing.
+- **The Android display size varied, fixed in revision 70.** Run 3 calibrated
+  to 720×728 and clipped the window. Revision 69 records each window's
+  acknowledged configure sizes in diagnostic status. Its run showed Waydroid's
+  boot window acknowledging 360×412 twice before 360×652: 240 points (the
+  on-screen keyboard) shorter. The keyboard was still up for the previous
+  card when the boot window appeared, Tarot reserved keyboard space for every
+  card, and Waydroid fixed Android's display from that first configure.
+  Revision 70 reserves keyboard space only for the card family that owns the
+  keyboard, as fullscreen windows already did; a new window gets the full card.
+  In the revision 70 run the boot window and the F-Droid card acknowledged only
+  360×652. Evidence `efcbd685bdcd85f882ebb2ba89bc4720d02c4987e00b09364d882c4f56af4d8a`.
+
+<img src="recordings/waydroid/fdroid-card-r70.png" alt="F-Droid filling its Tarot card, with Android's freeform caption bar at the top" width="240">
+
+  In that run F-Droid also filled its card. That is partly because Android
+  remembers an app's last freeform bounds, and the earlier `am task resize`
+  experiment left F-Droid's at the full display; a newly installed app still
+  opens at Android's small default size until the launch fix below exists.
+  The revision 69 run itself passed but its controller aborted restoration:
+  NetworkManager briefly kept runtime profiles for Waydroid's bridge and veth,
+  which the strict baseline compared. The replay now waits for the network
+  state to match its start before the session ends.
 - Android's app icon is not yet shown on the card, and popups other than the
   permission prompt, fullscreen and the keyboard reservation are untested.
 
@@ -135,8 +152,9 @@ default`, or remove the packages and `/var/lib/waydroid`.
 
 ## Next
 
-1. Trace the configure sequence during Waydroid's display calibration, and
-   propose the task-resize change upstream.
+1. Propose the launch-bounds change upstream (it needs an image build
+   elsewhere), and consider hiding Android's freeform caption, which
+   duplicates Tarot's own card controls.
 2. Measure idle power with the container stopped, frozen and running.
 3. Text input (Tarot keyboard or Android IME), Back mapping, lock and suspend
    with the container frozen.
