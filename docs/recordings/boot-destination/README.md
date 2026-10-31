@@ -106,6 +106,33 @@ Tarot62 back in. An independent audit passed. Evidence archive:
 ![Power page At startup section](power-at-startup.png)
 ![Tarot's Polkit agent asking for the administrator password](polkit-prompt.png)
 
+## Keyring and encrypted storage
+
+This image has no disk or home encryption: there is no crypttab and no dm-crypt
+device. It does run gnome-keyring, and Nura's `base-auth` stack includes
+`-auth optional pam_gnome_keyring.so`. Direct boot enters no password at login,
+so the `login` keyring can start locked.
+
+A native run on signed r62 tested the unlock path:
+1. In a diagnostic Tarot session, the `login` collection was locked through
+   Secret Service `Lock`, which needs no prompt, and read back as `Locked`.
+2. Tarot was locked and then unlocked with the real password by touch.
+3. The collection then read unlocked.
+
+Tarot's locker service includes `base-auth`, so its first unlock opens the
+keyring. Direct boot already requires that unlock before showing any content,
+so no extra step is needed. The test ran in a greetd-authenticated session; the
+direct-boot session uses the same locker stack. Evidence archive:
+`8757a96fa673db546761a11a05583742d87803d7738b31f84c617d55a7c36ca8`.
+
+A first observation (archive
+`4605a181c00fb2d39b4103f61735a7d06af1d74cd86d3e26f79c63ac524cc447`) began
+with the keyring already unlocked by the greetd login, so it did not exercise
+this path. It is retained. An earlier read-only probe found a locked keyring
+answering on Tarot's private bus from a different daemon instance than the one
+PAM started. How the keyring daemon starts relative to Tarot's private session
+bus is worth a separate check.
+
 ## Limits
 
 - **Diagnostics were off** during direct boot, so this run did not read
@@ -114,8 +141,6 @@ Tarot62 back in. An independent audit passed. Evidence archive:
   qualified, not on a new measurement here.
 - **No single combined run.** The finger path and the reboot phases passed
   in separate runs; they have not been combined into one finger-to-reboot run.
-- **Keyring and encrypted storage.** The consequences of skipping the login
-  password for a keyring or encrypted home are not yet audited on this image.
 - **Package removal.** Removing the package while direct boot is selected
   would leave greetd pointing at a configuration whose PAM service no longer
   exists. Switch back to the login screen before removing Tarot. A guarded

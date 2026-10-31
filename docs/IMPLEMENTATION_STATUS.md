@@ -15,7 +15,9 @@ supplies the Wayland session type that greetd 0.10.3 omits. Native
 reboot-separated phases pass: inactive caller refused, a real direct boot to a
 valid login1 Wayland session with no greeter, fallback to Phrog on exit, and
 exact restoration. A separate finger run selects and restores the setting through Tarot's Polkit agent
-with the real password, and a cancel leaves the file unchanged. The keyring audit remains.
+with the real password, and a cancel leaves the file unchanged. A locked login keyring opens at
+Tarot's first real unlock, and the image has no disk encryption, so direct boot loses no secrets
+access.
 [Evidence](recordings/boot-destination/README.md).
 
 Android applications through Waydroid are now planned as
