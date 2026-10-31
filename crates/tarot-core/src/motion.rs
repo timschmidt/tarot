@@ -489,10 +489,19 @@ mod tests {
         });
         let frame = Presentation::settled(&model, layout);
         assert_eq!(frame.windows.len(), 3);
+        // Poses are packet coordinates relative to the packet's card (61.2,
+        // 139, 0.66); they scale with Tarot's larger card-view card.
+        let base = layout.card(0, 0);
+        let factor = base.width / (360.0 * crate::design::CARD_SCALE);
         for (visual, pose) in frame.windows.iter().zip(crate::design::STACK_POSES) {
-            assert!((visual.rect.x - pose.0).abs() < 0.001);
-            assert!((visual.rect.y - pose.1).abs() < 0.001);
-            assert!((visual.rect.width - 360.0 * pose.2).abs() < 0.001);
+            assert!((visual.rect.x - (base.x + (pose.0 - 61.2) * factor)).abs() < 0.001);
+            assert!(
+                (visual.rect.y - (base.y + (pose.1 - crate::design::CARD_Y) * factor)).abs()
+                    < 0.001
+            );
+            assert!(
+                (visual.rect.width - base.width * pose.2 / crate::design::CARD_SCALE).abs() < 0.001
+            );
             assert_eq!(visual.rotation, pose.3);
         }
         let selected = model.selected.unwrap();

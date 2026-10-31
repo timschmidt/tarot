@@ -154,7 +154,7 @@ def run_case(args, case):
             status()
             assert not config.exists()
             result['saved'] = settings(True, True)
-            assert tomllib.loads(config.read_text()) == {'version': 5, 'notifications': {'dnd': True, 'hide_previews': True}, 'display': {'rotation_locked': False, 'locked_orientation': 'normal', 'idle': {'lock_after_seconds': 120, 'screen_off_enabled': True, 'off_after_seconds': 180}}, 'feedback': {'notifications': True}}
+            assert tomllib.loads(config.read_text()) == {'version': 6, 'notifications': {'dnd': True, 'hide_previews': True}, 'display': {'rotation_locked': False, 'locked_orientation': 'normal', 'idle': {'lock_after_seconds': 120, 'screen_off_enabled': True, 'off_after_seconds': 180}, 'sleep': {'automatic': False, 'after_off_seconds': 60, 'on_external_power': False}}, 'feedback': {'notifications': True}}
             assert config.stat().st_mode & 0o777 == 0o600
             result['first_compositor_exit'] = stop()
             assert not control.exists()

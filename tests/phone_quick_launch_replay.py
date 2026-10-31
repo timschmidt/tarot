@@ -176,7 +176,7 @@ def replay(socket, screen, state, tap, capture, before, out):
         same_app('quick-favorite-restores-app')
         capture('quick-native-final')
         settings=tomllib.loads(Path('/home/user/.config/tarot/settings.toml').read_text())
-        assert settings['version']==5 and settings['quick_launch']['applications']==[CALCULATOR]
+        assert settings['version']==6 and settings['quick_launch']['applications']==[CALCULATOR]
         assert settings['notifications']['dnd'] and settings['display']['rotation_locked']
         records.update(passed=True,native_kms_and_uinput=True,installed_calculator=True,
             wave_preserves_native_geometry=True,release_focuses_same_card=True,outside_release_cancels=True,

@@ -580,7 +580,7 @@ mod tests {
         }
     }
     #[test]
-    fn movement_before_hold_remains_scroll_and_fixed_launcher_cannot_receive_a_drop() {
+    fn movement_before_hold_remains_scroll_and_the_fifth_position_takes_a_drop() {
         let ctx = Context::default();
         let m = model();
         render(&ctx, &m, 0.0, vec![], false);
@@ -624,8 +624,13 @@ mod tests {
             vec![egui::Event::PointerMoved(target)],
             false,
         );
+        // The fifth position takes the held application in place of Apps.
         let commands = render(&ctx, &m, 0.8, vec![button(target, false)], false);
-        assert!(commands.is_empty());
+        assert!(
+            commands
+                .iter()
+                .any(|c| matches!(c, Command::Favorite(Edit::Place { at: 4, .. })))
+        );
         assert_eq!(m.view, View::Launcher);
     }
     #[test]

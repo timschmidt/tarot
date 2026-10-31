@@ -44,7 +44,7 @@ def replay(control,screen,state,tap,capture,before,out,authenticate):
     def saved(label,condition):
         s=observe(label,lambda s:s['launcher']['saved'] and condition(s['launcher']['settings']))
         data=tomllib.loads(settings.read_text())
-        assert data['version']==5 and data['launcher']==s['launcher']['settings']
+        assert data['version']==6 and data['launcher']==s['launcher']['settings']
         assert s['favorites']==favorite_before
         assert data['quick_launch']['applications']==favorite_before['applications']
         assert data['notifications']['dnd'] and data['display']['rotation_locked']

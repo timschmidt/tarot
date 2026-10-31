@@ -1993,7 +1993,7 @@ mod tests {
         let cards = model.cards.clone();
         assert_eq!(
             model.apply(Command::SystemMenuOpen(true)),
-            vec![Effect::Focus(None)]
+            vec![Effect::RefreshSystemSettings, Effect::Focus(None)]
         );
         assert!(model.system_menu_open && !model.notifications_open);
         let action = power::UiAction::Brightness { percent: 40 };

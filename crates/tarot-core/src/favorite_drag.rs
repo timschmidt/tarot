@@ -477,16 +477,18 @@ mod tests {
             ]
         );
         assert!(model.favorites.valid());
-        assert!(!model.favorites.edit(
+        // A full set of four still leaves the fifth position for an app.
+        assert!(model.favorites.edit(
             Edit::Place {
                 id: "app4.desktop".into(),
                 at: 4
             },
             &model.applications
         ));
+        assert_eq!(model.favorites.fifth.as_deref(), Some("app4.desktop"));
     }
     #[test]
-    fn only_dock_sources_can_use_removal_and_apps_slot_never_accepts_a_drop() {
+    fn only_dock_sources_can_use_removal_and_the_fifth_position_takes_a_drop() {
         let (model, layout) = fixture();
         let r = removal(layout);
         let point = (r.x + r.width / 2.0, r.y + r.height / 2.0);
@@ -502,7 +504,13 @@ mod tests {
         assert!(g.release(800, &model, layout).edit.is_none());
         let mut g = armed(&model, layout, source);
         g.motion(center(layout, 4));
-        assert!(g.release(800, &model, layout).edit.is_none());
+        assert_eq!(
+            g.release(800, &model, layout).edit,
+            Some(Edit::Place {
+                id: "app0.desktop".into(),
+                at: 4
+            })
+        );
     }
     #[test]
     fn changed_scene_and_cancellation_cannot_commit_but_keyboard_hide_is_allowed() {

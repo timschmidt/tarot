@@ -325,17 +325,21 @@ mod tests {
             .valid()
         );
         // Tapping it launches the application; cleared, it is the Launcher again.
-        let mut m = ShellModel::default();
-        m.applications = catalog.clone();
-        m.favorites = f.clone();
+        let mut m = ShellModel {
+            applications: catalog.clone(),
+            favorites: f.clone(),
+            ..Default::default()
+        };
         assert_eq!(
             m.apply(Command::QuickLaunch(FIFTH)),
             vec![Effect::Launch(catalog[4].id.clone())]
         );
-        let mut m = ShellModel::default();
-        m.applications = catalog.clone();
         assert!(f.edit(Edit::Remove(FIFTH), &catalog));
-        m.favorites = f;
+        let mut m = ShellModel {
+            applications: catalog.clone(),
+            favorites: f,
+            ..Default::default()
+        };
         m.apply(Command::QuickLaunch(FIFTH));
         assert_eq!(m.view, View::Launcher);
     }

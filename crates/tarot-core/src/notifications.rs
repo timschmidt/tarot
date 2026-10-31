@@ -782,9 +782,10 @@ mod tests {
             model.apply(Command::NotificationsOpen(false)),
             vec![Effect::Focus(Some(WindowId(7)))]
         );
+        // Opening the menu also rereads the system settings it shows.
         assert_eq!(
             model.apply(Command::SystemMenuOpen(true)),
-            vec![Effect::Focus(None)]
+            vec![Effect::RefreshSystemSettings, Effect::Focus(None)]
         );
     }
 
