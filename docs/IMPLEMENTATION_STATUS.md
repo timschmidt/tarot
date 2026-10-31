@@ -14,7 +14,8 @@ Polkit-gated Rust helper and greetd's `initial_session`. A Tarot PAM service
 supplies the Wayland session type that greetd 0.10.3 omits. Native
 reboot-separated phases pass: inactive caller refused, a real direct boot to a
 valid login1 Wayland session with no greeter, fallback to Phrog on exit, and
-exact restoration. The finger/Polkit-agent path and keyring audit remain.
+exact restoration. A separate finger run selects and restores the setting through Tarot's Polkit agent
+with the real password, and a cancel leaves the file unchanged. The keyring audit remains.
 [Evidence](recordings/boot-destination/README.md).
 
 Android applications through Waydroid are now planned as

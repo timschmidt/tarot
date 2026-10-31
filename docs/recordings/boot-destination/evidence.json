@@ -79,7 +79,13 @@
   },
   "original_confd_sha256": "6523d36fa3490b4f518184bb0d5a1dd025f14e93ead2b0f9a80f82d685a953f0",
   "record_sha256": "b5d057406cae775f6ca3dcbdc403f66607785a1b6119e998694d5f77fabe7f99",
-  "touch_polkit_path_tested": false,
+  "touch_polkit_path_tested": true,
   "protected_startup_measured_in_direct_boot": false,
-  "default": "greeter"
+  "default": "greeter",
+  "finger_evidence_sha256": "108c43d1ca3ff60efe22a9cea09c40f8b7489995c3d7cb88d6a13a6aebbd347d",
+  "finger_steps": [
+    "select-tarot-by-password",
+    "cancel-unchanged",
+    "restore-greeter-by-password"
+  ]
 }

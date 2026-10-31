@@ -84,15 +84,36 @@ repository.
 | Original `/etc/conf.d/greetd` | `6523d36fa3490b4f518184bb0d5a1dd025f14e93ead2b0f9a80f82d685a953f0` |
 | Phase record | `b5d057406cae775f6ca3dcbdc403f66607785a1b6119e998694d5f77fabe7f99` |
 
+## Finger and Polkit-agent acceptance
+
+A separate native run on the same signed r62 used a diagnostic Tarot session and
+real touch input. Its targets were found by OCR on the rendered page:
+
+1. On the Power page, tapping **Start Tarot, locked** ran pkexec. Tarot's own
+   Polkit agent showed the action's message and "Authenticate as user". The
+   real administrator password was typed on the private on-screen keyboard and
+   submitted with **Authenticate**. The page then reported Tarot from the reread
+   file, with no error, and the managed configuration was in place.
+2. Tapping **Show the login screen**, then **Cancel** at the prompt, reported
+   "Not changed: authorization was not given". The file stayed byte-identical.
+3. Tapping **Show the login screen** again with the real password restored the
+   original `/etc/conf.d/greetd` hash and removed the managed files.
+
+The controller restored preferences and controls exactly and logged normal
+Tarot62 back in. An independent audit passed. Evidence archive:
+`108c43d1ca3ff60efe22a9cea09c40f8b7489995c3d7cb88d6a13a6aebbd347d` (676 members).
+
+![Power page At startup section](power-at-startup.png)
+![Tarot's Polkit agent asking for the administrator password](polkit-prompt.png)
+
 ## Limits
 
 - **Diagnostics were off** during direct boot, so this run did not read
   Tarot's lock status. Protected startup and actual PAM before content rely on
   the unchanged installed compositor command, which earlier revisions
   qualified, not on a new measurement here.
-- **The finger path is unverified.** The test used the helper directly as
-  root. The Power-page path, from touch through Tarot's Polkit agent and a
-  real administrator password to a reboot into Tarot, is not yet verified.
+- **No single combined run.** The finger path and the reboot phases passed
+  in separate runs; they have not been combined into one finger-to-reboot run.
 - **Keyring and encrypted storage.** The consequences of skipping the login
   password for a keyring or encrypted home are not yet audited on this image.
 - **Package removal.** Removing the package while direct boot is selected
