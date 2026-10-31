@@ -24,6 +24,16 @@ for their graphics and authoring source. No Pre3 runtime work has started.
 
 ## Audio activity and system sleep
 
+Revision 61 automatic sleep checkpoint, October 30: with the opt-in
+`tarot-automatic-sleep` drop-in active from boot, elogind's own idle action
+suspended the phone after Tarot reported a protected idle session. Tarot's
+protected resume and actual PAM restored the same session (102.7 s asleep, no
+unprotected frame). The installed launcher now always runs the publisher;
+Automatic sleep stays off by default. Enabling the policy requires a reboot
+because elogind 255.24 arms its idle timer only at startup. The policy was
+removed afterward. External power only; battery, greeter and endurance remain.
+[Evidence](recordings/automatic-sleep/README.md).
+
 Revision 60 USB sleep checkpoint, October 30: the retained dwc3 `-11` suspend
 failure occurs with the phone's NCM gadget bound and no USB host attached;
 unbinding it lets deep sleep succeed. The package now installs a Rust elogind

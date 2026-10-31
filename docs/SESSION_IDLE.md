@@ -2,8 +2,9 @@
 
 Tarot has an opt-in publisher for the authenticated GUI session's login1 idle
 hint. This is T016 integration work. Signed revision 59 is installed as the
-phone's normal default session, and its normal launcher leaves the publisher
-disabled. Revision 59 adds persistent user settings for the publisher. The publisher does not implement automatic sleep by itself, and the
+phone's normal default session. Revision 59 adds persistent user settings for
+the publisher, and revision 61's normal launcher always runs it; the hint stays
+false until the user enables Automatic sleep. The publisher does not implement automatic sleep by itself, and the
 phone keeps its existing `IdleAction=ignore` configuration. [Full automatic-suspend plan](DEVELOPMENT_PLAN.md#m4-addition-automatic-suspend-policy).
 
 `--session-idle` requires sleep coordination, the trusted locker, system services
@@ -122,7 +123,10 @@ Power section remains open. [Evidence](recordings/sleep-settings/README.md).
 
 Revision 60 isolates the USB kernel sleep failure to a bound gadget with no
 host attached. It packages a reversible elogind hook, and ten real deep cycles
-succeed. [USB evidence](recordings/usb-sleep/README.md). Next, complete
-T016's manager-policy packaging/rollback, global-inhibitor and actual
-automatic-sleep tests. Bluetooth stays
+succeed. [USB evidence](recordings/usb-sleep/README.md). Revision 61 always runs the publisher in installed sessions and adds the opt-in
+`tarot-automatic-sleep` drop-in. elogind only arms the idle timer at startup,
+so install it and reboot. A real automatic suspend, protected resume and PAM
+then pass on external power.
+[Automatic sleep evidence](recordings/automatic-sleep/README.md). Battery,
+greeter, multi-session, call/work policy and endurance remain. Bluetooth stays
 paused at the owner's request. No complete milestone is closed here.

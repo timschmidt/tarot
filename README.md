@@ -14,6 +14,8 @@ M0 remains in progress. The phone has been upgraded through supported releases t
 
 Tarot is now the default login session on the development phone, with the normal installed entry running and diagnostics disabled. The retained revision 8 → 5 → 8 package round trip passes real PAM, native app/audio and cleanup checks on both revisions.
 
+Revision 61 achieves the first real automatic sleep. With the opt-in `tarot-automatic-sleep` package (`IdleAction=suspend`, active after a reboot), the session manager suspends the phone once Tarot reports a protected idle session. Tarot resumes protected, and the password restores the same session. Automatic sleep stays off by default and was tested on external power only. [Evidence and limits](docs/recordings/automatic-sleep/README.md).
+
 Revision 60 fixes system sleep on the phone when it is charging with no USB host attached. In that state the USB controller's gadget made every suspend fail with `-11`. A packaged Rust elogind sleep hook now unbinds only detached gadgets and restores them afterward. Ten real RTC-woken deep-sleep cycles succeed in normal Tarot60. [Evidence and limits](docs/recordings/usb-sleep/README.md).
 
 Revision 59 adds persistent **Automatic sleep** Power settings: off by default, a delay after the protected screen turns off, and optional external power. They gate the idle publisher. Native disabled, 10-second delay, battery-only and external-power cases pass, with the saved settings verified across logins. [Evidence and limits](docs/recordings/sleep-settings/README.md).

@@ -31,11 +31,9 @@ struct Options {
     /// Enable the private development control socket; never enables unlock.
     #[arg(long)]
     diagnostics: bool,
-    /// Qualify authenticated-session idle reporting through diagnostics only.
+    /// Diagnostic override: report idle on observed external power regardless
+    /// of the user's saved Automatic sleep setting.
     #[arg(long, requires = "diagnostics")]
-    session_idle: bool,
-    /// Permit the idle experiment on observed external power.
-    #[arg(long, requires = "session_idle")]
     session_idle_on_external_power: bool,
     /// Inspect local session/device prerequisites without starting graphics.
     #[arg(long)]
@@ -248,7 +246,6 @@ fn remove_diagnostic_socket(path: &Path, uid: u32) -> Result<()> {
 fn compositor_arguments(
     card: &Path,
     control: Option<&Path>,
-    session_idle: bool,
     on_external_power: bool,
 ) -> Vec<std::ffi::OsString> {
     let mut args = vec![
@@ -266,15 +263,15 @@ fn compositor_arguments(
         "/usr/bin/tarot-keyboard".into(),
         "--idle-preferences".into(),
         "--hardware-keys".into(),
+        // Hints stay false until the user enables Automatic sleep; whether the
+        // system then sleeps is the session manager's configured idle action.
+        "--session-idle".into(),
     ];
     if let Some(path) = control {
         args.extend(["--control-socket".into(), path.as_os_str().into()]);
         args.extend(["--input-method-arg".into(), "--metadata".into()]);
-        if session_idle {
-            args.push("--session-idle".into());
-            if on_external_power {
-                args.push("--session-idle-on-external-power".into());
-            }
+        if on_external_power {
+            args.push("--session-idle-on-external-power".into());
         }
     }
     args
@@ -333,9 +330,6 @@ fn run(options: Options) -> Result<()> {
         if options.diagnostics {
             command.arg("--diagnostics");
         }
-        if options.session_idle {
-            command.arg("--session-idle");
-        }
         if options.session_idle_on_external_power {
             command.arg("--session-idle-on-external-power");
         }
@@ -384,11 +378,11 @@ fn run(options: Options) -> Result<()> {
     writeln!(
         log,
         "{}",
-        serde_json::json!({"event":"session-start","session":session,"card":card,"diagnostics":options.diagnostics,"session_idle":options.session_idle,"session_idle_on_external_power":options.session_idle_on_external_power})
+        serde_json::json!({"event":"session-start","session":session,"card":card,"diagnostics":options.diagnostics,"session_idle_on_external_power":options.session_idle_on_external_power})
     )?;
     let mut command = Command::new("/usr/bin/tarot");
     command
-        .args(compositor_arguments(&card, control.as_deref(), options.session_idle, options.session_idle_on_external_power))
+        .args(compositor_arguments(&card, control.as_deref(), options.session_idle_on_external_power))
         .env("LIBSEAT_BACKEND", "logind")
         .env("XDG_CURRENT_DESKTOP", "Tarot")
         .env("XDG_SESSION_DESKTOP", "tarot")
@@ -589,9 +583,10 @@ mod tests {
     }
     #[test]
     fn installed_session_always_has_managed_lock_and_no_test_escape() {
-        let args = compositor_arguments(Path::new("/dev/dri/card1"), None, false, false);
+        let args = compositor_arguments(Path::new("/dev/dri/card1"), None, false);
         assert!(args.contains(&OsStr::new("--sleep-coordination").to_owned()));
         assert!(args.contains(&OsStr::new("--hardware-keys").to_owned()));
+        assert!(args.contains(&OsStr::new("--session-idle").to_owned()));
         assert!(
             args.windows(2)
                 .any(|p| p == ["--lock-client", "/usr/bin/tarot-lock"])
@@ -603,7 +598,6 @@ mod tests {
             "--screenshot",
             "--platform-bus",
             "--input-method-arg",
-            "--session-idle",
             "--session-idle-on-external-power",
         ] {
             assert!(!args.contains(&OsStr::new(escape).to_owned()));
@@ -611,7 +605,6 @@ mod tests {
         let diagnostics = compositor_arguments(
             Path::new("/dev/dri/card1"),
             Some(Path::new("/tmp/control.sock")),
-            false,
             false,
         );
         assert!(
@@ -621,30 +614,20 @@ mod tests {
         );
     }
     #[test]
-    fn idle_experiment_requires_explicit_diagnostics_and_power_policy() {
-        assert!(Options::try_parse_from(["tarot-session", "--session-idle"]).is_err());
+    fn external_power_override_requires_diagnostics_and_never_reaches_normal_sessions() {
         assert!(
-            Options::try_parse_from([
-                "tarot-session",
-                "--diagnostics",
-                "--session-idle-on-external-power"
-            ])
-            .is_err()
+            Options::try_parse_from(["tarot-session", "--session-idle-on-external-power"]).is_err()
         );
         let options = Options::try_parse_from([
             "tarot-session",
             "--diagnostics",
-            "--session-idle",
             "--session-idle-on-external-power",
         ])
         .unwrap();
-        assert!(
-            options.diagnostics && options.session_idle && options.session_idle_on_external_power
-        );
+        assert!(options.diagnostics && options.session_idle_on_external_power);
         let diagnostic = compositor_arguments(
             Path::new("/dev/dri/card1"),
             Some(Path::new("/tmp/control.sock")),
-            true,
             true,
         );
         assert!(diagnostic.iter().any(|v| v == "--session-idle"));
@@ -653,11 +636,12 @@ mod tests {
                 .iter()
                 .any(|v| v == "--session-idle-on-external-power")
         );
-        let normal = compositor_arguments(Path::new("/dev/dri/card1"), None, true, true);
+        let normal = compositor_arguments(Path::new("/dev/dri/card1"), None, true);
+        assert!(normal.iter().any(|v| v == "--session-idle"));
         assert!(
             !normal
                 .iter()
-                .any(|v| v == "--session-idle" || v == "--session-idle-on-external-power")
+                .any(|v| v == "--session-idle-on-external-power")
         );
     }
 }

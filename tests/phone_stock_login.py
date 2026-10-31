@@ -24,8 +24,8 @@ def processes():
 
 def login(args, password=None):
     assert not args.diagnostics or args.session=='tarot'
-    assert not getattr(args,'session_idle',False) or args.session=='tarot' and args.diagnostics
-    assert not getattr(args,'session_idle_on_external_power',False) or getattr(args,'session_idle',False)
+    # The installed launcher always runs the idle publisher; only the external-power override is diagnostic.
+    assert not getattr(args,'session_idle_on_external_power',False) or args.session=='tarot' and args.diagnostics
     assert os.geteuid()==0 and 'PinePhone Pro' in Path('/proc/device-tree/model').read_text()
     assert Path('/sys/class/tty/tty0/active').read_text().strip()=='tty7' and not Path('/run/user/10000/tarot-drm.sock').exists()
     args.output=args.output.resolve();args.output.mkdir(mode=0o700,parents=True,exist_ok=False)
@@ -64,7 +64,6 @@ def login(args, password=None):
         assert authenticated and records['secret_prompts']==1
         desktop='Phosh:GNOME' if args.session=='phosh' else 'Tarot'
         command=['/usr/bin/phosh-session'] if args.session=='phosh' else ['/usr/bin/tarot-session']+(['--diagnostics'] if args.diagnostics else [])
-        if getattr(args,'session_idle',False):command.append('--session-idle')
         if getattr(args,'session_idle_on_external_power',False):command.append('--session-idle-on-external-power')
         response=request({'type':'start_session','cmd':command,'env':['XDG_SESSION_TYPE=wayland','XDG_CURRENT_DESKTOP='+desktop,'XDG_SESSION_DESKTOP='+args.session]})
         assert response['type']=='success','Session launch refused'
@@ -90,7 +89,7 @@ def login(args, password=None):
 
 def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',type=Path,required=True);p.add_argument('--session',choices=['phosh','tarot'],default='phosh');p.add_argument('--diagnostics',action='store_true')
-    p.add_argument('--session-idle',action='store_true');p.add_argument('--session-idle-on-external-power',action='store_true')
+    p.add_argument('--session-idle-on-external-power',action='store_true')
     login(p.parse_args())
 
 

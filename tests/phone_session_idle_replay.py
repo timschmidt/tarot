@@ -25,11 +25,15 @@ from phone_suspend_probe import stats
 NAME = 'org.freedesktop.login1'
 ROOT = '/org/freedesktop/login1'
 MANAGER = NAME + '.Manager'
+# Idle-block descriptors that must outlive a replay until its caller removes
+# the temporary manager policy; closing early could permit an unattended sleep.
+HELD = []
 SESSION = NAME + '.Session'
 
 
 class Observer:
-    def __init__(self, pid):
+    def __init__(self, pid, expected_action='ignore'):
+        self.expected_action = expected_action
         assert os.geteuid() == 0 and 'PinePhone Pro' in Path('/proc/device-tree/model').read_text()
         import gi
         gi.require_version('Gio', '2.0')
@@ -76,11 +80,12 @@ class Observer:
         return self.call(self.owner, path, 'org.freedesktop.DBus.Properties', 'Get',
                          '(ss)', (interface, field))[0]
 
-    def read(self):
+    def read(self, expected_action=None):
+        expected_action = expected_action or self.expected_action
         assert self.call('org.freedesktop.DBus', '/org/freedesktop/DBus', 'org.freedesktop.DBus',
                          'GetNameOwner', '(s)', (NAME,))[0] == self.owner
         action = self.prop(ROOT, MANAGER, 'IdleAction')
-        assert action == 'ignore', 'Native qualification must not enable a manager idle action'
+        assert action == expected_action, 'Unexpected manager idle action %r' % action
         return dict(idle=self.prop(self.path, SESSION, 'IdleHint'), action=action,
                     session=self.path, compositor_pid=self.pid, uid=10000)
 
@@ -320,3 +325,121 @@ def replay(socket, state, before, directory, guard, authenticate, mode, observer
             raise
         finally:
             (directory/'session-idle-result.json').write_text(json.dumps(result,indent=2)+'\n')
+
+
+def automatic_replay(socket, state, before, directory, guard, authenticate, observer):
+    """Let the manager's own IdleAction suspend after Tarot reports idle.
+
+    Requires an SSH-free window: the controller must already run outside any
+    login session. An RTC alarm wakes the phone; a root idle block then stops
+    repeated automatic sleep until actual PAM restores the session.
+    """
+    from gi.repository import Gio, GLib
+    result = dict(passed=False, mode='automatic', suspend_called=False, physical_audio_used=False, actual_pam=False)
+    rtc = Path('/sys/class/rtc/rtc0/wakealarm')
+    hold = None
+
+    def hold_awake():
+        reply, out = observer.bus.call_with_unix_fd_list_sync(observer.owner, ROOT, MANAGER, 'Inhibit',
+            GLib.Variant('(ssss)', ('idle', 'Tarot QA', 'Hold awake after automatic sleep test', 'block')),
+            GLib.VariantType.new('(h)'), Gio.DBusCallFlags.NONE, 5000, None, None)
+        descriptor = out.steal_fds()[0]
+        HELD.append(descriptor)
+        return descriptor
+    original_settings = None
+    try:
+        action = observer.prop(ROOT, MANAGER, 'IdleAction')
+        delay = observer.prop(ROOT, MANAGER, 'IdleActionUSec')
+        assert action == 'suspend' and 5_000_000 <= delay <= 60_000_000, (action, delay)
+        result['manager'] = dict(action=action, delay_usec=delay)
+        baseline = state('automatic-baseline', lambda s: s['lock']['session_idle']['publisher']['available']
+                         and s['lock']['session_idle']['publisher']['manager_action'] == 'suspend'
+                         and s['power']['battery']['available'])
+        assert baseline['power']['battery']['external_power'] is True
+        original_settings = dict(sleep=baseline['display_settings']['sleep'], idle=baseline['display_settings']['idle'])
+        assert not devices('sink-inputs') and not devices('source-outputs')
+        # Keep the manager awake until the RTC alarm is armed: the session may
+        # become idle while SSH sessions are still ending.
+        gate = hold_awake()
+        wanted = dict(automatic=True, after_off_seconds=0, on_external_power=True)
+        request(socket, 'sleep_settings', settings=wanted)
+        state('automatic-setting-saved', lambda s: s['display_settings']['sleep'] == wanted and s['display_settings']['settings_saved'])
+        request(socket, 'idle_timeouts', settings=dict(lock_after_seconds=15, off_after_seconds=15, screen_off_enabled=True))
+        state('automatic-timeouts-saved', lambda s: s['display_settings']['idle']['off_after_seconds'] == 15)
+
+        def sessions():
+            return [r for r in observer.call(observer.owner, ROOT, MANAGER, 'ListSessions')[0]]
+
+        def blocks():
+            return [r for r in observer.call(observer.owner, ROOT, MANAGER, 'ListInhibitors')[0]
+                    if r[3] == 'block' and any(w in r[0].split(':') for w in ['sleep', 'idle'])
+                    and not (r[1] == 'Tarot QA' and r[4] == 0 and r[5] == os.getpid())]
+        # Any other session or sleep/idle block would legitimately prevent the action.
+        window = await_value(lambda: dict(sessions=sessions(), blocks=blocks()),
+                             lambda v: [r[4] for r in v['sessions']] == [observer.path] and not v['blocks'], seconds=900)
+        result['sole_session_window'] = dict(sessions=len(window['sessions']), blocks=0, monotonic=time.monotonic())
+        ready = state('automatic-ready', lambda s: s['lock']['phase'] != 'Unlocked' and s['lock']['idle']['output_off']
+                      and s['lock']['session_idle']['readiness'] == 'Ready'
+                      and s['lock']['session_idle']['publisher']['observed_idle'] is True, seconds=120)
+        assert observer.read()['idle'] is True
+        result['ready_before_release'] = dict(readiness='Ready', off_count=ready['lock']['idle']['off_count'])
+        counters = stats()
+        assert not rtc.read_text().strip()
+        rtc.write_text('+120')
+        clocks = (time.clock_gettime(time.CLOCK_BOOTTIME), time.monotonic())
+        # No input: only releasing the gate lets the manager's own action run.
+        HELD.remove(gate)
+        os.close(gate)
+        gate = None
+        def slept():
+            now = stats()
+            return now['success'] != counters['success'] or now['fail'] != counters['fail']
+        await_value(slept, bool, seconds=100)
+        # Stop a repeated automatic sleep before anything else.
+        hold = hold_awake()
+        after = stats()
+        boot, mono = time.clock_gettime(time.CLOCK_BOOTTIME), time.monotonic()
+        result['kernel'] = dict(before=counters, after=after)
+        result['suspended_seconds'] = (boot - clocks[0]) - (mono - clocks[1])
+        assert int(after['success']) == int(counters['success']) + 1 and after['fail'] == counters['fail'], result['kernel']
+        assert result['suspended_seconds'] >= 5, result['suspended_seconds']
+        resumed = state('automatic-protected-resume', lambda s: s['lock']['phase'] != 'Unlocked'
+                        and s['lock']['sleep']['gate']['protected_resumes'] > baseline['lock']['sleep']['gate']['protected_resumes']
+                        and s['lock']['sleep']['armed'] and not s['lock']['sleep']['rearming'], seconds=45)
+        result['resume'] = dict(phase=resumed['lock']['phase'], gate=resumed['lock']['sleep']['gate'],
+                                unprotected_presentations=resumed['lock']['unprotected_presentations'],
+                                readiness=resumed['lock']['session_idle']['readiness'])
+        # Ordinary frames are expected before the idle lock; none may follow the protected Ready state.
+        assert resumed['lock']['unprotected_presentations'] == ready['lock']['unprotected_presentations']
+        assert resumed['lock']['sleep']['gate']['protected_preparations'] > ready['lock']['sleep']['gate']['protected_preparations']
+        result['hint_events'] = [(e['event'], e.get('value')) for e in observer.recorded()]
+        assert ('hint', True) in result['hint_events']
+        restored = authenticate('automatic-wake')
+        result['actual_pam'] = True
+        assert restored['cards'] == before['cards'] and restored['view'] == before['view']
+        state('automatic-hint-cleared', lambda s: s['lock']['session_idle']['publisher']['observed_idle'] is False)
+        assert observer.read()['idle'] is False
+        result['passed'] = True
+        return result
+    finally:
+        if sys.exc_info()[0] is not None:
+            result['passed'] = False
+        try:
+            if hold is None:
+                try:
+                    hold = hold_awake()
+                except BaseException as error:
+                    result['hold_error'] = type(error).__name__
+            if rtc.read_text().strip():
+                rtc.write_text('0')
+            # Settings change only while unlocked; the controller restores the file otherwise.
+            if original_settings is not None and result['actual_pam']:
+                try:
+                    request(socket, 'sleep_settings', settings=original_settings['sleep'])
+                    request(socket, 'idle_timeouts', settings=original_settings['idle'])
+                    result['settings_restored'] = True
+                except BaseException as error:
+                    result['settings_restore_error'] = type(error).__name__
+        finally:
+            result['idle_block_held_for_caller'] = hold is not None
+            (directory/'session-idle-result.json').write_text(json.dumps(result, indent=2)+'\n')

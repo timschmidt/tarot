@@ -373,6 +373,21 @@ restored. Battery, attached-host, endurance and protected-resume/PAM coverage
 on this binary remain. Steps 2–4 and automatic-sleep acceptance continue.
 [Evidence](recordings/usb-sleep/README.md).
 
+T016 automatic-sleep checkpoint, October 30: signed revision 61 always runs the
+publisher (the hint is false unless the user enables it). It ships the
+`tarot-automatic-sleep` subpackage, an `IdleAction=suspend`/10 s elogind
+drop-in. elogind 255.24 arms its idle timer only at startup, so enabling the
+policy needs a reboot or elogind restart, while disabling works by SIGHUP. In
+the first real end-to-end run, the manager's own idle action suspended the phone
+from a protected Tarot session. It slept 102.7 s, Tarot's protected
+preparation and resume ran with no unprotected frame, and actual PAM restored
+the session. The policy was then removed and normal Tarot61 audited. Four QA
+failures are retained, including an earlier run whose suspend succeeded.
+
+Still open: battery automatic sleep, greeter behavior with the policy, other
+sessions and users, call/work/audio policy, endurance, and a Settings path to
+enable the policy. [Evidence](recordings/automatic-sleep/README.md).
+
 ### M4 addition: double-chop flashlight from suspend
 
 **Requested October 30, 2026; planned, not implemented.** Recognize a

@@ -1,7 +1,7 @@
 # Local source-snapshot recipe. Keep Phosh installed as a recovery session.
 pkgname=tarot
 pkgver=0.1.0
-pkgrel=60
+pkgrel=61
 pkgdesc="Rust phone shell and Wayland compositor (development preview)"
 url="https://github.com/timschmidt/tarot"
 arch="aarch64"
@@ -10,6 +10,7 @@ depends="dbus tarot-session-bus elogind linux-pam polkit-elogind pulseaudio blue
 	wayland-libs-client wayland-libs-egl xkeyboard-config glib xdg-utils"
 makedepends="cargo clang lld pkgconf libinput-dev libseat-dev mesa-dev
 	wayland-dev libxkbcommon-dev eudev-dev pulseaudio-dev"
+subpackages="$pkgname-automatic-sleep:_automatic_sleep:noarch"
 source="tarot-$pkgver.tar.gz"
 builddir="$srcdir/tarot-$pkgver"
 _rust_target=${TAROT_RUST_TARGET:-aarch64-alpine-linux-musl}
@@ -51,6 +52,13 @@ package() {
 	install -Dm644 crates/tarot-ui/assets/fonts/InstrumentSerif-OFL.txt "$pkgdir/usr/share/licenses/tarot/InstrumentSerif-OFL.txt"
 	install -Dm644 README.md "$pkgdir/usr/share/doc/tarot/README.md"
 	install -Dm644 third-party/README.md "$pkgdir/usr/share/doc/tarot/THIRD-PARTY.md"
+}
+
+_automatic_sleep() {
+	pkgdesc="Let elogind suspend after Tarot reports a protected idle session"
+	depends="$pkgname=$pkgver-r$pkgrel elogind"
+	install -Dm644 "$builddir"/packaging/nura/50-tarot-automatic-sleep.conf \
+		"$subpkgdir"/etc/elogind/logind.conf.d/50-tarot-automatic-sleep.conf
 }
 
 # The source-snapshot command appends the exact archive checksum to its staged

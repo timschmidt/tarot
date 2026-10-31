@@ -1,0 +1,132 @@
+{
+  "date": "2026-10-30",
+  "package": "tarot-0.1.0-r61",
+  "subpackage": "tarot-automatic-sleep-0.1.0-r61",
+  "scope": "Real manager-initiated automatic suspend from an authenticated Tarot session with IdleAction=suspend active from boot; protected resume and actual PAM; external USB power only",
+  "apk_sha256": "a870ec2c136db7d95596ff27ee23967878a38fb1b8bfec214052d3119c476a10",
+  "automatic_sleep_apk_sha256": "de6dbc8012d39856146736316c7963c3c63cf40b12da99337fa5c48e6be8ad2b",
+  "dropin_sha256": "87eeacc05c5bd9e19b0f705e87fe05fa7de3c234a31f500849f56f1b6d3a9394",
+  "binaries_sha256": {
+    "tarot": "2b8cf77a23f4f28a4f3400da5ea285b11ed5cfe918faa548f5ec687b1d67a00f",
+    "tarot-session": "d3684332a4ec8d4d8486ad7648215a9ac534b2347b9070f7bf97bc4e3b6bc327",
+    "tarot-lock": "9e344ea8e1273d10de01f7865521c3eb9daf284b816f87a28c651fcd1fda62e1",
+    "tarot-keyboard": "3ced5f8f3d3d4bc5680459c8b0cb6e3c7d9dbedc5b6c3aa6e09d3b67c8abd364"
+  },
+  "source_archive_sha256": "4bd7658ab270b267b8d86ba2e0c1410ff1e67eb894364ab797c88ec2eb54e154",
+  "workspace": {
+    "current": {
+      "passed": 288,
+      "failed": 0,
+      "ignored": 9
+    },
+    "minimum": {
+      "passed": 288,
+      "failed": 0,
+      "ignored": 9
+    }
+  },
+  "manager": {
+    "action": "suspend",
+    "delay_usec": 10000000
+  },
+  "kernel": {
+    "success": [
+      0,
+      1
+    ],
+    "fail": [
+      0,
+      0
+    ]
+  },
+  "suspended_seconds": 102.71444625700002,
+  "resume": {
+    "phase": "Locked",
+    "gate": {
+      "barrier": null,
+      "epoch": 1,
+      "preparing": false,
+      "protected_preparations": 1,
+      "protected_resumes": 2,
+      "sequence": 3
+    },
+    "unprotected_presentations": 349,
+    "readiness": "Active"
+  },
+  "hint_events": [
+    [
+      "hint",
+      true
+    ],
+    [
+      "hint",
+      false
+    ]
+  ],
+  "observer_events": [
+    [
+      "hint",
+      true
+    ],
+    [
+      "hint",
+      false
+    ],
+    [
+      "session-removed",
+      null
+    ]
+  ],
+  "actual_pam": true,
+  "suspend_called_by_test": false,
+  "policy_removed": true,
+  "idle_action_restored": "ignore",
+  "controller_cgroup": "0::/",
+  "normal_restoration": {
+    "audio_modes_restored": true,
+    "audio_block_removed": true,
+    "input_controls_restored": true,
+    "audio_streams_present": false,
+    "feedback_settings_restored": true,
+    "private_trace_removed": true,
+    "passed": true,
+    "system_bus_unchanged": true,
+    "diagnostics_and_metadata_off": true,
+    "hardware_keys_on": true,
+    "default_tarot": true,
+    "fixtures_gone": true,
+    "preferences_policies_and_controls_unchanged": true,
+    "native_qa_passed": true,
+    "temporary_policy_removed": true,
+    "polkit_package_unchanged": true,
+    "normal_idle_hint_false": true,
+    "manager_idle_action_ignore": true,
+    "session_idle_publisher_in_normal": true,
+    "automatic_sleep_policy_removed": true,
+    "usb_hook_installed": true,
+    "usb_gadget_rebound": true
+  },
+  "native_evidence_sha256": "ff2cb30fe8fd88ee06fe20a0008fb61b2eec1e64833b16b0c7e40c83a58fef7e",
+  "platform_finding": "elogind 255.24 arms idle-action timer only at startup; SIGHUP enabling does not start it; disabling by SIGHUP works",
+  "retained_failures": [
+    {
+      "run": "r61-failed1",
+      "proof_sha256": "efbe57663523b2c7cc34bec4b83bd982bef3ac2a8dd6efa0371ffe1eb91ebf43",
+      "cause": "SIGHUP-enabled policy never armed the idle timer"
+    },
+    {
+      "run": "r61-check2",
+      "cause": "controller hard-coded previous boot system-bus PID; stopped before changes"
+    },
+    {
+      "run": "r61-check3",
+      "cause": "controller asserted ignore before boot-active policy; restoration removed policy"
+    },
+    {
+      "run": "r61-check4",
+      "proof_sha256": "1582ad0e87f3aabc2b36580a16cc3c30ea2a6bceeacd3b1edc9f39bbeade6418",
+      "cause": "replay compared unprotected presentations to unlocked baseline; manager suspend succeeded (0->1, 99.2 s) with protected preparation/resume and equal counts at Ready and resume (342)"
+    }
+  ],
+  "automatic_sleep_default_enabled": false
+}
