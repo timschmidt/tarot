@@ -45,7 +45,7 @@ impl View {
                 .exact_height(240.0_f32.min(ctx.content_rect().height() * 0.5))
                 .frame(
                     egui::Frame::new()
-                        .fill(Color32::from_rgb(38, 40, 44))
+                        .fill(tarot_ui::keyboard::PANEL)
                         .inner_margin(5.0),
                 )
                 .show(ctx, |ui| {

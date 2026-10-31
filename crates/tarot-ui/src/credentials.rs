@@ -1,7 +1,7 @@
 //! The password field renders only bullets. It has no TextEdit undo/history
 //! state, and never copies its value into egui memory or accessibility text.
 use crate::controls::Switch as _;
-use egui::{Color32, Pos2, Rect, Vec2};
+use egui::{Pos2, Rect, Vec2};
 use tarot_core::{
     Command, KeyboardAction, Layout, ShellModel,
     network::{InputTarget, PasswordKind, Secret},
@@ -145,7 +145,7 @@ pub fn keyboard(
             ui.set_min_size(Vec2::new(rect.width, rect.height));
             ui.set_max_size(Vec2::new(rect.width, rect.height));
             egui::Frame::new()
-                .fill(Color32::from_rgb(38, 40, 44))
+                .fill(crate::keyboard::PANEL)
                 .inner_margin(5.0)
                 .show(ui, |ui| {
                     for action in

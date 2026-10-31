@@ -6,7 +6,26 @@ use tarot_core::{
 };
 
 const MATERIAL: Color32 = Color32::from_rgb(24, 32, 36);
-const ROW: Color32 = Color32::from_rgb(35, 40, 44);
+
+/// Packet 06's dashboard row: a dark vertical gradient with a hairline below.
+fn row_material(rect: Rect) -> egui::Shape {
+    let mut mesh = egui::Mesh::default();
+    let top = Color32::from_rgb(66, 70, 71);
+    let bottom = Color32::from_rgb(35, 40, 42);
+    mesh.colored_vertex(rect.left_top(), top);
+    mesh.colored_vertex(rect.right_top(), top);
+    mesh.colored_vertex(rect.right_bottom(), bottom);
+    mesh.colored_vertex(rect.left_bottom(), bottom);
+    mesh.add_triangle(0, 1, 2);
+    mesh.add_triangle(0, 2, 3);
+    egui::Shape::Vec(vec![
+        egui::Shape::mesh(mesh),
+        egui::Shape::line_segment(
+            [rect.left_bottom(), rect.right_bottom()],
+            Stroke::new(1.0_f32, Color32::from_black_alpha(170)),
+        ),
+    ])
+}
 
 pub(crate) fn entry(
     ui: &mut egui::Ui,
@@ -181,7 +200,7 @@ fn settings(ui: &mut egui::Ui, model: &ShellModel, commands: &mut Vec<Command>, 
     .into_iter()
     .flatten()
     {
-        ui.colored_label(Color32::LIGHT_RED, error);
+        ui.colored_label(crate::theme::ERROR_ON_DARK, error);
     }
     if !model.notifications.available {
         ui.label("Notifications unavailable");
@@ -202,10 +221,9 @@ fn item(
                     .unwrap_or_default()
                     .contains(&(item.id, item.revision))
             });
-        egui::Frame::new()
-            .fill(ROW)
-            .corner_radius(10.0)
-            .inner_margin(4.0)
+        let background = ui.painter().add(egui::Shape::Noop);
+        let frame = egui::Frame::new()
+            .inner_margin(egui::Margin::symmetric(4, 4))
             .show(ui, |ui| {
                 let width = ui.available_width();
                 let (row, _) = ui.allocate_exact_size(Vec2::new(width, 48.0), Sense::hover());
@@ -222,7 +240,7 @@ fn item(
                     &item.summary
                 };
                 painter.text(
-                    Pos2::new(label.left(), label.top() + 3.0),
+                    Pos2::new(label.left(), label.top() + 2.0),
                     egui::Align2::LEFT_TOP,
                     summary,
                     crate::theme::bold(ui.ctx(), 16.0),
@@ -238,11 +256,11 @@ fn item(
                     &item.body
                 };
                 painter.text(
-                    Pos2::new(label.left(), label.top() + 26.0),
+                    Pos2::new(label.left(), label.top() + 24.0),
                     egui::Align2::LEFT_TOP,
                     detail.lines().next().unwrap_or_default(),
-                    egui::FontId::proportional(13.0),
-                    Color32::from_rgb(193, 204, 198),
+                    egui::FontId::proportional(tarot_core::design::TYPE_SECONDARY),
+                    crate::theme::SECONDARY,
                 );
                 if ui
                     .interact(content, ui.id().with("open"), Sense::click())
@@ -258,7 +276,14 @@ fn item(
                     });
                 }
                 if ui
-                    .put(dismiss, egui::Button::new("×").frame(false))
+                    .put(
+                        dismiss,
+                        crate::menu::glyph::GlyphButton::new(
+                            crate::menu::glyph::Glyph::Close,
+                            "Dismiss notification",
+                        )
+                        .frame(false),
+                    )
                     .on_hover_text("Dismiss notification")
                     .clicked()
                 {
@@ -277,7 +302,7 @@ fn item(
                     ui.label(
                         egui::RichText::new(&item.app_name)
                             .small()
-                            .color(Color32::LIGHT_GRAY),
+                            .color(crate::theme::SECONDARY),
                     );
                     if item.live && !item.orphaned {
                         for choice in &item.actions {
@@ -303,8 +328,10 @@ fn item(
                         }
                     }
                 }
-            })
-            .response
+            });
+        ui.painter()
+            .set(background, row_material(frame.response.rect));
+        frame.response
     })
     .inner
 }
@@ -347,7 +374,13 @@ fn compact_item(ui: &mut egui::Ui, entry: &Notification, commands: &mut Vec<Comm
             }
         }
         if ui
-            .add_sized([48.0, 48.0], egui::Button::new("×"))
+            .add_sized(
+                [48.0, 48.0],
+                crate::menu::glyph::GlyphButton::new(
+                    crate::menu::glyph::Glyph::Close,
+                    "Dismiss notification",
+                ),
+            )
             .on_hover_text("Dismiss notification")
             .clicked()
         {
@@ -371,68 +404,95 @@ fn now_playing(ui: &mut egui::Ui, model: &ShellModel, commands: &mut Vec<Command
     let Some(player) = media.active() else {
         return;
     };
-    egui::Frame::group(ui.style()).show(ui, |ui| {
-        ui.set_width(ui.available_width());
-        ui.label(egui::RichText::new(&player.identity).small());
-        let title = if player.title.is_empty() {
-            "Nothing playing"
-        } else {
-            &player.title
-        };
-        ui.add(egui::Label::new(egui::RichText::new(title).strong()).truncate());
-        if !player.artist.is_empty() {
-            ui.add(egui::Label::new(&player.artist).truncate());
-        }
-        let playing = player.status == Status::Playing;
-        ui.horizontal(|ui| {
-            for (action, glyph, label, enabled) in [
-                (
-                    Action::Previous,
-                    Glyph::Previous,
-                    "Previous",
-                    player.can_go_previous,
-                ),
-                (
-                    Action::PlayPause,
-                    if playing { Glyph::Pause } else { Glyph::Play },
-                    if playing { "Pause" } else { "Play" },
-                    if playing {
-                        player.can_pause
-                    } else {
-                        player.can_play
-                    },
-                ),
-                (Action::Next, Glyph::Next, "Next", player.can_go_next),
-            ] {
-                let enabled = enabled && media.pending.is_none() && media.available;
-                let response = ui
-                    .add_enabled(
-                        enabled,
-                        egui::Button::new("").min_size(egui::vec2(64.0, 48.0)),
+    let background = ui.painter().add(egui::Shape::Noop);
+    let frame = egui::Frame::new()
+        .inner_margin(egui::Margin::symmetric(8, 6))
+        .show(ui, |ui| {
+            ui.set_width(ui.available_width());
+            ui.label(
+                egui::RichText::new(&player.identity)
+                    .small()
+                    .color(crate::theme::SECONDARY),
+            );
+            let title = if player.title.is_empty() {
+                "Nothing playing"
+            } else {
+                &player.title
+            };
+            ui.add(
+                egui::Label::new(
+                    egui::RichText::new(title)
+                        .font(crate::theme::bold(ui.ctx(), 16.0))
+                        .color(crate::theme::TEXT),
+                )
+                .truncate(),
+            );
+            if !player.artist.is_empty() {
+                ui.add(
+                    egui::Label::new(
+                        egui::RichText::new(&player.artist)
+                            .size(tarot_core::design::TYPE_SECONDARY)
+                            .color(crate::theme::SECONDARY),
                     )
-                    .on_hover_text(label);
-                response.widget_info(|| {
-                    egui::WidgetInfo::labeled(egui::WidgetType::Button, enabled, label)
-                });
-                let color = if enabled {
-                    ui.visuals().text_color()
-                } else {
-                    ui.visuals().weak_text_color()
-                };
-                paint(ui.painter(), response.rect.center(), glyph, color);
-                if response.clicked() {
-                    commands.push(Command::Media(Control {
-                        player: player.id,
-                        generation: media.generation,
-                        action,
-                    }));
+                    .truncate(),
+                );
+            }
+            let playing = player.status == Status::Playing;
+            ui.horizontal(|ui| {
+                for (action, glyph, label, enabled) in [
+                    (
+                        Action::Previous,
+                        Glyph::Previous,
+                        "Previous",
+                        player.can_go_previous,
+                    ),
+                    (
+                        Action::PlayPause,
+                        if playing { Glyph::Pause } else { Glyph::Play },
+                        if playing { "Pause" } else { "Play" },
+                        if playing {
+                            player.can_pause
+                        } else {
+                            player.can_play
+                        },
+                    ),
+                    (Action::Next, Glyph::Next, "Next", player.can_go_next),
+                ] {
+                    let enabled = enabled && media.pending.is_none() && media.available;
+                    // Transport glyphs sit on the row, showing the pressed fill only
+                    // while touched, like the packet's dashboard controls.
+                    let response = ui
+                        .add_enabled(
+                            enabled,
+                            egui::Button::new("")
+                                .frame_when_inactive(false)
+                                .min_size(egui::vec2(64.0, 48.0)),
+                        )
+                        .on_hover_text(label);
+                    response.widget_info(|| {
+                        egui::WidgetInfo::labeled(egui::WidgetType::Button, enabled, label)
+                    });
+                    let color = if enabled {
+                        ui.visuals().text_color()
+                    } else {
+                        ui.visuals().weak_text_color()
+                    };
+                    paint(ui.painter(), response.rect.center(), glyph, color);
+                    if response.clicked() {
+                        commands.push(Command::Media(Control {
+                            player: player.id,
+                            generation: media.generation,
+                            action,
+                        }));
+                    }
                 }
+            });
+            if let Some(error) = &media.error {
+                ui.colored_label(crate::theme::ERROR_ON_DARK, error);
             }
         });
-        if let Some(error) = &media.error {
-            ui.colored_label(Color32::LIGHT_RED, error);
-        }
-    });
+    ui.painter()
+        .set(background, row_material(frame.response.rect));
     ui.add_space(4.0);
 }
 
@@ -447,7 +507,16 @@ fn dashboard(ui: &mut egui::Ui, model: &ShellModel, layout: Layout, commands: &m
         // either the app or keyboard. The strip entry can always close it.
         if show_settings {
             ui.horizontal(|ui| {
-                if ui.add_sized([48.0, 48.0], egui::Button::new("‹")).clicked() {
+                if ui
+                    .add_sized(
+                        [48.0, 48.0],
+                        crate::menu::glyph::GlyphButton::new(
+                            crate::menu::glyph::Glyph::Back,
+                            "Back to notifications",
+                        ),
+                    )
+                    .clicked()
+                {
                     show_settings = false;
                 }
                 egui::ScrollArea::horizontal()
@@ -478,12 +547,23 @@ fn dashboard(ui: &mut egui::Ui, model: &ShellModel, layout: Layout, commands: &m
         }
     } else {
         ui.horizontal(|ui| {
-            ui.label(
-                egui::RichText::new(format!(
-                    "Notifications · {}",
-                    model.notifications.items.len()
-                ))
-                .strong(),
+            ui.add_space(8.0);
+            ui.allocate_ui_with_layout(
+                Vec2::new((ui.available_width() - 140.0).max(1.0), 48.0),
+                egui::Layout::left_to_right(egui::Align::Center),
+                |ui| {
+                    ui.add(
+                        egui::Label::new(
+                            egui::RichText::new(format!(
+                                "Notifications · {}",
+                                model.notifications.items.len()
+                            ))
+                            .font(crate::theme::bold(ui.ctx(), 17.0))
+                            .color(crate::theme::TEXT),
+                        )
+                        .truncate(),
+                    );
+                },
             );
             if ui
                 .add_sized(
@@ -495,7 +575,13 @@ fn dashboard(ui: &mut egui::Ui, model: &ShellModel, layout: Layout, commands: &m
                 show_settings = !show_settings;
             }
             if ui
-                .add_sized([48.0, 48.0], egui::Button::new("×"))
+                .add_sized(
+                    [48.0, 48.0],
+                    crate::menu::glyph::GlyphButton::new(
+                        crate::menu::glyph::Glyph::Close,
+                        "Close dashboard",
+                    ),
+                )
                 .on_hover_text("Close dashboard")
                 .clicked()
             {
@@ -515,7 +601,13 @@ fn dashboard(ui: &mut egui::Ui, model: &ShellModel, layout: Layout, commands: &m
                 } else {
                     now_playing(ui, model, commands);
                     if model.notifications.items.is_empty() {
-                        ui.label("No notifications");
+                        ui.horizontal(|ui| {
+                            ui.add_space(12.0);
+                            ui.label(
+                                egui::RichText::new("No notifications")
+                                    .color(crate::theme::SECONDARY),
+                            );
+                        });
                     }
                     let rail_source = ui.ctx().data_mut(|d| {
                         d.get_temp::<u32>(egui::Id::new("notification_rail_selection"))
@@ -578,21 +670,37 @@ fn banner(ui: &mut egui::Ui, model: &ShellModel, commands: &mut Vec<Command>) {
     ui.push_id((id, revision), |ui| {
         let compact = ui.available_height() < 72.0;
         ui.horizontal(|ui| {
+            // Packet 05: the source icon, then left-aligned text.
+            let (icon, _) = ui.allocate_exact_size(Vec2::splat(44.0), Sense::hover());
+            neutral_icon(ui, icon, 1);
             let width = (ui.available_width() - 56.0).max(1.0);
             ui.vertical(|ui| {
                 ui.set_max_width(width);
                 if !compact {
-                    ui.label(egui::RichText::new(&entry.app_name).small());
+                    ui.label(
+                        egui::RichText::new(&entry.app_name)
+                            .small()
+                            .color(crate::theme::SECONDARY),
+                    );
                 }
                 let label = if model.notifications.hide_previews {
                     "New notification"
                 } else {
                     &entry.summary
                 };
-                if ui
-                    .add_sized([width, 48.0], egui::Button::new(label).wrap().frame(false))
-                    .clicked()
-                {
+                let (rect, response) =
+                    ui.allocate_exact_size(Vec2::new(width, 48.0), Sense::click());
+                response.widget_info(|| {
+                    egui::WidgetInfo::labeled(egui::WidgetType::Button, true, label)
+                });
+                ui.painter().with_clip_rect(rect).text(
+                    Pos2::new(rect.left(), rect.center().y),
+                    egui::Align2::LEFT_CENTER,
+                    label,
+                    egui::FontId::proportional(tarot_core::design::TYPE_SECONDARY),
+                    crate::theme::TEXT,
+                );
+                if response.clicked() {
                     if entry.actions.iter().any(|a| a.key == "default")
                         && !entry.orphaned
                         && entry.live
@@ -611,7 +719,14 @@ fn banner(ui: &mut egui::Ui, model: &ShellModel, commands: &mut Vec<Command>) {
                 }
             });
             if ui
-                .add_sized([48.0, 48.0], egui::Button::new("×").frame(false))
+                .add_sized(
+                    [48.0, 48.0],
+                    crate::menu::glyph::GlyphButton::new(
+                        crate::menu::glyph::Glyph::Close,
+                        "Hide banner",
+                    )
+                    .frame(false),
+                )
                 .on_hover_text("Hide banner; keep in dashboard")
                 .clicked()
             {

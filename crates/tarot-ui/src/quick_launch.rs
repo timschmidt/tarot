@@ -340,7 +340,10 @@ pub fn launch_feedback(
                     Pos2::new(rect.right() - 52.0, rect.top() + 8.0),
                     Vec2::splat(48.0),
                 ),
-                egui::Button::new("×"),
+                crate::menu::glyph::GlyphButton::new(
+                    crate::menu::glyph::Glyph::Close,
+                    "Done editing favorites",
+                ),
             );
             close.widget_info(|| {
                 egui::WidgetInfo::labeled(egui::WidgetType::Button, true, "Dismiss launch message")
@@ -410,7 +413,13 @@ pub fn editor(ui: &mut egui::Ui, model: &ShellModel, layout: Layout, commands: &
                             }));
                         }
                         if ui
-                            .add_sized(Vec2::splat(48.0), egui::Button::new("×"))
+                            .add_sized(
+                                Vec2::splat(48.0),
+                                crate::menu::glyph::GlyphButton::new(
+                                    crate::menu::glyph::Glyph::Close,
+                                    "Remove favorite",
+                                ),
+                            )
                             .on_hover_text("Remove favorite")
                             .clicked()
                         {
@@ -434,7 +443,10 @@ pub fn editor(ui: &mut egui::Ui, model: &ShellModel, layout: Layout, commands: &
                 if ui
                     .add_enabled(
                         fifth.is_some(),
-                        egui::Button::new("×").min_size(Vec2::splat(48.0)),
+                        crate::menu::glyph::GlyphButton::new(
+                            crate::menu::glyph::Glyph::Close,
+                            "Show Apps in the fifth position",
+                        ),
                     )
                     .on_hover_text("Show Apps in the fifth position")
                     .clicked()

@@ -6,27 +6,60 @@ use tarot_core::{
     search::{self, Action, Setting, Target},
 };
 
-const PAPER: Color32 = Color32::from_rgb(230, 234, 223);
-const TEXT: Color32 = Color32::from_rgb(53, 70, 46);
-const SECONDARY: Color32 = Color32::from_rgb(99, 124, 88);
-const BAND: Color32 = Color32::from_rgb(193, 204, 183);
+// Packet tokens for light app surfaces; muted text is 4.9:1 on the paper.
+const PAPER: Color32 = theme::APP_SURFACE;
+const TEXT: Color32 = theme::APP_TEXT;
+const SECONDARY: Color32 = theme::MUTED_TEXT;
+const BAND: Color32 = theme::DIVIDER;
 
 fn action(commands: &mut Vec<Command>, value: Action) {
     commands.push(Command::JustType(value));
 }
 
 pub(crate) fn affordance(ui: &mut egui::Ui, layout: Layout, commands: &mut Vec<Command>) {
+    // Packet 16: an outlined pill, italic hint at the left, magnifier right.
     let rect = Rect::from_min_size(Pos2::new(9.0, 40.0), Vec2::new(layout.width - 18.0, 40.0));
-    if ui
-        .put(
-            rect,
-            egui::Button::new(egui::RichText::new("Just type…").italics().size(20.0))
-                .fill(Color32::from_black_alpha(64))
-                .corner_radius(20.0),
-        )
-        .clicked()
-    {
+    let response = ui.interact(rect, ui.id().with("just_type_affordance"), Sense::click());
+    response
+        .widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, "Just type…"));
+    let pressed = response.is_pointer_button_down_on() || response.has_focus();
+    let painter = ui.painter();
+    painter.rect(
+        rect,
+        20.0,
+        Color32::from_black_alpha(if pressed { 110 } else { 70 }),
+        Stroke::new(
+            1.0_f32,
+            Color32::from_white_alpha(if pressed { 150 } else { 90 }),
+        ),
+        egui::StrokeKind::Inside,
+    );
+    painter.text(
+        Pos2::new(rect.left() + 20.0, rect.center().y),
+        Align2::LEFT_CENTER,
+        "Just type…",
+        italic(ui.ctx(), 20.0),
+        Color32::from_gray(225),
+    );
+    crate::menu::glyph::paint_scaled(
+        painter,
+        Pos2::new(rect.right() - 24.0, rect.center().y),
+        crate::menu::glyph::Glyph::Search,
+        Color32::from_gray(225),
+        0.75,
+    );
+    if response.clicked() {
         action(commands, Action::Open);
+    }
+}
+
+/// The bundled Lato Italic, not a slanted regular face.
+pub(crate) fn italic(ctx: &egui::Context, size: f32) -> FontId {
+    let family = egui::FontFamily::Name("tarot-italic".into());
+    if ctx.fonts(|f| f.families().contains(&family)) {
+        FontId::new(size, family)
+    } else {
+        FontId::proportional(size)
     }
 }
 
@@ -79,7 +112,7 @@ pub(crate) fn show(
             .frame(false)
             .text_color(TEXT)
             .font(FontId::proportional(22.0))
-            .hint_text("Just type…")
+            .hint_text(egui::RichText::new("Just type…").font(italic(ui.ctx(), 22.0)))
             .char_limit(search::QUERY_CHARS),
     );
     if response.changed() {
@@ -88,7 +121,9 @@ pub(crate) fn show(
     let cleared = ui
         .put(
             Rect::from_min_size(Pos2::new(layout.width - 54.0, y - 1.0), Vec2::splat(44.0)),
-            egui::Button::new(egui::RichText::new("×").color(SECONDARY).size(26.0)).frame(false),
+            crate::menu::glyph::GlyphButton::new(crate::menu::glyph::Glyph::Close, "Clear search")
+                .frame(false)
+                .color(SECONDARY),
         )
         .on_hover_text("Clear search")
         .clicked();
@@ -159,7 +194,12 @@ pub(crate) fn show(
                             Pos2::new(r.right() - 48.0, r.top() + 4.0),
                             Vec2::splat(44.0),
                         ),
-                        egui::Button::new("×").frame(false),
+                        crate::menu::glyph::GlyphButton::new(
+                            crate::menu::glyph::Glyph::Close,
+                            "Dismiss",
+                        )
+                        .frame(false)
+                        .color(SECONDARY),
                     )
                     .clicked()
                 {

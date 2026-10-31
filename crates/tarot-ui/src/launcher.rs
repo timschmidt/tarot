@@ -1,5 +1,5 @@
 use crate::{favorite_drag, launcher_paging, theme};
-use egui::{Align2, Color32, FontId, Id, Painter, Pos2, Rect, Sense, Vec2};
+use egui::{Align2, Color32, FontId, Id, Painter, Pos2, Rect, Vec2};
 use tarot_core::{
     Application, Command, Layout, ShellModel,
     launcher::{Action, Edit, PageId},
@@ -226,20 +226,19 @@ pub(crate) fn show(
                     model.launcher.settings.neighbor(page, delta).is_some() && !paging.consumed;
                 let response = ui.put(
                     Rect::from_min_size(Pos2::new(x, 42.0), Vec2::splat(44.0)),
-                    egui::Button::new(
-                        egui::RichText::new(if delta < 0 { "‹" } else { "›" })
-                            .size(30.0)
-                            .color(if enabled {
-                                Color32::WHITE
-                            } else {
-                                Color32::from_gray(95)
-                            }),
+                    crate::menu::glyph::GlyphButton::new(
+                        if delta < 0 {
+                            crate::menu::glyph::Glyph::Back
+                        } else {
+                            crate::menu::glyph::Glyph::Chevron
+                        },
+                        label,
                     )
                     .frame(false)
-                    .sense(if enabled {
-                        Sense::click()
+                    .color(if enabled {
+                        Color32::WHITE
                     } else {
-                        Sense::hover()
+                        Color32::from_gray(95)
                     }),
                 );
                 response.widget_info(|| {
@@ -276,7 +275,11 @@ pub(crate) fn show(
             && ui
                 .put(
                     Rect::from_min_size(Pos2::new(layout.width - 56.0, 36.0), Vec2::splat(44.0)),
-                    egui::Button::new("×").frame(false),
+                    crate::menu::glyph::GlyphButton::new(
+                        crate::menu::glyph::Glyph::Close,
+                        "Close search",
+                    )
+                    .frame(false),
                 )
                 .on_hover_text("Close search")
                 .clicked()
@@ -372,7 +375,11 @@ pub(crate) fn show(
                     Pos2::new(r.right() - 44.0, r.top() + 3.0),
                     Vec2::splat(44.0),
                 ),
-                egui::Button::new("×").frame(false),
+                crate::menu::glyph::GlyphButton::new(
+                    crate::menu::glyph::Glyph::Close,
+                    "Dismiss message",
+                )
+                .frame(false),
             )
             .on_hover_text("Dismiss message")
             .clicked()

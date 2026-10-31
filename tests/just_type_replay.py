@@ -36,8 +36,12 @@ def dashboard_band(path,scale):
            if all(image.getpixel((x,y))==(24,32,36) for x in edges)]
     assert panel,'The opaque dashboard panel must be visible'
     columns=[round(width*f) for f in (.45,.68,.9)]
+    def row(pixel):
+        # Packet 06 rows: a vertical gradient from (66,70,71) to (35,40,42).
+        r,g,b=pixel
+        return 33<=r<=68 and 3<=g-r<=6 and 4<=b-r<=8
     rows=[y for y in range(min(panel),max(panel)+1)
-          if sum(image.getpixel((x,y))==(35,40,44) for x in columns)>=2]
+          if sum(row(image.getpixel((x,y))) for x in columns)>=2]
     assert rows and max(rows)-min(rows)>=24*scale,'The actual dashboard row viewport must be visible'
     top,bottom=min(rows),max(rows)+1
     return {'vertical':(top/height,bottom/height),'pixel_bounds':(top,bottom),

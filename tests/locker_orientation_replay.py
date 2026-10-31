@@ -30,7 +30,7 @@ def loaded_image(path):
 def keyboard_layout(image):
     width,height=image.size
     pixels=list(image.getdata())
-    mask=bytearray(int(all(abs(c-t)<=2 for c,t in zip(pixel,(220,221,224)))) for pixel in pixels)
+    mask=bytearray(int(all(abs(c-t)<=2 for c,t in zip(pixel,(224,228,217)))) for pixel in pixels)
     rectangles=[]
     for start in range(width*(height//2),width*height):
         if not mask[start]:continue
@@ -98,7 +98,7 @@ def main():
                 # than assuming a fixed portrait keyboard height.
                 rows=[]
                 for y in range(height//2,height):
-                    count=sum(all(abs(c-t)<=2 for c,t in zip(image.getpixel((x,y)),(220,221,224))) for x in range(width))
+                    count=sum(all(abs(c-t)<=2 for c,t in zip(image.getpixel((x,y)),(224,228,217))) for x in range(width))
                     if count>width*.35:rows.append(y)
                 assert rows
                 first=rows[0];band=[first]

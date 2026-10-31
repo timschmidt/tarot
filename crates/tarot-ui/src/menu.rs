@@ -175,6 +175,7 @@ fn row(ui: &mut egui::Ui, model: &ShellModel, item: Item, commands: &mut Vec<Com
         match item.target {
             Target::Page(SystemPage::Wifi) => Some(Glyph::Wifi),
             Target::Page(SystemPage::Audio) => Some(Glyph::Sound),
+            Target::Page(SystemPage::Bluetooth) => Some(Glyph::Bluetooth),
             Target::Page(SystemPage::Power) => Some(Glyph::Power),
             Target::Notifications => Some(Glyph::Notifications),
             Target::Lock => Some(Glyph::Lock),
@@ -293,12 +294,12 @@ fn row(ui: &mut egui::Ui, model: &ShellModel, item: Item, commands: &mut Vec<Com
         );
     }
     if item.submenu {
-        ui.painter().text(
-            Pos2::new(rect.right() - 10.0, rect.center().y),
-            egui::Align2::CENTER_CENTER,
-            "›",
-            FontId::proportional(26.0),
+        glyph::paint_scaled(
+            ui.painter(),
+            Pos2::new(rect.right() - 12.0, rect.center().y),
+            Glyph::Chevron,
             SECONDARY,
+            0.7,
         );
     }
     ui.painter().line_segment(
@@ -320,10 +321,7 @@ pub(crate) fn header(
     commands: &mut Vec<Command>,
 ) {
     ui.horizontal(|ui| {
-        if ui
-            .add_sized([64.0, 44.0], egui::Button::new("‹ Back"))
-            .clicked()
-        {
+        if glyph::button(ui, Glyph::Back, "Back", Some("Back"), Vec2::new(80.0, 44.0)).clicked() {
             commands.push(Command::Menu(Action::Back));
         }
         ui.add_sized(
@@ -1308,7 +1306,7 @@ mod tests {
         let size = Vec2::new(360.0, 720.0);
         model.apply(Command::Menu(Action::ToggleDevice));
         model.apply(Command::SystemPage(SystemPage::Power));
-        let back = position(&settle(&ctx, &model, size), "‹ Back");
+        let back = position(&settle(&ctx, &model, size), "Back");
         let key = |key, pressed| Event::Key {
             key,
             physical_key: None,
@@ -1414,7 +1412,7 @@ mod tests {
             revision: model.menus.revision,
             target: Target::PageActions(page),
         }));
-        let back = position(&settle(&ctx, &model, size), "‹ Back");
+        let back = position(&settle(&ctx, &model, size), "Back");
         render(
             &ctx,
             &model,
@@ -1433,7 +1431,7 @@ mod tests {
             last = Some(render(&ctx, &model, size, vec![]).1);
         }
         let output = last.unwrap();
-        assert_eq!(position(&output, "‹ Back"), back);
+        assert_eq!(position(&output, "Back"), back);
         assert!(position(&output, "Remove page").y < size.y - Layout::GESTURE);
         render(
             &ctx,

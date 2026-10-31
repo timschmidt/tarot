@@ -42,11 +42,7 @@ impl KeyboardUi {
     pub fn show(&mut self, ctx: &egui::Context, numeric: bool, secure: bool) -> Vec<Action> {
         let mut actions = Vec::new();
         egui::CentralPanel::default()
-            .frame(
-                egui::Frame::new()
-                    .fill(egui::Color32::from_rgb(38, 40, 44))
-                    .inner_margin(5.0),
-            )
+            .frame(egui::Frame::new().fill(PANEL).inner_margin(5.0))
             .show(ctx, |ui| {
                 actions = self.show_in_ui(ui, numeric, secure);
             });
@@ -69,11 +65,7 @@ impl KeyboardUi {
         let mut actions = Vec::new();
         let mut keys = Vec::new();
         egui::CentralPanel::default()
-            .frame(
-                egui::Frame::new()
-                    .fill(egui::Color32::from_rgb(38, 40, 44))
-                    .inner_margin(5.0),
-            )
+            .frame(egui::Frame::new().fill(PANEL).inner_margin(5.0))
             .show(ctx, |ui| {
                 keys = controls.show(ui);
                 actions = self.show_layout(ui, false, controls.label());
@@ -100,7 +92,7 @@ impl KeyboardUi {
         ui.label(
             egui::RichText::new(label)
                 .size(12.0)
-                .color(egui::Color32::LIGHT_GRAY),
+                .color(crate::theme::APP_TEXT),
         );
         let row_height = ((ui.available_height() - 12.0) / 4.0).max(20.0);
         if numeric {
@@ -235,19 +227,50 @@ impl KeyboardUi {
     }
 }
 
+// Packet 10's light keyboard: a grey-green panel, pale character keys and
+// dark function keys.
+/// The keyboard panel behind the keys.
+pub const PANEL: egui::Color32 = egui::Color32::from_rgb(159, 168, 162);
+/// A character key at rest (tests locate keys by this exact colour).
+pub const KEY: egui::Color32 = egui::Color32::from_rgb(224, 228, 217);
+const KEY_PRESSED: egui::Color32 = egui::Color32::from_rgb(186, 194, 180);
+const FUNCTION_KEY: egui::Color32 = egui::Color32::from_rgb(47, 52, 53);
+const FUNCTION_PRESSED: egui::Color32 = egui::Color32::from_rgb(78, 86, 86);
+const EDGE: egui::Color32 = egui::Color32::from_rgb(132, 142, 134);
+
 fn key_style(ui: &mut egui::Ui) {
     ui.spacing_mut().item_spacing = egui::vec2(4.0, 4.0);
-    ui.visuals_mut().widgets.inactive.bg_fill = egui::Color32::from_rgb(220, 221, 224);
-    ui.visuals_mut().widgets.inactive.weak_bg_fill = egui::Color32::from_rgb(220, 221, 224);
-    ui.visuals_mut().widgets.inactive.fg_stroke.color = egui::Color32::from_rgb(20, 23, 26);
-    ui.visuals_mut().widgets.hovered.fg_stroke.color = egui::Color32::BLACK;
-    ui.visuals_mut().widgets.hovered.bg_fill = egui::Color32::from_rgb(245, 246, 248);
-    ui.visuals_mut().widgets.hovered.weak_bg_fill = egui::Color32::from_rgb(245, 246, 248);
-    ui.visuals_mut().widgets.active.bg_fill = egui::Color32::from_rgb(150, 185, 220);
+    paint_keys(ui, KEY, KEY_PRESSED, crate::theme::APP_TEXT);
+}
+
+fn paint_keys(ui: &mut egui::Ui, rest: egui::Color32, pressed: egui::Color32, text: egui::Color32) {
+    let widgets = &mut ui.visuals_mut().widgets;
+    for (state, fill) in [
+        (&mut widgets.inactive, rest),
+        (&mut widgets.hovered, rest),
+        (&mut widgets.active, pressed),
+    ] {
+        state.bg_fill = fill;
+        state.weak_bg_fill = fill;
+        state.fg_stroke.color = text;
+        state.bg_stroke = egui::Stroke::new(1.0_f32, EDGE);
+    }
 }
 
 fn key(ui: &mut egui::Ui, label: &str, width: f32, height: f32) -> bool {
     let label = if label == "🙂" { ":)" } else { label };
+    if matches!(label, "Shift" | "Bksp" | "Enter") {
+        return ui
+            .scope(|ui| {
+                paint_keys(ui, FUNCTION_KEY, FUNCTION_PRESSED, crate::theme::TEXT);
+                plain_key(ui, label, width, height)
+            })
+            .inner;
+    }
+    plain_key(ui, label, width, height)
+}
+
+fn plain_key(ui: &mut egui::Ui, label: &str, width: f32, height: f32) -> bool {
     ui.add_sized(
         [width, height],
         egui::Button::new(

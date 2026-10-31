@@ -243,13 +243,7 @@ pub fn show_with_native_fullscreen(
                     theme::bold(ctx, 16.0),
                     theme::TEXT,
                 );
-                painter.text(
-                    Pos2::new(layout.width - 10.0, Layout::STATUS / 2.0),
-                    Align2::RIGHT_CENTER,
-                    system::status_label(model),
-                    FontId::proportional(11.0),
-                    Color32::from_gray(185),
-                );
+                system::paint_status(&painter, model, layout.width - 8.0, Layout::STATUS / 2.0);
                 let response = ui
                     .interact(
                         activity_button,
@@ -279,10 +273,16 @@ pub fn show_with_native_fullscreen(
                     Pos2::new(layout.width - 104.0, 0.0),
                     Vec2::new(104.0, Layout::STATUS),
                 );
-                if ui
-                    .interact(status_button, ui.id().with("system-status"), Sense::click())
-                    .clicked()
-                {
+                let status =
+                    ui.interact(status_button, ui.id().with("system-status"), Sense::click());
+                status.widget_info(|| {
+                    egui::WidgetInfo::labeled(
+                        egui::WidgetType::Button,
+                        true,
+                        system::status_label(model),
+                    )
+                });
+                if status.clicked() {
                     commands.push(Command::Menu(tarot_core::menu::Action::ToggleDevice));
                 }
             }
@@ -413,7 +413,7 @@ pub fn show_with_native_fullscreen(
                 ui.set_min_size(Vec2::new(keyboard_rect.width, keyboard_rect.height));
                 ui.set_max_size(Vec2::new(keyboard_rect.width, keyboard_rect.height));
                 egui::Frame::new()
-                    .fill(Color32::from_rgb(38, 40, 44))
+                    .fill(crate::keyboard::PANEL)
                     .inner_margin(5.0)
                     .show(ui, |ui| {
                         actions = keyboard.show_in_ui(ui, false, false);

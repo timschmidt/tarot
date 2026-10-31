@@ -3,20 +3,74 @@ use crate::controls::Switch as _;
 use egui::{Color32, Vec2};
 use tarot_core::{Command, Layout, ShellModel, SystemPage, power::UiAction};
 
+/// The accessible name of the status area that opens the device menu.
 pub fn status_label(model: &ShellModel) -> String {
     let battery = &model.power.battery;
     if battery.available && battery.present {
         format!(
-            "{}{}  v",
+            "Device menu, battery {}{}",
             battery.level_label(),
             if battery.state == tarot_core::power::ChargeState::Charging {
-                "+"
+                ", charging"
             } else {
                 ""
             }
         )
     } else {
-        "System  v".into()
+        "Device menu".into()
+    }
+}
+
+/// The packet's status glyphs, drawn right-aligned from observed state only:
+/// Wi-Fi while connected, then the battery at its reported level. Unknown
+/// state draws nothing, so no fictional signal or charge is shown.
+pub fn paint_status(painter: &egui::Painter, model: &ShellModel, right: f32, center_y: f32) {
+    use crate::menu::glyph::{Glyph, paint_scaled};
+    let mut x = right;
+    let battery = &model.power.battery;
+    if battery.available && battery.present {
+        let body =
+            egui::Rect::from_min_size(egui::pos2(x - 24.0, center_y - 6.0), Vec2::new(21.0, 12.0));
+        painter.rect_stroke(
+            body,
+            2.0,
+            egui::Stroke::new(1.4_f32, crate::theme::TEXT),
+            egui::StrokeKind::Inside,
+        );
+        painter.rect_filled(
+            egui::Rect::from_min_size(
+                egui::pos2(body.right(), center_y - 2.5),
+                Vec2::new(2.0, 5.0),
+            ),
+            1.0,
+            crate::theme::TEXT,
+        );
+        if let Some(percent) = battery.percent {
+            let fill = body.shrink(2.5);
+            let width = fill.width() * f32::from(percent.min(100)) / 100.0;
+            let color = if battery.state == tarot_core::power::ChargeState::Charging {
+                crate::theme::TEXT
+            } else if percent <= 15 {
+                Color32::from_rgb(203, 77, 64)
+            } else {
+                Color32::from_rgb(112, 168, 73)
+            };
+            painter.rect_filled(
+                egui::Rect::from_min_size(fill.min, Vec2::new(width.max(1.0), fill.height())),
+                1.0,
+                color,
+            );
+        }
+        x = body.left() - 8.0;
+    }
+    if model.network.state == tarot_core::network::State::Connected {
+        paint_scaled(
+            painter,
+            egui::pos2(x - 8.0, center_y - 1.0),
+            Glyph::Wifi,
+            crate::theme::TEXT,
+            0.62,
+        );
     }
 }
 
@@ -32,9 +86,14 @@ pub fn show(ctx: &egui::Context, model: &ShellModel, layout: Layout, commands: &
         // Service pages stack ordinary controls; the root rows stay flush.
         ui.spacing_mut().item_spacing.y = 6.0;
         ui.horizontal(|ui| {
-            if ui
-                .add_sized([64.0, 48.0], egui::Button::new("‹ Back"))
-                .clicked()
+            if crate::menu::glyph::button(
+                ui,
+                crate::menu::glyph::Glyph::Back,
+                "Back",
+                Some("Back"),
+                Vec2::new(80.0, 48.0),
+            )
+            .clicked()
             {
                 if model.system_page == SystemPage::Authorization {
                     commands.push(Command::SystemMenuOpen(false));
@@ -68,7 +127,15 @@ pub fn show(ctx: &egui::Context, model: &ShellModel, layout: Layout, commands: &
                 [(ui.available_width() - 56.0).max(1.0), 48.0],
                 egui::Label::new(egui::RichText::new(title).size(20.0).strong()).wrap(),
             );
-            if ui.add_sized([48.0, 48.0], egui::Button::new("×")).clicked() {
+            if crate::menu::glyph::button(
+                ui,
+                crate::menu::glyph::Glyph::Close,
+                "Close menu",
+                None,
+                Vec2::splat(48.0),
+            )
+            .clicked()
+            {
                 commands.push(Command::Menu(tarot_core::menu::Action::Dismiss));
             }
         });
