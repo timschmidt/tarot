@@ -174,24 +174,44 @@ and passed independent audits):
 
 <img src="recordings/waydroid/android-keyboard-card.png" alt="Android's keyboard shown as a separate Tarot card titled InputMethod, over Tarot's wallpaper" width="240">
 
-Options for plan step 4:
+The owner chose Tarot's own keyboard sending key events (option 1 below) now,
+with the upstream fix (option 2) perhaps later.
+
+**Tarot's keyboard in key-event mode (revisions 72–75).** With Android's own
+keyboards disabled, the gesture strip's **Keyboard** button shows Tarot's
+keyboard for a focused client that has no text-input object, and taps become
+virtual-keyboard key presses. Getting there on the phone took three findings:
+
+- Revision 72: the keyboard closed itself when the compositor reported no
+  active text field. It now stays open until hidden.
+- Revisions 73–74: a timeline of the view showed F-Droid's window destroyed and
+  recreated twice within a second of opening the keyboard. Android's log gave
+  the cause: Tarot shrank the card for the keyboard, Waydroid resized Android's
+  whole display to match (720×1304 → 720×824 and back), and each display
+  change relaunched F-Droid's activity. The keyboard, owned by the vanished
+  window, hid itself. Tarot now overlays a hand-opened keyboard over a client
+  without text-input instead of resizing it.
+- Revision 74's overlay never applied: it was set on a keyboard surface the
+  keyboard process creates only when asked to show. Revision 75 keeps the
+  request until the surface exists.
+
+In the revision 75 run (package
+`dd6ddb0ec36fa763fb03ebe0e58bcf79576c658690348243f7479370430736f9`, evidence
+`ebea87c4f2db110523684df30b3ce8082ca255c4ba1d5d4c62b240d0ee262ddc`), F-Droid
+kept one window at full size, the keyboard stayed up, and "fdroid" typed by
+touch appeared in its search field. `tests/key_event_keyboard_replay.py` covers
+the overlay on the host with a client without text-input.
+
+<img src="recordings/waydroid/tarot-keyboard-in-fdroid.png" alt="Tarot's keyboard over F-Droid, before and after typing fdroid into its search field" width="480">
+
+Limits: the keyboard does not follow Android focus, so it is opened by hand;
+characters outside the US layout are dropped; Android's word suggestions are
+not available; and the test disables Android's keyboards for the run, which a
+user would set once. The upstream option remains:
 
 1. **Upstream: parent the keyboard window.** Waydroid could call
-   `xdg_toplevel.set_parent` on the "InputMethod" window with the focused task's
-   window; Tarot already keeps child windows inside their owner's card family.
-   Small and upstreamable, but it ships in Waydroid's vendor image, which this
-   host cannot build.
-2. **Tarot's keyboard in key-event mode.** When the focused client has no
-   active text-input, the Keyboard button could show Tarot's keyboard and send
-   key events through the virtual-keyboard protocol it already uses for
-   terminal keys, with Android's own keyboard turned off
-   (`show_ime_with_hard_keyboard=0`). It is generic (any client without
-   text-input benefits) and keeps the trusted keyboard, but it cannot follow
-   Android focus, so the user opens it by hand, and Android's suggestions are
-   lost.
-3. **Tarot special case.** Treat a Waydroid "InputMethod" toplevel as an
-   overlay of the current Android card. The plan prefers upstream fixes over
-   this.
+   `xdg_toplevel.set_parent` on its "InputMethod" window with the focused
+   task's window, so Android's own keyboard stays in that card.
 
 ## Idle cost
 
