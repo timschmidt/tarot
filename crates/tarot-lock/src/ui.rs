@@ -13,7 +13,13 @@ pub struct View {
     pub editing: bool,
     pub keyboard: bool,
     keys: KeyboardUi,
+    /// Upward travel of the current swipe. egui reports drag movement only
+    /// per frame, and not at all on the release frame, so it is kept here.
+    swipe: Option<f32>,
 }
+
+/// Upward travel that opens password entry, like a tap on the lock.
+const SWIPE_TRAVEL: f32 = 48.0;
 pub struct Frame<'a> {
     pub count: usize,
     pub status: Status,
@@ -26,6 +32,7 @@ impl View {
     pub fn reset(&mut self) {
         self.editing = false;
         self.keyboard = false;
+        self.swipe = None;
         self.keys.reset();
     }
     pub fn show(&mut self, ctx: &egui::Context, frame: Frame<'_>) -> Vec<Action> {
@@ -171,11 +178,25 @@ impl View {
                         actions.push(Action::Hide);
                     }
                 } else {
+                    // A swipe up may start anywhere on the lock screen; the
+                    // lock itself also takes a tap. Both only open entry.
+                    let screen = ui.interact(rect, ui.id().with("swipe"), Sense::drag());
                     let puck = Rect::from_center_size(
                         egui::pos2(center, rect.bottom() - 112.0),
                         Vec2::splat(78.0),
                     );
                     let response = ui.allocate_rect(puck, Sense::click_and_drag());
+                    let mut swiped = false;
+                    for drag in [&screen, &response] {
+                        if drag.dragged()
+                            && let Some(delta) = drag.total_drag_delta()
+                        {
+                            self.swipe = Some(-delta.y);
+                        }
+                        if drag.drag_stopped() {
+                            swiped |= self.swipe.take().is_some_and(|up| up >= SWIPE_TRAVEL);
+                        }
+                    }
                     painter.circle_filled(puck.center(), 39.0, Color32::from_rgb(63, 76, 82));
                     let body = Rect::from_center_size(
                         puck.center() + egui::vec2(0.0, 7.0),
@@ -198,10 +219,7 @@ impl View {
                         FontId::proportional(15.0),
                         Color32::from_gray(220),
                     );
-                    if ready
-                        && (response.clicked()
-                            || (response.drag_stopped() && response.drag_delta().y < -40.0))
-                    {
+                    if ready && (response.clicked() || swiped) {
                         self.editing = true;
                         self.keyboard = true;
                     }
@@ -281,5 +299,71 @@ mod tests {
                 );
             }
         }
+    }
+
+    fn pointer(ctx: &egui::Context, view: &mut View, events: Vec<egui::Event>, ready: bool) {
+        let input = egui::RawInput {
+            screen_rect: Some(Rect::from_min_size(
+                egui::Pos2::ZERO,
+                egui::vec2(360.0, 720.0),
+            )),
+            events,
+            ..Default::default()
+        };
+        let _ = ctx.run(input, |ctx| {
+            view.show(
+                ctx,
+                Frame {
+                    count: 0,
+                    status: Status::Ready,
+                    retry_seconds: 0,
+                    acknowledged: ready,
+                    clock: "12:34",
+                    date: "Tuesday",
+                },
+            );
+        });
+    }
+
+    fn swipe(from: egui::Pos2, dy: f32, ready: bool) -> bool {
+        let ctx = egui::Context::default();
+        let mut view = View::default();
+        let button = |pos, pressed| egui::Event::PointerButton {
+            pos,
+            button: egui::PointerButton::Primary,
+            pressed,
+            modifiers: egui::Modifiers::NONE,
+        };
+        pointer(&ctx, &mut view, vec![], ready);
+        pointer(
+            &ctx,
+            &mut view,
+            vec![egui::Event::PointerMoved(from), button(from, true)],
+            ready,
+        );
+        let steps = 6;
+        for step in 1..=steps {
+            let at = from + egui::vec2(0.0, dy * step as f32 / steps as f32);
+            pointer(&ctx, &mut view, vec![egui::Event::PointerMoved(at)], ready);
+        }
+        let end = from + egui::vec2(0.0, dy);
+        pointer(&ctx, &mut view, vec![button(end, false)], ready);
+        view.editing
+    }
+
+    #[test]
+    fn swiping_up_opens_password_entry_like_a_tap() {
+        let lock = egui::pos2(180.0, 720.0 - 112.0);
+        assert!(swipe(lock, -120.0, true), "swipe up from the lock");
+        assert!(
+            swipe(egui::pos2(90.0, 500.0), -120.0, true),
+            "swipe up elsewhere"
+        );
+        assert!(!swipe(lock, -20.0, true), "a short drag is not a swipe");
+        assert!(!swipe(egui::pos2(90.0, 300.0), 150.0, true), "swiping down");
+        assert!(
+            !swipe(lock, -120.0, false),
+            "not before presentation is acknowledged"
+        );
     }
 }
