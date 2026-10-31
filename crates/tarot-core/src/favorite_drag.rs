@@ -25,8 +25,7 @@ impl Source {
                     && model.applications.iter().any(|a| a.id == *id)
             }
             Self::Dock { id, index } => {
-                !matches!(model.view, View::App(_))
-                    && model.favorites.applications.get(*index) == Some(id)
+                !matches!(model.view, View::App(_)) && model.favorites.at(*index) == Some(id)
             }
         }
     }
@@ -261,7 +260,7 @@ impl Gesture {
         } else if matches!(c.source, Source::Dock { .. }) && removal(layout).contains(x, y) {
             Some(Target::Remove)
         } else {
-            (0..quick_launch::CAPACITY)
+            (0..=quick_launch::FIFTH)
                 .find(|i| quick_launch::slot(layout, *i, None).contains(x, y))
                 .map(|i| {
                     if model
@@ -270,11 +269,12 @@ impl Gesture {
                         .any(|a| a.id == c.source.id() && a.unavailable.is_some())
                     {
                         Target::Unavailable(i)
-                    } else if !model
-                        .favorites
-                        .applications
-                        .iter()
-                        .any(|id| id == c.source.id())
+                    } else if i < quick_launch::FIFTH
+                        && !model
+                            .favorites
+                            .applications
+                            .iter()
+                            .any(|id| id == c.source.id())
                         && model.favorites.applications.len() == quick_launch::CAPACITY
                     {
                         Target::Full(i)

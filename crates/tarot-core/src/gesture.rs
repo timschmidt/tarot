@@ -385,7 +385,7 @@ impl GestureRecognizer {
         if contact.quick_launch {
             let mut wave = crate::quick_launch::wave(contact.layout, contact.position);
             wave.selected = wave.selected.filter(|i| {
-                *i == crate::quick_launch::CAPACITY || *i < contact.favorites.applications.len()
+                *i == crate::quick_launch::FIFTH || *i < contact.favorites.applications.len()
             });
             return Some(Preview::QuickLaunch(wave));
         }
@@ -462,13 +462,14 @@ impl GestureRecognizer {
                 consumed: true,
                 command: selected
                     .filter(|i| {
-                        *i == crate::quick_launch::CAPACITY
-                            || model.favorites.applications.get(*i).is_some_and(|id| {
-                                model
-                                    .applications
-                                    .iter()
-                                    .any(|a| a.id == *id && a.unavailable.is_none())
-                            })
+                        match model.favorites.at(*i) {
+                            Some(id) => model
+                                .applications
+                                .iter()
+                                .any(|a| a.id == *id && a.unavailable.is_none()),
+                            // An empty fifth position is the Launcher.
+                            None => *i == crate::quick_launch::FIFTH,
+                        }
                     })
                     .map(Command::QuickLaunch),
             };

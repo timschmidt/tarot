@@ -51,9 +51,9 @@ pub fn show(
             Vec2::new(geometry.width, geometry.height),
         );
         let favorites = drag.map_or(&model.favorites, |drag| &drag.favorites);
-        let id = favorites.applications.get(index);
+        let id = favorites.at(index);
         let app = id.and_then(|id| model.applications.iter().find(|a| a.id == *id));
-        let launcher = index == quick_launch::CAPACITY;
+        let launcher = index == quick_launch::FIFTH && id.is_none();
         let label = if launcher {
             "Apps"
         } else if id.is_none() {
@@ -365,7 +365,7 @@ pub fn editor(ui: &mut egui::Ui, model: &ShellModel, layout: Layout, commands: &
         .id_salt("quick_launch_editor")
         .max_height(bounds.height().max(1.0))
         .show(&mut child, |ui| {
-            ui.label("Four favorites plus the fixed Apps button");
+            ui.label("Four favorites, then Apps or a fifth application");
             if let Some(error) = &model.favorites_error {
                 ui.colored_label(Color32::LIGHT_RED, error);
             } else if !model.favorites_saved {
@@ -419,22 +419,59 @@ pub fn editor(ui: &mut egui::Ui, model: &ShellModel, layout: Layout, commands: &
                     });
                 });
             }
+            ui.horizontal(|ui| {
+                let fifth = model.favorites.fifth.as_ref().map(|id| {
+                    model
+                        .applications
+                        .iter()
+                        .find(|a| a.id == *id)
+                        .map_or(id.as_str(), |a| a.name.as_str())
+                });
+                ui.add_sized(
+                    Vec2::new((bounds.width() - 64.0).max(24.0), 48.0),
+                    egui::Label::new(format!("5. {}", fifth.unwrap_or("Apps"))).truncate(),
+                );
+                if ui
+                    .add_enabled(
+                        fifth.is_some(),
+                        egui::Button::new("×").min_size(Vec2::splat(48.0)),
+                    )
+                    .on_hover_text("Show Apps in the fifth position")
+                    .clicked()
+                {
+                    commands.push(Command::Favorite(Edit::Fifth(None)));
+                }
+            });
             ui.separator();
             ui.label("Add an installed application");
             for app in &model.applications {
-                if model.favorites.applications.contains(&app.id) {
+                if model.favorites.contains(&app.id) {
                     continue;
                 }
-                if ui
-                    .add_enabled(
-                        model.favorites.applications.len() < 4 && app.unavailable.is_none(),
-                        egui::Button::new(&app.name)
-                            .min_size(Vec2::new(bounds.width().max(1.0), 48.0)),
-                    )
-                    .clicked()
-                {
-                    commands.push(Command::Favorite(Edit::Add(app.id.clone())));
-                }
+                ui.horizontal(|ui| {
+                    if ui
+                        .add_enabled(
+                            model.favorites.applications.len() < quick_launch::CAPACITY
+                                && app.unavailable.is_none(),
+                            egui::Button::new(&app.name)
+                                .min_size(Vec2::new((bounds.width() - 56.0).max(1.0), 48.0)),
+                        )
+                        .on_hover_text("Add to favorites")
+                        .clicked()
+                    {
+                        commands.push(Command::Favorite(Edit::Add(app.id.clone())));
+                    }
+                    if ui
+                        .add_enabled(
+                            app.unavailable.is_none(),
+                            egui::Button::new("5").min_size(Vec2::splat(48.0)),
+                        )
+                        .on_hover_text(format!("Put {} in the fifth position", app.name))
+                        .clicked()
+                    {
+                        commands.push(Command::Favorite(Edit::Fifth(Some(app.id.clone()))));
+                    }
+                });
             }
         });
 }

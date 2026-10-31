@@ -260,6 +260,7 @@ mod tests {
             for n in 0..100 {
                 favorites.favorites(tarot_core::quick_launch::Favorites {
                     applications: vec![format!("favorite{n}.desktop")],
+                    fifth: None,
                 });
             }
         });

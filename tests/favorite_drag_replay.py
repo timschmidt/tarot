@@ -136,8 +136,15 @@ def main():
         records['full_label']=locate(out/'full-tray-preview.png','full',vertical=(.04,.94))
         mouse.button(False);favorite('full-rejected',[beta,delta,original,epsilon]);assert config.read_bytes()==before
         place(delta,3,[beta,original,epsilon,delta],'reorder-existing-full')
-        hold(source(gamma),'fixed-apps');mouse.move(*slot(4));mouse.button(False)
-        favorite('fixed-slot-rejected',[beta,original,epsilon,delta]);assert request(control,'status')['view']=='Launcher'
+        # The fifth position takes an application in place of Apps; dragging
+        # it off the dock brings Apps back.
+        hold(source(gamma),'fifth-position');mouse.move(*slot(4));capture('fifth-preview');mouse.button(False)
+        state('fifth-placed',lambda s:s['favorites'].get('fifth')==gamma and s['favorites']['applications']==[beta,original,epsilon,delta])
+        capture('fifth-placed')
+        overview('dock-before-fifth-removal');hold(slot(4),'remove-fifth')
+        mouse.move(width/2,tray_top()-32);time.sleep(.1);mouse.button(False)
+        state('fifth-cleared',lambda s:s['favorites'].get('fifth') is None and s['favorites']['applications']==[beta,original,epsilon,delta])
+        capture('fifth-cleared');launcher('launcher-after-fifth')
         before_status=capture('before-status-cancel')
         hold(source(gamma),'outside-cancel');mouse.move(2,0)
         after_status=capture('drag-at-status-boundary')
@@ -172,10 +179,10 @@ def main():
         request(control,'close',id=native);state('native-cooperative-close',lambda s:not s['cards'])
         final=config.read_bytes();mouse.close();mouse=None;request(control,'exit');assert session.wait(timeout=6)==0
         launch('restarted',[beta,original,epsilon,delta]);assert config.read_bytes()==final;capture('saved-favorites-after-restart')
-        records['passed']=True;records['scope']={'actual_pointer_and_gles':True,'preview_without_persistence':True,'full_tray_and_fixed_apps':True,
+        records['passed']=True;records['scope']={'actual_pointer_and_gles':True,'preview_without_persistence':True,'full_tray_and_fifth_position':True,
             'dock_top_ownership':True,'existing_identity_reordered':True,'explicit_removal_keeps_native_card':True,
             'cancel_scroll_and_view_change':True,'keyboard_visible_filtered_source':True,'saved_restart':True,'phone_kms_tested':False}
-        print('PASS: real favorite hold/place/reorder/remove, cancel/full/fixed slot, keyboard and restart',out)
+        print('PASS: real favorite hold/place/reorder/remove, cancel/full, fifth position, keyboard and restart',out)
     finally:
         if fixture is not None:fixture.close()
         if mouse is not None:mouse.close()

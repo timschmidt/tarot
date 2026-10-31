@@ -748,11 +748,12 @@ impl ShellModel {
                 if index > quick_launch::CAPACITY || self.system_menu_open || self.card_menu_open {
                     return Vec::new();
                 }
-                if index == quick_launch::CAPACITY {
-                    return self.apply(Command::Launcher);
-                }
-                let Some(id) = self.favorites.applications.get(index) else {
-                    return self.apply(Command::EditFavorites(true));
+                let Some(id) = self.favorites.at(index) else {
+                    return self.apply(if index == quick_launch::FIFTH {
+                        Command::Launcher
+                    } else {
+                        Command::EditFavorites(true)
+                    });
                 };
                 let app_id = id.strip_suffix(".desktop").unwrap_or(id);
                 let matching = self

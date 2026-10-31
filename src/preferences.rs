@@ -229,9 +229,21 @@ mod tests {
         let mut store = Store::load(path.clone());
         assert!(store.current.quick_launch.is_none() && store.saved);
         assert_eq!(fs::read_to_string(&path).unwrap(), original);
+        // Files written before the fifth position existed still load, and a
+        // missing fifth application is not written back.
+        let older = dir.path().join("older.toml");
+        fs::write(
+            &older,
+            "version = 6\n[quick_launch]\napplications = [\"a.desktop\"]\n",
+        )
+        .unwrap();
+        let loaded = Store::load(older).current.quick_launch.unwrap();
+        assert!(loaded.fifth.is_none() && loaded.applications == ["a.desktop"]);
+        assert!(!toml::to_string(&loaded).unwrap().contains("fifth"));
         let mut next = store.current.clone();
         next.quick_launch = Some(tarot_core::quick_launch::Favorites {
             applications: vec!["one.desktop".into(), "two.desktop".into()],
+            fifth: Some("three.desktop".into()),
         });
         store.replace(next.clone());
         assert!(store.saved);

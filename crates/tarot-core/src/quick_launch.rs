@@ -3,6 +3,8 @@ use crate::{Application, Layout, Rect};
 use serde::{Deserialize, Serialize};
 
 pub const CAPACITY: usize = 4;
+/// The fifth position: the Launcher unless the owner chose an application.
+pub const FIFTH: usize = CAPACITY;
 
 pub fn valid_id(id: &str) -> bool {
     !id.is_empty()
@@ -17,6 +19,10 @@ pub fn valid_id(id: &str) -> bool {
 #[serde(deny_unknown_fields)]
 pub struct Favorites {
     pub applications: Vec<String>,
+    /// An application in the fifth position, replacing the Launcher there.
+    /// The Launcher stays reachable by swiping up and from the System Menu.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fifth: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
@@ -24,13 +30,37 @@ pub struct Favorites {
 pub enum Edit {
     Add(String),
     Remove(usize),
-    Move { from: usize, to: usize },
-    Place { id: String, at: usize },
+    Move {
+        from: usize,
+        to: usize,
+    },
+    Place {
+        id: String,
+        at: usize,
+    },
+    /// Set or clear the fifth position.
+    Fifth(Option<String>),
 }
 
 impl Favorites {
+    /// The application in a dock position, if any (`FIFTH` included).
+    pub fn at(&self, index: usize) -> Option<&String> {
+        if index == FIFTH {
+            self.fifth.as_ref()
+        } else {
+            self.applications.get(index)
+        }
+    }
+
+    pub fn contains(&self, id: &str) -> bool {
+        self.applications.iter().any(|entry| entry == id) || self.fifth.as_deref() == Some(id)
+    }
+
     pub fn valid(&self) -> bool {
-        self.applications.len() <= CAPACITY
+        self.fifth
+            .as_ref()
+            .is_none_or(|id| valid_id(id) && !self.applications.contains(id))
+            && self.applications.len() <= CAPACITY
             && self
                 .applications
                 .iter()
@@ -59,12 +89,35 @@ impl Favorites {
                 })
                 .map(|id| (*id).to_owned())
                 .collect(),
+            fifth: None,
         }
     }
 
     pub fn edit(&mut self, edit: Edit, catalog: &[Application]) -> bool {
         let mut next = self.clone();
+        let available = |id: &str| {
+            catalog
+                .iter()
+                .any(|a| a.id == id && a.unavailable.is_none())
+        };
         match edit {
+            Edit::Place { id, at: FIFTH } | Edit::Fifth(Some(id)) => {
+                if !available(&id) {
+                    return false;
+                }
+                next.applications.retain(|entry| *entry != id);
+                next.fifth = Some(id);
+            }
+            Edit::Fifth(None) | Edit::Remove(FIFTH) => next.fifth = None,
+            Edit::Place { id, at } if at < CAPACITY && next.fifth.as_ref() == Some(&id) => {
+                // Moving the fifth application into an ordinary position.
+                if next.applications.len() == CAPACITY {
+                    return false;
+                }
+                next.fifth = None;
+                next.applications
+                    .insert(at.min(next.applications.len()), id);
+            }
             Edit::Place { id, at } if at < CAPACITY => {
                 if let Some(from) = next.applications.iter().position(|entry| *entry == id) {
                     next.applications.remove(from);
@@ -80,7 +133,7 @@ impl Favorites {
             }
             Edit::Add(id) => {
                 if next.applications.len() == CAPACITY
-                    || next.applications.contains(&id)
+                    || next.contains(&id)
                     || !catalog
                         .iter()
                         .any(|a| a.id == id && a.unavailable.is_none())
@@ -114,7 +167,7 @@ pub struct Wave {
     pub selected: Option<usize>,
 }
 
-/// A fixed launcher position remains available even with four favorites.
+/// Four favorites, then the fifth position (the Launcher by default).
 pub fn slot(layout: Layout, index: usize, wave: Option<Wave>) -> Rect {
     let width = ((layout.width - 6.0) / 5.0).max(1.0);
     let x = 3.0 + index as f32 * width;
@@ -208,9 +261,82 @@ mod tests {
         assert!(f.valid() && f.applications.is_empty());
         assert!(
             !Favorites {
-                applications: vec!["../bad.desktop".into()]
+                applications: vec!["../bad.desktop".into()],
+                fifth: None,
             }
             .valid()
         );
+    }
+    #[test]
+    fn the_fifth_position_holds_one_distinct_application_or_the_launcher() {
+        use crate::{Command, Effect, ShellModel, View};
+        let catalog: Vec<_> = (0..6)
+            .map(|n| Application {
+                id: format!("app{n}.desktop"),
+                name: format!("App {n}"),
+                description: String::new(),
+                icon: None,
+                keywords: vec![],
+                unavailable: (n == 5).then(|| "Gone".into()),
+            })
+            .collect();
+        let mut f = Favorites::default();
+        for app in &catalog[..4] {
+            assert!(f.edit(Edit::Add(app.id.clone()), &catalog));
+        }
+        // An unavailable application cannot take the fifth position.
+        assert!(!f.edit(Edit::Fifth(Some(catalog[5].id.clone())), &catalog));
+        assert!(f.edit(Edit::Fifth(Some(catalog[4].id.clone())), &catalog));
+        assert_eq!(f.at(FIFTH), Some(&catalog[4].id));
+        assert!(!f.edit(Edit::Add(catalog[4].id.clone()), &catalog));
+        // Placing a favorite there moves it out of the ordinary positions.
+        assert!(f.edit(
+            Edit::Place {
+                id: catalog[0].id.clone(),
+                at: FIFTH
+            },
+            &catalog
+        ));
+        assert_eq!(f.fifth.as_ref(), Some(&catalog[0].id));
+        assert_eq!(f.applications.len(), 3);
+        // And back, when there is room.
+        assert!(f.edit(
+            Edit::Place {
+                id: catalog[0].id.clone(),
+                at: 0
+            },
+            &catalog
+        ));
+        assert!(f.fifth.is_none() && f.applications[0] == catalog[0].id);
+        assert!(f.edit(Edit::Fifth(Some(catalog[4].id.clone())), &catalog));
+        assert!(!f.edit(
+            Edit::Place {
+                id: catalog[4].id.clone(),
+                at: 0
+            },
+            &catalog
+        ));
+        assert!(f.valid());
+        assert!(
+            !Favorites {
+                applications: vec!["a.desktop".into()],
+                fifth: Some("a.desktop".into())
+            }
+            .valid()
+        );
+        // Tapping it launches the application; cleared, it is the Launcher again.
+        let mut m = ShellModel::default();
+        m.applications = catalog.clone();
+        m.favorites = f.clone();
+        assert_eq!(
+            m.apply(Command::QuickLaunch(FIFTH)),
+            vec![Effect::Launch(catalog[4].id.clone())]
+        );
+        let mut m = ShellModel::default();
+        m.applications = catalog.clone();
+        assert!(f.edit(Edit::Remove(FIFTH), &catalog));
+        m.favorites = f;
+        m.apply(Command::QuickLaunch(FIFTH));
+        assert_eq!(m.view, View::Launcher);
     }
 }
