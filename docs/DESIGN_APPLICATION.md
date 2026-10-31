@@ -80,7 +80,21 @@ The installed revision-42 dashboard dims and intercepts the foreground, and bann
 
 Implement the geometry across [core notification hit testing](../crates/tarot-core/src/notifications.rs), [native work areas](../src/window_state.rs), [shell focus/routing](../src/state.rs) and [notification rendering](../crates/tarot-ui/src/notifications.rs) together. Changing only the scrim would leave modal input/focus rules behind. The public notification snapshot now has a bounded opaque source identity for rail grouping, with neutral fallback artwork. Verified application artwork remains open; keep display grouping separate from service action authorization.
 
-## Assets and deviations
+## Design audit, October 31
+
+At the owner's request, rendered host captures of every shell surface were compared with the packet's studies, tokens and control states. The shell surfaces (status bar, tray, launcher, top-level menus, Just Type results) were close; everything one level deeper used egui's default styling. Applied:
+
+- **Controls.** egui buttons paint `weak_bg_fill`, so the menu's intended fills never appeared. The theme now gives every button the packet's dark control material, the pressed teal (49,83,77) and a light edge for keyboard focus. Checkboxes became the packet's ON/OFF switch (`tarot-ui/src/controls.rs`). Service pages have normal spacing and lost their redundant second back buttons.
+- **Glyphs.** Back, close, chevron, Bluetooth and search glyphs from `glyphs/` replace text characters, with accessible names. The status bar draws Wi-Fi and battery glyphs from observed state and nothing for unknown state. The volume and brightness steppers keep "−" and "+", which the phone audio replay locates by shape.
+- **Notifications.** Dashboard rows use packet 06's gradient and 15-unit secondary text; the header is padded; media is an ordinary row with frameless transport glyphs; banners show the source icon with left-aligned text.
+- **Keyboard.** Packet 10's light panel, pale character keys and dark Shift, Backspace and Enter, including on the lock screen.
+- **Just type.** An outlined pill with the bundled Lato Italic (previously a slanted regular face) and a magnifier. Just Type's text colours are the token values (muted text 4.9:1 on the paper).
+- **Palette.** The Nocturne theme and type sizes are compiled from the token file with the fixed palette; new styling uses them. Errors on dark surfaces use the control states' (229,129,109), since the token's destructive red is 2:1 on dark rows.
+- **Cards.** Card view has no per-card buttons; cards grow to 0.73 from y 92 (see above).
+
+Open, needing the owner's decision: per-row and banner dismiss buttons (the packet shows none), keyboard key labels and height (packet: glyphs, "?123", "Go", 220 units), device-menu typography (labels ~20 vs ~17–18, right-aligned values, chevrons on root rows), the 24-hour zero-padded clock, and differing fallback icons in the launcher and tray. Remaining hard-coded colours outside the touched surfaces still need moving onto the token constants.
+
+
 
 [Runtime artwork](../crates/tarot-ui/assets/README.md) records derivation and licensing. `scripts/design-assets.py` copies the original wallpaper/fonts/token snapshot and rasterizes editable SVG assets using the supplied fonts. Runtime loading/rendering uses Rust PNG/resvg/egui/GLES; Python, CairoSVG and fontconfig are development tools. Native SVG loading uses bundled Lato without system font discovery. Font OFL and introduced icon-renderer notices are retained in source and installed packages. Historical reference fragments and complete mockup screens are never runtime assets.
 
