@@ -68,7 +68,18 @@ On signed r65, with Decibels playing a generated audible track to the headset:
 | 34.1 s | Pause | Paused |
 | 37.1 s | Play | Playing |
 
-The owner confirmed that the sound stopped and started. Decibels exports MPRIS
+The owner confirmed that the sound stopped and started. A fourth run, with the
+committed tool, checked the locked case. Decibels registered while the phone was
+awake, then the owner locked it with the power button, and the display stayed
+off (`bl_power` 4) for every press:
+
+| Time | Headset key | Decibels |
+| --- | --- | --- |
+| 15.56 s | Pause | Paused at 15.60 s |
+| 18.73 s | Play | Playing at 18.79 s |
+| 26.98 s | Next | Unchanged; Decibels offers no next track for one file |
+
+Decibels exports MPRIS
 only once its window is active, so two earlier runs with the screen off
 registered no player; those key presses reached Tarot with nothing to control.
 
@@ -76,10 +87,10 @@ registered no player; those key presses reached Tarot with nothing to control.
 
 - `tests/phone_media_keys_check.py` runs on the phone in the normal session.
   It plays a generated track in Decibels on Tarot's bus and logs input keys
-  next to the player's status. The runs above used an earlier copy that read
-  the device through a buffered file, which delayed some key lines by one
-  event; the player status lines were unaffected. The committed version reads
-  unbuffered and adds the kernel's event time.
+  next to the player's status. The first three runs used an earlier copy that
+  read the device through a buffered file, which delayed some key lines by one
+  event; the player status lines were unaffected. The committed version, used
+  for the locked run, reads unbuffered and adds the kernel's event time.
 - `tests/bluetooth_reachability.py` and `tests/phone_bluetooth_visible.py`
   check reachability, as before.
 
@@ -89,14 +100,14 @@ Kept in `artifacts/m4/media-keys/`: signed `tarot-0.1.0-r65.apk` (SHA-256
 `e77f6214ac8fa2f714b668299b3fdc0015a96832e39e1c13902d24ccb5463063`, compositor
 `30f20c0e36b37e5da93e7db151ae5e305721346dfd9c5cba9b4a7af7d154d071`, matching
 the running process), the package audit, the re-pair log, both HFP recordings,
-the r64 button capture and the three r65 key runs. Source archive
+the r64 button capture and the four r65 key runs. Source archive
 `d67a7358a95210f798f8f341cee506e67a75a6d6796908cd3e9a64f3731339ac`.
 
 ## Limits
 
-- Next and previous were sent by the headset but not checked against a player:
-  Decibels with one file offers neither.
-- A press while locked was not checked on the phone.
+- Next and previous were sent by the headset but not checked against a player
+  that offers them: Decibels with one file offers neither, and Tarot correctly
+  sent nothing.
 - Tarot's Sound page with the headset card, Bluetooth audio for calls, and
   switching between A2DP and HFP from Tarot remain untested. The profile switch
   above used `pactl`.
