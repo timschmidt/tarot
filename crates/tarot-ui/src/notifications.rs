@@ -14,29 +14,55 @@ fn swipe(ui: &egui::Ui, rect: Rect, id: egui::Id) -> (f32, bool, bool) {
     // Only clicks are sensed here, so a vertical drag still scrolls the
     // dashboard; the sideways offset is measured from the press origin.
     let response = ui.interact(rect, id, Sense::click());
-    let (origin, latest, down, released) = ui.input(|i| {
+    let (origin, latest, down, release) = ui.input(|i| {
         (
             i.pointer.press_origin(),
             i.pointer.latest_pos(),
             i.pointer.primary_down(),
-            i.pointer.primary_released(),
+            // The release event carries its own position, even when the
+            // pointer is gone by the end of the frame.
+            i.events.iter().rev().find_map(|e| match e {
+                egui::Event::PointerButton {
+                    pos,
+                    button: egui::PointerButton::Primary,
+                    pressed: false,
+                    ..
+                } => Some(*pos),
+                _ => None,
+            }),
         )
     });
-    // egui forgets the press origin on the release frame; keep the last offset.
-    let last = ui.ctx().data(|d| d.get_temp::<f32>(id)).unwrap_or(0.0);
+    // egui forgets the press origin on the release frame, and a touch's last
+    // moves can arrive in that same frame; keep the origin and measure the
+    // release position against it. A cancelled pointer is moved far off
+    // screen and never counts.
+    let kept = ui.ctx().data(|d| d.get_temp::<Pos2>(id));
+    let horizontal = |from: Pos2, to: Pos2| {
+        let delta = to - from;
+        (delta.x.abs() > 12.0 && delta.x.abs() > delta.y.abs() * 1.5).then_some(delta.x)
+    };
     let mut offset = 0.0;
-    if down
-        && let (Some(origin), Some(latest)) = (origin, latest)
-        && rect.contains(origin)
-    {
-        let delta = latest - origin;
-        if delta.x.abs() > 12.0 && delta.x.abs() > delta.y.abs() * 1.5 {
-            offset = delta.x;
+    let mut dismissed = false;
+    let mut moved = false;
+    if down && let Some(origin) = origin.filter(|o| rect.contains(*o)) {
+        ui.ctx().data_mut(|d| d.insert_temp(id, origin));
+        if let Some(dx) = latest.and_then(|at| horizontal(origin, at)) {
+            offset = dx;
+        }
+    } else if let Some(origin) = kept {
+        ui.ctx().data_mut(|d| d.remove::<Pos2>(id));
+        if let Some(at) = release.filter(|at| at.x > -1000.0 && at.y > -1000.0)
+            && let Some(dx) = horizontal(origin, at)
+        {
+            moved = true;
+            dismissed = dx.abs() > rect.width() * 0.35;
         }
     }
-    let dismissed = released && last.abs() > rect.width() * 0.35;
-    ui.ctx().data_mut(|d| d.insert_temp(id, offset));
-    (offset, response.clicked() && last == 0.0, dismissed)
+    (
+        offset,
+        response.clicked() && !moved && offset == 0.0,
+        dismissed,
+    )
 }
 
 /// Packet 06's dashboard row: a dark vertical gradient with a hairline below.
@@ -903,7 +929,13 @@ mod tests {
 
     #[test]
     fn swiping_a_banner_aside_hides_it_and_a_short_drag_does_not() {
-        for (distance, hides) in [(160.0, true), (20.0, false)] {
+        // The last case delivers every move and the release in one frame, as
+        // touch input can on the phone.
+        for (distance, hides, batched) in [
+            (160.0, true, false),
+            (20.0, false, false),
+            (160.0, true, true),
+        ] {
             let ctx = egui::Context::default();
             let mut store = Store::default();
             let id = store.notify(":1.1", 0, incoming(), Duration::ZERO).unwrap();
@@ -916,20 +948,29 @@ mod tests {
             let well = layout(&model).notification_well();
             let start = Pos2::new(120.0, well.y + well.height * 0.5);
             let mut commands = frame(&ctx, &model, pointer(start, true));
-            for step in 1..=8 {
-                let at = start + Vec2::new(distance * step as f32 / 8.0, 0.0);
-                commands.extend(frame(&ctx, &model, vec![egui::Event::PointerMoved(at)]));
+            let moves: Vec<_> = (1..=8)
+                .map(|step| {
+                    egui::Event::PointerMoved(start + Vec2::new(distance * step as f32 / 8.0, 0.0))
+                })
+                .collect();
+            let release = pointer(start + Vec2::new(distance, 0.0), false);
+            if batched {
+                commands.extend(frame(
+                    &ctx,
+                    &model,
+                    moves.into_iter().chain(release).collect(),
+                ));
+            } else {
+                for event in moves {
+                    commands.extend(frame(&ctx, &model, vec![event]));
+                }
+                commands.extend(frame(&ctx, &model, release));
             }
-            commands.extend(frame(
-                &ctx,
-                &model,
-                pointer(start + Vec2::new(distance, 0.0), false),
-            ));
             let hidden = commands.contains(&Command::Notification(UiAction::HideBanner {
                 id,
                 revision: model.notifications.items[0].revision,
             }));
-            assert_eq!(hidden, hides, "distance {distance}");
+            assert_eq!(hidden, hides, "distance {distance}, batched {batched}");
             assert!(
                 !commands
                     .iter()

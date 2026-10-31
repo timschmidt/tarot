@@ -219,6 +219,9 @@ def run(args, password):
                 authenticate, args.output, cgroup,
                 fixture_binary=getattr(args,'transient_fixture_binary',None),
                 fixture_audit=getattr(args,'transient_fixture_audit',None))
+        if getattr(args, 'design_check', False):
+            from phone_design_check import replay as design_check
+            records['design_check'] = design_check(socket, screen, state, capture, args.output)
         if getattr(args, 'notification_well', False):
             from phone_transient_replay import replay as notification_well_replay
             records['notification_well'] = notification_well_replay(socket, screen, guard, state,
@@ -607,6 +610,7 @@ def main():
     parser.add_argument('--transient-fixture-binary', type=Path)
     parser.add_argument('--transient-fixture-audit', type=Path)
     parser.add_argument('--notification-well', action='store_true')
+    parser.add_argument('--design-check', action='store_true')
     parser.add_argument('--toolkit-dialogs', action='store_true')
     parser.add_argument('--terminal-clipboard', action='store_true')
     parser.add_argument('--browser', action='store_true')
