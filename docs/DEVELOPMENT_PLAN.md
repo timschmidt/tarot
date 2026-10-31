@@ -698,6 +698,13 @@ container, image and kernel features are standard platform components.
    destabilizing the compositor or leaking cards. Keep compositor and lock
    behavior identical when Android support is absent.
 
+Investigation checkpoint, October 31: on the PinePhone Pro, the distribution's
+Waydroid 1.6.2 runs a Google-free LineageOS 20 image with hardware GLES on
+Panfrost, after enabling the firewall rules postmarketOS ships separately.
+Multi-window mode opens an Android app as its own task and follows the
+configured size. Tarot's view of the cards, power and input remain to be
+measured. [Audit and findings](WAYDROID.md).
+
 **Acceptance:** run the following on the PinePhone Pro, from a fresh install
 with Android support enabled in Settings:
 - Install at least two free Android applications, for example from F-Droid.
