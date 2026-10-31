@@ -89,7 +89,6 @@ pub fn show(ui: &mut egui::Ui, model: &ShellModel, commands: &mut Vec<Command>) 
         if let Some(id)=model.bluetooth_ui.selected {
             if let Some(device)=bt.devices.iter().find(|d|d.id==id) {
                 ui.label(egui::RichText::new(&device.label).strong());
-                if button(ui,"Back to devices",true) {send(commands,Action::Back);}
                 if model.bluetooth_ui.forget==Some(id) {
                     ui.label("Forget this device? Its saved pairing information will be removed.");
                     if button(ui,"Forget device",!busy) {send(commands,Action::ConfirmForget);}
@@ -106,7 +105,7 @@ pub fn show(ui: &mut egui::Ui, model: &ShellModel, commands: &mut Vec<Command>) 
                             if button(ui,"Disconnect",ready) {service(commands,UiAction::Disconnect{device:id});}
                         } else if button(ui,"Connect",ready) {service(commands,UiAction::Connect{device:id});}
                         let mut trusted=device.trusted;
-                        if ui.add_enabled(ready,egui::Checkbox::new(&mut trusted,"Trust this device")).changed() {service(commands,UiAction::Trust{device:id,trusted});}
+                        if ui.add_enabled(ready,crate::controls::Toggle::new(&mut trusted,"Trust this device")).changed() {service(commands,UiAction::Trust{device:id,trusted});}
                         ui.label("Trusted devices can use Bluetooth services without asking each time.");
                         if button(ui,"Forget device…",!busy) {send(commands,Action::AskForget(id));}
                     }
@@ -122,12 +121,12 @@ pub fn show(ui: &mut egui::Ui, model: &ShellModel, commands: &mut Vec<Command>) 
         if let Some(adapter)=bt.adapter() {
             ui.push_id((adapter.id,adapter.powered),|ui|{
                 let mut powered=adapter.powered;
-                if ui.add_enabled(bt.available && !busy,egui::Checkbox::new(&mut powered,"Bluetooth enabled")).changed() {service(commands,UiAction::Radio{adapter:adapter.id,enabled:powered});}
+                if ui.add_enabled(bt.available && !busy,crate::controls::Toggle::new(&mut powered,"Bluetooth enabled")).changed() {service(commands,UiAction::Radio{adapter:adapter.id,enabled:powered});}
             });
             let ready=bt.available && adapter.powered && !busy;
             if button(ui,if bt.scanning {"Stop searching"}else{"Find devices"},ready) {service(commands,UiAction::Scan{adapter:adapter.id,enabled:!bt.scanning});}
             let mut visible=bt.visible;
-            if ui.add_enabled(ready && bt.default_agent,egui::Checkbox::new(&mut visible,"Allow new pairings for 2 minutes")).changed() {service(commands,UiAction::Visible{adapter:adapter.id,enabled:visible});}
+            if ui.add_enabled(ready && bt.default_agent,crate::controls::Toggle::new(&mut visible,"Allow new pairings for 2 minutes")).changed() {service(commands,UiAction::Visible{adapter:adapter.id,enabled:visible});}
             if !bt.agent_available {ui.label("Pairing agent unavailable.");}
             else if !bt.default_agent {ui.label("Incoming pairing needs system authorization. You can still pair with a device below.");}
             ui.label("Keep this page open while pairing.");

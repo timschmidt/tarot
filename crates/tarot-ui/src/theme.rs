@@ -2,10 +2,40 @@
 use egui::{Color32, FontData, FontDefinitions, FontFamily, FontId, TextureHandle, Vec2};
 use std::{collections::BTreeMap, io::Cursor};
 
-pub const STATUS: Color32 = Color32::from_rgb(3, 5, 5);
-pub const GESTURE: Color32 = Color32::from_rgb(7, 13, 16);
-pub const TEXT: Color32 = Color32::from_rgb(244, 246, 239);
-pub const FOCUS: Color32 = Color32::from_rgb(215, 190, 137);
+use tarot_core::design as token;
+
+const fn rgb(c: [u8; 3]) -> Color32 {
+    Color32::from_rgb(c[0], c[1], c[2])
+}
+
+// Packet tokens (tokens/tarot.tokens.json), compiled by tarot-core.
+pub const STATUS: Color32 = rgb(token::STATUS_COLOR);
+pub const GESTURE: Color32 = rgb(token::GESTURE_COLOR);
+pub const TEXT: Color32 = rgb(token::DASHBOARD_TEXT_COLOR);
+pub const FOCUS: Color32 = rgb(token::NOCTURNE_FOCUS_COLOR);
+pub const DASHBOARD_BG: Color32 = rgb(token::DASHBOARD_BG_COLOR);
+pub const APP_SURFACE: Color32 = rgb(token::APP_SURFACE_COLOR);
+pub const APP_TEXT: Color32 = rgb(token::APP_TEXT_COLOR);
+pub const MUTED_TEXT: Color32 = rgb(token::MUTED_TEXT_COLOR);
+pub const DIVIDER: Color32 = rgb(token::DIVIDER_COLOR);
+pub const SUCCESS: Color32 = rgb(token::SUCCESS_COLOR);
+pub const DESTRUCTIVE: Color32 = rgb(token::DESTRUCTIVE_COLOR);
+pub const ACCENT: Color32 = rgb(token::NOCTURNE_ACCENT_COLOR);
+pub const GLOW: Color32 = rgb(token::NOCTURNE_GLOW_COLOR);
+pub const LINE: Color32 = rgb(token::NOCTURNE_LINE_COLOR);
+pub const DEEP: Color32 = rgb(token::NOCTURNE_BOTTOM_COLOR);
+
+// Dark-surface controls, from the packet's device menu and control states.
+/// Secondary text on dark rows (the device menu's values).
+pub const SECONDARY: Color32 = Color32::from_rgb(178, 189, 176);
+pub const CONTROL: Color32 = Color32::from_rgb(58, 66, 61);
+pub const CONTROL_HOVER: Color32 = Color32::from_rgb(76, 88, 78);
+/// The packet's pressed "Connect" button.
+pub const CONTROL_PRESSED: Color32 = Color32::from_rgb(49, 83, 77);
+pub const CONTROL_EDGE: Color32 = Color32::from_rgb(92, 104, 95);
+/// An error on dark surfaces. The token's destructive red is for light
+/// surfaces and reads at only 2:1 on dark rows.
+pub const ERROR_ON_DARK: Color32 = Color32::from_rgb(229, 129, 109);
 
 pub fn bold(ctx: &egui::Context, size: f32) -> FontId {
     let family = FontFamily::Name("tarot-bold".into());
@@ -68,6 +98,28 @@ pub fn install(ctx: &egui::Context) {
             .insert(egui::TextStyle::Small, FontId::proportional(13.0));
         s.visuals.selection.bg_fill = FOCUS.gamma_multiply(0.3);
         s.visuals.selection.stroke.color = FOCUS;
+        // egui buttons paint `weak_bg_fill`; set both fills so every
+        // button, including service pages and the dashboard, gets the
+        // packet's dark control material and pressed teal.
+        let widgets = &mut s.visuals.widgets;
+        for (state, fill) in [
+            (&mut widgets.inactive, CONTROL),
+            (&mut widgets.hovered, CONTROL_HOVER),
+            (&mut widgets.active, CONTROL_PRESSED),
+            (&mut widgets.open, CONTROL_HOVER),
+        ] {
+            state.bg_fill = fill;
+            state.weak_bg_fill = fill;
+            state.corner_radius = egui::CornerRadius::same(10);
+            state.bg_stroke = egui::Stroke::new(1.0_f32, CONTROL_EDGE);
+            state.fg_stroke.color = TEXT;
+        }
+        // Pressed and keyboard-focused controls share egui's active state;
+        // a light edge keeps keyboard focus visible on the dark material.
+        widgets.active.bg_stroke = egui::Stroke::new(1.5_f32, TEXT);
+        widgets.noninteractive.bg_stroke.color = CONTROL_EDGE;
+        s.visuals.error_fg_color = ERROR_ON_DARK;
+        s.visuals.weak_text_color = Some(SECONDARY);
     });
     ctx.data_mut(|d| d.insert_temp(id, true));
 }

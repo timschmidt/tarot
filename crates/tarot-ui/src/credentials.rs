@@ -1,5 +1,6 @@
 //! The password field renders only bullets. It has no TextEdit undo/history
 //! state, and never copies its value into egui memory or accessibility text.
+use crate::controls::Switch as _;
 use egui::{Color32, Pos2, Rect, Vec2};
 use tarot_core::{
     Command, KeyboardAction, Layout, ShellModel,
@@ -62,10 +63,7 @@ pub fn show(ui: &mut egui::Ui, model: &ShellModel, commands: &mut Vec<Command>) 
     }
     if matches!(input.target, InputTarget::New(_)) {
         let mut remember = input.remember;
-        if ui
-            .checkbox(&mut remember, "Remember this network")
-            .changed()
-        {
+        if ui.switch(&mut remember, "Remember this network").changed() {
             commands.push(Command::CredentialRemember(remember));
         }
         ui.label(if remember {

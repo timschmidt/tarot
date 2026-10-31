@@ -1,6 +1,6 @@
 //! Playback controls show the server's observed volume and mute state.
 use egui::{Color32, Vec2};
-use tarot_core::{Command, Layout, ShellModel, SystemPage, audio::UiAction};
+use tarot_core::{Command, Layout, ShellModel, audio::UiAction};
 
 pub fn show_key_feedback(
     ctx: &egui::Context,
@@ -60,15 +60,6 @@ pub fn show_key_feedback(
 }
 
 pub fn show(ui: &mut egui::Ui, model: &ShellModel, _layout: Layout, commands: &mut Vec<Command>) {
-    if ui
-        .add_sized(
-            [ui.available_width(), 48.0],
-            egui::Button::new("Back to system controls"),
-        )
-        .clicked()
-    {
-        commands.push(Command::SystemPage(SystemPage::Power));
-    }
     let audio = &model.audio;
     if !audio.enabled {
         ui.label("System services are disabled for this session.");
@@ -346,7 +337,7 @@ fn feedback(ui: &mut egui::Ui, model: &ShellModel, commands: &mut Vec<Command>) 
     if ui
         .add_enabled(
             state.settings_available,
-            egui::Checkbox::new(&mut notifications, "Feedback for new notifications"),
+            crate::controls::Toggle::new(&mut notifications, "Feedback for new notifications"),
         )
         .changed()
     {

@@ -145,9 +145,6 @@ pub(crate) fn panel(
                 ui.set_max_height((height - 16.0).max(1.0));
                 ui.style_mut().visuals.override_text_color = Some(TEXT);
                 ui.style_mut().visuals.selection.bg_fill = Color32::from_rgb(95, 115, 91);
-                ui.style_mut().visuals.widgets.inactive.bg_fill = Color32::from_rgb(58, 66, 61);
-                ui.style_mut().visuals.widgets.hovered.bg_fill = Color32::from_rgb(76, 88, 78);
-                ui.style_mut().visuals.widgets.active.bg_fill = Color32::from_rgb(99, 116, 97);
                 ui.spacing_mut().item_spacing.y = 0.0;
                 ui.spacing_mut().interact_size.y = 48.0;
                 let service_revision = match model.system_page {

@@ -85,6 +85,35 @@ fn main() {
         )
         .unwrap();
     }
+    let rgb = |value: &serde_json::Value| -> Vec<u8> {
+        let s = value.as_str().unwrap().strip_prefix('#').unwrap();
+        assert_eq!(s.len(), 6);
+        (0..3)
+            .map(|i| u8::from_str_radix(&s[i * 2..i * 2 + 2], 16).unwrap())
+            .collect()
+    };
+    for (name, value) in data["themes"]["nocturne"].as_object().unwrap() {
+        if name != "name" {
+            writeln!(
+                &mut out,
+                "pub const NOCTURNE_{}_COLOR: [u8;3] = {:?};",
+                name.to_ascii_uppercase(),
+                rgb(value)
+            )
+            .unwrap();
+        }
+    }
+    for (name, value) in data["type"].as_object().unwrap() {
+        if let Some(n) = value.as_f64().filter(|_| value.is_number()) {
+            assert!((8.0..=48.0).contains(&n));
+            writeln!(
+                &mut out,
+                "pub const TYPE_{}: f32 = {n:?};",
+                name.to_ascii_uppercase()
+            )
+            .unwrap();
+        }
+    }
     let status = g["status_bar_h"].as_f64().unwrap();
     let strip = g["gesture_strip_h"].as_f64().unwrap();
     assert_eq!(g["app_rect"][1].as_f64().unwrap(), status);

@@ -1,4 +1,5 @@
 //! The status menu shows observed state, with separate pending/error feedback.
+use crate::controls::Switch as _;
 use egui::{Color32, Vec2};
 use tarot_core::{Command, Layout, ShellModel, SystemPage, power::UiAction};
 
@@ -28,6 +29,8 @@ pub fn show(ctx: &egui::Context, model: &ShellModel, layout: Layout, commands: &
             crate::menu::roots(ui, model, layout, commands);
             return;
         }
+        // Service pages stack ordinary controls; the root rows stay flush.
+        ui.spacing_mut().item_spacing.y = 6.0;
         ui.horizontal(|ui| {
             if ui
                 .add_sized([64.0, 48.0], egui::Button::new("‹ Back"))
@@ -143,7 +146,7 @@ fn power_controls(
             }
             if model.sensors.enabled {
                 let mut locked = model.rotation_locked;
-                if ui.checkbox(&mut locked, "Rotation lock").changed() {
+                if ui.switch(&mut locked, "Rotation lock").changed() {
                     commands.push(Command::RotationLock(locked));
                 }
                 if !model.sensors.available {
@@ -267,7 +270,7 @@ fn idle_controls(ui: &mut egui::Ui, model: &ShellModel, commands: &mut Vec<Comma
                 }
             });
         if model.display.panel_power_available {
-            ui.checkbox(
+            ui.switch(
                 &mut settings.screen_off_enabled,
                 "Turn screen off automatically",
             );
@@ -320,7 +323,7 @@ fn sleep_controls(ui: &mut egui::Ui, model: &ShellModel, commands: &mut Vec<Comm
     let mut settings = previous;
     ui.scope(|ui| {
         ui.spacing_mut().interact_size.y = 44.0;
-        ui.checkbox(&mut settings.automatic, "Sleep after the screen turns off");
+        ui.switch(&mut settings.automatic, "Sleep after the screen turns off");
         ui.add_enabled_ui(settings.automatic, |ui| {
             ui.label("Sleep after screen off");
             egui::ComboBox::from_id_salt("sleep_after_off")
@@ -335,7 +338,7 @@ fn sleep_controls(ui: &mut egui::Ui, model: &ShellModel, commands: &mut Vec<Comm
                         );
                     }
                 });
-            ui.checkbox(
+            ui.switch(
                 &mut settings.on_external_power,
                 "Also sleep on external power",
             );
@@ -349,7 +352,7 @@ fn sleep_controls(ui: &mut egui::Ui, model: &ShellModel, commands: &mut Vec<Comm
             |ui| {
                 ui.spacing_mut().interact_size.y = 44.0;
                 if ui
-                    .checkbox(&mut allowed, "Let the system sleep when idle")
+                    .switch(&mut allowed, "Let the system sleep when idle")
                     .changed()
                 {
                     commands.push(Command::SleepPolicy(allowed));

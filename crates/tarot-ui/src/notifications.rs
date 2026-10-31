@@ -140,13 +140,13 @@ fn settings(ui: &mut egui::Ui, model: &ShellModel, commands: &mut Vec<Command>, 
         let dnd_changed = ui
             .add_enabled(
                 model.notifications.settings_available,
-                egui::Checkbox::new(&mut dnd, "Do not disturb"),
+                crate::controls::Toggle::new(&mut dnd, "Do not disturb"),
             )
             .changed();
         let privacy_changed = ui
             .add_enabled(
                 model.notifications.settings_available,
-                egui::Checkbox::new(&mut privacy, "Hide banner previews"),
+                crate::controls::Toggle::new(&mut privacy, "Hide banner previews"),
             )
             .changed();
         if dnd_changed || privacy_changed {

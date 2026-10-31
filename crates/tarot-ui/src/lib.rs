@@ -2,6 +2,7 @@
 pub mod audio;
 pub mod authorization;
 pub mod bluetooth;
+pub mod controls;
 pub mod credentials;
 mod favorite_drag;
 mod just_type;

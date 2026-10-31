@@ -1,6 +1,6 @@
 use egui::{Color32, Vec2};
 use tarot_core::{
-    Command, Layout, ShellModel, SystemPage,
+    Command, Layout, ShellModel,
     network::{Pending, Permission, State, UiAction},
 };
 fn action(commands: &mut Vec<Command>, action: UiAction) {
@@ -9,15 +9,6 @@ fn action(commands: &mut Vec<Command>, action: UiAction) {
 pub fn show(ui: &mut egui::Ui, model: &ShellModel, _layout: Layout, commands: &mut Vec<Command>) {
     let network = &model.network;
     let can_prompt = model.authorization.snapshot.can_prompt;
-    if ui
-        .add_sized(
-            [ui.available_width(), 48.0],
-            egui::Button::new("Back to system controls"),
-        )
-        .clicked()
-    {
-        commands.push(Command::SystemPage(SystemPage::Power));
-    }
     if !network.enabled {
         ui.label("System services are disabled.");
     }
@@ -31,7 +22,7 @@ pub fn show(ui: &mut egui::Ui, model: &ShellModel, _layout: Layout, commands: &m
                 && !network.busy
                 && network.radio_permission.can_request(can_prompt)
                 && (radio || network.hardware),
-            egui::Checkbox::new(&mut radio, "Wi-Fi enabled"),
+            crate::controls::Toggle::new(&mut radio, "Wi-Fi enabled"),
         )
         .changed()
     {
