@@ -92,7 +92,11 @@ At the owner's request, rendered host captures of every shell surface were compa
 - **Palette.** The Nocturne theme and type sizes are compiled from the token file with the fixed palette; new styling uses them. Errors on dark surfaces use the control states' (229,129,109), since the token's destructive red is 2:1 on dark rows.
 - **Cards.** Card view has no per-card buttons; cards grow to 0.73 from y 92 (see above).
 
-Open, needing the owner's decision: per-row and banner dismiss buttons (the packet shows none), keyboard key labels and height (packet: glyphs, "?123", "Go", 220 units), device-menu typography (labels ~20 vs ~17–18, right-aligned values, chevrons on root rows), the 24-hour zero-padded clock, and differing fallback icons in the launcher and tray. Remaining hard-coded colours outside the touched surfaces still need moving onto the token constants.
+**Lock screen swipe on the phone.** Signed revision 75 (`dd6ddb0ec36fa763fb03ebe0e58bcf79576c658690348243f7479370430736f9`) opened password entry with an upward touch swipe on the lock, instead of a tap, both at protected startup and after one real lock/suspend/wake cycle (10 s suspended, kernel success count 1), each followed by real PAM unlock; the controller restored the normal session with baseline, controls and feedback settings unchanged. The independent normal audit was run only hours later, after the owner had used the phone (brightness, volume and a Waydroid session changed), so it is not counted; the run's own evidence is `14ef5f024445f63dfa65180b405b0af0dcce7ff6d01048b912e5afecc4d2e926`.
+
+The remaining errors and off-palette accents (volume bar, stack target) now use the token colours.
+
+Open, needing the owner's decision: per-row and banner dismiss buttons (the packet shows none), keyboard key labels and height (packet: glyphs, "?123", "Go", 220 units), device-menu typography (labels ~20 vs ~17–18, right-aligned values, chevrons on root rows), the 24-hour zero-padded clock, and differing fallback icons in the launcher and tray. Some one-off greys remain as literals.
 
 
 

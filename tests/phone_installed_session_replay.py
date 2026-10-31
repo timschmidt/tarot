@@ -128,7 +128,7 @@ def run(args, password):
         return state(label, lambda s: s['lock']['phase'] == 'Locked' and s['lock']['last_presented_surface'] is True and s['lock']['generation'] == s['lock']['last_presented_generation'] and s['lock']['sleep']['armed'] and not s['lock']['sleep']['initializing'] and not s['lock']['sleep']['rearming'] and s['lock']['sleep']['gate']['barrier'] is None)
 
     def authenticate(label):
-        nonlocal typing
+        nonlocal typing, last_input
         # A completed display-off intentionally presents compositor black,
         # rather than a locker buffer. Wake from verified protection first;
         # require the full current locker presentation before credentials.
@@ -149,7 +149,17 @@ def run(args, password):
         covered = protected(label+'-protected')
         covered = state(label+'-portrait-ready', lambda s: s['lock']['phase']=='Locked' and s['lock']['last_presented_surface'] is True and s['lock']['generation']==s['lock']['last_presented_generation'] and (s['lock'].get('output') is None or (s['lock']['output']['orientation']=='normal' and s['lock']['output']['requested'] is None and s['lock']['output']['presented_revision']==s['lock']['output']['revision'])))
         typing = True
-        tap(180, 608)
+        if getattr(args, 'swipe_unlock', False):
+            # Swipe up from the lock like a person, instead of tapping it.
+            screen.down(180, 608)
+            for y in range(588, 467, -20):
+                screen.move(180, y)
+            screen.up()
+            last_input = clocks()
+            time.sleep(.08)
+            records.setdefault('swipe_unlocks', []).append(label)
+        else:
+            tap(180, 608)
         state(label+'-entry-repaint', lambda s: s['lock']['presented_frames'] > covered['lock']['presented_frames'])
         TouchKeyboard(lambda x, y: tap(x, y+28)).type_ascii(password)
         # Submission can unlock before its release; no more credential text is
@@ -578,6 +588,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--cycles', type=int, default=1)
+    parser.add_argument('--swipe-unlock', action='store_true',
+                        help='Open password entry with an upward swipe instead of a tap')
     parser.add_argument('--crash', action='store_true')
     parser.add_argument('--require-audio', action='store_true')
     parser.add_argument('--rotate-protected', action='store_true')
