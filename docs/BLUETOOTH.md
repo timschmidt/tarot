@@ -89,11 +89,17 @@ off and the saved pairing untrusted/disconnected.
 [Partial results and retained failures](recordings/headphones/README.md).
 
 October 31: with an owner-provided host USB adapter as a dedicated peer, Tarot
-discovers and selects the peer by touch. Pairing fails below Tarot: BlueZ called
-directly on the phone reports `Page Timeout`, and the phone does not answer
-inquiries while visible. The phone's Broadcom controller (generic Raspberry Pi
-`BCM4345C0.hcd` patch) is the suspected cause. The peer and pairing replay are
-ready to rerun once that is resolved.
+pairs by touch end to end on the phone: discovery, numeric comparison (the
+displayed code matched the peer's), trust, connect/disconnect and Forget, each
+read back from BlueZ. A first run had failed with `Page Timeout`. That was
+mostly distance: at close range, BlueZ on the phone paired 6 times out of 6.
+Separately, for a time no device could discover or page the visible phone,
+because Wi-Fi coexistence on the shared antenna was starving Bluetooth's scan
+windows. Reloading the Wi-Fi driver (`brcmfmac`) cleared it, and it could not
+be reproduced afterwards. The patch firmware, the 32 kHz clock, UART flow
+control and power saving were ruled out. `tests/bluetooth_reachability.py`
+with `tests/phone_bluetooth_visible.py` checks the incoming direction from
+the host. Headset audio remains open.
 [Investigation and evidence](recordings/bluetooth-peer/README.md).
 
 API references: [Adapter1](https://bluez.readthedocs.io/en/latest/adapter-api/),

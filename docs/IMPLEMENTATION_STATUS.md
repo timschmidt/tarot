@@ -237,6 +237,10 @@ A [read-only double-chop device audit](DOUBLE_CHOP.md) identifies the current MP
 
 The owner's JLab Studio pairs through the revision-52 UI, and Trust changes have independent ordinary-user readback. Stable connection fails; a separate ordinary-user client reports `br-connection-page-timeout`, with no proven cause. A2DP/acoustic tests were not reached and no tones played. Further physical Bluetooth testing is deferred at the owner's request. A final independent audit verifies normal Tarot52, diagnostics/discovery off, exact preferences/policies/audio/backlight restoration and the saved pairing untrusted/disconnected. The full development goal continues with work that needs no owner input. [Partial results and failures](recordings/headphones/README.md).
 
+## Physical Bluetooth pairing, revision 64
+
+With an owner-provided host USB adapter as the peer, signed revision 64 pairs by touch end to end: discovery, a numeric-comparison code that matches the peer's, trust, connect/disconnect and two-step Forget, each with independent BlueZ readback. The controller restored the normal session, baseline, controls and preferences exactly, and an independent normal audit passed (proof `1bdf99efda123b0f4e95980b48951b05b5304232b3ca3f17b3294e3fd3f582f4`). The first run's `Page Timeout` was mostly distance. A Wi-Fi coexistence state that blocked incoming discovery and pages was cleared by a `brcmfmac` reload and could not be reproduced over reboot, an hour of monitoring or reload variants; its trigger is unknown. Headset audio and acoustic checks remain open. [Investigation and evidence](recordings/bluetooth-peer/README.md).
+
 ## Bluetooth in revision 51
 
 The initial [BlueZ adapter and pairing agent](BLUETOOTH.md) implements radio/discovery, PIN/passkey/confirmation entry and display, service authorization, explicit trust, connect/disconnect and confirmed Forget. Both compilers pass all 241 workspace tests and the frozen-image private protocol/rendered matrix, including five lock cycles each, spoof rejection, stale identities and daemon/broker recovery. The shared Wi-Fi credential regression and strict host/ARM lint pass.

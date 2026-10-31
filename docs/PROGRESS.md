@@ -7,6 +7,8 @@ defines the complete scope. Newer entries come first.
 
 ## Revision history
 
+Bluetooth pairing by touch passes (revision 64): with the phone near the host's test peer, Tarot discovers it, shows the numeric-comparison code (the peer received the same code), pairs, trusts, connects, disconnects and forgets, each step read back from BlueZ. Normal state was restored exactly, and an independent audit passed. The earlier `Page Timeout` was mostly distance. A separate, now unreproducible state in which Wi-Fi coexistence blocked incoming discovery and pages was cleared by reloading `brcmfmac`. Patch firmware, the 32 kHz clock, UART flow control and power saving were ruled out, and no platform change was needed. New host and phone tools check incoming reachability. Headset audio remains open. [Investigation and evidence](recordings/bluetooth-peer/README.md).
+
 Bluetooth peer testing (on revision 64): with an owner-provided USB Bluetooth adapter on the host as a test peer, Tarot finds and selects it by touch. Pairing fails with `Page Timeout`, which BlueZ reproduces on the phone without Tarot, and the phone also doesn't answer inquiries, so this is a phone controller/firmware problem. Host and phone were restored exactly. [Investigation](recordings/bluetooth-peer/README.md).
 
 Revision 64 follow-up: GNOME Audio Player (Decibels) appears in Tarot's media controls, and pausing it by touch corks its real audio stream. The test played generated silence through an owned null sink, so nothing was audible. [Evidence](recordings/media/README.md#a-real-player-gnome-audio-player).
