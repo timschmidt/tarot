@@ -260,9 +260,16 @@ index), copied in a near-silent tone and asked Android to play it, by file link
 and by its media-library entry. The app installed and opened, Android's media
 library listed the tone, but the app showed "No items found" and ignored both
 play requests, so no stream reached the host. Each run removed the app and tone
-and restored the normal session. Starting playback by hand in an Android player,
-then running the inhibitor and suspend checks remotely, is the practical next
-step.
+and restored the normal session. A fifth run was cut short when the
+phone's battery ran flat (it had been left off the charger with automatic
+sleep off). A sixth run added storage grants through both `pm grant` and
+app-ops and a touch on the app's Tracks tab: the grants took and the media
+library listed the tone, but the app still showed "No items found" and no
+stream reached the host. That run removed the app and restored the session
+with settings and controls unchanged. Scripted playback through this app is
+not reliable; the practical next step is for the owner to start playback by
+hand in any Android player, then run the inhibitor and suspend checks
+remotely.
 
 ## Idle cost
 
