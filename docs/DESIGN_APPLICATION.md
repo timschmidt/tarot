@@ -106,7 +106,7 @@ The owner asked for adherence to the packet, so the remaining deviations were th
 
 **On the phone.** Signed revision 83 (`31e86c8e20dbca38b095f28eb2c7dc52bcb6d60fdce744b9f6dea65b13f5ff55`) passed a native design check in a diagnostic session: unlocked by an upward swipe, device menu and shell keyboard captured with the packet details above, a real libnotify banner hidden by a sideways touch swipe (1.6 s, before its 5 s timer) and its dashboard row dismissed by a second swipe, and the clock unpadded ("0:11"). The normal session was restored and an independent audit passed; evidence `e8341b054d6a2ee5151b88f927e22281d0746ed932e87d017f7698b797812155`. Getting there found two real bugs in the swipe: a whole touch swipe can arrive in one shell frame, and egui can repeat a frame's pass with input only in the first; both are fixed and unit-tested. A temporary trace also showed two aiming mistakes in the check itself (the well's midpoint and a still-animating well both put the finger on the gesture strip).
 
-Some one-off greys remain as literals.
+The last grey literals now use theme roles (text, secondary, disabled, track); shell colours come from the token palette or named theme roles.
 
 
 
