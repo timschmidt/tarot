@@ -253,23 +253,18 @@ accept a longer, explicitly bounded wake (`--max-wake-seconds`, default still
 35 s). Evidence
 `514881b8b82295c5560972b0cd4804f38b64daf5ef76252956a4f82eec3a824f`.
 
-Not covered: suspend while Android plays audio or holds a wakelock, and
-automatic sleep (which Android's own activity may inhibit). With the owner's
-approval, four runs installed F-Droid's Fossify Music (verified against F-Droid's
-index), copied in a near-silent tone and asked Android to play it, by file link
-and by its media-library entry. The app installed and opened, Android's media
-library listed the tone, but the app showed "No items found" and ignored both
-play requests, so no stream reached the host. Each run removed the app and tone
-and restored the normal session. A fifth run was cut short when the
-phone's battery ran flat (it had been left off the charger with automatic
-sleep off). A sixth run added storage grants through both `pm grant` and
-app-ops and a touch on the app's Tracks tab: the grants took and the media
-library listed the tone, but the app still showed "No items found" and no
-stream reached the host. That run removed the app and restored the session
-with settings and controls unchanged. Scripted playback through this app is
-not reliable; the practical next step is for the owner to start playback by
-hand in any Android player, then run the inhibitor and suspend checks
-remotely.
+Audio while asleep (owner-approved, VLC 3.7.2 arm64 from F-Droid, SHA-256
+checked against F-Droid's index on the host and on the phone; revision 85):
+Android's playback reaches the host as one PulseAudio stream, and Tarot holds
+its login1 sleep block while it plays. A real sleep request during playback
+is refused ("A non-root sleep block is active"), so the phone stays awake and
+the sound continues. Stopping playback releases the block within seconds, and a
+real 25 s lock/suspend/wake/unlock with Android running then passes. The run
+removed VLC and the tone and restored the session with settings and controls
+unchanged. Earlier attempts with Fossify Music never started playback from a
+script (its library stayed empty), and one run was cut short when the phone's
+battery ran flat. Not covered: Android wakelocks without audio, and automatic
+sleep with Android active.
 
 ## Idle cost
 
@@ -313,4 +308,4 @@ life. Raw samples: `artifacts/m6a/battery/battery.jsonl`.
 1. Propose the launch-bounds change upstream (it needs an image build
    elsewhere), and consider hiding Android's freeform caption, which
    duplicates Tarot's own card controls.
-3. Suspend while Android plays audio or holds a wakelock.
+3. Suspend while Android holds a wakelock without playing audio.

@@ -7,6 +7,8 @@ defines the complete scope. Newer entries come first.
 
 ## Revision history
 
+While Android plays sound, Tarot keeps the phone awake: a sleep request during playback is refused, and once playback stops the phone sleeps and wakes normally with Android still open. Verified on the phone with VLC. [Details](WAYDROID.md).
+
 Measured on battery: with the screen off, a running Android adds only about 5% to the phone's draw. The phone itself draws about half an amp while awake, so automatic sleep, not Android, decides battery life. [Measurements](WAYDROID.md#battery-cost).
 
 Revision 85 refreshes the launcher's app list as soon as apps are installed or removed, including the Android apps Waydroid adds, instead of at the next login. On the phone it also re-confirmed, on the restyled pages, that changing what the phone starts into asks for the administrator password, works with the right one, and changes nothing when canceled. [Details](DESIGN_APPLICATION.md#design-audit-october-31).
