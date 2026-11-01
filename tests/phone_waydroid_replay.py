@@ -149,9 +149,17 @@ def android_audio(r, socket, waydroid, files, env, capture=None, screen=None, di
     r['install'] = shell('pm', 'install', '-r', '/data/local/tmp/tarot-music.apk', timeout=180).strip()[-200:]
     shell('rm', '-f', '/data/local/tmp/tarot-music.apk')
     assert MUSIC in shell('pm', 'list', 'packages', MUSIC), 'music app not installed'
+    # "No items found" means the app cannot read storage; record each grant.
+    r['grants'] = {}
     for permission in ['android.permission.READ_MEDIA_AUDIO', 'android.permission.READ_EXTERNAL_STORAGE',
                        'android.permission.POST_NOTIFICATIONS']:
-        shell('pm', 'grant', MUSIC, permission)
+        out = subprocess.run(['waydroid', 'shell', '--', 'pm', 'grant', MUSIC, permission],
+                             capture_output=True, text=True, timeout=30)
+        r['grants'][permission.rsplit('.', 1)[1]] = out.returncode == 0 and not out.stderr.strip()
+    for op in ['READ_EXTERNAL_STORAGE', 'READ_MEDIA_AUDIO', 'MANAGE_EXTERNAL_STORAGE']:
+        out = subprocess.run(['waydroid', 'shell', '--', 'appops', 'set', MUSIC, op, 'allow'],
+                             capture_output=True, text=True, timeout=30)
+        r['grants']['appop_' + op] = out.returncode == 0 and not out.stderr.strip()
     data = Path(tone).read_bytes()
     subprocess.run(['waydroid', 'shell', '--', 'sh', '-c', 'mkdir -p /sdcard/Music && cat > ' + TONE],
                    input=data, capture_output=True, timeout=120)
