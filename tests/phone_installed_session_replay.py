@@ -201,7 +201,7 @@ def run(args, password):
                 assert rotated['lock']['unprotected_presentations']==ordinary_frames
                 assert any_request(socket,'capture',path=str(args.output/('denied-'+orientation+'.png'))) == {'ok':False,'error':'Session is locked'}
         screen = Touchscreen(guard)
-        def suspend_cycle(index):
+        def suspend_cycle(index, wake_after=15):
             # One real lock/suspend/wake/unlock cycle. The session must come
             # back with the cards and view it had when this cycle began.
             nonlocal owned_alarm
@@ -233,7 +233,7 @@ def run(args, password):
             os.chown(folder, 10000, pwd.getpwnam('user').pw_gid)
             with (folder/'rtcwake.log').open('w') as log:
                 mark('rtc-program-start', cycle=index)
-                subprocess.run(['rtcwake', '-u', '-d', '/dev/rtc0', '-m', 'no', '-s', '15'], check=True, stdout=log, stderr=log, timeout=4)
+                subprocess.run(['rtcwake', '-u', '-d', '/dev/rtc0', '-m', 'no', '-s', str(wake_after)], check=True, stdout=log, stderr=log, timeout=4)
                 mark('rtc-program-complete', cycle=index)
             owned_alarm = (RTC/'wakealarm').read_text().strip()
             assert owned_alarm
@@ -335,7 +335,7 @@ def run(args, password):
             records['media_app'] = media_app_replay(socket,state,capture,tap,before,args.output)
         if getattr(args, 'waydroid', False):
             from phone_waydroid_replay import replay as waydroid_replay
-            records['waydroid'] = waydroid_replay(socket,state,capture,before,args.output,tap if getattr(args,'waydroid_text',False) else None,screen,(lambda: suspend_cycle(1)) if getattr(args,'waydroid_suspend',False) else None)
+            records['waydroid'] = waydroid_replay(socket,state,capture,before,args.output,tap if getattr(args,'waydroid_text',False) else None,screen,(lambda: suspend_cycle(1, getattr(args,'suspend_seconds',15))) if getattr(args,'waydroid_suspend',False) else None)
         if getattr(args, 'media', False):
             from phone_media_replay import replay as media_replay
             records['media'] = media_replay(socket,state,capture,tap,before,args.output)
