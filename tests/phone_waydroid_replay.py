@@ -135,7 +135,7 @@ def audio_state(socket, env):
                 inhibitor_held=status['audio_inhibition']['held'])
 
 
-def android_audio(r, socket, waydroid, files, env):
+def android_audio(r, socket, waydroid, files, env, capture=None):
     """Play a near-silent tone in an Android music app; record what the host sees.
 
     Fills `r` step by step, so a failure keeps what happened before it.
@@ -157,11 +157,37 @@ def android_audio(r, socket, waydroid, files, env):
                    input=data, capture_output=True, timeout=120)
     r['tone_bytes_android'] = shell('stat', '-c', '%s', TONE).strip()
     r['before_play'] = audio_state(socket, env)
-    r['launch'] = shell('am', 'start', '-a', 'android.intent.action.VIEW', '-t', 'audio/wav',
-                        '-d', 'file://' + TONE, '-p', MUSIC).strip()[-200:]
-    playing = await_value(lambda: audio_state(socket, env), lambda a: a['playback'] > 0 and a['inhibitor_held'],
-                          seconds=30)
+    def players():
+        out = shell('dumpsys', 'audio', timeout=30)
+        return [l.strip() for l in out.splitlines() if 'AudioPlaybackConfiguration' in l and 'state:started' in l][:6]
+
+    def attempt(label, uri):
+        r[label] = shell('am', 'start', '-a', 'android.intent.action.VIEW', '-t', 'audio/wav',
+                         '-d', uri, '-p', MUSIC).strip()[-200:]
+        try:
+            return await_value(lambda: audio_state(socket, env),
+                               lambda a: a['playback'] > 0 and a['inhibitor_held'], seconds=20)
+        except AssertionError:
+            if capture:
+                capture('android-audio-' + label)
+            r[label + '_android_players'] = players()
+            return None
+
+    playing = attempt('launch_file', 'file://' + TONE)
+    if playing is None:
+        # Android 11+ apps often refuse file:// links; ask the media library
+        # for the tone's content:// URI instead.
+        shell('am', 'broadcast', '-a', 'android.intent.action.MEDIA_SCANNER_SCAN_FILE', '-d', 'file://' + TONE)
+        time.sleep(5)
+        rows = shell('content', 'query', '--uri', 'content://media/external/audio/media',
+                     '--projection', '_id:_data', timeout=30)
+        ids = re.findall(r'_id=(\d+), _data=' + re.escape(TONE), rows)
+        r['media_ids'] = ids
+        if ids:
+            playing = attempt('launch_content', 'content://media/external/audio/media/' + ids[-1])
+    assert playing is not None, 'no Android playback reached the host'
     r['playing'] = playing
+    r['android_players'] = players()
 
 
 def stop_android_audio(waydroid):
@@ -247,7 +273,7 @@ def replay(socket, state, capture, before, directory, tap=None, screen=None, sus
         r['android_tasks_open'] = tasks()
         if audio is not None:
             r['audio'] = {}
-            android_audio(r['audio'], socket, waydroid, audio, env)
+            android_audio(r['audio'], socket, waydroid, audio, env, capture)
         if suspend is not None:
             # A real lock/suspend/wake/unlock with Android running and its app
             # shown; the cycle itself requires the same cards and view after.
