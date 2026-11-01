@@ -135,12 +135,19 @@ def audio_state(socket, env):
                 inhibitor_held=status['audio_inhibition']['held'])
 
 
-def android_audio(socket, waydroid, files, env):
-    """Play a near-silent tone in an Android music app; record what the host sees."""
+def android_audio(r, socket, waydroid, files, env):
+    """Play a near-silent tone in an Android music app; record what the host sees.
+
+    Fills `r` step by step, so a failure keeps what happened before it.
+    """
     apk, tone = files
-    r = {}
     shell = lambda *c, **k: waydroid('shell', '--', *c, user=False, **k)
-    r['install'] = waydroid('app', 'install', str(apk), user=False, timeout=180).strip()[-200:]
+    # Through Android's own package manager: copy the verified APK in, install.
+    copied = subprocess.run(['waydroid', 'shell', '--', 'sh', '-c', 'cat > /data/local/tmp/tarot-music.apk'],
+                            input=Path(apk).read_bytes(), capture_output=True, timeout=120)
+    r['apk_copied'] = copied.returncode
+    r['install'] = shell('pm', 'install', '-r', '/data/local/tmp/tarot-music.apk', timeout=180).strip()[-200:]
+    shell('rm', '-f', '/data/local/tmp/tarot-music.apk')
     assert MUSIC in shell('pm', 'list', 'packages', MUSIC), 'music app not installed'
     for permission in ['android.permission.READ_MEDIA_AUDIO', 'android.permission.READ_EXTERNAL_STORAGE',
                        'android.permission.POST_NOTIFICATIONS']:
@@ -155,7 +162,6 @@ def android_audio(socket, waydroid, files, env):
     playing = await_value(lambda: audio_state(socket, env), lambda a: a['playback'] > 0 and a['inhibitor_held'],
                           seconds=30)
     r['playing'] = playing
-    return r
 
 
 def stop_android_audio(waydroid):
@@ -240,7 +246,8 @@ def replay(socket, state, capture, before, directory, tap=None, screen=None, sus
         r['view'] = current['view']
         r['android_tasks_open'] = tasks()
         if audio is not None:
-            r['audio'] = android_audio(socket, waydroid, audio, env)
+            r['audio'] = {}
+            android_audio(r['audio'], socket, waydroid, audio, env)
         if suspend is not None:
             # A real lock/suspend/wake/unlock with Android running and its app
             # shown; the cycle itself requires the same cards and view after.
@@ -268,6 +275,11 @@ def replay(socket, state, capture, before, directory, tap=None, screen=None, sus
         r['passed'] = True
         return r
     finally:
+        if audio is not None and not r.get('audio', {}).get('removed'):
+            try:
+                r.setdefault('audio', {})['cleanup_removed'] = stop_android_audio(waydroid)
+            except Exception as error:
+                r.setdefault('audio', {})['cleanup_error'] = type(error).__name__
         try:
             waydroid('session', 'stop')
             r['waydroid_after'] = await_value(status, lambda s: s.get('Session') == 'STOPPED', seconds=60)
