@@ -124,6 +124,22 @@ def replay(socket, screen, state, capture, output):
     request(socket, 'notification_action', action={'Settings': original})
     state('design-settings-restored', lambda s: s['notifications']['dnd'] == original['dnd']
           and s['notifications']['hide_previews'] == original['hide_previews'])
+    # The launcher catalog follows desktop entries changed during the session.
+    applications = Path(account.pw_dir) / '.local/share/applications'
+    entry = applications / 'test.tarot.CatalogLive.desktop'
+    assert not entry.exists()
+    def catalog():
+        return {a['id'] for a in request(socket, 'applications')['applications']}
+    subprocess.run(['install', '-d', '-m', '755', str(applications)], user=10000, group=account.pw_gid, check=True)
+    subprocess.run(['sh', '-c', 'printf "%s\\n" "[Desktop Entry]" "Type=Application" "Name=Catalog Live" "Exec=true" > "$1"', 'sh', str(entry)],
+                   user=10000, group=account.pw_gid, check=True)
+    try:
+        await_value(catalog, lambda ids: 'test.tarot.CatalogLive.desktop' in ids, seconds=10)
+        step('catalog-entry-appeared')
+    finally:
+        entry.unlink(missing_ok=True)
+    await_value(catalog, lambda ids: 'test.tarot.CatalogLive.desktop' not in ids, seconds=10)
+    step('catalog-entry-removed')
     result['clock'] = request(socket, 'status')['clock']
     # No leading zero on the hour: "0:10" after midnight, "9:41", never "09:41".
     hour = result['clock'].split(':')[0]
