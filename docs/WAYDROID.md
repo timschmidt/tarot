@@ -233,6 +233,21 @@ and an independent audit passed. Evidence
 
 <img src="recordings/waydroid/back-from-strip.png" alt="F-Droid search with fdroid typed, then F-Droid's main screen after the Back swipe" width="480">
 
+## Lock and suspend with Android running
+
+With F-Droid shown in its card, revision 84 ran one real lock, kernel
+suspend (9.7 s), RTC wake and PAM unlock in a diagnostic session. After
+unlocking, Tarot showed the same cards and view, Waydroid reported the
+session and container running, F-Droid's Android task was still present and
+the card redrew live. The session then stopped cleanly and the normal session
+was restored; an independent audit passed. Evidence
+`6c5986d3e1b5d98be00f6c774e9005f77ea3eee8de170af4d18aa502fa537d9f`.
+
+<img src="recordings/waydroid/fdroid-after-suspend.png" alt="F-Droid's main screen in its card after a real suspend and unlock" width="240">
+
+Not covered: a long suspend, suspend while Android plays audio or holds a
+wakelock, and automatic sleep (which Android's own activity may inhibit).
+
 ## Idle cost
 
 With the screen locked and dark, CPU busy time (percent of one core) and
@@ -259,4 +274,4 @@ power.
    elsewhere), and consider hiding Android's freeform caption, which
    duplicates Tarot's own card controls.
 2. Measure energy unplugged with the container stopped, frozen and running.
-3. Lock and suspend with the container frozen.
+3. Longer suspends, and suspend while Android plays audio or holds a wakelock.

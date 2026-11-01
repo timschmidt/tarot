@@ -7,6 +7,8 @@ defines the complete scope. Newer entries come first.
 
 ## Revision history
 
+Android apps survive the phone sleeping: with F-Droid open, the phone locked, really suspended for about ten seconds, woke and unlocked, and F-Droid was still there and drawing, with Android's session intact. [Details](WAYDROID.md#lock-and-suspend-with-android-running).
+
 Revision 84 adds Back: swipe right-to-left along the gesture strip. It closes an open menu step or the notification list, and in Android apps it does what Android's Back does; on the phone it took F-Droid back from its search to its main screen. Other apps keep their own Back buttons. [Details](WAYDROID.md#back).
 
 Revision 83 makes swiping notifications aside reliable on the phone itself: a swipe that arrived all at once, or during a frame egui redraws twice, was being missed. A phone check confirmed the device menu, keyboard, swipe dismissal of a real notification and its banner, swipe unlocking and the clock. [Details](DESIGN_APPLICATION.md#design-audit-october-31).
