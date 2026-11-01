@@ -50,11 +50,16 @@ def main():
         with Image.open(out/(label+'.png')) as image:
             image.load()  # Read the finished PNG, not an image-preview impression.
             rgb=image.convert('RGB')
-        for role,bounds,minimum in [('clock',(144,0,216,32),50),('right_status',(250,0,360,32),10)]:
+        # The right side draws Wi-Fi and battery glyphs only for observed
+        # state, and nothing (no fictional status) when neither is known.
+        battery=value['power']['battery'];known=(battery['available'] and battery['present']) or value['network']['state']=='Connected'
+        for role,bounds,minimum in [('clock',(144,0,216,32),50),('right_status',(250,0,360,32),10 if known else 0)]:
             bounds=tuple(v*args.scale for v in bounds)
             bright=sum(min(pixel)>150 for pixel in rgb.crop(bounds).getdata())
             records.setdefault('status_pixels',{})[label+'-'+role]=bright
             assert bright>=minimum*args.scale*args.scale,(label,role,bright,value['clock'])
+            if role=='right_status' and not known:
+                assert bright==0,(label,role,bright,'unknown state must draw nothing')
     def click(x,y):
         mouse.move(x,y);time.sleep(.08);mouse.button(True);time.sleep(.07);mouse.button(False);time.sleep(.12)
     def wave(x=42,y=610):
@@ -122,7 +127,7 @@ def main():
         # Editor uses real UI presses; reordered identities, not labels, persist.
         click(40,16);state('editor-menu',lambda s:s['launcher']['menu_open']);click(160,160);state('editor-open',lambda s:s['editing_favorites'])
         capture('editor-before')
-        click(165,259);state('second-favorite-added',lambda s:s['favorites']['applications']==[app_id,'test.beta.desktop'])
+        click(150,310);state('second-favorite-added',lambda s:s['favorites']['applications']==[app_id,'test.beta.desktop'])
         click(208,225);state('favorite-reordered',lambda s:s['favorites']['applications']==['test.beta.desktop',app_id])
         click(285,67);state('editor-done-before-failure',lambda s:not s['editing_favorites'])
         request(control,'activate',id=app['cards'][0]['id'])

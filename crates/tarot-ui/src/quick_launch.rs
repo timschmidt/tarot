@@ -102,9 +102,9 @@ pub fn show(
             );
         }
         let color = if available {
-            Color32::from_gray(242)
+            crate::theme::TEXT
         } else {
-            Color32::from_gray(115)
+            crate::theme::DISABLED
         };
         let tint = if available { Color32::WHITE } else { color };
         let held = drag.is_some_and(|d| id.is_some_and(|id| *id == d.source.id()));
@@ -229,7 +229,7 @@ fn icon(
             }
         }
     } else if empty {
-        p.circle_stroke(at, 16.0, Stroke::new(1.0_f32, Color32::from_gray(130)));
+        p.circle_stroke(at, 16.0, Stroke::new(1.0_f32, crate::theme::DISABLED));
         p.line_segment([point(-7.0, 0.0), point(7.0, 0.0)], stroke);
         p.line_segment([point(0.0, -7.0), point(0.0, 7.0)], stroke);
     } else if id.contains("calls") || id.contains("dialer") {
@@ -367,7 +367,7 @@ pub fn editor(ui: &mut egui::Ui, model: &ShellModel, layout: Layout, commands: &
         ),
     );
     let mut child = ui.new_child(egui::UiBuilder::new().max_rect(bounds));
-    child.visuals_mut().override_text_color = Some(Color32::from_gray(235));
+    child.visuals_mut().override_text_color = Some(crate::theme::TEXT);
     egui::ScrollArea::vertical()
         .id_salt("quick_launch_editor")
         .max_height(bounds.height().max(1.0))

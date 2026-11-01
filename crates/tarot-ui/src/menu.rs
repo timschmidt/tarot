@@ -199,7 +199,7 @@ fn row(ui: &mut egui::Ui, model: &ShellModel, item: Item, commands: &mut Vec<Com
         if item.enabled {
             TEXT
         } else {
-            Color32::from_gray(145)
+            crate::theme::DISABLED
         },
         width,
     );

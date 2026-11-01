@@ -36,6 +36,10 @@ pub const CONTROL_EDGE: Color32 = Color32::from_rgb(92, 104, 95);
 /// An error on dark surfaces. The token's destructive red is for light
 /// surfaces and reads at only 2:1 on dark rows.
 pub const ERROR_ON_DARK: Color32 = Color32::from_rgb(229, 129, 109);
+/// Dimmed text and glyphs for disabled or unavailable items on dark surfaces.
+pub const DISABLED: Color32 = Color32::from_rgb(124, 132, 126);
+/// Dark tracks (sliders, levels) and fills for unavailable artwork.
+pub const TRACK: Color32 = Color32::from_rgb(72, 80, 76);
 
 pub fn bold(ctx: &egui::Context, size: f32) -> FontId {
     let family = FontFamily::Name("tarot-bold".into());

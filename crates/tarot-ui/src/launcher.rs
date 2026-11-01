@@ -238,7 +238,7 @@ pub(crate) fn show(
                     .color(if enabled {
                         Color32::WHITE
                     } else {
-                        Color32::from_gray(95)
+                        crate::theme::DISABLED
                     }),
                 );
                 response.widget_info(|| {
@@ -480,7 +480,7 @@ fn grid(
                 at + Vec2::new(6.0, -4.0),
                 at + Vec2::new(0.0, 2.0),
             ],
-            Color32::from_gray(180),
+            crate::theme::SECONDARY,
             egui::Stroke::NONE,
         ));
     }
@@ -510,7 +510,7 @@ pub(crate) fn paint_application(
         response.rect.top() + if compact { 16.0 } else { 34.0 },
     );
     let tint = if app.unavailable.is_some() {
-        Color32::from_gray(110)
+        crate::theme::DISABLED
     } else {
         Color32::WHITE.gamma_multiply(opacity)
     };
@@ -575,7 +575,7 @@ pub(crate) fn fallback_icon(
 ) {
     let hue = app.id.bytes().fold(0u8, u8::wrapping_add);
     let color = if app.unavailable.is_some() {
-        Color32::from_gray(80)
+        crate::theme::TRACK
     } else {
         Color32::from_rgb(55 + hue % 80, 100 + hue % 90, 110 + hue % 75)
     };

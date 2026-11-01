@@ -28,7 +28,7 @@ pub fn show(ctx: &egui::Context, width: f32, height: f32) -> bool {
                 Align2::CENTER_CENTER,
                 "Unlock screen unavailable",
                 FontId::proportional(16.0),
-                Color32::from_gray(205),
+                crate::theme::SECONDARY,
             );
             let response = ui.put(
                 retry_rect(width, height),
@@ -40,7 +40,7 @@ pub fn show(ctx: &egui::Context, width: f32, height: f32) -> bool {
                 Align2::CENTER_CENTER,
                 "Or press Enter to try again",
                 FontId::proportional(14.0),
-                Color32::from_gray(205),
+                crate::theme::SECONDARY,
             );
         });
     retry

@@ -39,13 +39,13 @@ pub(crate) fn affordance(ui: &mut egui::Ui, layout: Layout, commands: &mut Vec<C
         Align2::LEFT_CENTER,
         "Just type…",
         italic(ui.ctx(), 20.0),
-        Color32::from_gray(225),
+        crate::theme::TEXT,
     );
     crate::menu::glyph::paint_scaled(
         painter,
         Pos2::new(rect.right() - 24.0, rect.center().y),
         crate::menu::glyph::Glyph::Search,
-        Color32::from_gray(225),
+        crate::theme::TEXT,
         0.75,
     );
     if response.clicked() {

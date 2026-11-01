@@ -43,7 +43,7 @@ pub fn show_key_feedback(
                     rect.left_bottom() + egui::vec2(14.0, -18.0),
                     egui::vec2((rect.width() - 28.0).max(1.0), 5.0),
                 );
-                p.rect_filled(bar, 3.0, Color32::from_gray(75));
+                p.rect_filled(bar, 3.0, crate::theme::TRACK);
                 let mut filled = bar;
                 filled.max.x = filled.min.x + filled.width() * (percent.min(100) as f32 / 100.0);
                 p.rect_filled(
