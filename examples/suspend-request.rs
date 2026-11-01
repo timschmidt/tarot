@@ -30,6 +30,9 @@ struct Options {
     pid: u32,
     #[arg(long)]
     report: PathBuf,
+    /// The furthest RTC wake this test may sleep until; at most 15 minutes.
+    #[arg(long, default_value_t = 35, value_parser = clap::value_parser!(u64).range(5..=900))]
+    max_wake_seconds: u64,
 }
 fn status(options: &Options) -> Result<Value> {
     let mut stream = UnixStream::connect(&options.control_socket)?;
@@ -83,7 +86,7 @@ fn main() -> Result<()> {
         .duration_since(std::time::UNIX_EPOCH)?
         .as_secs();
     ensure!(
-        alarm > now + 3 && alarm <= now + 35,
+        alarm > now + 3 && alarm <= now + options.max_wake_seconds,
         "RTC wake deadline outside test bound"
     );
     let initial = status(&options)?;

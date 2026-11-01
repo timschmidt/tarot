@@ -239,7 +239,7 @@ def run(args, password):
             assert owned_alarm
             save()
             with (folder/'observer.log').open('w') as log:
-                subprocess.run(['/home/user/tarot-dev/bin/suspend-request', '--control-socket', str(socket), '--pid', str(pid), '--report', str(folder/'observer.jsonl')], check=True, stdout=log, stderr=log, timeout=50)
+                subprocess.run(['/home/user/tarot-dev/bin/suspend-request', '--control-socket', str(socket), '--pid', str(pid), '--report', str(folder/'observer.jsonl'), *(['--max-wake-seconds', str(wake_after + 20)] if wake_after > 30 else [])], check=True, stdout=log, stderr=log, timeout=50)
             os.chown(folder/'observer.jsonl', 10000, pwd.getpwnam('user').pw_gid)
             cycle['after_stats'] = stats()
             after = clocks()
