@@ -157,6 +157,11 @@ def android_audio(r, socket, waydroid, files, env, capture=None):
                    input=data, capture_output=True, timeout=120)
     r['tone_bytes_android'] = shell('stat', '-c', '%s', TONE).strip()
     r['before_play'] = audio_state(socket, env)
+    # Open the app once so any first-run setup happens before the play request.
+    r['first_open'] = waydroid('app', 'launch', MUSIC, user=True, timeout=60).strip()[-200:]
+    time.sleep(8)
+    if capture:
+        capture('android-audio-first-open')
     def players():
         out = shell('dumpsys', 'audio', timeout=30)
         return [l.strip() for l in out.splitlines() if 'AudioPlaybackConfiguration' in l and 'state:started' in l][:6]
@@ -181,8 +186,10 @@ def android_audio(r, socket, waydroid, files, env, capture=None):
         time.sleep(5)
         rows = shell('content', 'query', '--uri', 'content://media/external/audio/media',
                      '--projection', '_id:_data', timeout=30)
-        ids = re.findall(r'_id=(\d+), _data=' + re.escape(TONE), rows)
+        # Android reports /storage/emulated/0/..., not /sdcard/...; match the name.
+        ids = re.findall(r'_id=(\d+), _data=[^,\n]*/' + re.escape(TONE.rsplit('/', 1)[1]), rows)
         r['media_ids'] = ids
+        r['media_rows'] = [l for l in rows.splitlines() if 'tarot' in l][:3]
         if ids:
             playing = attempt('launch_content', 'content://media/external/audio/media/' + ids[-1])
     assert playing is not None, 'no Android playback reached the host'
