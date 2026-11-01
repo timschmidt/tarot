@@ -311,6 +311,15 @@ def replay(socket, state, capture, before, directory, tap=None, screen=None, sus
         if audio is not None:
             r['audio'] = {}
             android_audio(r['audio'], socket, waydroid, audio, env, capture, screen, directory)
+        if audio is not None:
+            # While Android plays, Tarot holds a login1 sleep block (a real
+            # sleep request is refused: "A non-root sleep block is active").
+            # Stopping playback must release it so the phone can sleep again.
+            assert r['audio']['playing']['inhibitor_held'], r['audio']['playing']
+            subprocess.run(['waydroid', 'shell', '--', 'am', 'force-stop', MUSIC], capture_output=True, timeout=60)
+            r['audio']['after_playback_stopped'] = await_value(
+                lambda: audio_state(socket, env),
+                lambda a: a['playback'] == 0 and not a['inhibitor_held'], seconds=30)
         if suspend is not None:
             # A real lock/suspend/wake/unlock with Android running and its app
             # shown; the cycle itself requires the same cards and view after.
