@@ -135,7 +135,7 @@ def audio_state(socket, env):
                 inhibitor_held=status['audio_inhibition']['held'])
 
 
-def android_audio(r, socket, waydroid, files, env, capture=None):
+def android_audio(r, socket, waydroid, files, env, capture=None, screen=None, directory=None):
     """Play a near-silent tone in an Android music app; record what the host sees.
 
     Fills `r` step by step, so a failure keeps what happened before it.
@@ -192,6 +192,24 @@ def android_audio(r, socket, waydroid, files, env, capture=None):
         r['media_rows'] = [l for l in rows.splitlines() if 'tarot' in l][:3]
         if ids:
             playing = attempt('launch_content', 'content://media/external/audio/media/' + ids[-1])
+    if playing is None and screen is not None and capture is not None:
+        # Drive the app as a person would: its Tracks tab, then the tone.
+        def touch(label, word, alternatives=()):
+            capture(label)
+            target = locate(directory / (label + '.png'), word, vertical=(.07, .97), scale=1,
+                            alternatives=alternatives)
+            screen.down(target['point'][0] / 2, target['point'][1] / 2)
+            screen.up()
+            r.setdefault('touched', []).append(dict(label=label, word=target['word']))
+            time.sleep(3)
+        try:
+            touch('android-audio-tracks', 'Track', alternatives=('Tracks',))
+            touch('android-audio-tone', 'tarot-quiet-tone', alternatives=('tarot', 'quiet', 'tone'))
+            playing = await_value(lambda: audio_state(socket, env),
+                                  lambda a: a['playback'] > 0 and a['inhibitor_held'], seconds=20)
+        except AssertionError as error:
+            r['touch_error'] = str(error)[:200]
+            capture('android-audio-after-touch')
     assert playing is not None, 'no Android playback reached the host'
     r['playing'] = playing
     r['android_players'] = players()
@@ -280,7 +298,7 @@ def replay(socket, state, capture, before, directory, tap=None, screen=None, sus
         r['android_tasks_open'] = tasks()
         if audio is not None:
             r['audio'] = {}
-            android_audio(r['audio'], socket, waydroid, audio, env, capture)
+            android_audio(r['audio'], socket, waydroid, audio, env, capture, screen, directory)
         if suspend is not None:
             # A real lock/suspend/wake/unlock with Android running and its app
             # shown; the cycle itself requires the same cards and view after.
