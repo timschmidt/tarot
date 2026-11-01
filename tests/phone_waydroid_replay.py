@@ -231,7 +231,38 @@ def stop_android_audio(waydroid):
     return MUSIC not in shell('pm', 'list', 'packages', MUSIC)
 
 
-def replay(socket, state, capture, before, directory, tap=None, screen=None, suspend=None, audio=None):
+def windowing_probe(waydroid, socket, capture, cards):
+    shell = lambda *c, **k: waydroid('shell', '--', *c, user=False, **k)
+
+    def modes():
+        waydroid('container', 'unfreeze', user=False, timeout=20)
+        out = shell('dumpsys', 'activity', 'activities', timeout=30)
+        return [l.strip()[:200] for l in out.splitlines()
+                if PACKAGE in l and ('Task{' in l or 'windowingMode' in l) or 'mBounds=' in l][:10]
+
+    def observe(label):
+        time.sleep(8)
+        status = request(socket, 'status')
+        new = [c for c in status['cards'] if c['id'] not in cards]
+        capture('windowing-' + label)
+        return dict(cards=[dict(title=c.get('title'), app_id=c.get('app_id')) for c in new],
+                    geometry=[g for g in status['native_geometry'] if g['id'] in [c['id'] for c in new]],
+                    android=modes())
+
+    r = dict(freeform=dict(android=modes()))
+    component = shell('cmd', 'package', 'resolve-activity', '--brief', PACKAGE).strip().splitlines()[-1]
+    r['component'] = component
+    for label, flags in [('existing-task', []), ('new-task', ['-f', '0x10008000'])]:
+        try:
+            r[label] = dict(start=shell('am', 'start', '--windowingMode', '1', *flags, '-n', component,
+                                        timeout=60).strip()[-200:])
+            r[label].update(observe(label))
+        except Exception as error:
+            r[label] = dict(error='%s: %s' % (type(error).__name__, str(error)[:200]))
+    return r
+
+
+def replay(socket, state, capture, before, directory, tap=None, screen=None, suspend=None, audio=None, windowing=False):
     """`audio` is (apk, tone) or (apk, tone, package) for the player to use."""
     global MUSIC
     if audio is not None and len(audio) > 2:
@@ -301,6 +332,11 @@ def replay(socket, state, capture, before, directory, tap=None, screen=None, sus
         r['new_cards'] = new
         r['native_geometry'] = [g for g in current['native_geometry'] if g['id'] in [c['id'] for c in new]]
         r['android_bounds'] = bounds()
+        if windowing:
+            # Plan stage W0 (docs/WAYDROID_PATCHES.md): does asking Android for
+            # fullscreen at launch fill the card and drop the title bar,
+            # without a rebuilt image?
+            r['windowing'] = windowing_probe(waydroid, socket, capture, cards)
         if tap is not None:
             try:
                 text_input(r, socket, tap, capture, directory, waydroid, screen)
