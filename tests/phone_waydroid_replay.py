@@ -121,7 +121,52 @@ def text_input(r, socket, tap, capture, directory, waydroid, screen=None):
                                       and shell('settings', 'get', 'secure', 'default_input_method').strip() == default)
 
 
-def replay(socket, state, capture, before, directory, tap=None, screen=None, suspend=None):
+MUSIC = 'org.fossify.musicplayer'
+TONE = '/sdcard/Music/tarot-quiet-tone.wav'
+
+
+def audio_state(socket, env):
+    """Android's PulseAudio stream as the host sees it, and Tarot's inhibitor."""
+    out = subprocess.run(['pactl', 'list', 'short', 'sink-inputs'], capture_output=True, text=True,
+                         timeout=10, env=env, user=10000, group=10000).stdout
+    status = request(socket, 'status')
+    return dict(sink_inputs=len([l for l in out.splitlines() if l.strip()]),
+                playback=status['audio']['activity']['playback'],
+                inhibitor_held=status['audio_inhibition']['held'])
+
+
+def android_audio(socket, waydroid, files, env):
+    """Play a near-silent tone in an Android music app; record what the host sees."""
+    apk, tone = files
+    r = {}
+    shell = lambda *c, **k: waydroid('shell', '--', *c, user=False, **k)
+    r['install'] = waydroid('app', 'install', str(apk), user=False, timeout=180).strip()[-200:]
+    assert MUSIC in shell('pm', 'list', 'packages', MUSIC), 'music app not installed'
+    for permission in ['android.permission.READ_MEDIA_AUDIO', 'android.permission.READ_EXTERNAL_STORAGE',
+                       'android.permission.POST_NOTIFICATIONS']:
+        shell('pm', 'grant', MUSIC, permission)
+    data = Path(tone).read_bytes()
+    subprocess.run(['waydroid', 'shell', '--', 'sh', '-c', 'mkdir -p /sdcard/Music && cat > ' + TONE],
+                   input=data, capture_output=True, timeout=120)
+    r['tone_bytes_android'] = shell('stat', '-c', '%s', TONE).strip()
+    r['before_play'] = audio_state(socket, env)
+    r['launch'] = shell('am', 'start', '-a', 'android.intent.action.VIEW', '-t', 'audio/wav',
+                        '-d', 'file://' + TONE, '-p', MUSIC).strip()[-200:]
+    playing = await_value(lambda: audio_state(socket, env), lambda a: a['playback'] > 0 and a['inhibitor_held'],
+                          seconds=30)
+    r['playing'] = playing
+    return r
+
+
+def stop_android_audio(waydroid):
+    shell = lambda *c, **k: waydroid('shell', '--', *c, user=False, **k)
+    shell('am', 'force-stop', MUSIC)
+    shell('rm', '-f', TONE)
+    shell('pm', 'uninstall', MUSIC, timeout=60)
+    return MUSIC not in shell('pm', 'list', 'packages', MUSIC)
+
+
+def replay(socket, state, capture, before, directory, tap=None, screen=None, suspend=None, audio=None):
     r = dict(passed=False, entry=ENTRY)
     environ = dict(f.decode().split('=', 1) for f in Path('/proc', str(before['pid']), 'environ').read_bytes().split(b'\0') if b'=' in f)
     env = dict(PATH='/usr/bin:/bin', HOME='/home/user', USER='user', LOGNAME='user',
@@ -194,10 +239,14 @@ def replay(socket, state, capture, before, directory, tap=None, screen=None, sus
                 r['text_input_error'] = '%s: %s' % (type(error).__name__, str(error)[:300])
         r['view'] = current['view']
         r['android_tasks_open'] = tasks()
+        if audio is not None:
+            r['audio'] = android_audio(socket, waydroid, audio, env)
         if suspend is not None:
             # A real lock/suspend/wake/unlock with Android running and its app
             # shown; the cycle itself requires the same cards and view after.
             cycle = suspend()
+            if audio is not None:
+                r['audio']['after_suspend'] = audio_state(socket, env)
             r['suspend'] = dict(suspended_seconds=cycle.get('suspended_seconds'),
                                 validated=cycle.get('validated'))
             r['waydroid_after_suspend'] = status()
@@ -208,6 +257,10 @@ def replay(socket, state, capture, before, directory, tap=None, screen=None, sus
         assert len(new) == 1, new
         card = new[0]
         r['one_card'] = True
+        if audio is not None:
+            r['audio']['removed'] = stop_android_audio(waydroid)
+            time.sleep(3)
+            r['audio']['after_stop'] = audio_state(socket, env)
         request(socket, 'close', id=card['id'])
         state('waydroid-card-closed', lambda s: all(c['id'] != card['id'] for c in s['cards']), seconds=30)
         time.sleep(5)
