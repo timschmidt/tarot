@@ -83,17 +83,25 @@ backspace reach the field, and the keyboard hides when focus leaves.
 
 **W5: Icons and wakelocks (#5, #6).**
 
-## Decisions needed from the owner
+## Owner decisions (November 1, 2026)
 
-1. **Build machine:** a cloud or local machine with about 300 GB of disk for
-   LineageOS builds.
-2. **Fork visibility and upstreaming:** public forks and upstream pull requests
-   for each patch as soon as it works, or kept private until the series is
-   stable.
-3. **Image signing and updates:** whether to keep test keys, as Waydroid's
-   images do, or use our own keys, and whether to host an update channel or
-   ship images as a postmarketOS package.
+1. **Build machine:** this development host, with the tree on its external
+   1.9 TB btrfs drive (`waydroid-build/` there: `src/` for the source tree,
+   `bin/` for the `repo` launcher, `dl/` for scripts and logs). The host has 16
+   cores and 125 GB of RAM.
+2. **Forks private until the series is stable;** offer patches upstream after
+   that.
+3. **Waydroid's test keys,** as its official images use, and **images shipped as
+   a postmarketOS package,** packaged like Tarot itself.
+
+The phone runs Waydroid's official `waydroid_arm64` VANILLA image (LineageOS 20
+system, MAINLINE vendor), which corresponds to the build target
+`lineage_waydroid_arm64-userdebug`.
 
 ## Next step
 
-W1, which needs the owner's decisions above, starting with a build machine.
+W1 is under way: the LineageOS 20 tree with Waydroid's manifests (from Waydroid's
+build guide; the manifest script was read before it ran, and the `repo`
+launcher's signature was checked against its maintainers' key) is syncing.
+Next, build the unmodified image, ideally in an Ubuntu container to match
+LineageOS's supported build environment, and boot it on the phone.
