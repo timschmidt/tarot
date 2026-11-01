@@ -259,6 +259,19 @@ def windowing_probe(waydroid, socket, capture, cards):
             r[label].update(observe(label))
         except Exception as error:
             r[label] = dict(error='%s: %s' % (type(error).__name__, str(error)[:200]))
+    # Android reuses the existing task for both starts above. A fair test needs
+    # a task created fullscreen: close the card (Android removes the task),
+    # then start the app with the same option.
+    try:
+        for card in [c for c in request(socket, 'status')['cards'] if c['id'] not in cards]:
+            request(socket, 'close', id=card['id'])
+        time.sleep(8)
+        r['removed'] = dict(android=modes())
+        r['fresh-task'] = dict(start=shell('am', 'start', '--windowingMode', '1', '-n', component,
+                                           timeout=60).strip()[-200:])
+        r['fresh-task'].update(observe('fresh-task'))
+    except Exception as error:
+        r['fresh-task'] = dict(error='%s: %s' % (type(error).__name__, str(error)[:200]))
     return r
 
 
@@ -337,6 +350,9 @@ def replay(socket, state, capture, before, directory, tap=None, screen=None, sus
             # fullscreen at launch fill the card and drop the title bar,
             # without a rebuilt image?
             r['windowing'] = windowing_probe(waydroid, socket, capture, cards)
+            # The probe closes and reopens the app; its card may be new.
+            current = request(socket, 'status')
+            new = [c for c in current['cards'] if c['id'] not in cards]
         if tap is not None:
             try:
                 text_input(r, socket, tap, capture, directory, waydroid, screen)
