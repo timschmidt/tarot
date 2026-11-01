@@ -276,10 +276,26 @@ polkitd dropped out of the busy list. Memory stays about 1 GB lower while a
 session runs, frozen or not. No energy figure is claimed: the phone was on USB
 power.
 
+## Battery cost
+
+Measured on battery (USB unplugged), screen off and the session awake (automatic
+sleep off), sampling the fuel gauge every 10 s for 10 minutes per state after a
+2-minute settle, by a script running on the phone with SSH idle:
+
+| Waydroid | Mean draw | Median | Power |
+| --- | --- | --- | --- |
+| Stopped | 496 mA | 486 mA | 2.01 W |
+| Session running, container frozen | 517 mA | 499 mA | 2.07 W |
+| F-Droid open, container running | 524 mA | 508 mA | 2.08 W |
+
+Android adds about 20–30 mA (4–6%) while the screen is off. The phone itself
+dominates: awake with the screen off it draws about 0.5 A, and the battery fell
+from 99% to 85% in 36 minutes. Automatic sleep, not Android, decides battery
+life. Raw samples: `artifacts/m6a/battery/battery.jsonl`.
+
 ## Next
 
 1. Propose the launch-bounds change upstream (it needs an image build
    elsewhere), and consider hiding Android's freeform caption, which
    duplicates Tarot's own card controls.
-2. Measure energy unplugged with the container stopped, frozen and running.
 3. Suspend while Android plays audio or holds a wakelock.
