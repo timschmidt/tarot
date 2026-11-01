@@ -125,7 +125,9 @@ def replay(socket, screen, state, capture, output):
     state('design-settings-restored', lambda s: s['notifications']['dnd'] == original['dnd']
           and s['notifications']['hide_previews'] == original['hide_previews'])
     result['clock'] = request(socket, 'status')['clock']
-    assert not result['clock'].startswith('0'), result['clock']
+    # No leading zero on the hour: "0:10" after midnight, "9:41", never "09:41".
+    hour = result['clock'].split(':')[0]
+    assert hour == '0' or not hour.startswith('0'), result['clock']
     result['passed'] = True
     (Path(output) / 'design-check.json').write_text(json.dumps(result, indent=2) + '\n')
     return result
