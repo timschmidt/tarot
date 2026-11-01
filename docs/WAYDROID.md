@@ -254,7 +254,15 @@ accept a longer, explicitly bounded wake (`--max-wake-seconds`, default still
 `514881b8b82295c5560972b0cd4804f38b64daf5ef76252956a4f82eec3a824f`.
 
 Not covered: suspend while Android plays audio or holds a wakelock, and
-automatic sleep (which Android's own activity may inhibit).
+automatic sleep (which Android's own activity may inhibit). With the owner's
+approval, four runs installed F-Droid's Fossify Music (verified against F-Droid's
+index), copied in a near-silent tone and asked Android to play it, by file link
+and by its media-library entry. The app installed and opened, Android's media
+library listed the tone, but the app showed "No items found" and ignored both
+play requests, so no stream reached the host. Each run removed the app and tone
+and restored the normal session. Starting playback by hand in an Android player,
+then running the inhibitor and suspend checks remotely, is the practical next
+step.
 
 ## Idle cost
 
