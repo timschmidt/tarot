@@ -140,7 +140,7 @@ def android_audio(r, socket, waydroid, files, env, capture=None, screen=None, di
 
     Fills `r` step by step, so a failure keeps what happened before it.
     """
-    apk, tone = files
+    apk, tone = files[:2]
     shell = lambda *c, **k: waydroid('shell', '--', *c, user=False, **k)
     # Through Android's own package manager: copy the verified APK in, install.
     copied = subprocess.run(['waydroid', 'shell', '--', 'sh', '-c', 'cat > /data/local/tmp/tarot-music.apk'],
@@ -232,6 +232,10 @@ def stop_android_audio(waydroid):
 
 
 def replay(socket, state, capture, before, directory, tap=None, screen=None, suspend=None, audio=None):
+    """`audio` is (apk, tone) or (apk, tone, package) for the player to use."""
+    global MUSIC
+    if audio is not None and len(audio) > 2:
+        MUSIC = audio[2]
     r = dict(passed=False, entry=ENTRY)
     environ = dict(f.decode().split('=', 1) for f in Path('/proc', str(before['pid']), 'environ').read_bytes().split(b'\0') if b'=' in f)
     env = dict(PATH='/usr/bin:/bin', HOME='/home/user', USER='user', LOGNAME='user',
