@@ -7,6 +7,8 @@ defines the complete scope. Newer entries come first.
 
 ## Revision history
 
+Revision 84 adds Back: swipe right-to-left along the gesture strip. It closes an open menu step or the notification list, and in Android apps it does what Android's Back does; on the phone it took F-Droid back from its search to its main screen. Other apps keep their own Back buttons. [Details](WAYDROID.md#back).
+
 Revision 83 makes swiping notifications aside reliable on the phone itself: a swipe that arrived all at once, or during a frame egui redraws twice, was being missed. A phone check confirmed the device menu, keyboard, swipe dismissal of a real notification and its banner, swipe unlocking and the clock. [Details](DESIGN_APPLICATION.md#design-audit-october-31).
 
 Revision 76 follows the design packet on the last open points: notifications and banners are dismissed by swiping them sideways instead of an "×", the keyboard shows Shift and Backspace symbols with "?123", device-menu values sit on the right, the clock drops the hour's leading zero, and apps without artwork get the same placeholder icon everywhere. [Details](DESIGN_APPLICATION.md#design-audit-october-31).

@@ -213,6 +213,26 @@ user would set once. The upstream option remains:
    `xdg_toplevel.set_parent` on its "InputMethod" window with the focused
    task's window, so Android's own keyboard stays in that card.
 
+## Back
+
+Revision 84 adds Back from the gesture strip, as the interaction design
+specifies: a right-to-left swipe of at least the packet's 54 units within the
+strip. It closes an open System Menu step or the notification dashboard, and
+for a Waydroid task sends `KEY_BACK` (158) to the focused window; Waydroid
+forwards Linux key codes and Android's generic layout maps that key to Back.
+Other apps keep their own Back control; nothing is injected for them.
+`tests/back_gesture_replay.py` checks a probe posing as a Waydroid task receives
+`KEY_BACK` and an ordinary app receives nothing.
+
+On the phone (package
+`577abe933c10accf5ce5d806d7eb5bda5a42234222efb84a09ce4f9b0f8c12dc`), after
+"fdroid" was typed into F-Droid's search, the strip swipe returned F-Droid to
+its main screen and its card stayed in view; the normal session was restored
+and an independent audit passed. Evidence
+`a66e1bc926dfab89aa09968edbcf14e885cb277a9f8b48f32df977daef46b9cc`.
+
+<img src="recordings/waydroid/back-from-strip.png" alt="F-Droid search with fdroid typed, then F-Droid's main screen after the Back swipe" width="480">
+
 ## Idle cost
 
 With the screen locked and dark, CPU busy time (percent of one core) and
@@ -239,5 +259,4 @@ power.
    elsewhere), and consider hiding Android's freeform caption, which
    duplicates Tarot's own card controls.
 2. Measure energy unplugged with the container stopped, frozen and running.
-3. Choose the text-input option above; Back mapping; lock and suspend with the
-   container frozen.
+3. Lock and suspend with the container frozen.
