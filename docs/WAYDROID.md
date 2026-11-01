@@ -310,6 +310,7 @@ limitation rather than crop it in Tarot. It, the launch size, the keyboard and
 related fixes inside Waydroid are planned as one patch series in
 [WAYDROID_PATCHES.md](WAYDROID_PATCHES.md).
 
-1. Run that plan's first stage (W0): try `am start --windowingMode 1`, which
-   may give fullscreen apps without a title bar and no image rebuild.
+1. That plan's first stage (W0) is done: Android ignores
+   `am start --windowingMode 1` and keeps every task freeform, so fullscreen
+   apps without a title bar need a rebuilt image (stage W1 onward).
 2. Suspend while Android holds a wakelock without playing audio.

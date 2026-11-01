@@ -37,14 +37,21 @@ sleeping with Android open.
 
 ## Stages
 
-**W0: Try runtime settings first (no image build).** Android 13's `am start`
-accepts `--windowingMode 1`, which asks for fullscreen. This has not been tried
-yet; the earlier checks covered only `cmd window`, `enable_freeform_support` and
-Waydroid's properties. If a task started this way fills its card and shows no
-title bar, then #1 and #3 shrink to a one-line launch-option change, and that
-change can be tested before anything is built. Measure it on the phone with the
-existing replay: windowing mode from `dumpsys activity`, window bounds, and a
-screenshot of the card's top edge.
+**W0: Try runtime settings first: done, negative (November 1, 2026).**
+Android 13's `am start --windowingMode 1` asks for a fullscreen task. Two phone
+runs on revision 85 used a new probe in `tests/phone_waydroid_replay.py`
+(`waydroid_windowing`); both restored the session and passed their audits:
+
+| Attempt | Android's task afterwards |
+| --- | --- |
+| Start on F-Droid's existing task | Same task #7, `mode=freeform`; title bar shown |
+| Start with `NEW_TASK | CLEAR_TASK` | Android reused task #7, `mode=freeform` |
+| Close the card (task removed), then start | New task #8, still `mode=freeform` |
+
+Android ignores the launch option: in multi-window mode the task display area
+forces freeform for every task. So #1 and #3 need a change inside the image,
+either to the display area's windowing mode or to how Waydroid launches tasks.
+Tarot's card stayed one "F-Droid" card at 360×652 throughout.
 
 **W1: Build infrastructure.**
 - Fork `waydroid/android_vendor_waydroid` (which carries the `lineage-sdk` and
@@ -89,5 +96,4 @@ backspace reach the field, and the keyboard hides when focus leaves.
 
 ## Next step
 
-Run W0 on the phone. It needs only a few minutes of a test session with Android
-open, and the result decides how much of #1 and #3 needs a rebuilt image.
+W1, which needs the owner's decisions above, starting with a build machine.
