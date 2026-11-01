@@ -121,7 +121,7 @@ def text_input(r, socket, tap, capture, directory, waydroid, screen=None):
                                       and shell('settings', 'get', 'secure', 'default_input_method').strip() == default)
 
 
-def replay(socket, state, capture, before, directory, tap=None, screen=None):
+def replay(socket, state, capture, before, directory, tap=None, screen=None, suspend=None):
     r = dict(passed=False, entry=ENTRY)
     environ = dict(f.decode().split('=', 1) for f in Path('/proc', str(before['pid']), 'environ').read_bytes().split(b'\0') if b'=' in f)
     env = dict(PATH='/usr/bin:/bin', HOME='/home/user', USER='user', LOGNAME='user',
@@ -194,6 +194,16 @@ def replay(socket, state, capture, before, directory, tap=None, screen=None):
                 r['text_input_error'] = '%s: %s' % (type(error).__name__, str(error)[:300])
         r['view'] = current['view']
         r['android_tasks_open'] = tasks()
+        if suspend is not None:
+            # A real lock/suspend/wake/unlock with Android running and its app
+            # shown; the cycle itself requires the same cards and view after.
+            cycle = suspend()
+            r['suspend'] = dict(suspended_seconds=cycle.get('suspended_seconds'),
+                                validated=cycle.get('validated'))
+            r['waydroid_after_suspend'] = status()
+            r['android_tasks_after_suspend'] = tasks()
+            assert any(row[2] == PACKAGE for row in r['android_tasks_after_suspend']), r['android_tasks_after_suspend']
+            capture('waydroid-after-suspend')
         capture('waydroid-card')
         assert len(new) == 1, new
         card = new[0]

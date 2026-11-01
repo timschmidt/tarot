@@ -201,6 +201,63 @@ def run(args, password):
                 assert rotated['lock']['unprotected_presentations']==ordinary_frames
                 assert any_request(socket,'capture',path=str(args.output/('denied-'+orientation+'.png'))) == {'ok':False,'error':'Session is locked'}
         screen = Touchscreen(guard)
+        def suspend_cycle(index):
+            # One real lock/suspend/wake/unlock cycle. The session must come
+            # back with the cards and view it had when this cycle began.
+            nonlocal owned_alarm
+            expected = request(socket, 'status')
+            mark('cycle-preflight', cycle=index)
+            current = request(socket, 'status')
+            if current['lock']['phase'] != 'Unlocked':
+                policy = current['lock']['idle']['policy']
+                threshold = policy['lock_after']['secs']+policy['lock_after']['nanos']/1e9
+                elapsed = clocks()['monotonic']-last_input['monotonic']
+                locker = current['lock']['locker']
+                # A controller can pause long enough for the real idle policy
+                # to lock correctly. Require fresh PAM; never retry unexplained
+                # protection, coordinator failure or locker recovery here.
+                assert elapsed >= threshold and current['lock']['phase'] in ['Awaiting','Locked']
+                assert current['lock']['sleep']['armed'] and not current['lock']['sleep']['gate']['preparing']
+                assert locker['consecutive_failures']==0 and locker['recoveries']==0 and not locker['error']
+                records.setdefault('extra_idle_authentications', []).append({'before_cycle':index,'controller_inactive_seconds':elapsed,'policy_seconds':threshold,'protected':current})
+                restored = authenticate(f'cycle-{index:02}-idle')
+                assert restored['cards']==expected['cards'] and restored['view']==expected['view']
+                if args.require_audio:
+                    state(f'cycle-{index:02}-idle-audio', lambda s:s['audio']['available'] and bool(s['audio']['outputs']))
+            mark('cycle-awake', cycle=index)
+            assert not (RTC/'wakealarm').read_text().strip()
+            cycle = {'number': index, 'before_clocks': clocks(), 'before_stats': stats(), 'before': request(socket, 'status')}
+            records['cycles'].append(cycle)
+            folder = args.output/f'cycle-{index:02}'
+            folder.mkdir(mode=0o700)
+            os.chown(folder, 10000, pwd.getpwnam('user').pw_gid)
+            with (folder/'rtcwake.log').open('w') as log:
+                mark('rtc-program-start', cycle=index)
+                subprocess.run(['rtcwake', '-u', '-d', '/dev/rtc0', '-m', 'no', '-s', '15'], check=True, stdout=log, stderr=log, timeout=4)
+                mark('rtc-program-complete', cycle=index)
+            owned_alarm = (RTC/'wakealarm').read_text().strip()
+            assert owned_alarm
+            save()
+            with (folder/'observer.log').open('w') as log:
+                subprocess.run(['/home/user/tarot-dev/bin/suspend-request', '--control-socket', str(socket), '--pid', str(pid), '--report', str(folder/'observer.jsonl')], check=True, stdout=log, stderr=log, timeout=50)
+            os.chown(folder/'observer.jsonl', 10000, pwd.getpwnam('user').pw_gid)
+            cycle['after_stats'] = stats()
+            after = clocks()
+            cycle['suspended_seconds'] = after['boottime']-cycle['before_clocks']['boottime']-(after['monotonic']-cycle['before_clocks']['monotonic'])
+            assert cycle['suspended_seconds'] >= 3 and cycle['after_stats']['success'] == cycle['before_stats']['success']+1 and cycle['after_stats']['fail'] == cycle['before_stats']['fail']
+            clear_alarm()
+            resumed = protected(f'cycle-{index:02}-resume')
+            assert resumed['lock']['sleep']['gate']['epoch'] == cycle['before']['lock']['sleep']['gate']['epoch']
+            restored = authenticate(f'cycle-{index:02}')
+            assert restored['cards'] == expected['cards'] and restored['view'] == expected['view']
+            if args.require_audio:
+                state(f'cycle-{index:02}-audio-ready', lambda s: s['audio']['available'] and bool(s['audio']['outputs']))
+            capture(f'app-after-{index:02}')
+            cycle['validated'] = True
+            save()
+            mark('cycle-validated', cycle=index)
+            return cycle
+
         authenticate('startup')
         if args.require_audio:
             state('audio-ready', lambda s: s['audio']['available'] and bool(s['audio']['outputs']))
@@ -278,7 +335,7 @@ def run(args, password):
             records['media_app'] = media_app_replay(socket,state,capture,tap,before,args.output)
         if getattr(args, 'waydroid', False):
             from phone_waydroid_replay import replay as waydroid_replay
-            records['waydroid'] = waydroid_replay(socket,state,capture,before,args.output,tap if getattr(args,'waydroid_text',False) else None,screen)
+            records['waydroid'] = waydroid_replay(socket,state,capture,before,args.output,tap if getattr(args,'waydroid_text',False) else None,screen,(lambda: suspend_cycle(1)) if getattr(args,'waydroid_suspend',False) else None)
         if getattr(args, 'media', False):
             from phone_media_replay import replay as media_replay
             records['media'] = media_replay(socket,state,capture,tap,before,args.output)
@@ -403,56 +460,7 @@ def run(args, password):
                 state('audio-after-panel', lambda s:s['audio']['available'] and bool(s['audio']['outputs']))
             capture('app-after-panel')
         for index in range(1, args.cycles+1):
-            mark('cycle-preflight', cycle=index)
-            current = request(socket, 'status')
-            if current['lock']['phase'] != 'Unlocked':
-                policy = current['lock']['idle']['policy']
-                threshold = policy['lock_after']['secs']+policy['lock_after']['nanos']/1e9
-                elapsed = clocks()['monotonic']-last_input['monotonic']
-                locker = current['lock']['locker']
-                # A controller can pause long enough for the real idle policy
-                # to lock correctly. Require fresh PAM; never retry unexplained
-                # protection, coordinator failure or locker recovery here.
-                assert elapsed >= threshold and current['lock']['phase'] in ['Awaiting','Locked']
-                assert current['lock']['sleep']['armed'] and not current['lock']['sleep']['gate']['preparing']
-                assert locker['consecutive_failures']==0 and locker['recoveries']==0 and not locker['error']
-                records.setdefault('extra_idle_authentications', []).append({'before_cycle':index,'controller_inactive_seconds':elapsed,'policy_seconds':threshold,'protected':current})
-                restored = authenticate(f'cycle-{index:02}-idle')
-                assert restored['cards']==before['cards'] and restored['view']==before['view']
-                if args.require_audio:
-                    state(f'cycle-{index:02}-idle-audio', lambda s:s['audio']['available'] and bool(s['audio']['outputs']))
-            mark('cycle-awake', cycle=index)
-            assert not (RTC/'wakealarm').read_text().strip()
-            cycle = {'number': index, 'before_clocks': clocks(), 'before_stats': stats(), 'before': request(socket, 'status')}
-            records['cycles'].append(cycle)
-            folder = args.output/f'cycle-{index:02}'
-            folder.mkdir(mode=0o700)
-            os.chown(folder, 10000, pwd.getpwnam('user').pw_gid)
-            with (folder/'rtcwake.log').open('w') as log:
-                mark('rtc-program-start', cycle=index)
-                subprocess.run(['rtcwake', '-u', '-d', '/dev/rtc0', '-m', 'no', '-s', '15'], check=True, stdout=log, stderr=log, timeout=4)
-                mark('rtc-program-complete', cycle=index)
-            owned_alarm = (RTC/'wakealarm').read_text().strip()
-            assert owned_alarm
-            save()
-            with (folder/'observer.log').open('w') as log:
-                subprocess.run(['/home/user/tarot-dev/bin/suspend-request', '--control-socket', str(socket), '--pid', str(pid), '--report', str(folder/'observer.jsonl')], check=True, stdout=log, stderr=log, timeout=50)
-            os.chown(folder/'observer.jsonl', 10000, pwd.getpwnam('user').pw_gid)
-            cycle['after_stats'] = stats()
-            after = clocks()
-            cycle['suspended_seconds'] = after['boottime']-cycle['before_clocks']['boottime']-(after['monotonic']-cycle['before_clocks']['monotonic'])
-            assert cycle['suspended_seconds'] >= 3 and cycle['after_stats']['success'] == cycle['before_stats']['success']+1 and cycle['after_stats']['fail'] == cycle['before_stats']['fail']
-            clear_alarm()
-            resumed = protected(f'cycle-{index:02}-resume')
-            assert resumed['lock']['sleep']['gate']['epoch'] == cycle['before']['lock']['sleep']['gate']['epoch']
-            restored = authenticate(f'cycle-{index:02}')
-            assert restored['cards'] == before['cards'] and restored['view'] == before['view']
-            if args.require_audio:
-                state(f'cycle-{index:02}-audio-ready', lambda s: s['audio']['available'] and bool(s['audio']['outputs']))
-            capture(f'app-after-{index:02}')
-            cycle['validated'] = True
-            save()
-            mark('cycle-validated', cycle=index)
+            suspend_cycle(index)
         if idle_mode:
             if idle_mode == 'automatic':
                 from phone_session_idle_replay import automatic_replay
