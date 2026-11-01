@@ -112,7 +112,9 @@ def replay(socket, screen, state, capture, output):
     opened = state('design-dashboard', lambda s: s['notifications']['dashboard_open'])
     time.sleep(.5)
     capture('design-dashboard')
-    well = opened['notifications']['well']
+    # The well animates open; aim at its settled position, not the first
+    # status that reports the dashboard open.
+    well = request(socket, 'status')['notifications']['well']
     # The newest row sits first, below the 48-unit header and the row margin.
     swipe(well['y'] + 4 + 48 + 4 + 4 + 24)
     gone = state('design-row-swiped', lambda s: len(s['notifications']['items']) == before)
