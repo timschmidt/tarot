@@ -493,6 +493,9 @@ impl GestureRecognizer {
             {
                 Some(Command::Activate(id))
             }
+            (Origin::Strip, Some(Axis::Horizontal)) if dx <= -crate::design::BACK_MIN => {
+                Some(Command::Back)
+            }
             (Origin::Strip, Some(Axis::Vertical)) if dy < -48.0 || (dy < -16.0 && vy < -0.5) => {
                 Some(match contact.view {
                     View::App(_) | View::Launcher => Command::Overview,
@@ -897,6 +900,24 @@ mod tests {
         recognizer.update(1, 180.0, 600.0, 100);
         recognizer.cancel();
         assert_eq!(recognizer.finish(1, 120, &model), Outcome::default());
+    }
+
+    #[test]
+    fn a_right_to_left_strip_swipe_is_back_and_others_are_not() {
+        for (to_x, expected) in [
+            (180.0 - 70.0, Some(Command::Back)),
+            (180.0 - 30.0, None),
+            (180.0 + 70.0, None),
+        ] {
+            let (model, layout, mut recognizer) = fixture(View::App(WindowId(2)));
+            begin(&mut recognizer, &model, layout, (180.0, 710.0));
+            recognizer.update(1, to_x, 708.0, 100);
+            assert_eq!(
+                recognizer.finish(1, 140, &model).command,
+                expected,
+                "to {to_x}"
+            );
+        }
     }
 
     #[test]

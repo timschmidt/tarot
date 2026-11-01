@@ -25,6 +25,7 @@ fn main() {
         ("WAVE_DRAG", &gestures["wave_drag_min_dp"]),
         ("DISMISS_DISTANCE", &gestures["card_dismiss_distance_h"]),
         ("DISMISS_VELOCITY", &gestures["card_dismiss_velocity_dp_s"]),
+        ("BACK_MIN", &gestures["back_min_dp"]),
     ] {
         let n = value.as_f64().expect("numeric design token");
         assert!(n.is_finite() && n > 0.0);

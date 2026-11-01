@@ -22,7 +22,7 @@ PACKAGE = 'org.fdroid.fdroid'
 ENTRY = 'waydroid.' + PACKAGE + '.desktop'
 
 
-def text_input(r, socket, tap, capture, directory, waydroid):
+def text_input(r, socket, tap, capture, directory, waydroid, screen=None):
     """Type into an Android field with Tarot's keyboard in key-event mode.
 
     Waydroid has no text-input protocol, so Tarot's keyboard is opened by hand
@@ -92,6 +92,25 @@ def text_input(r, socket, tap, capture, directory, waydroid):
             r['typed_text_visible'] = True
         except AssertionError:
             r['typed_text_visible'] = False
+        if screen is not None and r['typed_text_visible']:
+            # Back from the gesture strip: a right-to-left swipe sends KEY_BACK
+            # to the Waydroid task. Android first hides nothing (its keyboard is
+            # disabled), so Back leaves the search and the typed text goes.
+            request(socket, 'status')
+            screen.down(300, 702)
+            for x in range(280, 159, -20):
+                screen.move(x, 702)
+            screen.up()
+            time.sleep(3)
+            capture('waydroid-after-back')
+            try:
+                locate(directory / 'waydroid-after-back.png', 'fdroid', vertical=(.07, .4), scale=1)
+                r['back_left_search'] = False
+            except AssertionError:
+                r['back_left_search'] = True
+            status = request(socket, 'status')
+            r['back_kept_card'] = isinstance(status['view'], dict) and any(
+                c['id'] == status['view']['App'] and c['app_id'].startswith('waydroid.') for c in status['cards'])
     finally:
         for ime in enabled:
             shell('ime', 'enable', ime)
@@ -102,7 +121,7 @@ def text_input(r, socket, tap, capture, directory, waydroid):
                                       and shell('settings', 'get', 'secure', 'default_input_method').strip() == default)
 
 
-def replay(socket, state, capture, before, directory, tap=None):
+def replay(socket, state, capture, before, directory, tap=None, screen=None):
     r = dict(passed=False, entry=ENTRY)
     environ = dict(f.decode().split('=', 1) for f in Path('/proc', str(before['pid']), 'environ').read_bytes().split(b'\0') if b'=' in f)
     env = dict(PATH='/usr/bin:/bin', HOME='/home/user', USER='user', LOGNAME='user',
@@ -170,7 +189,7 @@ def replay(socket, state, capture, before, directory, tap=None):
         r['android_bounds'] = bounds()
         if tap is not None:
             try:
-                text_input(r, socket, tap, capture, directory, waydroid)
+                text_input(r, socket, tap, capture, directory, waydroid, screen)
             except Exception as error:
                 r['text_input_error'] = '%s: %s' % (type(error).__name__, str(error)[:300])
         r['view'] = current['view']

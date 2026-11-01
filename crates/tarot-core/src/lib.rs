@@ -132,6 +132,8 @@ pub enum Command {
         target: CardDrop,
     },
     CancelGesture,
+    /// Back from the gesture strip (a right-to-left swipe).
+    Back,
     CardMenuOpen(bool),
     NotificationsOpen(bool),
     Notification(notifications::UiAction),
@@ -155,6 +157,8 @@ pub enum Command {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Effect {
+    /// Back for an app with a documented Back integration (Waydroid).
+    AppBack(WindowId),
     NativeMenu {
         owner: WindowId,
         stamp: app_menu::Stamp,
@@ -243,6 +247,27 @@ pub struct ShellModel {
 }
 
 impl ShellModel {
+    /// Back from the gesture strip: within Tarot's own surfaces first, then
+    /// for an app with a documented integration. Other apps keep their own
+    /// Back control; nothing is guessed or injected for them.
+    fn back(&mut self) -> Vec<Effect> {
+        if self.system_menu_open {
+            return self.apply(Command::Menu(menu::Action::Back));
+        }
+        if self.notifications_open {
+            return self.apply(Command::NotificationsOpen(false));
+        }
+        if let View::App(id) = self.view
+            && self
+                .cards
+                .iter()
+                .any(|c| c.id == id && !c.closing && c.app_id.starts_with("waydroid."))
+        {
+            return vec![Effect::AppBack(id)];
+        }
+        Vec::new()
+    }
+
     pub fn just_type_active(&self) -> bool {
         self.view == View::Launcher
             && self.launcher.search_open
@@ -1014,6 +1039,7 @@ impl ShellModel {
                 };
             }
             Command::CancelGesture => return Vec::new(),
+            Command::Back => return self.back(),
             Command::CardMenuOpen(open) => {
                 self.card_menu_open = open && self.view == View::Overview && !self.system_menu_open;
                 if self.card_menu_open {
@@ -1983,6 +2009,28 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[test]
+    fn back_reaches_shell_surfaces_then_only_documented_apps() {
+        let mut model = ShellModel::default();
+        model.add_window(WindowId(1), "Example".into(), "example".into());
+        // An ordinary app keeps its own Back control: nothing is injected.
+        assert!(model.apply(Command::Back).is_empty());
+        model.add_window(
+            WindowId(2),
+            "F-Droid".into(),
+            "waydroid.org.fdroid.fdroid".into(),
+        );
+        assert_eq!(model.view, View::App(WindowId(2)));
+        assert_eq!(
+            model.apply(Command::Back),
+            vec![Effect::AppBack(WindowId(2))]
+        );
+        // Open shell surfaces take Back first.
+        model.apply(Command::NotificationsOpen(true));
+        model.apply(Command::Back);
+        assert!(!model.notifications_open);
     }
 
     #[test]

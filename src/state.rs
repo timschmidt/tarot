@@ -883,6 +883,7 @@ impl Compositor {
                         self.shell.notifications.error = Some(error.to_string());
                     }
                 }
+                Effect::AppBack(id) => self.send_app_back(id),
                 Effect::ToggleKeyboard => crate::input_method_process::toggle(self),
                 Effect::ShellKey(action) => {
                     match action {
@@ -979,6 +980,43 @@ impl Compositor {
             }
         }
         self.refresh_keyboard();
+    }
+
+    /// Back for an app with a documented integration: Waydroid forwards
+    /// Linux key codes to Android, whose generic layout maps KEY_BACK (158) to
+    /// Back. Sent only while that app's window has keyboard focus.
+    fn send_app_back(&mut self, id: tarot_core::WindowId) {
+        use smithay::input::keyboard::{FilterResult, Keycode};
+        const KEY_BACK: u32 = 158;
+        let Some(window) = self.focused_window(id) else {
+            return;
+        };
+        let Some(surface) = window.toplevel().map(|t| t.wl_surface().clone()) else {
+            return;
+        };
+        let Some(keyboard) = self.seat.get_keyboard() else {
+            return;
+        };
+        if keyboard
+            .current_focus()
+            .is_none_or(|focus| focus != surface)
+        {
+            return;
+        }
+        let time = self.start_time.elapsed().as_millis() as u32;
+        for state in [
+            smithay::backend::input::KeyState::Pressed,
+            smithay::backend::input::KeyState::Released,
+        ] {
+            keyboard.input::<(), _>(
+                self,
+                Keycode::new(KEY_BACK + 8),
+                state,
+                smithay::utils::SERIAL_COUNTER.next_serial(),
+                time,
+                |_, _, _| FilterResult::Forward,
+            );
+        }
     }
 
     pub fn configure_windows(&mut self) {

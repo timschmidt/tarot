@@ -23,6 +23,12 @@ struct Options {
     /// Record only press/release balance, without keycodes or text.
     #[arg(long)]
     audit_key_balance: bool,
+    /// Pose as another application identity (for example a Waydroid task).
+    #[arg(long, default_value = "org.tarot.InputProbe")]
+    app_id: String,
+    /// Record raw key codes; for synthetic keys only.
+    #[arg(long)]
+    record_key_codes: bool,
     #[arg(long)]
     report: PathBuf,
     #[arg(long, default_value_t = 60)]
@@ -100,6 +106,8 @@ struct Window {
 
 struct Probe {
     audit_key_balance: bool,
+    app_id: String,
+    record_key_codes: bool,
     held_keys: std::collections::HashSet<u32>,
     keyboard_on_touch: bool,
     keyboard_purpose_cycle: bool,
@@ -342,7 +350,7 @@ impl Probe {
             .get_xdg_surface(&surface, qh, 0_u32);
         let toplevel = xdg.get_toplevel(qh, ());
         toplevel.set_title("Tarot native input probe".into());
-        toplevel.set_app_id("org.tarot.InputProbe".into());
+        toplevel.set_app_id(self.app_id.clone());
         // The compositor must fit this geometry, rather than assume configured == actual size.
         if !self.fit_output {
             xdg.set_window_geometry(20, 30, 600, 1000);
@@ -372,6 +380,8 @@ fn main() -> Result<()> {
     let qh = queue.handle();
     let mut probe = Probe {
         audit_key_balance: options.audit_key_balance,
+        app_id: options.app_id.clone(),
+        record_key_codes: options.record_key_codes,
         held_keys: std::collections::HashSet::new(),
         keyboard_on_touch: options.keyboard_on_touch,
         keyboard_purpose_cycle: options.keyboard_purpose_cycle,
@@ -765,6 +775,9 @@ impl Dispatch<wl_keyboard::WlKeyboard, ()> for Probe {
                 ..
             } => {
                 let pressed = key_state == wl_keyboard::KeyState::Pressed;
+                if state.record_key_codes {
+                    state.record(json!({"event":"keyboard_key","key":key,"pressed":pressed}));
+                }
                 if state.audit_key_balance {
                     let unmatched_release = if pressed {
                         state.held_keys.insert(key);
