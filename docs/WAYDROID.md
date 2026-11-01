@@ -245,8 +245,16 @@ was restored; an independent audit passed. Evidence
 
 <img src="recordings/waydroid/fdroid-after-suspend.png" alt="F-Droid's main screen in its card after a real suspend and unlock" width="240">
 
-Not covered: a long suspend, suspend while Android plays audio or holds a
-wakelock, and automatic sleep (which Android's own activity may inhibit).
+A second run slept for 119 s with F-Droid shown: the same checks passed
+(session and container running, F-Droid's task present, cards and view
+unchanged), Android stopped cleanly afterwards, the normal session was
+restored and an independent audit passed. It needed the suspend helper to
+accept a longer, explicitly bounded wake (`--max-wake-seconds`, default still
+35 s). Evidence
+`514881b8b82295c5560972b0cd4804f38b64daf5ef76252956a4f82eec3a824f`.
+
+Not covered: suspend while Android plays audio or holds a wakelock, and
+automatic sleep (which Android's own activity may inhibit).
 
 ## Idle cost
 
@@ -274,4 +282,4 @@ power.
    elsewhere), and consider hiding Android's freeform caption, which
    duplicates Tarot's own card controls.
 2. Measure energy unplugged with the container stopped, frozen and running.
-3. Longer suspends, and suspend while Android plays audio or holds a wakelock.
+3. Suspend while Android plays audio or holds a wakelock.

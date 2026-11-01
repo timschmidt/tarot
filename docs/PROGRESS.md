@@ -7,7 +7,7 @@ defines the complete scope. Newer entries come first.
 
 ## Revision history
 
-Android apps survive the phone sleeping: with F-Droid open, the phone locked, really suspended for about ten seconds, woke and unlocked, and F-Droid was still there and drawing, with Android's session intact. [Details](WAYDROID.md#lock-and-suspend-with-android-running).
+Android apps survive the phone sleeping: with F-Droid open, the phone locked, really suspended for about ten seconds and then for two minutes, woke and unlocked, and F-Droid was still there and drawing, with Android's session intact. [Details](WAYDROID.md#lock-and-suspend-with-android-running).
 
 Revision 84 adds Back: swipe right-to-left along the gesture strip. It closes an open menu step or the notification list, and in Android apps it does what Android's Back does; on the phone it took F-Droid back from its search to its main screen. Other apps keep their own Back buttons. [Details](WAYDROID.md#back).
 
