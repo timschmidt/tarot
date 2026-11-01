@@ -23,6 +23,8 @@ pub enum ChildTag {
 }
 
 pub enum AppEvent {
+    /// A fresh catalog after installed desktop entries changed.
+    Catalog(Box<Registry>),
     OpenUri {
         generation: u64,
         search_revision: u64,
@@ -81,6 +83,7 @@ pub fn init(
     };
     let registry = Registry::from_environment();
     state.shell.applications = registry.applications.clone();
+    let registry = std::rc::Rc::new(std::cell::RefCell::new(registry));
     state.shell.launcher.settings = state
         .preferences
         .as_ref()
@@ -94,6 +97,7 @@ pub fn init(
     let (sender, receiver) = channel::channel::<AppEvent>();
     state.app_events = Some(sender.clone());
     let uri_requests = uri::start(sender.clone());
+    watch_catalog(sender.clone());
     let loop_handle = handle.clone();
     handle.insert_source(receiver, move |event, _, data| {
         let channel::Event::Msg(event) = event else { return; };
@@ -122,7 +126,8 @@ pub fn init(
                 }
             }
             AppEvent::Launch { id, generation } => {
-                match registry.launch(&id, &data.state.socket_name) {
+                let launched = registry.borrow().launch(&id, &data.state.socket_name);
+                match launched {
                     Ok(child) => monitor_child(loop_handle.clone(), child, ChildTag::Application(generation), sender.clone()),
                     Err(error) => launch_failed(&mut data.state, generation, format!("{error:#}")),
                 }
@@ -130,6 +135,15 @@ pub fn init(
                     launch_failed(&mut data.state, generation, "The application has not opened a window. It may still be starting.".into());
                     TimeoutAction::Drop
                 }) { tracing::warn!(%error, "could not schedule application startup check"); }
+            }
+            AppEvent::Catalog(next) => {
+                // Installed desktop entries changed (for example an Android
+                // app added by Waydroid): new launches use the new entries.
+                let applications = next.applications.clone();
+                *registry.borrow_mut() = *next;
+                data.state.shell.set_applications(applications);
+                data.state.ui_dirty = true;
+                data.state.redraw = true;
             }
             AppEvent::Exited { tag: ChildTag::Locker(generation), .. } => {crate::lock::exited(&mut data.state,generation);}
             AppEvent::Exited { tag: ChildTag::InputMethod(generation), result } => {
@@ -145,6 +159,59 @@ pub fn init(
         }
     }).map_err(|error| anyhow!(error.to_string()))?;
     Ok(())
+}
+
+/// Rescan desktop entries after their folders change. The thread blocks on
+/// inotify, so an idle session gets no wakeups; a burst of changes is settled
+/// for half a second and scanned once, off the compositor loop.
+fn watch_catalog(sender: smithay::reexports::calloop::channel::Sender<AppEvent>) {
+    use rustix::event::{PollFd, PollFlags, Timespec, poll};
+    use rustix::fs::inotify::{self, CreateFlags, WatchFlags};
+    let spawned = std::thread::Builder::new()
+        .name("tarot-app-catalog".into())
+        .spawn(move || {
+            let Ok(fd) = inotify::init(CreateFlags::CLOEXEC | CreateFlags::NONBLOCK) else {
+                return;
+            };
+            let flags = WatchFlags::CREATE
+                | WatchFlags::DELETE
+                | WatchFlags::MOVED_FROM
+                | WatchFlags::MOVED_TO
+                | WatchFlags::CLOSE_WRITE
+                | WatchFlags::ATTRIB;
+            let watched = desktop::default_paths()
+                .filter(|dir| inotify::add_watch(&fd, dir.as_path(), flags).is_ok())
+                .count();
+            if watched == 0 {
+                return;
+            }
+            let mut buffer = [std::mem::MaybeUninit::<u8>::uninit(); 4096];
+            let settle = Timespec {
+                tv_sec: 0,
+                tv_nsec: 500_000_000,
+            };
+            loop {
+                if poll(&mut [PollFd::new(&fd, PollFlags::IN)], None).is_err() {
+                    return;
+                }
+                loop {
+                    let mut reader = inotify::Reader::new(&fd, &mut buffer);
+                    while reader.next().is_ok() {}
+                    match poll(&mut [PollFd::new(&fd, PollFlags::IN)], Some(&settle)) {
+                        Ok(0) => break,
+                        Ok(_) => continue,
+                        Err(_) => return,
+                    }
+                }
+                let next = Registry::from_environment();
+                if sender.send(AppEvent::Catalog(Box::new(next))).is_err() {
+                    return;
+                }
+            }
+        });
+    if let Err(error) = spawned {
+        tracing::warn!(%error, "could not watch application folders");
+    }
 }
 
 fn launch_failed(state: &mut crate::Compositor, generation: u64, message: String) {

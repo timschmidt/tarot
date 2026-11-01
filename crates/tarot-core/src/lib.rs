@@ -268,6 +268,15 @@ impl ShellModel {
         Vec::new()
     }
 
+    /// Replace the application catalog after installed desktop entries change.
+    /// Search results built from the old catalog are discarded.
+    pub fn set_applications(&mut self, applications: Vec<Application>) {
+        if self.applications != applications {
+            self.applications = applications;
+            self.search.invalidate();
+        }
+    }
+
     pub fn just_type_active(&self) -> bool {
         self.view == View::Launcher
             && self.launcher.search_open
