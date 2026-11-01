@@ -305,7 +305,11 @@ life. Raw samples: `artifacts/m6a/battery/battery.jsonl`.
 
 ## Next
 
-1. Propose the launch-bounds change upstream (it needs an image build
-   elsewhere), and consider hiding Android's freeform caption, which
-   duplicates Tarot's own card controls.
-3. Suspend while Android holds a wakelock without playing audio.
+Android's title bar stays for now: the owner chose to treat it as an upstream
+limitation rather than crop it in Tarot. It, the launch size, the keyboard and
+related fixes inside Waydroid are planned as one patch series in
+[WAYDROID_PATCHES.md](WAYDROID_PATCHES.md).
+
+1. Run that plan's first stage (W0): try `am start --windowingMode 1`, which
+   may give fullscreen apps without a title bar and no image rebuild.
+2. Suspend while Android holds a wakelock without playing audio.
