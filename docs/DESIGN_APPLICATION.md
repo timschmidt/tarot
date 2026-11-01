@@ -99,7 +99,7 @@ The remaining errors and off-palette accents (volume bar, stack target) now use 
 The owner asked for adherence to the packet, so the remaining deviations were then resolved toward it:
 
 - **Dismissal.** Notification rows and banners have no "×", as in packets 05 and 06; a sideways swipe past 35% of the row dismisses a row or hides a banner (it stays in the dashboard). A vertical drag still scrolls the dashboard. Expanded rows keep a plain Dismiss button, so dismissal never depends on a gesture alone.
-- **Keyboard.** Shift and Backspace are drawn as glyphs (Shift filled while active), the symbols key reads "?123" and the space bar "space". Enter stays "Enter" rather than the packet's search-specific "Go". The keyboard keeps its 240-unit height instead of the token's 220: every native touch replay types at fixed 240-unit coordinates, and the taller keys are easier to hit; this is a deliberate deviation.
+- **Keyboard.** Shift and Backspace are drawn as glyphs (Shift filled while active), the symbols key reads "?123" and the space bar "space". Enter stays "Enter" rather than the packet's search-specific "Go". The keyboard keeps its 240-unit height instead of the token's 220: the taller keys are easier to hit and every native touch replay types at fixed 240-unit coordinates. The owner chose to keep it on November 1, so this is an accepted deviation.
 - **Device menu.** 18-unit labels, values right-aligned beneath them, and no chevrons on the top-level rows.
 - **Clock.** No leading zero on the hour ("9:41"), in the status bar and on the lock screen; 24-hour time is kept.
 - **Fallback icons.** The launcher and the dock share one fallback: a circle tinted from the application identity, with its initial.
