@@ -7,6 +7,8 @@ defines the complete scope. Newer entries come first.
 
 ## Revision history
 
+Revision 85 refreshes the launcher's app list as soon as apps are installed or removed, including the Android apps Waydroid adds, instead of at the next login. On the phone it also re-confirmed, on the restyled pages, that changing what the phone starts into asks for the administrator password, works with the right one, and changes nothing when canceled. [Details](DESIGN_APPLICATION.md#design-audit-october-31).
+
 Android apps survive the phone sleeping: with F-Droid open, the phone locked, really suspended for about ten seconds and then for two minutes, woke and unlocked, and F-Droid was still there and drawing, with Android's session intact. [Details](WAYDROID.md#lock-and-suspend-with-android-running).
 
 Revision 84 adds Back: swipe right-to-left along the gesture strip. It closes an open menu step or the notification list, and in Android apps it does what Android's Back does; on the phone it took F-Droid back from its search to its main screen. Other apps keep their own Back buttons. [Details](WAYDROID.md#back).
